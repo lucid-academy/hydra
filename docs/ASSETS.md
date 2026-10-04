@@ -251,6 +251,8 @@ The hydra's torso seen from the side and above, **without heads and necks** (the
 
 Prompt sketch: *"Pixel art, 132x110, transparent background, seen from a slanted top-down angle. The headless, neckless torso of a swamp hydra: a huge squat mound of dark green scaly hide with paler scales on its back, dark outline, light from the upper left. No head, no neck, no tail. Hard pixels, no anti-aliasing, dark fantasy."*
 
+**Being redrawn (2026-10-04)** in the style of the cover and the head portraits: a heavy mound of thick serpent coils, old bronze scales in a near-black net, pale cream belly plates along the sides of the coils, dark olive moss (prompt: `docs/ART_PROMPTS.md`, section "Hydra w bitwie"). The new body will be bigger, about 144×128 px with its anchor near (72, 84): the lowest coil still covers the seven hexes, and the coils pile up higher, so the necks rise from the top of the hump. The size, the anchor (`BODY_FOOT`) and where the necks leave the body change when it is imported.
+
 ## battle_head
 
 | | |
@@ -261,11 +263,25 @@ Prompt sketch: *"Pixel art, 132x110, transparent background, seen from a slanted
 | Background | transparent |
 | Used in | battle, one per head, at the end of its neck |
 
-One hydra head seen from the side, **snout pointing right**, a glowing eye, a long mouth line. Draw it in **pale grey / white with a dark outline**: the game tints it with the colour of the head's class (from `src/data/heads.json`), so one image serves all classes.
+One hydra head seen from the side, **snout pointing right**, a glowing eye, a long mouth line. Draw it in **pale grey / white with a dark outline**: the game tints it with the colour of the head's class (from `src/data/heads.json`), so one image serves all classes. It stays in use until each class has its own head (next section).
 
 Real art comes in two parts, so the game can open the mouth: **battle_head** is the head without its lower jaw (36×18, the art sits at the bottom middle of the image) and **battle_head_jaw** is the lower jaw alone (36×9, the art sits at the top right, so the tips of both jaws line up). The game hangs the jaw under the head, both centred on the same point, the jaw's top edge overlapping the head's bottom edge by 3 px (`JAW_OVERLAP` in `src/assets/battleArt.ts`), so the teeth interlock and the mouth is shut. To bite, the jaw turns around its back end (the leftmost drawn pixel of the jaw image, found by the game). GPT draws both parts side by side on one picture (`art/raw/battle_head.png`) and the import splits them. The placeholder head has its jaw drawn in, so its battle_head_jaw stays empty.
 
 The size was 20×14 until the first GPT head (2026-10-03): GPT drew it at about 43×21 pixels of its own, and squeezed to 20 px it turned to noise. At 36 px it keeps its eye, teeth and crest.
+
+## Class heads: battle_head_biter, battle_head_biter_jaw (the other classes follow)
+
+| | |
+|---|---|
+| Size | battle_head_biter 40×22 px, its jaw battle_head_biter_jaw 40×10 px (the other classes get their slots with their prompts) |
+| Frames | 1 (static; the game animates it, as battle_head) |
+| Anchor | centre, as battle_head |
+| Background | transparent |
+| Used in | battle, every head of that class |
+
+Each head class gets its own head and jaw (GAME_DESIGN.md §13), drawn from its painted portrait in `art/concept/portraits/` and in its own colours: the game does **not** tint them. They come in the same two pieces as battle_head: GPT draws the head without its lower jaw and the jaw alone side by side on one picture (`art/raw/battle_head_<class>.png`), the import splits them, the head sits at the bottom middle of its image and the jaw at the top right. The class's feature (bolt, hood, gills, bone pipes, lure and so on) belongs to the head piece and may make it taller or longer than the skull, so each class's size is tuned in the manifest after its import, to keep the skulls about the same size (the Biter's is the biggest). Prompts: `docs/ART_PROMPTS.md`, section "Hydra w bitwie".
+
+For now the game shows the tinted battle_head for every class; the battle scene switches a class to its own head when the first one is imported.
 
 ## Order soldiers: battle_enemy_manAtArms, battle_enemy_headhunter, battle_enemy_torchbearer
 

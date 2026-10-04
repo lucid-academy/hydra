@@ -131,6 +131,21 @@ describe('importing pictures', () => {
     expect(r).toBe(255); // the brightest grey becomes white
   });
 
+  it("splits a class's own head and jaw the same way, but keeps their colours", () => {
+    const src = picture(300, 120, (x, y) => {
+      if (inside(x, y, 10, 10, 150, 110)) return [150, 110, 50, 255]; // bronze head: 140×100
+      if (inside(x, y, 190, 40, 260, 60)) return [190, 175, 140, 255]; // cream jaw: 70×20
+      return MAGENTA;
+    });
+    const sized = { ...entries, battle_head_biter: { file: null, width: 20, height: 14 }, battle_head_biter_jaw: { file: null, width: 20, height: 7 } };
+    const { images } = importArt([src], 'battle_head_biter', sized, null);
+    expect(images.map((i) => i.key)).toEqual(['battle_head_biter', 'battle_head_biter_jaw']);
+    const [head, jaw] = images.map((i) => i.picture);
+    expect(opaqueBox(head!).maxY).toBe(13);
+    expect([opaqueBox(jaw!).minY, opaqueBox(jaw!).maxX]).toEqual([0, 19]);
+    expect(at(head!, 10, 10)).toEqual([150, 110, 50, 255]);
+  });
+
   it('says what is wrong when the head and jaw touch', () => {
     const src = picture(300, 120, (x, y) => (inside(x, y, 10, 10, 260, 110) ? [200, 200, 200, 255] : MAGENTA));
     expect(() => importArt([src], 'battle_head', entries, null)).toThrow(ImportError);
@@ -166,6 +181,13 @@ describe('importing pictures', () => {
     expect(ruleFor('title_background').fit).toBe('cover');
     expect(ruleFor('battle_enemy_headhunter').parts[0]!.align).toBe('bottom');
     expect(ruleFor('battle_head').parts).toHaveLength(2);
+    expect(ruleFor('battle_head_biter')).toEqual({
+      fit: 'sprite',
+      grey: false,
+      parts: [{ key: 'battle_head_biter', align: 'bottom' }, { key: 'battle_head_biter_jaw', align: 'top-right' }],
+    });
+    expect(ruleFor('battle_head_biter_jaw')).toEqual({ fit: 'sprite', grey: false, parts: [{ key: 'battle_head_biter_jaw', align: 'top-right' }] });
+    expect(ruleFor('battle_head_jaw').grey).toBe(true);
     expect(ruleFor('map_place_sunkenOak').parts[0]!.align).toBe('bottom');
     expect(ruleFor('map_muck_rich').parts[0]!.align).toBe('bottom');
     expect(ruleFor('map_threshold_saltPlug').parts[0]!.align).toBe('bottom');

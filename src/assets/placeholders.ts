@@ -333,5 +333,8 @@ function darker(hex: string): string {
 /** The placeholder for a manifest key: a fixed one, or one made from a biome's colours (map_ground_*, map_rock_*, battle_tile_*). */
 export function placeholderFor(key: string): PlaceholderDrawer | undefined {
   if (/^battle_tile_.+_(ground|water)$/.test(key)) return drawBiomeBattleTile;
+  // A class's own head and jaw (battle_head_<class>, battle_head_<class>_jaw): until its art comes, that class
+  // keeps the tinted battle_head, so the placeholder stays empty.
+  if (/^battle_head_[a-z][A-Za-z]*(_jaw)?$/.test(key)) return placeholderDrawers[key] ?? drawEmpty;
   return placeholderDrawers[key] ?? mapPlaceholderFor(key);
 }

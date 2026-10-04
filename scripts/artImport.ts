@@ -31,6 +31,8 @@ export interface ImportRule {
 }
 
 const TINTED = /^(battle_head|battle_head_jaw|battle_mist_puff|battle_shadow|battle_hex_mark|battle_hex_fill|map_glow|map_mark)$/;
+/** battle_head_<class> and battle_head_<class>_jaw (battle_head_jaw itself is the tinted jaw, handled before). */
+const CLASS_HEAD = /^battle_head_([a-z][A-Za-z]*?)(_jaw)?$/;
 const STANDING = /^(battle_body|battle_enemy_.+|map_deco_.+|map_encounter_.+|map_place_.+|map_(lair|shrine|passage|muck|moisture|hydra|remains|hoard|muck_rich|moisture_rich)|portrait_.+)$/;
 /** Open thresholds lie flat on the hex, centred on it, except the timber frame of the Old Workings, which stands. */
 const STANDING_THRESHOLD = /^map_threshold_[A-Za-z]+$|^map_threshold_oldWorkings_open$/;
@@ -44,6 +46,12 @@ export function ruleFor(key: string): ImportRule {
     return { fit: 'sprite', grey: true, parts: [{ key: 'battle_head', align: 'bottom' }, { key: 'battle_head_jaw', align: 'top-right' }] };
   }
   if (key === 'battle_head_jaw') return { fit: 'sprite', grey: true, parts: [{ key, align: 'top-right' }] };
+  const classHead = CLASS_HEAD.exec(key);
+  if (classHead) {
+    // A class's own head, as battle_head but in its own colours: the game does not tint it (GAME_DESIGN.md §13).
+    if (classHead[2]) return { fit: 'sprite', grey: false, parts: [{ key, align: 'top-right' }] };
+    return { fit: 'sprite', grey: false, parts: [{ key, align: 'bottom' }, { key: `${key}_jaw`, align: 'top-right' }] };
+  }
   const stands = STANDING.test(key) || STANDING_THRESHOLD.test(key);
   return { fit: 'sprite', grey: TINTED.test(key), parts: [{ key, align: stands ? 'bottom' : 'center' }] };
 }

@@ -25,6 +25,43 @@ Camera: one angle for the whole game, a three-quarter view from above, about 45 
 Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
 ```
 
+## Hydra w bitwie: tułów i głowy w stylu okładki
+
+Hydra dostaje wygląd z okładki i portretów: stary brąz w czarnej siatce, kremowe płyty brzucha, mech. Najpierw próba na dwóch obrazkach, tułowiu i głowie Bitera. Wstawię je do gry i pokażę zrzuty, a prompty na pozostałe osiem głów dopiszę po próbie.
+
+- Do promptu tułowia dołącz okładkę. Do promptu głowy dołącz portret Bitera i gotowy pixelowy tułów (najprościej w tej samej rozmowie z GPT, zaraz po tułowiu).
+- Nowy tułów nazwij `battle_body.png`, tak jak stary. Stary zostaje w historii repozytorium.
+- Głowa to dwa osobne kawałki (głowa i żuchwa), które nie mogą się stykać, tak jak przy pierwszej głowie.
+
+### `battle_body.png`: tułów hydry z okładki
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. The attached picture is the game's cover painting: draw the body of THAT hydra, with its scales, colours, moss and mood, as a small pixel-art game sprite.
+Subject: the body of the giant swamp hydra WITHOUT any heads or necks (the game adds the necks and heads). A huge, heavy mound of thick serpent coils piled on top of each other, like a coiled python the size of a hill, seen in the game's three-quarter view from above. The lowest coil lies on the ground in a wide oval, about one and a half times as wide as it is deep; the coils above it get smaller and pile up into a tall hump that rises above the back of the oval by about half of the oval's depth. The top of the hump is a broad, rounded crown of coils: the necks will rise from there. The tail end is tucked in between the coils. No face, no legs and nothing sticking out: necks and enemies surround it on every side, so it has no front and no back.
+Colours as on the cover: old bronze scales (#342513, #64461f, #907246, highlights #d1ba8e) in a net of near-black lines (#120e08); pale cream belly plates (#c1b18e, shaded #6b6853) showing as a band along the side of each coil; a few strands of dark olive moss (#45422a) hanging from the coils. Lit from the upper left, the lowest coil darkest. A dark outline all around. No water, ground, mist or shadow under it: the game adds them.
+Size: in the game it is only about 144 by 128 pixels, so draw the coils thick and bold and the scales as a simple net of big pixels, without tiny details.
+```
+
+### `battle_head_biter.png`: głowa Bitera (dwa kawałki: głowa i żuchwa)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite in two separate pieces on the flat magenta background, side by side, with a clear gap of magenta between them (they must not touch). Two pictures are attached: the painted portrait of the Biter shows WHAT to draw (its head, scars and colours); the pixel-art hydra body shows HOW to draw it (the same size of pixels, the same outline and colours), so the head clearly belongs to that body.
+Subject: the Biter, one of the hydra's heads, raised in the air and seen from the side, snout pointing RIGHT, mouth closed. The most massive skull of all the heads: a heavy, blunt snake head with a thick brow ridge, a small glowing amber eye (#d3a224) under it, old scars across the snout and a broken crossbow bolt stuck in the brow ridge. Old bronze scales (#342513, #64461f, #907246) in a near-black net (#120e08), pale cream plates (#c1b18e) under the jaw, a few strands of dark olive moss (#45422a), a few big fangs. Dark and menacing, more snake than dragon, never cute. No tongue and no neck: the head ends right behind the skull, the game draws the neck. A dark outline all around.
+- LEFT piece: the head without its lower jaw (skull, upper jaw with its fangs, eye, brow ridge and the bolt), snout pointing right.
+- RIGHT piece: the lower jaw alone, at the size it has on the head, also pointing right, with its fangs.
+Size: in the game the whole head with its jaw is only about 40 by 30 pixels, so keep it simple and bold: one clear silhouette and a few big shapes. The brow ridge and the bolt must still read at that size.
+```
+
 ## Pierwsza partia: 5 obrazków
 
 Najpierw te pięć: sprawdzimy na nich cały proces, zanim zrobisz resztę.
@@ -68,7 +105,7 @@ Subject: rough, solid cave rock of an underground swamp: dark brownish grey ston
 Size: drawn as pixel art about 96 by 96 pixels, so keep the shapes chunky: cracks and patches 2 to 8 pixels big.
 ```
 
-### 4. `battle_body.png`: tułów hydry
+### 4. `battle_body.png`: tułów hydry (stary wygląd, nie używać: nowy prompt w sekcji „Hydra w bitwie”)
 
 ```text
 Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
@@ -81,7 +118,7 @@ Subject: the torso of a giant swamp hydra WITHOUT any heads, necks or tail (the 
 Size: in the game it is 132 by 110 pixels, so keep the scales big and the shape bold.
 ```
 
-### 5. `battle_head.png`: głowa (dwa kawałki: głowa i żuchwa)
+### 5. `battle_head.png`: głowa (stary wygląd, nie używać: nowe głowy w sekcji „Hydra w bitwie”)
 
 ```text
 Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
