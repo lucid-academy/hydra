@@ -231,6 +231,8 @@ Prompt sketch: *"Pixel art character sprite, 26x38 pixels, transparent backgroun
 
 Old Mother Toad, guardian of the lair and mentor: a bust (head and shoulders), seen from the front and turned a little to the side. Portraits are a separate shot and don't follow the game camera.
 
+Since 2026-10-04 dialogue portraits are painted (GAME_DESIGN.md §13). This pixel portrait stays until M5, when a painted one with its own spec replaces it.
+
 ## battle_stump, battle_scar
 
 | | |

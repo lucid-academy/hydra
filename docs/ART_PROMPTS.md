@@ -297,6 +297,8 @@ Size: drawn as pixel art about 96 by 96 pixels, so keep the shapes chunky: layer
 
 ## Portret
 
+Od 2026-10-04 portrety w dialogach są malowane (`GAME_DESIGN.md` §13). Ten pixelowy portret zostaje w grze do etapu M5. Prompt na malowany jest w dokumencie z projektem głów, w projekcie Hydra.
+
 ### `portrait_oldMotherToad.png`: Old Mother Toad
 
 ```text

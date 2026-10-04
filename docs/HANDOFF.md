@@ -58,11 +58,11 @@ Stan na 2026-10-03. Ten plik streszcza dotychczasową pracę, żeby następna se
 - kłapanie żuchwą przy ataku i odrzut głowy przy trafieniu (punkt 8, `docs/ANIMATIONS.md`).
 Portret jest w grze, ale żadna scena go jeszcze nie pokazuje (dialogi przyjdą z późniejszym etapem).
 
-**Nowy kierunek, 2026-10-04:** Piotr uznał pierwszą głowę za komiczną i zbyt smoczą. Wzorem stylu jest jego okładka (przysłana w projekcie Hydra, jeszcze nie w repo) i Hades: głowy mroczne, wężowe, humor tylko w kwestiach (`GAME_DESIGN.md` §13). Kolejność: najpierw malowane portrety głów do dialogów, potem na ich podstawie pixelowe głowy do bitwy. Prompty portretów są w dokumencie z projektem 9 głów (dokument Claude w projekcie). Na karcie decyzji Piotr wybrał malowane portrety w samej grze, więc w M5 (dialogi) trzeba:
+**Nowy kierunek, 2026-10-04:** Piotr uznał pierwszą głowę za komiczną i zbyt smoczą. Wzorem stylu jest jego okładka (przysłana w projekcie Hydra, jeszcze nie w repo) i Hades: głowy mroczne, wężowe, humor tylko w kwestiach (`GAME_DESIGN.md` §13). Kolejność: najpierw malowane portrety głów do dialogów, potem na ich podstawie pixelowe głowy do bitwy. Prompty portretów są w dokumencie z projektem 9 głów (dokument Claude w projekcie). Na kartach decyzji Piotr wybrał malowane portrety w samej grze, dla wszystkich postaci w dialogach, więc w M5 (dialogi) trzeba:
 - warstwę dialogów rysowaną w rozdzielczości ekranu, nad płótnem 640×360;
 - regułę importu dla malowanych portretów: wycięcie tła bez zmniejszania i bez palety, wpisy w manifeście i `docs/ASSETS.md`.
 
-Do tego czasu malowane portrety leżą w `art/concept/`, bo `npm run art` odrzuca w `art/raw/` pliki spoza manifestu. Body też będzie przerobione w tym stylu, po głowach.
+Do tego czasu malowane portrety leżą w `art/concept/`, bo `npm run art` odrzuca w `art/raw/` pliki spoza manifestu. Pixelowy portret Old Mother Toad (`portrait_oldMotherToad`, 128×160) zostaje w grze do M5, potem zastąpi go malowany. Body też będzie przerobione w tym stylu, po głowach.
 
 Plan:
 
@@ -127,7 +127,6 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 2. Nowa tekstura soli do Salt Mines (Piotr wybrał nowy obrazek, prompt już przyciemniony) i malowane portrety głów (sekcja 3.2, „Nowy kierunek”).
 3. Okładka gry przyszła w projekcie Hydra 2026-10-04. Do repo (`art/raw/key_art.png`) trafi przy propozycji palety.
 4. Projekt głów do M2a: propozycja 9 głów czeka na zatwierdzenie (dokument Claude „Hydra: komplet 9 głów” w projekcie Hydra).
-5. Czy pozostałe portrety (Old Mother Toad, jeńcy, Mistrzowie Zakonu, przodkowie) też mają być malowane (`GAME_DESIGN.md` §16).
 
 **Z `GAME_DESIGN.md` §16 (decyduje Piotr):**
 - ile kapliczek Płomienia trzeba zgasić;
