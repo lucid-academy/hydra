@@ -441,7 +441,7 @@ Woda (Body szybsze, powolne leczenie), błoto, suchy grunt (Body wolniejsze), ch
 
 Zasada: po każdym etapie gra jest wdrożona i grywalna pod linkiem, a Claude Code zatrzymuje się na playtest.
 
-**Zmiana kierunku z 2026-10-04** (fabularny roguelite, sekcja 1) przesuwa eventy, mini questy, dialogi i pokolenia wcześniej. Nowa kolejność etapów: `TODO(design)`, do ustalenia z Piotrem. Do tego czasu obowiązuje lista poniżej.
+**Kolejność od 2026-10-04** (decyzja Piotra po zmianie kierunku na fabularny roguelite, sekcja 1): M2c, M5, M6, M2a, M3, M4, M7. Etapy zachowują swoje nazwy, więc numery nie oznaczają już kolejności.
 
 **M0: fundament.** Projekt (Vite + TypeScript + Phaser 4), testy, skrypt do zrzutów ekranu, repo na GitHubie, automatyczne wdrożenie na GitHub Pages. Ekran startowy dostępny pod linkiem.
 
@@ -455,18 +455,19 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 
 **M1b: bitwa na heksach (po playteście M1).** Plansza z heksów widziana pod skosem, Body na 7 heksach na środku, ludzie chodzą z heksu na heks i otaczają hydrę, bitwa zaczyna się w pauzie. Zasady z M1 (ścinanie, odrost, przypalanie, statusy, combosy) bez zmian.
 
-**M2** (po playteście M1b podzielony na dwie części; najpierw M2b):
+**M2** (po playteście M1b podzielony na części; najpierw M2b):
 
 - **M2b: podziemia na serio.** Pełny generator z biomami i walidatorem, duża mapa w stylu Songs of Conquest, leże, kapliczki, Spell Caches, zasoby.
+- **M2c: mapa do odkrywania.** Przebudowa mapy z M2b pod eksplorację według propozycji z 2026-10-04 (dokument Claude „Hydra: eksploracja, biomy i świat”). Zakres po decyzjach Piotra: `TODO(design)`.
 - **M2a: głowy.** Pozostałe klasy głów i ich combosy, kodeks combosów, doświadczenie i specjalizacje, umiejętności i drzewko talentów (6.9).
 
 **M3: Zakon kontratakuje.** Alert z progami, patrole i posłańcy na mapie, wyprawy, obrona leża, jaja i Broodlingi, Great Burning jako boss aktu.
 
 **M4: powierzchnia.** Passages, Mist, dzień i noc, kapliczki Płomienia (gaszenie, trwała mgła, ponowne rozpalanie przez Zakon), stan Exposed.
 
-**M5: eventy i dialogi.** Oba systemy i pierwsza porcja treści.
+**M5: eventy, mini questy i dialogi.** Wszystkie trzy systemy (dialogi z malowanymi portretami i głosem Węża) i pierwsza porcja treści.
 
-**M6: pokolenia.** Ekran pokolenia, mutacje, księga zaklęć rodu, ukryte jajo i wybór przy wymarciu rodu, odblokowania, Księga Rodów, zapis gry.
+**M6: pokolenia.** Ekran pokolenia, mutacje, księga zaklęć rodu, ukryte jajo i wybór przy wymarciu rodu, odblokowania, Księga Rodów, zapis gry. Wiedza o świecie przechodzi na kolejne pokolenia. Ponieważ M6 idzie przed M3, zaczyna w prostej wersji, bez jaj (przyjdą z M3).
 
 **M7 i dalej: finał i szlif.** Szturm na zamek i zwycięstwo, dźwięk, podmiana grafiki, balans, pełne sterowanie dotykowe.
 

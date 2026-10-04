@@ -12,8 +12,8 @@ Stan na 2026-10-04. Ten plik streszcza dotychczasową pracę, żeby następna se
 - Zrobione: **M0, M1, M1b, M2b** (sekcja 15 w `GAME_DESIGN.md`).
 - **M2b** (podziemia) jest wdrożony i czeka na playtest Piotra.
 - 2026-10-03 Piotr zmienił sposób pracy: grafika będzie z GPT, animacje najpierw w kodzie. Zasady są już w `CLAUDE.md`. Plan grafiki (sekcja 3.2) Piotr zatwierdził tego samego dnia i potok jest zbudowany. Wieczorem przyszła cała pierwsza partia (21 obrazków) i jest w grze; **czeka na uwagi Piotra**.
-- Następny etap gry to **M2a** (głowy). Projekt 9 głów Piotr zatwierdził 2026-10-04 (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13). Budowę zacząć dopiero na hasło Piotra.
-- **Zmiana kierunku, 2026-10-04:** Hydra to teraz fabularny roguelite z naciskiem na odkrywanie świata, mini questy i kilka zakończeń; bitwy rzadsze, ale ważne (`GAME_DESIGN.md` §1, §2, §4, §15). Nowa kolejność etapów czeka na Piotra, więc M2a może przestać być następny.
+- Następny etap gry to **M2c** (mapa do odkrywania), potem M5, M6, M2a, M3, M4, M7 (kolejność Piotra z 2026-10-04, `GAME_DESIGN.md` §15). Plan M2c czeka na OK Piotra; budowę zacząć dopiero na jego hasło. Projekt 9 głów (M2a) jest zatwierdzony (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13).
+- **Zmiana kierunku, 2026-10-04:** Hydra to teraz fabularny roguelite z naciskiem na odkrywanie świata, mini questy i kilka zakończeń; bitwy rzadsze, ale ważne (`GAME_DESIGN.md` §1, §2, §4, §15).
 
 ## 2. Co zrobione
 
@@ -129,9 +129,8 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 1. Wrażenia z playtestu M2b: mapa, kapliczki, leże, nowe biomy.
 2. Nowa tekstura soli do Salt Mines (Piotr wybrał nowy obrazek, prompt już przyciemniony). Malowane portrety głów już są (sekcja 3.2).
 3. Okładka gry przyszła w projekcie Hydra 2026-10-04. Do repo (`art/raw/key_art.png`) trafi przy propozycji palety.
-4. Start M2a (głowy): projekt 9 głów jest zatwierdzony i wpisany do `GAME_DESIGN.md`, budowa na hasło Piotra.
-5. Propozycja eksploracji (mapa w pierścieniach, roboczo etap M2c) w dokumencie Claude „Hydra: eksploracja, biomy i świat”: decyzje 1, 2, 4, 5 i 6. Decyzję 3 (prawda o Hushed) zastąpił świat Piotra, wpisany do `GAME_DESIGN.md` §1.
-6. Nowa kolejność etapów po zmianie kierunku na fabularny roguelite (`GAME_DESIGN.md` §15).
+4. Plan M2c (mapa do odkrywania) i jego OK.
+5. Propozycja eksploracji (mapa w pierścieniach, roboczo etap M2c) w dokumencie Claude „Hydra: eksploracja, biomy i świat”: decyzje 1, 2, 4 i 5 (6 rozstrzygnęła kolejność etapów). Decyzję 3 (prawda o Hushed) zastąpił świat Piotra, wpisany do `GAME_DESIGN.md` §1.
 
 **Z `GAME_DESIGN.md` §16 (decyduje Piotr):**
 - ile kapliczek Płomienia trzeba zgasić;
@@ -172,4 +171,4 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 3. Okładka jest: propozycja palety (próbnik i okładka w palecie) przed pixelowymi wersjami głów, po akceptacji zapis w repo. Do rozstrzygnięcia przy tym: na okładce hydra ma stare złoto i brąz, a §13 opisuje ją jako zimną (turkus, zieleń).
 4. Gdy Piotr napisze, że wrzucił grafiki: `git pull`, `npm run art`, obejrzeć wynik w grze, wdrożyć, pokazać.
 5. Zatwierdzone decyzje od razu wpisywać do `GAME_DESIGN.md`, a budować w swoim etapie.
-6. Potem następny etap według kolejności z §15 (po zmianie kierunku czeka na Piotra), zawsze na jego hasło.
+6. Potem M2c według planu, na hasło Piotra, i dalej kolejność z `GAME_DESIGN.md` §15.
