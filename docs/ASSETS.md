@@ -13,6 +13,7 @@ How `npm run art` treats each kind of image (`scripts/artImport.ts`):
 - **Textures** (`texture_*`): no background; the middle square of the picture is squashed to the listed size.
 - **Full-screen pictures** (`title_background`): cropped to the screen's shape and shrunk.
 - **Everything else** stands on magenta: the background goes, stray specks go, and the figure is fitted into its box keeping its shape. Things that stand (soldiers, the body, decorations, objects, portraits) sit on the bottom edge of the box; others in the middle.
+- **Purple** that touches the magenta background goes with it (a violet edge looks like a soft edge of the background), so purple and pink things need a dark outline all around.
 - **Tinted images** (heads, mist, marks) are turned grey, the brightest part white.
 - **Shrinking** gives each game pixel the most common colour of the block of pixels it covers, so no blurred colours appear.
 - **Animations:** frames as `art/raw/<key>_frame1.png`, `_frame2.png`... (or several figures side by side on one picture when the manifest entry has `"frames"`), cut with one common box and saved as a strip; `"frames"` in the manifest says how many.
@@ -109,7 +110,7 @@ The hex raised into a rough block of cave rock: the top face (same shape as a gr
 | Background | transparent |
 | Used in | strategic map, scattered over open hexes (each biome lists its kinds in biomes.json) |
 
-Small things that make each biome feel different. They do nothing in the game.
+Small things that make each biome feel different. They do nothing in the game. Each biome lists its kinds in `src/data/biomes.json`; pebbles lie in every biome and bones in three, so keep those two in neutral colours.
 
 - **reeds** (the only thing that grows out of water), **bones**, **pebbles**, **stalagmite**, **puddle**, **roots**, **sprout**, **mushroom**,
 - **crystal:** pale pink-white salt crystals (Salt Mines),
