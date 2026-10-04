@@ -16,6 +16,20 @@ Gatunek: roguelite z pokoleniami. Warstwa strategiczna to turowa mapa heksagonal
 4. **Każdy run jest inny.** Generowana mapa, losowe głowy, eventy, modyfikatory runu.
 5. **Poważny świat, absurdalni ludzie.** Humor bierze się z tego, że Zakon jest śmiertelnie poważny w idiotycznych sprawach.
 
+### Świat
+
+Decyzje Piotra z 2026-10-04. Gracz poznaje ten świat po kawałku, a części odpowiedzi jeszcze nie ma.
+
+- **The Great Serpent** (Wielki Wąż) śpi, otulając swoim ciałem środek planety. Hydra szuka jego błogosławieństw. Może to on sprawia, że głowy rosną (§16, odrost).
+- **Głos Węża.** Śpiący Wąż mówi do głów hydry, do każdej trochę inaczej. Głowy różnie rozumieją jego słowa i stąd często ich niezgoda. Komunikaty są niejasne i oniryczne, czasem brzmią jak zagadki i zdradzają fragmenty historii. Pojawiają się w głowach głów w podróży, w walce albo w czasie odpoczynku.
+- **Old Mother Toad** pomaga je trochę interpretować, ale do niej Wąż nie mówi od dawna. Nie wie dlaczego, łaknie tej wiedzy i czasem cicho zazdrości głowom. O Hushed coś wie, ale niewiele.
+- **The Hushed** zniknęli dawno temu. Nie wiadomo, czy byli humanoidami, czy bliżej im było do węży. Podtrzymywali rytm i melodię Węża, która według nich nadaje rytm i równowagę całemu światu; czy to prawda, nie wiadomo. Zostały po nich ryciny w starych księgach, artefakty i maszyny dźwiękowo-parowe (roboczo: grzane ciepłem z wnętrza planety, trzymały pieśń na właściwej częstotliwości).
+- **Tajemnice do odkrycia w grze:** czy to przez zniknięcie Hushed hydra zaczęła słyszeć głosy? Dlaczego dopiero teraz, skoro Wąż tyle lat milczał, a Hushed zniknęli dawno temu? Czy bez ich interpretacji hydra zrozumie, co się dzieje? Odpowiedzi: `TODO(design)`.
+- **The Discordant**, kultyści Węża: górnicy, grabarze i ludzie z predyspozycjami słyszą strzępki pieśni Węża. Hushed utrzymywali jej harmonię, a bez nich kakofonia dźwięków doprowadza tych ludzi do szaleństwa. Miejscami są jak kultyści Cthulhu. Każdy idzie własną drogą i inaczej wygląda: jedni się okaleczają, inni upodabniają do węża, jeszcze inni próbują połączyć się z muzyką. Trzy odłamy (nazwy robocze): **Wakers** chcą obudzić Węża, **the Ninefold** wspierają hydrę, a **the One Coil** atakują ją jako aberrację, bo „wąż jest tylko jeden".
+- **Kultyści w grze: mała frakcja.** Są tylko w podziemiach, w małych grupach: jedni walczą z hydrą, inni jej pomagają. Nie mają Alertu ani wypraw, więc głównym wrogiem zostaje Zakon. Ich jednostki, spotkania i eventy: `TODO(design)`.
+- **The Cinderkin:** owady z gorącej skały, które jedzą ciepło. Żyją w ulach z królową, a ule to katedry z zastygłej lawy. Ciągnie je każdy ogień, także ogień Zakonu. Łatwo przechodzą między warstwami, bo je topią. Ich cel jest nieznany; zachowują się nieco irracjonalnie, ale jak rój. Czy walczą w bitwach: `TODO(design)`.
+- **Grzybnia:** grzyby i grzybnia, lekka psychodelia, współistnienie wszystkich żywych istot, wielowymiarowość. To ścieżka obok Węża, nie bezpośrednio z nim związana, ale ważna. [[MYCELIUM]]
+
 ## 2. Referencje
 
 - **Tomb Guard** (Studio Siege, demo na Steamie, 2026): główna referencja mechanik i stylu. Real-time z pauzą, drużyna z klasami i specjalizacjami, walka aż do bossa, eventy z ryzykiem, błogosławieństwa, odblokowania przez wyzwania, śmierć jako normalna część gry. Pixel art widziany z góry.
@@ -47,9 +61,14 @@ Gatunek: roguelite z pokoleniami. Warstwa strategiczna to turowa mapa heksagonal
 | Alert | Czujność Zakonu, 0–100. |
 | Expedition | Wyprawa Zakonu idąca na leże. |
 | Great Burning | Wielkie Palenie: szturm Zakonu na leże na koniec aktu, z bossem. |
-| Order of the Eternal Flame | Zakon Wiecznego Ognia, jedyna frakcja ludzi. |
+| Order of the Eternal Flame | Zakon Wiecznego Ognia, główna frakcja ludzi i główny wróg hydry. |
 | Eternal Flame | Wieczny Płomień w katedrze na zamku. Jego zgaszenie to zwycięstwo. |
 | Flame Shrine | Kapliczka Płomienia na powierzchni, podtrzymuje Wieczny Płomień. |
+| The Discordant | Kultyści Węża, mała frakcja ludzi w podziemiach. Rozstrojona pieśń Węża doprowadza ich do szaleństwa. |
+| Great Serpent | Wielki Wąż. Śpi owinięty wokół środka planety i przez sen mówi do głów hydry. |
+| The Hushed | Rasa, która dawno zniknęła. Podtrzymywała rytm i melodię Węża. |
+| Cinderkin | Roje owadów z głębin, które jedzą ciepło i przetapiają się między warstwami. |
+[[MYCELIUM_ROW]]
 | Lair | Leże hydry. |
 | Egg / Broodling | Jajo / wyklute młode. |
 | Mutation | Dziedziczna cecha przechodząca na potomków. |
@@ -349,8 +368,8 @@ Woda (Body szybsze, powolne leczenie), błoto, suchy grunt (Body wolniejsze), ch
 ## 11. Dialogi (w stylu Hadesa)
 
 - Prezentacja: przyciemnione tło, duży portret (popiersie) po lewej albo prawej, plakietka z imieniem, tekst pojawiający się litera po literze, kliknięcie przewija dalej, czasem wybór.
-- Kto mówi: głowy (ich kłótnie to główny silnik komedii), Old Mother Toad (strażniczka leża i mentorka, pamięta wszystkie pokolenia), jeńcy, Mistrzowie Zakonu (wejścia bossów), przodkowie przy zmianie pokolenia.
-- Wyzwalacze: po bitwie (reakcja na to, co się stało: ścięcie, odrost, przypalenie), nowy biom, pierwszy wróg danego typu, zgaszona kapliczka, zmiana pokolenia, boss.
+- Kto mówi: głowy (ich kłótnie to główny silnik komedii), Old Mother Toad (strażniczka leża i mentorka, pamięta wszystkie pokolenia, pomaga tłumaczyć głos Węża), jeńcy, Mistrzowie Zakonu (wejścia bossów), przodkowie przy zmianie pokolenia i Wielki Wąż, który mówi do głów przez sen (sekcja 1, „Świat").
+- Wyzwalacze: po bitwie (reakcja na to, co się stało: ścięcie, odrost, przypalenie), nowy biom, pierwszy wróg danego typu, zgaszona kapliczka, zmiana pokolenia, boss. Głos Węża przychodzi w podróży, w walce i w czasie odpoczynku.
 - Kluczowa zasada z Hadesa: kwestie mają warunki i priorytety, a flagi pilnują, żeby się nie powtarzały. Gracz ma czuć, że gra zauważyła, co zrobił.
 - Wszystkie kwestie w danych (JSON), nie w kodzie.
 
@@ -389,6 +408,7 @@ Woda (Body szybsze, powolne leczenie), błoto, suchy grunt (Body wolniejsze), ch
 
 - Bitwa widziana pod skosem: plansza z heksów jak gruba płyta, postacie stojące. Warstwa eksploracji docelowo w stylu Songs of Conquest.
 - Portrety w dialogach (głowy, Old Mother Toad, jeńcy, Mistrzowie Zakonu, przodkowie): malowane, w stylu okładki i Hadesa (mocne kontury, płaskie plamy koloru, ostre światło), wycięte z tła i pokazywane w pełnej rozdzielczości ekranu nad grą pixelową. Portret głowy jest też wzorem, z którego powstaje pixelowa głowa do bitwy. (Decyzje Piotra z 2026-10-04; wcześniej portrety miały być pixelowymi popiersiami.)
+- The Hushed widać tylko na niewyraźnych grafikach, jak ryciny ze starych ksiąg: nie do końca wiadomo, czy to humanoidy, czy bliżej im do węży. (Decyzja Piotra z 2026-10-04.)
 - Grafika na start: zastępcza (generowana w kodzie) i darmowe paczki CC0. Docelowe sprite'y i portrety robi Piotr w GPT, dlatego wymiary i kadrowanie każdej grafiki muszą być spisane w `docs/ASSETS.md`.
 
 ## 14. Humor: zasady pisania
@@ -396,7 +416,8 @@ Woda (Body szybsze, powolne leczenie), błoto, suchy grunt (Body wolniejsze), ch
 - Świat jest ponury i poważny. Zakon jest śmiertelnie poważny w sprawach absurdalnych: śluby, relikwie z certyfikatami autentyczności, grafiki dyżurów przy płomieniu, odpusty, godziny zakonne, przepisy przeciwpożarowe zakonu czczącego ogień.
 - Głowy hydry to komiczny chór: kłócą się, mają ambicje, mylą się.
 - Deadpan i krótko. Bez współczesnych memów i internetowego slangu. Łamanie czwartej ściany rzadko i celowo.
-- Jedyna frakcja ludzi: **Order of the Eternal Flame**. Rycerze, bracia świeccy z pochodniami, kapłani z kadzielnicami, poborcy dziesięciny. Motto: *„The Flame never sleeps."*
+- Główna frakcja ludzi: **Order of the Eternal Flame**. Rycerze, bracia świeccy z pochodniami, kapłani z kadzielnicami, poborcy dziesięciny. Motto: *„The Flame never sleeps."*
+- Druga, mała frakcja: **The Discordant**, kultyści Węża (sekcja 1, „Świat"). Obłąkani, miejscami jak kultyści Cthulhu.
 - Próbki tonu:
   - Boss: *„Grand Master Ignatius Vell. By the Eternal Flame, this swamp is hereby declared kindling."*
   - Kapliczka Płomienia: *„The Flame never sleeps. Brother Aldric, its keeper, very much does."*
@@ -439,5 +460,5 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 
 - Ile kapliczek Płomienia trzeba zgasić, żeby zamek stał się celem (roboczo: wszystkie).
 - **Odrost (pomysł Piotra po playteście M1b):** nowe głowy są mniejsze i na początku zadają połowę obrażeń, żeby odrost nie dawał od razu siły. Głowy potem rosną, i dlatego z czasem hydra jest mocna. Do ustalenia: od czego rosną (doświadczenie z walk, błogosławieństwa, czas).
-- **Fabuła (pomysł Piotra):** hydra szuka błogosławieństw Wielkiego Węża, który otula swoim ciałem środek planety. Może to on sprawia, że głowy rosną. Do rozwinięcia.
+- **Głos Węża w walce:** czy bitwa staje na czas komunikatu jak przy dialogu (§11), czy to krótka kwestia bez pauzy?
 - **Pula głów:** które klasy są w puli od startu, a które trzeba odblokować (odblokowania konta, §12)? Propozycja Claude: sześć pierwszych od startu, a Strangler, Tender i Lantern do odblokowania. Sposób odblokowania do ustalenia.
