@@ -4,17 +4,18 @@
 
 ## 1. Wizja
 
-Grasz hydrą z podziemnego bagna. Rycerze Zakonu Wiecznego Ognia z zamku na wzgórzu chcą ją spalić, a jej bagno wypalić do suchej ziemi. Hydra eksploruje podziemia, rośnie w siłę, rozmnaża się i broni leża. Gdy okrzepnie, wychodzi na powierzchnię pod osłoną mgły, gasi kapliczki Płomienia i odpycha ludzi. Celem jest zgaszenie Wiecznego Płomienia i przejęcie powierzchni.
+Grasz hydrą z podziemnego bagna. Rycerze Zakonu Wiecznego Ognia z zamku na wzgórzu chcą ją spalić, a jej bagno wypalić do suchej ziemi. Hydra eksploruje podziemia, rośnie w siłę, rozmnaża się i broni leża. Gdy okrzepnie, wychodzi na powierzchnię pod osłoną mgły, gasi kapliczki Płomienia i odpycha ludzi. Przy tym kolejne pokolenia hydry odkrywają po kawałku tajemnicę Wielkiego Węża, który zaczął mówić do jej głów. Gra ma kilka zakończeń; zgaszenie Wiecznego Płomienia i przejęcie powierzchni to jedno z nich.
 
-Gatunek: roguelite z pokoleniami. Warstwa strategiczna to turowa mapa heksagonalna z odkrywaniem terenu jak w Cywilizacji. Walka to osobne starcia w czasie rzeczywistym z pauzą, jak w Tomb Guard. Mroczne fantasy z absurdalnym humorem, pixel art, gra w przeglądarce, wszystkie teksty w grze po angielsku.
+Gatunek: fabularny roguelite z pokoleniami, z naciskiem na odkrywanie świata: eksplorację, mini questy i tajemnicę Węża. (Decyzja Piotra z 2026-10-04; wcześniej nacisk był na bitwy.) Warstwa strategiczna to turowa mapa heksagonalna z odkrywaniem terenu jak w Cywilizacji. Walka to osobne starcia w czasie rzeczywistym z pauzą, jak w Tomb Guard: rzadsze, ale ważne. Mroczne fantasy z absurdalnym humorem, pixel art, gra w przeglądarce, wszystkie teksty w grze po angielsku.
 
 ### Filary (każda decyzja projektowa wspiera przynajmniej jeden)
 
 1. **Głowy to drużyna.** Każda głowa to osobna postać z klasą, imieniem i charakterem. Ścięcie nie kończy walki, tylko zmienia skład. Głowy są najsilniejsze razem: ich ataki łączą się w combosy.
-2. **Mgła przeciw ogniowi.** Na powierzchni hydra istnieje tylko tam, gdzie jest Mist. Zakon walczy ogniem. Cały konflikt gry to mgła kontra płomień.
+2. **Mgła przeciw ogniowi.** Na powierzchni hydra istnieje tylko tam, gdzie jest Mist. Zakon walczy ogniem. Konflikt z Zakonem to mgła kontra płomień.
 3. **Eksploracja ma cenę, ale nie ma stopera.** Im więcej hydra odkrywa i zdobywa, tym szybciej Zakon się zbroi. Długie wyprawy po podziemiach są normą, a nie ryzykanctwem.
 4. **Każdy run jest inny.** Generowana mapa, losowe głowy, eventy, modyfikatory runu.
 5. **Poważny świat, absurdalni ludzie.** Humor bierze się z tego, że Zakon jest śmiertelnie poważny w idiotycznych sprawach.
+6. **Świat do odkrycia.** Każde pokolenie odkrywa kawałek tajemnicy Węża: w lokacjach, mini questach, głosie Węża i rozmowach z Old Mother Toad. Śmierć hydry nie zeruje historii, tylko przekazuje ją następnemu pokoleniu. (Decyzja Piotra z 2026-10-04.)
 
 ### Świat
 
@@ -39,10 +40,11 @@ Decyzje Piotra z 2026-10-04. Gracz poznaje ten świat po kawałku, a części od
 
 ## 2. Referencje
 
-- **Tomb Guard** (Studio Siege, demo na Steamie, 2026): główna referencja mechanik i stylu. Real-time z pauzą, drużyna z klasami i specjalizacjami, walka aż do bossa, eventy z ryzykiem, błogosławieństwa, odblokowania przez wyzwania, śmierć jako normalna część gry. Pixel art widziany z góry.
+- **Tomb Guard** (Studio Siege, demo na Steamie, 2026): główna referencja walki, eventów i stylu. Real-time z pauzą, drużyna z klasami i specjalizacjami, walka aż do bossa, eventy z ryzykiem, błogosławieństwa, odblokowania przez wyzwania, śmierć jako normalna część gry. Pixel art widziany z góry.
 - **Cywilizacja:** ruch po heksach, odsłanianie mapy, mgła wojny na terenach już odkrytych.
 - **Heroes of Might and Magic II:** podział na mapę przygody i osobny ekran bitwy. Wygląd hydry (nasza jest mroczniejsza).
 - **Hades:** dialogi z dużym portretem i tekstem, postacie reagujące na to, co się wydarzyło, śmierć jako postęp fabuły.
+- **Sunless Sea:** wzór całości dla fabularnego roguelite'a: eksploracja nieznanego, małe historie przypięte do miejsc, kilka zakończeń, następca po śmierci. Nie bierzemy stamtąd walki na doczepkę: u nas bitwy są rzadsze, ale ważne. (Decyzja Piotra z 2026-10-04.)
 - **Into the Breach:** wygląd bitwy. Plansza widziana pod skosem, wyraźne pola, postacie lekko poruszające się na swoim polu. U nas pola to heksy, a walka toczy się w czasie rzeczywistym, nie w turach.
 - **FTL:** pauza w czasie rzeczywistym: zatrzymujesz, wydajesz rozkazy, puszczasz.
 - **Songs of Conquest:** docelowy styl warstwy eksploracji (mapy przygody).
@@ -92,11 +94,11 @@ Trzy poziomy pętli:
 
 **Tura:** ruch po mapie heksagonalnej, odkrywanie, decyzje. Wejście na heks z ludźmi uruchamia bitwę.
 
-**Run, czyli jedno pokolenie:** hydra startuje w leżu na nowej, wygenerowanej mapie. Eksploruje, walczy, zbiera, znosi jaja, buduje komnaty. Czujność Zakonu rośnie razem z tym, co hydra robi i zdobywa. Wyprawy atakują leże, a gaszenie kapliczek na powierzchni czujność obniża. Gdy czujność dojdzie do maksimum, Zakon ogłasza Great Burning: szturm na leże pod wodzą Mistrza Zakonu (boss). Przetrwanie otwiera kolejny akt: Zakon się wzmacnia (nowe typy wrogów), w podziemiach otwiera się głębsza warstwa, a Alert zaczyna od nowa. Run trwa, dopóki hydra żyje.
+**Run, czyli jedno pokolenie:** hydra startuje w leżu na nowej, wygenerowanej mapie. Eksploruje, odkrywa kawałki tajemnicy Węża (lokacje, mini questy, głos Węża), walczy, zbiera, znosi jaja, buduje komnaty. Czujność Zakonu rośnie razem z tym, co hydra robi i zdobywa. Wyprawy atakują leże, a gaszenie kapliczek na powierzchni czujność obniża. Gdy czujność dojdzie do maksimum, Zakon ogłasza Great Burning: szturm na leże pod wodzą Mistrza Zakonu (boss). Przetrwanie otwiera kolejny akt: Zakon się wzmacnia (nowe typy wrogów), w podziemiach otwiera się głębsza warstwa, a Alert zaczyna od nowa. Run trwa, dopóki hydra żyje.
 
-**Ród:** po śmierci wybierasz jedno z ocalałych jaj. Nowa hydra zaczyna od aktu 1 na nowej mapie, ale dziedziczy mutacje i zaklęcia rodu (sekcja 12).
+**Ród:** po śmierci wybierasz jedno z ocalałych jaj. Nowa hydra zaczyna od aktu 1 na nowej mapie, ale dziedziczy mutacje i zaklęcia rodu (sekcja 12). Wiedza o świecie przechodzi na kolejne pokolenia, więc tajemnica Węża odsłania się po kawałku przez cały ród (co z nią po wymarciu rodu: §16).
 
-**Zwycięstwo:** zgasić Wieczny Płomień i przejąć powierzchnię (sekcja 5.7).
+**Zakończenia:** gra ma kilka zakończeń związanych z Wężem. Zgaszenie Wiecznego Płomienia i przejęcie powierzchni (sekcja 5.7) to jedno z nich. Pozostałe: `TODO(design)` (propozycje w §16).
 
 ## 5. Mapa heksagonalna (warstwa strategiczna)
 
@@ -144,7 +146,7 @@ Patrole i wyprawy poruszają się po heksach w turze świata. Gracz widzi je tyl
 - Na powierzchni płoną **Flame Shrines**, kapliczki podtrzymujące Wieczny Płomień w katedrze na zamku.
 - Zgaszenie kapliczki: bitwa ze strażą, potem kapliczka gaśnie, Alert spada, a heks i jego okolica stają się terytorium hydry z trwałą mgłą (Mist tam nie zanika). Tak rośnie dominacja hydry nad powierzchnią.
 - Zakon próbuje rozpalać kapliczki na nowo: oddziały Torchbearers idą po mapie do zgaszonych kapliczek. Można je przechwycić.
-- Gdy zgaśnie dość kapliczek (roboczo: wszystkie), zamek staje się celem ostatecznego szturmu. Zgaszenie Wiecznego Płomienia to zwycięstwo: mgła kładzie się na całej krainie.
+- Gdy zgaśnie dość kapliczek (roboczo: wszystkie), zamek staje się celem ostatecznego szturmu. Zgaszenie Wiecznego Płomienia to jedno z zakończeń gry: mgła kładzie się na całej krainie.
 
 ### 5.8 Technicznie
 Współrzędne osiowe (axial q, r), heksy pointy-top, algorytmy według przewodnika Red Blob Games „Hexagonal Grids". Wszystkie operacje na heksach (sąsiedzi, dystans, zasięg, linia wzroku, zamiana piksel↔heks) w czystym TypeScripcie, pokryte testami.
@@ -152,6 +154,7 @@ Współrzędne osiowe (axial q, r), heksy pointy-top, algorytmy według przewodn
 ## 6. Walka (warstwa taktyczna)
 
 ### 6.1 Zasady ogólne
+- Bitwy są rzadsze niż w pierwszym planie, ale ważne. (Decyzja Piotra z 2026-10-04: fabularny roguelite.)
 - Osobna scena: plansza z heksów widziana pod skosem (jak plansza w Into the Breach, tylko z heksów), generowana z szablonu zależnego od terenu heksu (zalana jaskinia, krypta, pole we mgle, dziedziniec kapliczki itd.). Postacie stoją na swoich polach i lekko się poruszają, także wtedy, gdy nic nie robią.
 - Czas rzeczywisty z pauzą (jak w FTL). Bitwa zaczyna się w pauzie. Spacja to pauza: w pauzie wydajesz rozkazy, po wznowieniu wszystko się dzieje. Prędkości gry: 1× i 0,5×.
 - Symulacja walki działa w stałym kroku (20 tików na sekundę), niezależnie od liczby klatek. Pauza to po prostu zatrzymanie tików.
@@ -365,6 +368,7 @@ Woda (Body szybsze, powolne leczenie), błoto, suchy grunt (Body wolniejsze), ch
 
 - Jak w Tomb Guard: tekst i wybory z ryzykiem i nagrodą. Niektóre wybory wymagają głowy danej klasy, niektóre kosztują zasoby, niektóre to hazard.
 - Eventy żyją w danych (JSON): warunki (warstwa, biom, akt, zakres Alertu, obecne klasy głów), wybory, wyniki (zmiany zasobów, przypadłość, mutacja, nowa głowa, bitwa, dialog, odsłonięcie mapy, przedmiot).
+- **Mini questy** (decyzja Piotra z 2026-10-04): krótkie łańcuchy eventów przypięte do miejsc i postaci. Kolejny krok odblokowuje flaga z poprzedniego, a postęp przechodzi na kolejne pokolenia. Szczegóły: `TODO(design)`.
 - Przykład tonu i struktury:
 
 > *A novice of the Order of the Eternal Flame is inspecting your swamp for heresy. He has a checklist.*
@@ -391,6 +395,7 @@ Woda (Body szybsze, powolne leczenie), błoto, suchy grunt (Body wolniejsze), ch
   - **End the Lineage:** ród się kończy i trafia do Księgi Rodów. Nowy ród zaczyna bez mutacji i zaklęć, odblokowania konta zostają.
   - **Miraculous Intervention:** dostępna tylko, gdy istnieje ukryte jajo. Old Mother Toad wyciąga je z kryjówki i ród trwa dalej z dziedzictwem zapisanym w jaju. Wszystko, co ród zdobył po ukryciu jaja, przepada.
 - Dwie warstwy postępu: **dziedzictwo rodu** (mutacje, księga zaklęć; przepada, gdy ród wymrze) i **odblokowania konta** (na stałe: nowe klasy głów, eventy, kapliczki, modyfikatory, zdobywane przez wyzwania jak w Tomb Guard).
+- **Wiedza o świecie** (odkryte tajemnice, postęp mini questów) przechodzi na kolejne pokolenia. Czy przetrwa wymarcie rodu: §16. (Decyzja Piotra z 2026-10-04.)
 - **Księga Rodów:** kronika pokoleń z epitafiami, np. *„Morwenna II. Slain by a tithe collector. He gave her a receipt."*
 
 ## 13. Styl wizualny
@@ -436,6 +441,8 @@ Woda (Body szybsze, powolne leczenie), błoto, suchy grunt (Body wolniejsze), ch
 
 Zasada: po każdym etapie gra jest wdrożona i grywalna pod linkiem, a Claude Code zatrzymuje się na playtest.
 
+**Zmiana kierunku z 2026-10-04** (fabularny roguelite, sekcja 1) przesuwa eventy, mini questy, dialogi i pokolenia wcześniej. Nowa kolejność etapów: `TODO(design)`, do ustalenia z Piotrem. Do tego czasu obowiązuje lista poniżej.
+
 **M0: fundament.** Projekt (Vite + TypeScript + Phaser 4), testy, skrypt do zrzutów ekranu, repo na GitHubie, automatyczne wdrożenie na GitHub Pages. Ekran startowy dostępny pod linkiem.
 
 **M1: pierwszy grywalny kawałek, czyli cała pętla w najcieńszej wersji.**
@@ -468,4 +475,6 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 - Ile kapliczek Płomienia trzeba zgasić, żeby zamek stał się celem (roboczo: wszystkie).
 - **Odrost (pomysł Piotra po playteście M1b):** nowe głowy są mniejsze i na początku zadają połowę obrażeń, żeby odrost nie dawał od razu siły. Głowy potem rosną, i dlatego z czasem hydra jest mocna. Do ustalenia: od czego rosną (doświadczenie z walk, błogosławieństwa, czas).
 - **Głos Węża w walce:** czy bitwa staje na czas komunikatu jak przy dialogu (§11), czy to krótka kwestia bez pauzy?
+- **Zakończenia:** które i jak się do nich dochodzi? Propozycja Claude: obudzić Węża (z Wakers), nastroić pieśń na nowo i zająć miejsce Hushed, pójść za grzybnią poza świat Węża, zgasić Wieczny Płomień.
+- **Wiedza o świecie po wymarciu rodu:** przepada razem z rodem (jak mutacje) czy zostaje na stałe (jak odblokowania konta)? Propozycja Claude: zostaje, bo Old Mother Toad pamięta wszystkie pokolenia, a tajemnica ma się składać przez całą grę.
 - **Pula głów:** które klasy są w puli od startu, a które trzeba odblokować (odblokowania konta, §12)? Propozycja Claude: sześć pierwszych od startu, a Strangler, Tender i Lantern do odblokowania. Sposób odblokowania do ustalenia.
