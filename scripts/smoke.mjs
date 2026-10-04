@@ -126,7 +126,18 @@ try {
   let won = 0;
   let fought = 0;
   for (let step = 0; step < MAX_MAP_STEPS && won < BATTLES_TO_WIN; step++) {
-    const { inBattle, atShrine, blessings } = await page.evaluate(() => window.__hydra.runSummary());
+    const { inBattle, atShrine, atPlace, blessings } = await page.evaluate(() => window.__hydra.runSummary());
+    if (atPlace) {
+      // A place or a threshold: read it, and walk on.
+      await page.waitForTimeout(300);
+      const panel = await page.evaluate(() => window.__hydra.placePanel());
+      if (!panel) throw new Error('A place panel should be open');
+      await tap(page, panel.leave);
+      await page.waitForTimeout(300);
+      if ((await page.evaluate(() => window.__hydra.runSummary())).atPlace) throw new Error('Leave did not close the place panel');
+      log('visited a place');
+      continue;
+    }
     if (atShrine) {
       // A shrine of the Great Serpent: take the blessing.
       await page.waitForTimeout(300);

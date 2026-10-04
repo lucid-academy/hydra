@@ -7,6 +7,32 @@ import { preview } from 'vite';
 
 const DESKTOP = { width: 1280, height: 720 };
 
+async function tapGame(page, point) {
+  const canvas = (await page.locator('canvas').boundingBox()) ?? { x: 0, y: 0, width: 640, height: 360 };
+  const scale = canvas.width / 640;
+  await page.mouse.click(canvas.x + point.x * scale, canvas.y + point.y * scale);
+}
+
+/** Steps onto the reachable place with this id (it is next to the hydra with ?near=), and waits for its panel. */
+async function stepOntoPlace(page, id) {
+  const points = await page.evaluate(() => window.__hydra.reachableOnScreen());
+  const target = points.find((p) => p.id === id);
+  if (!target) throw new Error(`No ${id} next to the hydra`);
+  await tapGame(page, target);
+  await page.waitForFunction(() => window.__hydra.placePanel() !== null, null, { timeout: 5_000 });
+  await page.waitForTimeout(300);
+}
+
+/** Taps a closed threshold the hydra knows, and waits for its panel. */
+async function tapThreshold(page, id) {
+  const points = await page.evaluate(() => window.__hydra.inspectableOnScreen());
+  const target = points.find((p) => p.id === id);
+  if (!target) throw new Error(`No ${id} in sight`);
+  await tapGame(page, target);
+  await page.waitForFunction(() => window.__hydra.placePanel() !== null, null, { timeout: 5_000 });
+  await page.waitForTimeout(300);
+}
+
 /** Taps the reachable hex that costs the most to reach, like a player would. */
 async function moveFarthest(page) {
   const points = await page.evaluate(() => window.__hydra.reachableOnScreen());
@@ -62,6 +88,22 @@ const SHOTS = [
     await page.waitForTimeout(12_000);
   } },
   { name: 'map-phone-landscape', query: '?seed=123&scene=map', viewport: { width: 844, height: 390 }, scene: 'map' },
+  // M2c: whole worlds at a glance (map revealed and zoomed out), with and without run modifiers.
+  { name: 'world-123', query: '?seed=123&scene=map&reveal=1&zoom=0.45', viewport: DESKTOP, scene: 'map' },
+  { name: 'world-7', query: '?seed=7&scene=map&reveal=1&zoom=0.45', viewport: DESKTOP, scene: 'map' },
+  { name: 'world-2026', query: '?seed=2026&scene=map&reveal=1&zoom=0.45', viewport: DESKTOP, scene: 'map' },
+  { name: 'world-146-rare', query: '?seed=146&scene=map&reveal=1&zoom=0.45', viewport: DESKTOP, scene: 'map' },
+  { name: 'world-123-modifiers', query: '?seed=123&scene=map&reveal=1&zoom=0.45&modifiers=wetYear,myceliumBloom,oldWorkings', viewport: DESKTOP, scene: 'map' },
+  { name: 'map-reveal-close', query: '?seed=123&scene=map&reveal=1&near=saltPlug', viewport: DESKTOP, scene: 'map' },
+  { name: 'map-threshold', query: '?seed=123&scene=map&near=saltPlug', viewport: DESKTOP, scene: 'map', act: async (page) => tapThreshold(page, 'saltPlug') },
+  { name: 'map-place', query: '?seed=123&scene=map&near=brineLake', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await stepOntoPlace(page, 'brineLake');
+    const panel = await page.evaluate(() => window.__hydra.placePanel());
+    await tapGame(page, panel.actions[0]); // drink
+    await page.waitForTimeout(400);
+  } },
+  { name: 'map-place-phone', query: '?seed=138&scene=map&near=lostSurvey', viewport: { width: 844, height: 390 }, scene: 'map', act: async (page) => stepOntoPlace(page, 'lostSurvey') },
+  { name: 'map-landmark', query: '?seed=123&scene=map&near=sunkenOak', viewport: DESKTOP, scene: 'map' },
 ];
 
 const OUT_DIR = 'docs/screens';
