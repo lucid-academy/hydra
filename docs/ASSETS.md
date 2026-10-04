@@ -130,13 +130,80 @@ Small things that make each biome feel different. They do nothing in the game.
 
 All objects: 1 frame, anchor at the feet (bottom middle) unless noted, transparent background.
 
-## Map helpers: map_glow, map_mark, map_fog_edge
+## Map thresholds: map_threshold_<id>, map_threshold_<id>_open
+
+Thresholds are the few ways through the rock bands between the rings of the world (`GAME_DESIGN.md` §9.3, `src/data/world.json`). Each has two images: **closed** (it blocks the tunnel; the hydra has to deal with it) and **open** (what is left once it is dealt with). 1 frame each, transparent background.
+
+**Closed** (`map_threshold_<id>`): 30×30 px (`rootWall` 30×32). Anchor: bottom middle; the game puts it **10 px below the hex centre**, at the front of the hex, so it fills the tunnel. The hex under it is drawn as the floor it will have when open. Rock in the row in front may hide its lowest few pixels, so put the important part in the upper two thirds.
+
+| Key | What |
+|---|---|
+| map_threshold_rubbleChoke | A mound of fallen boulders and broken stone filling the tunnel, biggest stones at the bottom. Grey-brown, lighter than the cave floor so it reads as rubble. Dug through over a few turns. |
+| map_threshold_rootWall | Roots as thick as a man's leg grown across the tunnel every which way, a darker tangle behind them. A Biter gnaws through. |
+| map_threshold_saltPlug | A block of white rock salt sealing the tunnel. Someone began carving a saint's face into it and stopped after the brows, one eye and a nose. An Acid Spitter dissolves it. |
+| map_threshold_smoulderingSeam | A wall of black coal, cracked, glowing orange from inside, a few threads of smoke. The game adds an orange light. A Mist Breather smothers it. |
+
+`draughtCrack` has no closed image: while hidden it looks like plain rock, and the game draws drifting air (`map_draught`) on the hexes next to it.
+
+**Open** (`map_threshold_<id>_open`): 30×22 px. They **lie flat on the hex** (drawn under everything that stands): anchor bottom middle, 10 px below the hex centre, so the image covers the hex face, its top edge at the top point of the face. Keep them low and quiet, like a stain on the floor. Exception: `map_threshold_oldWorkings_open` is 30×30 and **stands** like a closed one (feet 10 px below the hex centre).
+
+| Key | What |
+|---|---|
+| map_threshold_rubbleChoke_open | Rubble pushed to both sides of a way dug through, a clear path in the middle. |
+| map_threshold_rootWall_open | Gnawed root stumps at both sides, the bitten ends pale; wood chips on the floor. |
+| map_threshold_saltPlug_open | A crust of white salt round the edges where the plug was, a little puddle of brine in the middle. |
+| map_threshold_smoulderingSeam_open | A patch of grey ash with a few dull red embers, smothered. |
+| map_threshold_draughtCrack_open | A dark, jagged crack across the floor, wide enough to squeeze through, pale wisps of air rising from it. |
+| map_threshold_cinderScar_open | A patch of black glass where the rock melted long ago, a few orange specks still warm (made by the Cinderkin, tiny fire insects, in huge numbers). |
+| map_threshold_oldWorkings_open | The mouth of an old shaft of the Order: two timber props and a beam, cut dead straight, rails running in, a long-dead lantern of the Order (gold) hanging on a nail. |
+
+## Map places: map_place_<id>
+
+Places are the things worth finding in the world (`src/data/world.json`, `places`). 1 frame each, transparent background, **feet at the bottom middle**, which the game puts 3 px below the hex centre, like every standing object. Light from the upper left. The game adds a soft light over most of them (`PLACE_GLOWS` in `src/scenes/MapScene.ts`), so a glowing part can stay modest.
+
+**Landmarks** are tall, one per biome, meant to be recognised from afar. When one stands in front of the hydra, a closed threshold, an encounter or a shrine, the game makes it see-through (anything 40 px or taller), so the bottom of a landmark can be busy but the silhouette should read on its own.
+
+| Key | Size | Biome | What |
+|---|---|---|---|
+| map_place_sunkenOak | 56×64 | Root Tangle | A whole oak that fell through the ceiling and landed upside down: its roots spread up like a crown, its branches dug into the floor, one green leaf out of spite. |
+| map_place_drownedChapel | 48×64 | Flooded Caves | The bell tower of a chapel of the Order standing out of black water: grey stone, a pointed spire, a golden bell in the arch. |
+| map_place_ossuaryCathedral | 56×64 | Old Crypts | A gothic cathedral front built of bone: a tall arch, a rose window ringed with skulls, a gable, a candle glowing inside the dark door. |
+| map_place_saltSaint | 40×64 | Salt Mines | A tall statue of a miner carved from white salt, holding his pick, standing on a plinth, licked to a shine. |
+| map_place_motherCap | 64×64 | Fungal Deeps | A giant mushroom whose cap is the ceiling of the cave: a wide purple cap, a pale stalk, gills glowing pink-white underneath. |
+
+**Locations** (1–2 per biome) and **rare places**:
+
+| Key | Size | What |
+|---|---|---|
+| map_place_undertow | 40×24 | Flooded Caves. A round pool of black water turning in a slow spiral, pale teal streaks on it. Lies low. |
+| map_place_gallowsRoots | 40×40 | Root Tangle. Roots grown down from the Order's gallows tree above, hanging from a beam of root, holding skulls and bones, filed neatly. |
+| map_place_brineLake | 44×26 | Salt Mines. A still lake of pale grey-green brine with a thick white salt rim. Lies low. |
+| map_place_ninefoldCamp | 44×40 | Salt Mines. A camp of the Ninefold (cultists who adore the hydra): a patched tent, a small fire, and a green banner with nine little heads on it. |
+| map_place_myceliumWhisper | 40×26 | Fungal Deeps. A web of glowing purple mycelium spreading over the floor from one bright point. Lies low. |
+| map_place_silentBell | 32×44 | Fungal Deeps. A big stone bell of the Hushed hanging in a stone frame, overgrown with purple fungus, a faint teal line of humming under it. |
+| map_place_lostSurvey | 36×26 | Rare, in a dead end. The bones of a survey party of the Order, still holding their instruments: a brass instrument on a tripod, scattered papers. |
+| map_place_hushedStair | 40×44 | Rare, ring 3. Stone stairs going down to a dark doorway with a door that has no handle on this side; faint teal lines humming on the door. |
+
+## Map finds: map_remains, map_hoard, map_muck_rich, map_moisture_rich
+
+1 frame each, transparent background, feet at the bottom middle (3 px below the hex centre).
+
+| Key | Size | What |
+|---|---|---|
+| map_remains | 22×14 | Someone who died here, lying down: a skull, ribs, long bones, what is left of a satchel. Greyed out by the game once searched. |
+| map_hoard | 26×20 | Supplies somebody piled up: a wooden chest with a gold clasp, a sack, a flask of water, a bone. |
+| map_muck_rich | 22×14 | A big heap of glistening swamp muck with golden bits in it (a rich deposit; bigger than `map_muck`). |
+| map_moisture_rich | 22×26 | A spring pouring from above into a wide pool (a rich spring; bigger than `map_moisture`). |
+
+## Map helpers: map_glow, map_mark, map_fog_edge, map_draught, map_echo
 
 Can stay code placeholders:
 
 - **map_glow** (64×64): a soft round light in white; the game tints it and adds it on top (lair, shrines, springs, glowing fungi, torches).
 - **map_mark** (30×24): the outline of a squashed hex in white, tinted by the game to show where the hydra can go this turn.
 - **map_fog_edge** (30×28): a ragged pattern of dark pixels laid over known hexes next to the unknown, so the darkness doesn't end in a hard line.
+- **map_draught** (24×16): three pale wavy streaks of moving air in gusts, bright in the middle and fading at the ends. Drawn over the hexes next to a hidden threshold, drifting and pulsing; centred 4 px above the hex centre.
+- **map_echo** (16×16): a bright dot with two pairs of arcs spreading left and right, like sound. Floats 16 px above a hex at the edge of the known map, where an echo of a place was heard, until the place is seen.
 
 ## Battle graphics: the slanted view
 

@@ -166,6 +166,11 @@ describe('importing pictures', () => {
     expect(ruleFor('title_background').fit).toBe('cover');
     expect(ruleFor('battle_enemy_headhunter').parts[0]!.align).toBe('bottom');
     expect(ruleFor('battle_head').parts).toHaveLength(2);
+    expect(ruleFor('map_place_sunkenOak').parts[0]!.align).toBe('bottom');
+    expect(ruleFor('map_muck_rich').parts[0]!.align).toBe('bottom');
+    expect(ruleFor('map_threshold_saltPlug').parts[0]!.align).toBe('bottom');
+    expect(ruleFor('map_threshold_saltPlug_open').parts[0]!.align).toBe('center');
+    expect(ruleFor('map_threshold_oldWorkings_open').parts[0]!.align).toBe('bottom');
   });
 });
 

@@ -66,3 +66,8 @@ Torchbearer przy przypalaniu kikuta: na razie zwykły atak. Osobna animacja, je�
 | Migotanie świateł | kod: lekkie, wolne pulsowanie jasności | – | | | | | później |
 | Zmarszczki na wodzie | kod: przesuwanie kilku jaśniejszych pikseli po heksach wody | – | | | | | później |
 | Mgła wokół nieznanego (map_fog_edge) | kod: statyczna | – | 30×28 | – | | | jest |
+| Hydra niesiona prądem (Undertow) | kod: przesuw o heks co 80 ms, szybciej niż chód | – | 26×28 | – | stopy (dół środka) | – | jest |
+| Przeciąg przy ukrytym progu (map_draught) | kod: smugi dryfują 4 px w bok i pulsują (przezroczystość 0,45–1, 1,4 s w każdą stronę) | – | 24×16 | – | środek, 4 px nad środkiem heksa | – | jest |
+| Echo miejsca (map_echo) | kod: unosi się o 3 px i pulsuje (0,35–1, 0,9 s), znika, gdy hydra zobaczy źródło | – | 16×16 | – | środek, 16 px nad środkiem heksa | – | jest |
+| Wysoki punkt orientacyjny prześwituje | kod: przezroczystość 0,55, gdy zasłania hydrę, zamknięty próg, spotkanie albo kapliczkę | – | | – | | – | jest |
+| Prąd Undertow narysowany na wodzie | kod: smugi płynące wzdłuż drogi prądu | – | | | | | później |

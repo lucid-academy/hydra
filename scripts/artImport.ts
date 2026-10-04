@@ -31,7 +31,9 @@ export interface ImportRule {
 }
 
 const TINTED = /^(battle_head|battle_head_jaw|battle_mist_puff|battle_shadow|battle_hex_mark|battle_hex_fill|map_glow|map_mark)$/;
-const STANDING = /^(battle_body|battle_enemy_.+|map_deco_.+|map_encounter_.+|map_(lair|shrine|passage|muck|moisture|hydra)|portrait_.+)$/;
+const STANDING = /^(battle_body|battle_enemy_.+|map_deco_.+|map_encounter_.+|map_place_.+|map_(lair|shrine|passage|muck|moisture|hydra|remains|hoard|muck_rich|moisture_rich)|portrait_.+)$/;
+/** Open thresholds lie flat on the hex, centred on it, except the timber frame of the Old Workings, which stands. */
+const STANDING_THRESHOLD = /^map_threshold_[A-Za-z]+$|^map_threshold_oldWorkings_open$/;
 
 /** How a picture named after a manifest key is imported. */
 export function ruleFor(key: string): ImportRule {
@@ -42,7 +44,8 @@ export function ruleFor(key: string): ImportRule {
     return { fit: 'sprite', grey: true, parts: [{ key: 'battle_head', align: 'bottom' }, { key: 'battle_head_jaw', align: 'top-right' }] };
   }
   if (key === 'battle_head_jaw') return { fit: 'sprite', grey: true, parts: [{ key, align: 'top-right' }] };
-  return { fit: 'sprite', grey: TINTED.test(key), parts: [{ key, align: STANDING.test(key) ? 'bottom' : 'center' }] };
+  const stands = STANDING.test(key) || STANDING_THRESHOLD.test(key);
+  return { fit: 'sprite', grey: TINTED.test(key), parts: [{ key, align: stands ? 'bottom' : 'center' }] };
 }
 
 /** Textures are drawn as squares straight from above; the game sees the ground from about 45°, so they get this flat. */
