@@ -12,7 +12,29 @@
     "endTurn": "End Turn",
     "moisture": "Moisture",
     "bones": "Bones",
-    "rested": "The hydra sleeps in its lair. Wounds close. Burnt stumps itch, and sprout."
+    "rested": "The hydra sleeps in its lair. Wounds close. Burnt stumps itch, and sprout.",
+    "outOfReach": "Too far to reach this turn.",
+    "landmarkSighted": "In the distance: {name}.",
+    "richDeposit": "A rich deposit.",
+    "silenced": "The Silent Bell hums. The Order heard nothing.",
+    "thresholdOpened": "{name}: the way through is open.",
+    "conditionEnded": "{name} wears off."
+  },
+  "place": {
+    "kinds": {
+      "landmark": "A landmark",
+      "location": "A place",
+      "rare": "A rare place",
+      "threshold": "A threshold"
+    },
+    "leaveButton": "Leave",
+    "digProgress": "Dug {dug} of {needed}.",
+    "why": {
+      "needsHead": "Needs a {class} head.",
+      "noMovement": "No moves left this turn.",
+      "notYet": "Ready again on turn {turn}.",
+      "done": "Already done."
+    }
   },
   "battle": {
     "paused": "PAUSED",

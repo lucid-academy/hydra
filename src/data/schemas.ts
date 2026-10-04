@@ -492,6 +492,29 @@ export const textSchema = z
       moisture: z.string().min(1),
       bones: z.string().min(1),
       rested: z.string().min(1),
+      outOfReach: z.string().min(1),
+      // {name}: the landmark's name.
+      landmarkSighted: z.string().min(1),
+      richDeposit: z.string().min(1),
+      silenced: z.string().min(1),
+      // {name}: the threshold's name.
+      thresholdOpened: z.string().min(1),
+      // {name}: the condition's name.
+      conditionEnded: z.string().min(1),
+    }),
+    place: section({
+      kinds: section({ landmark: z.string().min(1), location: z.string().min(1), rare: z.string().min(1), threshold: z.string().min(1) }),
+      leaveButton: z.string().min(1),
+      // {dug} and {needed}: digs done so far, and how many it takes.
+      digProgress: z.string().min(1),
+      why: section({
+        // {class}: the head class's name.
+        needsHead: z.string().min(1),
+        noMovement: z.string().min(1),
+        // {turn}: the turn when it can be done again.
+        notYet: z.string().min(1),
+        done: z.string().min(1),
+      }),
     }),
     shrine: section({
       title: z.string().min(1),

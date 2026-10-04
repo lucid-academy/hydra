@@ -7,6 +7,8 @@
 //   ?speed=4      battles run this many times faster (for tests)
 //   ?near=shrine  with ?scene=map: start next to the nearest object of that kind (shrine, passage, encounter, moisture...)
 //   ?reveal=1     show the whole underground map at the start (to look at what the generator made)
+//   ?modifiers=wetYear,oldWorkings  run modifiers that shape the world (world.json runModifiers)
+//   ?zoom=0.45    zoom of the map camera (with ?reveal=1, 0.45 shows the whole underground at once)
 
 import { seedFromString } from './sim/rng';
 
@@ -26,6 +28,10 @@ export interface UrlParams {
   near: string | null;
   /** Show the whole map at the start. */
   reveal: boolean;
+  /** Run modifiers (ids from world.json runModifiers), in the order given. */
+  modifiers: string[];
+  /** Zoom of the map camera, or null for the usual one. */
+  zoom: number | null;
 }
 
 export function parseUrlParams(search: string): UrlParams {
@@ -47,5 +53,7 @@ export function parseUrlParams(search: string): UrlParams {
     speed: positive('speed'),
     near: params.get('near')?.trim() || null,
     reveal: params.get('reveal') === '1' || params.get('reveal') === 'true',
+    modifiers: [...new Set((params.get('modifiers') ?? '').split(',').map((m) => m.trim()).filter((m) => m !== ''))],
+    zoom: positive('zoom'),
   };
 }

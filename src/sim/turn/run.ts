@@ -1,113 +1,23 @@
 // State of one run on the strategic map, and the commands that change it.
 // Commands mutate the state and return events, which the scenes use to animate and show messages.
+// What the hydra meets on the way (thresholds, places, remains, hints) is in ./world.
 
-import type { BattleResult, BattleSetup, HeadRecord } from '../battle';
-import { hexEquals, hexKey, hexNeighbors } from '../hex';
+import type { BattleResult, BattleSetup } from '../battle';
+import { hexDistance, hexEquals, hexKey, hexNeighbors } from '../hex';
 import type { Hex } from '../hex';
 import { generateUnderground, hexesSeenFrom, updateVisibility } from '../map';
-import type { HexMap, MapObject, TerrainTable, Visibility } from '../map';
+import type { MapObject } from '../map';
 import { Rng } from '../rng';
+import type { BlessingEffects, Reachable, RunEvent, RunRules, RunState } from './types';
+import { arriveAt, battleSilenced, lookAround, movementForTurn, raiseAlert, tickConditions, tileAt } from './world';
 
-/** What a blessing of the Great Serpent changes (shrines.json). Missing = no change. */
-export interface BlessingEffects {
-  /** Movement points per turn. */
-  movement?: number;
-  /** Sight range in hexes. */
-  sight?: number;
-  bodyMaxHp?: number;
-  /** Body HP healed at the end of every turn. */
-  regeneration?: number;
-  /** Paid at once: */
-  alert?: number;
-  muck?: number;
-  moisture?: number;
+export interface RunOptions {
+  /** Run modifiers (ids from world.json runModifiers) that shape this run's world. */
+  modifiers?: readonly string[];
 }
 
-export interface RunRules {
-  movementPointsPerTurn: number;
-  sightRangeHexes: number;
-  terrain: TerrainTable;
-  alertMin: number;
-  alertMax: number;
-  alertPerHexDiscovered: number;
-  alertPerBattle: number;
-  generator: Parameters<typeof generateUnderground>[1];
-  bodyMaxHp: number;
-  startingHeads: ReadonlyArray<{ classId: string; maxHp: number }>;
-  /** Classes a new head can have, when a healed scar grows heads in the lair. */
-  hatchlingClasses: ReadonlyArray<{ classId: string; maxHp: number }>;
-  maxHeads: number;
-  headNames: readonly string[];
-  healing: { bodyHpPerTurn: number; headHpPerTurn: number };
-  /** Bones taken from every human of a group beaten in battle. */
-  bonesPerEnemy: number;
-  /** Enemy type ids for each encounter group id. */
-  encounterGroupMembers: Readonly<Record<string, readonly string[]>>;
-  /** What each blessing (by id) does. */
-  blessings: Readonly<Record<string, BlessingEffects>>;
-}
-
-export interface Hydra {
-  position: Hex;
-  movementLeft: number;
-  /** Movement points at the start of each turn (blessings can change it). */
-  movementPerTurn: number;
-  /** How far the hydra sees, in hexes. */
-  sightRange: number;
-  bodyHp: number;
-  bodyMaxHp: number;
-  /** Body HP healed at the end of every turn. */
-  regeneration: number;
-  heads: HeadRecord[];
-  /** Stumps burnt shut. Resting in the lair heals them, and they grow heads again. */
-  scars: number;
-  /** Blessings accepted so far (ids from shrines.json). */
-  blessings: string[];
-}
-
-export interface Resources {
-  muck: number;
-  moisture: number;
-  bones: number;
-}
-
-export interface RunState {
-  readonly seed: number;
-  turn: number;
-  map: HexMap;
-  hydra: Hydra;
-  visibility: Visibility;
-  /** 0–100. Stored with fractions; show it rounded down. */
-  alert: number;
-  resources: Resources;
-  /** The encounter the hydra stepped on, until its battle is resolved. */
-  pendingBattle: { at: Hex; groupId: string } | null;
-  /** The shrine the hydra stands at, until its blessing is accepted or refused. */
-  pendingShrine: Hex | null;
-  battlesFought: number;
-  /** Next free number for ids of heads grown in battles. */
-  nextId: number;
-  /** Random numbers for things that happen on the map (e.g. which heads grow from a healed scar). */
-  rngState: number;
-  /** The hydra died: this run is over. */
-  over: boolean;
-}
-
-export type RunEvent =
-  | { type: 'moved'; path: Hex[] }
-  | { type: 'discovered'; count: number }
-  | { type: 'collected'; resource: 'muck' | 'moisture'; amount: number; at: Hex }
-  | { type: 'battleStarted'; at: Hex }
-  | { type: 'battleWon'; at: Hex; bones: number }
-  | { type: 'shrineReached'; at: Hex; blessingId: string }
-  | { type: 'blessingAccepted'; blessingId: string }
-  | { type: 'blessingRefused'; blessingId: string }
-  | { type: 'rested'; healedScars: number; newHeadIds: string[] }
-  | { type: 'hydraDied' }
-  | { type: 'turnEnded'; turn: number };
-
-export function createRun(seed: number, rules: RunRules): RunState {
-  const map = generateUnderground(seed, rules.generator, rules.terrain);
+export function createRun(seed: number, rules: RunRules, options: RunOptions = {}): RunState {
+  const map = generateUnderground(seed, { ...rules.generator, modifiers: [...(options.modifiers ?? [])] }, rules.terrain);
   // A separate stream from the map's, so changing starting heads never changes the map.
   const rng = new Rng((seed ^ 0x5eed) >>> 0);
   const names = [...rules.headNames];
@@ -131,41 +41,39 @@ export function createRun(seed: number, rules: RunRules): RunState {
       heads,
       scars: 0,
       blessings: [],
+      conditions: [],
     },
     visibility: new Map(),
     alert: rules.alertMin,
     resources: { muck: 0, moisture: 0, bones: 0 },
     pendingBattle: null,
     pendingShrine: null,
+    pendingPlace: null,
+    echoes: [],
+    draughtsFelt: [],
     battlesFought: 0,
     nextId: heads.length + 1,
     rngState: rng.getState(),
     over: false,
   };
   // Seeing the lair's surroundings at the start doesn't count as exploring.
-  updateVisibility(state.visibility, hexesSeenFrom(map, map.lair, state.hydra.sightRange, rules.terrain));
+  lookAround(state, rules, []);
   return state;
 }
 
-/** The hydra is busy: a battle or a shrine waits for an answer, or it is dead. Nothing else can happen until then. */
+/** The hydra is busy: a battle, a shrine or a panel waits for an answer, or it is dead. Nothing else can happen until then. */
 function isWaiting(state: RunState): boolean {
-  return state.over || state.pendingBattle !== null || state.pendingShrine !== null;
+  return state.over || state.pendingBattle !== null || state.pendingShrine !== null || state.pendingPlace !== null;
 }
 
 /** Objects the hydra stops at when it walks onto them, and can't walk through. */
 function stopsTheHydra(object: MapObject | null): boolean {
-  return object?.kind === 'encounter' || (object?.kind === 'shrine' && !object.used);
-}
-
-export interface Reachable {
-  cost: number;
-  /** Steps from the hydra's position (excluded) to the target (included). */
-  path: Hex[];
+  return object?.kind === 'encounter' || (object?.kind === 'shrine' && !object.used) || (object?.kind === 'place' && !object.visited);
 }
 
 /**
  * Hexes the hydra can reach this turn, with the cheapest path to each.
- * Only known (explored) hexes can be crossed. Encounters and unused shrines can be entered but not crossed.
+ * Only known (explored) hexes can be crossed. Encounters, unused shrines and places not yet visited can be entered but not crossed.
  */
 export function reachableHexes(state: RunState, rules: RunRules): Map<string, Reachable> {
   const start = state.hydra.position;
@@ -197,7 +105,10 @@ export function reachableHexes(state: RunState, rules: RunRules): Map<string, Re
   return best;
 }
 
-/** Moves the hydra step by step, revealing the map as it goes. Does nothing if the target is out of reach. */
+/**
+ * Moves the hydra step by step, revealing the map as it goes. Does nothing if the target is out of reach.
+ * Ending the move on a place with something to do opens its panel.
+ */
 export function moveHydra(state: RunState, target: Hex, rules: RunRules): RunEvent[] {
   const route = reachableHexes(state, rules).get(hexKey(target));
   if (!route) return [];
@@ -205,27 +116,23 @@ export function moveHydra(state: RunState, target: Hex, rules: RunRules): RunEve
   const events: RunEvent[] = [];
   const walked: Hex[] = [];
   let discovered = 0;
+  let stopped = false;
   for (const step of route.path) {
-    const tile = state.map.tiles.get(hexKey(step))!;
+    const tile = tileAt(state, step)!;
     state.hydra.movementLeft -= rules.terrain[tile.terrain].moveCost!;
-    state.hydra.position = step;
     walked.push(step);
-    discovered += updateVisibility(state.visibility, hexesSeenFrom(state.map, step, state.hydra.sightRange, rules.terrain));
-
-    const object = tile.object;
-    if (object?.kind === 'muck' || object?.kind === 'moisture') {
-      state.resources[object.kind] += object.amount;
-      events.push({ type: 'collected', resource: object.kind, amount: object.amount, at: step });
-      tile.object = null;
-    }
-    if (object?.kind === 'encounter') {
-      state.pendingBattle = { at: step, groupId: object.groupId };
+    const arrived = arriveAt(state, step, rules, events);
+    discovered += arrived.discovered;
+    if (arrived.stop) {
+      stopped = true;
       break;
     }
-    if (object?.kind === 'shrine' && !object.used) {
-      state.pendingShrine = step;
-      events.push({ type: 'shrineReached', at: step, blessingId: object.blessingId });
-      break;
+  }
+  if (!stopped) {
+    const object = tileAt(state, target)?.object;
+    if (object?.kind === 'place' && (rules.places[object.placeId]?.actions.length ?? 0) > 0) {
+      state.pendingPlace = target;
+      events.push({ type: 'placeReached', at: target, placeId: object.placeId, firstVisit: false });
     }
   }
 
@@ -238,11 +145,49 @@ export function moveHydra(state: RunState, target: Hex, rules: RunRules): RunEve
   return events;
 }
 
+/**
+ * The player taps a place or a threshold to deal with it. The place the hydra stands on: its panel opens.
+ * A closed threshold it knows: the hydra walks next to it the cheapest way (if it can this turn), and its panel opens.
+ * Anything else: nothing happens.
+ */
+export function inspect(state: RunState, target: Hex, rules: RunRules): RunEvent[] {
+  if (isWaiting(state) || !state.visibility.has(hexKey(target))) return [];
+  const object = tileAt(state, target)?.object;
+  if (object?.kind === 'place' && hexEquals(target, state.hydra.position)) {
+    state.pendingPlace = target;
+    return [{ type: 'placeReached', at: target, placeId: object.placeId, firstVisit: false }];
+  }
+  if (object?.kind !== 'threshold' || object.state !== 'closed') return [];
+
+  const events: RunEvent[] = [];
+  if (hexDistance(state.hydra.position, target) > 1) {
+    const approach = thresholdApproach(state, target, rules);
+    if (!approach) return [];
+    events.push(...moveHydra(state, approach, rules));
+    if (isWaiting(state) || hexDistance(state.hydra.position, target) > 1) return events;
+  }
+  state.pendingPlace = target;
+  events.push({ type: 'thresholdReached', at: target, thresholdId: object.thresholdId });
+  return events;
+}
+
+/** The hex next to a threshold the hydra can reach most cheaply this turn, without walking into anything that stops it. */
+export function thresholdApproach(state: RunState, threshold: Hex, rules: RunRules): Hex | null {
+  const reachable = reachableHexes(state, rules);
+  let best: { hex: Hex; cost: number } | null = null;
+  for (const h of hexNeighbors(threshold)) {
+    const route = reachable.get(hexKey(h));
+    if (!route || stopsTheHydra(tileAt(state, h)?.object ?? null)) continue;
+    if (!best || route.cost < best.cost) best = { hex: h, cost: route.cost };
+  }
+  return best?.hex ?? null;
+}
+
 // ---------------------------------------------------------------- shrines
 
 function pendingShrineObject(state: RunState): Extract<MapObject, { kind: 'shrine' }> | null {
   if (!state.pendingShrine) return null;
-  const object = state.map.tiles.get(hexKey(state.pendingShrine))?.object;
+  const object = tileAt(state, state.pendingShrine)?.object;
   return object?.kind === 'shrine' ? object : null;
 }
 
@@ -309,7 +254,10 @@ export function pendingBattleSetup(state: RunState, rules: RunRules): BattleSetu
   };
 }
 
-/** Applies a finished battle: new head line-up, body HP, scars; if won, the encounter is cleared and its people give Bones. */
+/**
+ * Applies a finished battle: new head line-up, body HP, scars; if won, the encounter is cleared and its people give Bones.
+ * The Order hears every battle (the Alert rises), except near the Silent Bell.
+ */
 export function finishBattle(state: RunState, result: BattleResult, rules: RunRules): RunEvent[] {
   const pending = state.pendingBattle;
   if (!pending) return [];
@@ -319,23 +267,24 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
   state.hydra.heads = result.heads.map((h) => ({ ...h }));
   state.hydra.bodyHp = result.bodyHp;
   state.hydra.scars += result.newScars;
-  raiseAlert(state, rules.alertPerBattle, rules);
+  const silenced = battleSilenced(state, pending.at, rules);
+  if (!silenced) raiseAlert(state, rules.alertPerBattle, rules);
 
   if (result.outcome === 'lost') {
     state.over = true;
     return [{ type: 'hydraDied' }];
   }
-  const tile = state.map.tiles.get(hexKey(pending.at));
+  const tile = tileAt(state, pending.at);
   if (tile?.object?.kind === 'encounter') tile.object = null;
   const bones = (rules.encounterGroupMembers[pending.groupId]?.length ?? 0) * rules.bonesPerEnemy;
   state.resources.bones += bones;
-  return [{ type: 'battleWon', at: pending.at, bones }];
+  return [{ type: 'battleWon', at: pending.at, bones, silenced }];
 }
 
 // ---------------------------------------------------------------- turns and the lair
 
 /**
- * Ends the turn: movement comes back, the body and heads heal a little.
+ * Ends the turn: conditions wear off, movement comes back, the body and heads heal a little.
  * Ending it in the lair is resting: everything heals fully, and burnt stumps heal and grow heads again.
  */
 export function endTurn(state: RunState, rules: RunRules): RunEvent[] {
@@ -343,7 +292,8 @@ export function endTurn(state: RunState, rules: RunRules): RunEvent[] {
   const { hydra } = state;
   const events: RunEvent[] = [];
   state.turn += 1;
-  hydra.movementLeft = hydra.movementPerTurn;
+  tickConditions(state, events);
+  hydra.movementLeft = movementForTurn(state, rules);
   hydra.bodyHp = Math.min(hydra.bodyMaxHp, hydra.bodyHp + hydra.regeneration);
   for (const head of hydra.heads) head.hp = Math.min(head.maxHp, head.hp + rules.healing.headHpPerTurn);
 
@@ -373,8 +323,4 @@ function growHeads(state: RunState, rules: RunRules, count: number): string[] {
   }
   state.rngState = rng.getState();
   return ids;
-}
-
-function raiseAlert(state: RunState, amount: number, rules: RunRules): void {
-  state.alert = Math.min(rules.alertMax, Math.max(rules.alertMin, state.alert + amount));
 }

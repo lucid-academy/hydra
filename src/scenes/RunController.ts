@@ -8,7 +8,21 @@ import type { BattleResult, BattleRules, BattleSetup } from '../sim/battle';
 import type { Hex } from '../sim/hex';
 import { hex, hexDistance, hexKey, hexNeighbors } from '../sim/hex';
 import { hexesSeenFrom, updateVisibility } from '../sim/map';
-import { acceptBlessing, createRun, endTurn, finishBattle, moveHydra, pendingBattleSetup, reachableHexes, refuseBlessing } from '../sim/turn';
+import type { MapObject } from '../sim/map';
+import {
+  acceptBlessing,
+  createRun,
+  doPlaceAction,
+  endTurn,
+  finishBattle,
+  inspect,
+  leavePlace,
+  moveHydra,
+  pendingBattleSetup,
+  reachableHexes,
+  refuseBlessing,
+  workThreshold,
+} from '../sim/turn';
 import type { Reachable, RunEvent, RunRules, RunState } from '../sim/turn';
 import { getContext } from './context';
 
@@ -22,12 +36,16 @@ export class RunController extends Phaser.Events.EventEmitter {
   readonly knownBiomes = new Set<string>();
   /** Events of the last command, for a scene that starts right after it (e.g. the map after a battle). */
   lastEvents: RunEvent[] = [];
+  /** The map is still showing the last move; panels wait until it ends ('settled'). Only for the screen. */
+  animating = false;
+  /** The run's modifiers have been shown to the player. Only for the screen. */
+  modifiersShown = false;
 
-  constructor(seed: number, rules: RunRules, battleRules: BattleRules) {
+  constructor(seed: number, rules: RunRules, battleRules: BattleRules, modifiers: readonly string[] = []) {
     super();
     this.rules = rules;
     this.battleRules = battleRules;
-    this.state = createRun(seed, rules);
+    this.state = createRun(seed, rules, { modifiers });
   }
 
   reachable(): Map<string, Reachable> {
@@ -36,6 +54,32 @@ export class RunController extends Phaser.Events.EventEmitter {
 
   moveTo(target: Hex): void {
     this.publish(moveHydra(this.state, target, this.rules));
+  }
+
+  /** A tap on a place or a threshold: opens its panel, walking next to the threshold first if needed. */
+  inspect(target: Hex): void {
+    const events = inspect(this.state, target, this.rules);
+    if (events.length === 0) this.emit('notice', 'outOfReach');
+    this.publish(events);
+  }
+
+  doPlaceAction(actionId: string): void {
+    this.publish(doPlaceAction(this.state, actionId, this.rules));
+  }
+
+  workThreshold(): void {
+    this.publish(workThreshold(this.state, this.rules));
+  }
+
+  leavePlace(): void {
+    leavePlace(this.state);
+    this.emit('changed');
+  }
+
+  /** The map has finished showing the last move. */
+  settle(): void {
+    this.animating = false;
+    this.emit('settled');
   }
 
   endTurn(): void {
@@ -65,12 +109,15 @@ export class RunController extends Phaser.Events.EventEmitter {
   }
 
   /**
-   * For `?near=shrine` and the like: moves the hydra next to the nearest object of that kind and shows the area around it.
+   * For `?near=shrine` and the like: moves the hydra next to the nearest object of that kind, or the nearest place or
+   * threshold of that id (`?near=brineLake`, `?near=saltPlug`), and shows the area around it.
    * Testing only; it skips the walk (and the Alert it would cost).
    */
   placeNear(kind: string): void {
     const { map, hydra } = this.state;
-    const objects = [...map.tiles.values()].filter((t) => t.object?.kind === kind).sort((a, b) => hexDistance(a.hex, map.lair) - hexDistance(b.hex, map.lair));
+    const matches = (object: MapObject | null): boolean =>
+      object?.kind === kind || (object?.kind === 'place' && object.placeId === kind) || (object?.kind === 'threshold' && object.thresholdId === kind);
+    const objects = [...map.tiles.values()].filter((t) => matches(t.object)).sort((a, b) => hexDistance(a.hex, map.lair) - hexDistance(b.hex, map.lair));
     for (const target of objects) {
       const spot = hexNeighbors(target.hex)
         .map((h) => map.tiles.get(hexKey(h)))
@@ -97,8 +144,11 @@ export class RunController extends Phaser.Events.EventEmitter {
 
 /** Starts a new run with the seed from the game context and stores it for all scenes. */
 export function startNewRun(scene: Phaser.Scene, seed = getContext(scene).seed): RunController {
-  const { data } = getContext(scene);
-  const run = new RunController(seed, runRulesFrom(data), battleRulesFrom(data));
+  const { data, params } = getContext(scene);
+  const available = Object.keys(data.world.runModifiers).filter((id) => id !== '//');
+  const known = params.modifiers.filter((m) => available.includes(m));
+  for (const m of params.modifiers) if (!known.includes(m)) console.warn(`?modifiers=${m} is unknown. Available: ${available.join(', ')}`);
+  const run = new RunController(seed, runRulesFrom(data), battleRulesFrom(data), known);
   scene.registry.set(REGISTRY_KEY, run);
   return run;
 }

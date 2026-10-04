@@ -10,8 +10,20 @@ export interface ScreenPoint {
   encounter: boolean;
   /** Kind of object on this hex (shrine, muck...), or null. */
   object: string | null;
+  /** For a place or a threshold: its id (brineLake, saltPlug...). */
+  id: string | null;
   /** How many hexes not seen yet would be within sight from there. */
   unexploredNear: number;
+}
+
+/** A known closed threshold, or the place the hydra stands on: tapping it opens its panel. */
+export interface InspectablePoint {
+  x: number;
+  y: number;
+  object: string;
+  id: string;
+  /** Hexes from the hydra. */
+  distance: number;
 }
 
 declare global {
@@ -20,6 +32,10 @@ declare global {
       readyScenes: string[];
       /** Screen positions (in game pixels, 640×360) of hexes the hydra can reach now. */
       reachableOnScreen?: () => ScreenPoint[];
+      /** Screen positions (in game pixels) of thresholds and places a tap would open. */
+      inspectableOnScreen?: () => InspectablePoint[];
+      /** The open place or threshold panel: where its buttons are (game pixels), or null when none is open. */
+      placePanel?: () => { leave: { x: number; y: number }; actions: Array<{ id: string; x: number; y: number; enabled: boolean }> } | null;
       /** Short summary of the current battle; positions in game pixels (640×360). */
       battleSummary?: () => {
         tick: number;
@@ -46,8 +62,15 @@ declare global {
         inBattle: boolean;
         /** Standing at a shrine, waiting for Accept or Refuse. */
         atShrine: boolean;
+        /** A place's or threshold's panel is open. */
+        atPlace: boolean;
         blessings: number;
         explored: number;
+        /** Ids of the conditions on the hydra. */
+        conditions: string[];
+        /** Echoes heard and draughts felt so far. */
+        echoes: number;
+        draughts: number;
       };
     };
   }
@@ -66,10 +89,18 @@ export function exposeReachable(probe: () => ScreenPoint[]): void {
   hooks().reachableOnScreen = probe;
 }
 
+export function exposeInspectable(probe: () => InspectablePoint[]): void {
+  hooks().inspectableOnScreen = probe;
+}
+
 export function exposeRunSummary(summary: NonNullable<Window['__hydra']>['runSummary']): void {
   hooks().runSummary = summary;
 }
 
 export function exposeBattleSummary(summary: NonNullable<Window['__hydra']>['battleSummary']): void {
   hooks().battleSummary = summary;
+}
+
+export function exposePlacePanel(probe: NonNullable<Window['__hydra']>['placePanel']): void {
+  hooks().placePanel = probe;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { checkCrossReferences, loadGameData } from '../src/data';
-import { balanceSchema, combosSchema } from '../src/data/schemas';
+import { balanceSchema, combosSchema, worldSchema } from '../src/data/schemas';
 import { DataError, validateData } from '../src/data/validate';
 import { placeholderFor } from '../src/assets/placeholders';
 import { isTerrainTextureKey } from '../src/assets/terrain';
@@ -82,5 +82,30 @@ describe('combos.json', () => {
     const combos = structuredClone(data.combos);
     combos.combos[0]!.conditions.attackTag = 'bight';
     expect(() => checkCrossReferences({ heads: data.heads, combos })).toThrow(/combos\.json[\s\S]*"bight"/);
+  });
+});
+
+describe('world.json', () => {
+  const data = loadGameData();
+
+  it('catches a threshold with no way, or two ways, to open it', () => {
+    const none = structuredClone(data.world) as unknown as { thresholds: Record<string, Record<string, unknown>> };
+    delete none.thresholds.rootWall!.open;
+    expect(() => validateData('world.json', worldSchema, none)).toThrow(/thresholds\.rootWall[\s\S]*exactly one of/);
+    const two = structuredClone(data.world) as unknown as { thresholds: Record<string, Record<string, unknown>> };
+    two.thresholds.rootWall!.alwaysOpen = true;
+    expect(() => validateData('world.json', worldSchema, two)).toThrow(/exactly one of/);
+  });
+
+  it('catches a place action with a condition that does not exist', () => {
+    const bad = structuredClone(data.world);
+    bad.places.brineLake!.actions![0]!.condition = { id: 'pickled', turns: 2 };
+    expect(() => validateData('world.json', worldSchema, bad)).toThrow(/unknown condition "pickled"/);
+  });
+
+  it('catches a threshold opened by a head class that does not exist', () => {
+    const world = structuredClone(data.world);
+    world.thresholds.saltPlug!.open!.headClass = 'acidSpiter';
+    expect(() => checkCrossReferences({ ...data, world })).toThrow(/world\.json[\s\S]*acidSpiter/);
   });
 });

@@ -1,43 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { loadGameData } from '../src/data';
-import { runRulesFrom } from '../src/data/runRules';
 import { hex, hexDistance, hexKey, hexesInRange } from '../src/sim/hex';
-import type { HexMap, TerrainTable, Tile } from '../src/sim/map';
 import { hexesSeenFrom, updateVisibility } from '../src/sim/map';
 import { acceptBlessing, createRun, endTurn, finishBattle, moveHydra, pendingBattleSetup, reachableHexes, refuseBlessing } from '../src/sim/turn';
 import type { BattleResult } from '../src/sim/battle';
 import type { RunState } from '../src/sim/turn';
-
-const rules = runRulesFrom(loadGameData());
-const terrain: TerrainTable = {
-  water: { moveCost: 1, blocksSight: false },
-  mud: { moveCost: 1, blocksSight: false },
-  roots: { moveCost: 2, blocksSight: false },
-  salt: { moveCost: 3, blocksSight: false },
-  rock: { moveCost: null, blocksSight: true },
-};
-
-/** A hand-made all-mud map, so tests don't depend on the generator. */
-function flatMap(radius: number, edit: (tiles: Map<string, Tile>) => void = () => {}): HexMap {
-  const tiles = new Map<string, Tile>();
-  for (const h of hexesInRange(hex(0, 0), radius)) tiles.set(hexKey(h), { hex: h, biome: 'lairSwamp', terrain: 'mud', object: null });
-  tiles.get('0,0')!.object = { kind: 'lair' };
-  edit(tiles);
-  return { radius, tiles, lair: hex(0, 0) };
-}
-
-function runOn(map: HexMap, movement = 5): RunState {
-  const state = createRun(1, { ...rules, terrain, movementPointsPerTurn: movement });
-  state.map = map;
-  state.hydra = { ...state.hydra, position: map.lair, movementLeft: movement };
-  state.visibility = new Map();
-  // Tests know the whole map, so every hex can be targeted.
-  for (const key of map.tiles.keys()) state.visibility.set(key, 'remembered');
-  updateVisibility(state.visibility, hexesSeenFrom(map, map.lair, 2, terrain));
-  return state;
-}
-
-const testRules = { ...rules, terrain, movementPointsPerTurn: 5, sightRangeHexes: 2 };
+import { flatMap, rules, runOn, terrain, testRules } from './runHelpers';
 
 describe('visibility', () => {
   it('rock blocks sight behind it', () => {
@@ -109,7 +76,7 @@ describe('movement', () => {
 
   it('collects muck on the way', () => {
     const state = runOn(flatMap(4, (tiles) => {
-      tiles.get('1,0')!.object = { kind: 'muck', amount: 10 };
+      tiles.get('1,0')!.object = { kind: 'muck', amount: 10, rich: false };
     }));
     moveHydra(state, hex(2, 0), testRules);
     expect(state.resources.muck).toBe(10);
@@ -176,7 +143,7 @@ describe('movement', () => {
 describe('resources', () => {
   it('collects Moisture from a spring on the way', () => {
     const state = runOn(flatMap(4, (tiles) => {
-      tiles.get('1,0')!.object = { kind: 'moisture', amount: 10 };
+      tiles.get('1,0')!.object = { kind: 'moisture', amount: 10, rich: false };
     }));
     const events = moveHydra(state, hex(2, 0), testRules);
     expect(state.resources.moisture).toBe(10);
@@ -301,5 +268,12 @@ describe('createRun', () => {
     expect(state.visibility.get(hexKey(state.map.lair))).toBe('visible');
     expect(state.alert).toBe(rules.alertMin);
     expect(state.hydra.movementLeft).toBe(rules.movementPointsPerTurn);
+    expect(state.hydra.conditions).toEqual([]);
+    expect(state.pendingPlace).toBeNull();
+  });
+
+  it('builds the world with the run modifiers it is given', () => {
+    expect(createRun(123, rules).map.layout.modifiers).toEqual([]);
+    expect(createRun(123, rules, { modifiers: ['wetYear'] }).map.layout.modifiers).toEqual(['wetYear']);
   });
 });
