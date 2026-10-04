@@ -58,6 +58,12 @@ Stan na 2026-10-03. Ten plik streszcza dotychczasową pracę, żeby następna se
 - kłapanie żuchwą przy ataku i odrzut głowy przy trafieniu (punkt 8, `docs/ANIMATIONS.md`).
 Portret jest w grze, ale żadna scena go jeszcze nie pokazuje (dialogi przyjdą z późniejszym etapem).
 
+**Nowy kierunek, 2026-10-04:** Piotr uznał pierwszą głowę za komiczną i zbyt smoczą. Wzorem stylu jest jego okładka (przysłana w projekcie Hydra, jeszcze nie w repo) i Hades: głowy mroczne, wężowe, humor tylko w kwestiach (`GAME_DESIGN.md` §13). Kolejność: najpierw malowane portrety głów do dialogów, potem na ich podstawie pixelowe głowy do bitwy. Prompty portretów są w dokumencie z projektem 9 głów (dokument Claude w projekcie). Na karcie decyzji Piotr wybrał malowane portrety w samej grze, więc w M5 (dialogi) trzeba:
+- warstwę dialogów rysowaną w rozdzielczości ekranu, nad płótnem 640×360;
+- regułę importu dla malowanych portretów: wycięcie tła bez zmniejszania i bez palety, wpisy w manifeście i `docs/ASSETS.md`.
+
+Do tego czasu malowane portrety leżą w `art/concept/`, bo `npm run art` odrzuca w `art/raw/` pliki spoza manifestu. Body też będzie przerobione w tym stylu, po głowach.
+
 Plan:
 
 1. **Kąt kamery:** widok 3/4 z góry, kamera ok. 45° nad ziemią, światło z lewej góry. Tak już są narysowane plansza bitwy i mapa (heksy spłaszczone do ok. 0,7 wysokości), więc nic do przebudowy. Portrety i ekran tytułowy to osobne ujęcia, na wprost.
@@ -118,9 +124,10 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 
 **Czekają na Piotra:**
 1. Wrażenia z playtestu M2b: mapa, kapliczki, leże, nowe biomy.
-2. Uwagi do pierwszej partii grafik, już w grze (np. czy sól w Salt Mines nie jest za jasna, rozmiar głów).
-3. Okładka gry (key art) w `art/raw/`, z której powstanie paleta.
-4. Projekt głów do M2a. Powstanie w rozmowie w projekcie Hydra.
+2. Nowa tekstura soli do Salt Mines (Piotr wybrał nowy obrazek, prompt już przyciemniony) i malowane portrety głów (sekcja 3.2, „Nowy kierunek”).
+3. Okładka gry przyszła w projekcie Hydra 2026-10-04. Do repo (`art/raw/key_art.png`) trafi przy propozycji palety.
+4. Projekt głów do M2a: propozycja 9 głów czeka na zatwierdzenie (dokument Claude „Hydra: komplet 9 głów” w projekcie Hydra).
+5. Czy pozostałe portrety (Old Mother Toad, jeńcy, Mistrzowie Zakonu, przodkowie) też mają być malowane (`GAME_DESIGN.md` §16).
 
 **Z `GAME_DESIGN.md` §16 (decyduje Piotr):**
 - ile kapliczek Płomienia trzeba zgasić;
@@ -153,7 +160,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 
 1. Poczekać na odpowiedzi Piotra (sekcja 4).
 2. Pierwsza partia jest w grze. Dalej z `docs/ANIMATIONS.md` (stan „do zrobienia”): oddech i drgnięcie tułowia, ścięcie głowy. Kolejne grafiki: ludzie Zakonu, obiekty i hydra na mapie, tło tytułu (prompty trzeba dopisać do `docs/ART_PROMPTS.md`).
-3. Gdy przyjdzie okładka: propozycja palety (próbnik i okładka w palecie), po akceptacji zapis w repo.
+3. Okładka jest: propozycja palety (próbnik i okładka w palecie) przed pixelowymi wersjami głów, po akceptacji zapis w repo. Do rozstrzygnięcia przy tym: na okładce hydra ma stare złoto i brąz, a §13 opisuje ją jako zimną (turkus, zieleń).
 4. Gdy Piotr napisze, że wrzucił grafiki: `git pull`, `npm run art`, obejrzeć wynik w grze, wdrożyć, pokazać.
 5. Zatwierdzone decyzje od razu wpisywać do `GAME_DESIGN.md`, a budować w swoim etapie.
 6. Potem M2a (głowy), gdy projekt głów będzie gotowy, i dalej M3 według §15.

@@ -270,11 +270,12 @@ Woda (Body szybsze, powolne leczenie), błoto, suchy grunt (Body wolniejsze), ch
 
 ## 13. Styl wizualny
 
-- Pixel art, wewnętrzna rozdzielczość 640×360, skalowanie całkowite, bez wygładzania.
+- Pixel art, wewnętrzna rozdzielczość 640×360, skalowanie całkowite, bez wygładzania. Wyjątek: malowane portrety głów w dialogach (niżej).
+- Wzór stylu: okładka gry (key art od Piotra) i Hades. Hydra jest mroczna i groźna, bardziej wężowa niż smocza. Humor jest w kwestiach, nie w wyglądzie. Body zostanie przerobione w tym stylu. (Decyzja Piotra z 2026-10-04.)
 - Paleta z key artu. Podziemia i hydra są zimne: głęboki turkus, bagienna zieleń, czerń, chorobliwie żółtozielona bioluminescencja. Zakon i powierzchnia są ciepli: złoto, pomarańcz, czerwone chorągwie, ogień. Mist to granica między tymi światami: blada, zielonkawoszara, półprzezroczysta. Konflikt gry jest dosłownie widoczny: ciepłe światło płomieni przeciw zimnej mgle.
 - Hydra: sprite Body, proceduralne szyje, sprite'y głów z odcieniem zależnym od klasy. Dzięki temu dodanie głowy nie wymaga nowej animacji.
 - Bitwa widziana pod skosem: plansza z heksów jak gruba płyta, postacie stojące. Warstwa eksploracji docelowo w stylu Songs of Conquest.
-- Portrety do dialogów: większe popiersia w pixel arcie.
+- Portrety głów w dialogach: malowane, w stylu okładki i Hadesa (mocne kontury, płaskie plamy koloru, ostre światło), wycięte z tła i pokazywane w pełnej rozdzielczości ekranu nad grą pixelową. Każdy portret jest też wzorem, z którego powstaje pixelowa głowa do bitwy. (Decyzja Piotra z 2026-10-04; wcześniej portrety miały być pixelowymi popiersiami.) Portrety pozostałych postaci: otwarte pytanie w §16.
 - Grafika na start: zastępcza (generowana w kodzie) i darmowe paczki CC0. Docelowe sprite'y i portrety robi Piotr w GPT, dlatego wymiary i kadrowanie każdej grafiki muszą być spisane w `docs/ASSETS.md`.
 
 ## 14. Humor: zasady pisania
@@ -327,3 +328,4 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 - **Odrost (pomysł Piotra po playteście M1b):** nowe głowy są mniejsze i na początku zadają połowę obrażeń, żeby odrost nie dawał od razu siły. Głowy potem rosną, i dlatego z czasem hydra jest mocna. Do ustalenia: od czego rosną (doświadczenie z walk, błogosławieństwa, czas).
 - **Fabuła (pomysł Piotra):** hydra szuka błogosławieństw Wielkiego Węża, który otula swoim ciałem środek planety. Może to on sprawia, że głowy rosną. Do rozwinięcia.
 - **The Spare (pomysły Piotra):** czasem przeszkadza, np. przejmuje na chwilę kursor i nie można sterować. Ma też umiejętność „Multiheadeverse”, która losowo działa albo nie: przyzywa półprzezroczyste głowy z innych wymiarów, które na chwilę pojawiają się przy wszystkich ludziach i zadają im obrażenia albo całkiem ich rozrywają.
+- **Portrety pozostałych postaci:** portrety głów są malowane (§13). Czy Old Mother Toad, jeńcy, Mistrzowie Zakonu i przodkowie też mają mieć malowane portrety? Dziś Old Mother Toad ma portret pixelowy 128×160.
