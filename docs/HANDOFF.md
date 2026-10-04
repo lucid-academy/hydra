@@ -64,6 +64,8 @@ Portret jest w grze, ale żadna scena go jeszcze nie pokazuje (dialogi przyjdą 
 
 Do tego czasu malowane portrety leżą w `art/concept/`, bo `npm run art` odrzuca w `art/raw/` pliki spoza manifestu. Pixelowy portret Old Mother Toad (`portrait_oldMotherToad`, 128×160) zostaje w grze do M5, potem zastąpi go malowany. Body też będzie przerobione w tym stylu, po głowach.
 
+**Malowane portrety, 2026-10-04:** Piotr przysłał arkusz z 9 głowami i Old Mother Toad (GPT). Oryginał i wycięte portrety są w `art/concept/portraits/` (opis w `art/concept/README.md`); na jego prośbę języki w pięciu głowach są skrócone. Z portretów powstało demo dialogu poza grą (strona Artifact w projekcie Hydra): 1–4 portrety naraz, głowy po prawej stronie odbite lustrzanie w kodzie, bez osobnych grafik. Wniosek na M5: arkusz daje ok. 350 px na głowę, za mało na portret w rozdzielczości ekranu, więc docelowe portrety lepiej generować pojedynczo, w większym rozmiarze i z krótszym językiem w prompcie.
+
 Plan:
 
 1. **Kąt kamery:** widok 3/4 z góry, kamera ok. 45° nad ziemią, światło z lewej góry. Tak już są narysowane plansza bitwy i mapa (heksy spłaszczone do ok. 0,7 wysokości), więc nic do przebudowy. Portrety i ekran tytułowy to osobne ujęcia, na wprost.
