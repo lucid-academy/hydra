@@ -1,33 +1,29 @@
 {
-  "//": "TODO(design): working values. The underground is split into biomes: the swamp round the lair, and the others in wide wedges around it. ground: share of each kind of open ground (water, mud, roots, salt) in the biome. rockShare: share of rock walls. decorations: what is scattered over its ground (a kind listed twice comes up twice as often; kinds: reeds, bones, pebbles, stalagmite, puddle, roots, sprout, mushroom, glowMushroom, crystal, urn, brokenPillar). encounterDensity: how likely encounters are here (1 = normal). colors: for the placeholder graphics, until real art exists.",
+  "//": "TODO(design): working values. The underground is split into biomes: the swamp round the lair, and the biomes of the rings (which ring has which: balance.json undergroundGenerator.rings). ground: share of each kind of open ground (water, mud, roots, salt) in the biome; rock is wherever the caves are not. decorations: what is scattered over its ground (a kind listed twice comes up twice as often; kinds: reeds, bones, pebbles, stalagmite, puddle, roots, sprout, mushroom, glowMushroom, crystal, urn, brokenPillar). encounterDensity: how likely encounters are here (1 = normal). colors: for the placeholder graphics, until real art exists.",
   "lairBiome": "lairSwamp",
   "biomes": {
     "lairSwamp": {
       "displayName": "Lair Swamp",
       "decorations": ["reeds", "bones", "pebbles", "stalagmite"],
       "ground": { "water": 0.3, "mud": 0.7 },
-      "rockShare": 0.12,
       "colors": { "ground": "#2c3420", "detail": "#3f5a2c", "water": "#12393a", "rock": "#3a3129", "glow": "#c6e04a" }
     },
     "floodedCaves": {
       "displayName": "Flooded Caves",
       "decorations": ["reeds", "puddle", "stalagmite", "pebbles"],
       "ground": { "water": 0.55, "mud": 0.45 },
-      "rockShare": 0.28,
       "colors": { "ground": "#1d3833", "detail": "#2d5a4a", "water": "#0f3a3d", "rock": "#2e3436", "glow": "#7fd0e0" }
     },
     "rootTangle": {
       "displayName": "Root Tangle",
       "decorations": ["roots", "sprout", "roots", "pebbles"],
       "ground": { "mud": 0.45, "roots": 0.55 },
-      "rockShare": 0.28,
       "colors": { "ground": "#33261a", "detail": "#4a3a22", "water": "#1d3330", "rock": "#3a2f25", "glow": "#d9a93b" }
     },
     "oldCrypts": {
       "displayName": "Old Crypts",
       "decorations": ["urn", "bones", "brokenPillar", "bones", "pebbles"],
       "ground": { "water": 0.15, "mud": 0.85 },
-      "rockShare": 0.38,
       "encounterDensity": 1.2,
       "colors": { "ground": "#2e2b27", "detail": "#4a4540", "water": "#1c2a2c", "rock": "#3b3732", "glow": "#e0b060" }
     },
@@ -35,7 +31,6 @@
       "displayName": "Salt Mines",
       "decorations": ["crystal", "crystal", "pebbles", "bones"],
       "ground": { "mud": 0.35, "salt": 0.65 },
-      "rockShare": 0.3,
       "encounterDensity": 1.5,
       "colors": { "ground": "#4a4440", "detail": "#8a8078", "water": "#2a3a40", "rock": "#5a524c", "glow": "#f0d8d0" }
     },
@@ -43,7 +38,6 @@
       "displayName": "Fungal Deeps",
       "decorations": ["mushroom", "glowMushroom", "glowMushroom", "pebbles"],
       "ground": { "water": 0.15, "mud": 0.85 },
-      "rockShare": 0.3,
       "colors": { "ground": "#2a2032", "detail": "#5a3d66", "water": "#1a2a3a", "rock": "#2f2836", "glow": "#c65bd6" }
     }
   }

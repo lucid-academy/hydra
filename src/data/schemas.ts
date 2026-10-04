@@ -4,6 +4,7 @@
 
 import { z } from 'zod';
 import { DECORATION_KINDS } from '../assets/mapArt';
+import { DEAD_END_CONTENTS, PATCH_FINDS } from '../sim/map';
 
 const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'expected a color like "#1a2b3c"');
 
@@ -15,7 +16,27 @@ function section<T extends z.ZodRawShape>(shape: T) {
   return z.object({ ...shape, '//': z.string().optional() }).strict();
 }
 
+/**
+ * Entries by id (`{ "rubbleChoke": {...}, "rootWall": {...} }`), which may also hold a `"//"` note.
+ * The note is dropped before checking, so it never counts as an entry.
+ */
+function entries<T extends z.ZodType>(value: T) {
+  return z.preprocess(
+    (raw) => (raw !== null && typeof raw === 'object' && !Array.isArray(raw) ? Object.fromEntries(Object.entries(raw).filter(([key]) => key !== '//')) : raw),
+    z.record(z.string(), value),
+  );
+}
+
 const share = z.number().min(0).max(1);
+/** A range [from, to]: each world (or each thing) gets a whole number from `from` to `to`. */
+const intRange = (min = 0) =>
+  z.tuple([z.number().int().min(min), z.number().int().min(min)]).refine(([from, to]) => from <= to, 'the first number must not be bigger than the second');
+/** A range [from, to] of shares (0–1). */
+const shareRange = z.tuple([share, share]).refine(([from, to]) => from <= to, 'the first number must not be bigger than the second');
+/** Weights by id, e.g. { "remains": 40, "shrine": 20 }: bigger comes up more often. */
+const weights = z.record(z.string(), z.number().min(0)).refine((w) => Object.values(w).some((v) => v > 0), 'needs at least one weight above 0');
+/** Resources a find gives. */
+const lootSchema = section({ muck: z.number().int().min(0).optional(), moisture: z.number().int().min(0).optional(), bones: z.number().int().min(0).optional() });
 /** Board sizes must be odd, so the board has a middle hex for the hydra's body. */
 const oddBoardSize = z.number().int().min(5).refine((n) => n % 2 === 1, 'must be an odd number (5, 7, 9, …) so the board has a middle hex');
 /** Distances on the battle board, in hexes. */
@@ -31,7 +52,9 @@ export const balanceSchema = section({
   map: section({
     movementPointsPerTurn: z.number().int().positive(),
     sightRangeHexes: z.number().int().positive(),
-    undergroundRadius: z.number().int().min(3),
+    undergroundRadius: z.number().int().min(8),
+    landmarkSightRange: z.number().int().min(0),
+    echoRange: z.number().int().min(0),
   }),
   terrain: section({
     water: terrainRulesSchema,
@@ -41,27 +64,61 @@ export const balanceSchema = section({
     rock: terrainRulesSchema,
   }),
   undergroundGenerator: section({
-    smoothingPasses: z.number().int().min(0),
-    minPassableShare: share,
-    lairBiomeRadius: z.number().int().min(1),
-    shrines: section({ count: z.number().int().min(0), minDistanceFromLair: z.number().int().min(1), minDistanceApart: z.number().int().min(1) }),
-    passages: section({ count: z.number().int().min(0), minDistanceFromLair: z.number().int().min(1), minDistanceApart: z.number().int().min(1) }),
-    encounters: section({
-      count: z.number().int().min(0),
-      minDistanceFromLair: z.number().int().min(1),
-      minDistanceApart: z.number().int().min(1),
-      // Where each tier of enemy groups starts; must start at 0 and grow.
-      tierStartsAtDistance: z
-        .array(z.number().int().min(0))
-        .min(1)
-        .refine((d) => d[0] === 0 && d.every((v, i) => i === 0 || v > d[i - 1]!), 'must start with 0 and grow, e.g. [0, 7, 11]'),
-    }),
-    muckDeposits: section({ count: z.number().int().min(0), minDistanceFromLair: z.number().int().min(1) }),
-    moistureSources: section({ count: z.number().int().min(0), minDistanceFromLair: z.number().int().min(1) }),
+    lairRadius: z.number().int().min(1),
+    lairExits: intRange(1),
+    ringCenterOffset: z.number().min(0),
+    edgeWobble: z.number().min(0),
+    minRingWidth: z.number().int().min(2),
+    bandThickness: z.tuple([z.number().min(1), z.number().min(1)]).refine(([from, to]) => from <= to, 'the first number must not be bigger than the second'),
+    chamberSpacing: z.number().int().min(2),
+    corridors: section({ narrowShare: share, extraLinkShare: z.number().min(0), winding: z.number().min(0) }),
+    deadEndSpur: intRange(1),
+    deadEndPocket: intRange(1),
+    thresholdSpacing: z.number().min(0).max(0.5),
+    encounterSpacing: z.number().int().min(1),
+    encounterMinDistanceFromLair: z.number().int().min(1),
+    passages: section({ firstRing: z.number().int().min(1), secondRings: z.array(z.number().int().min(1)).min(1) }),
+    locationsPerBiome: intRange(0),
+    maxRarePlaces: z.number().int().min(0),
+    undertowLength: intRange(2),
+    rings: z
+      .array(
+        section({
+          outerEdge: z.number().positive(),
+          mainBiomes: z.array(z.string().min(1)).min(1),
+          mainBiomeShare: shareRange,
+          patches: intRange(0),
+          patchBiomes: weights,
+          chambers: intRange(1),
+          chamberSize: intRange(1),
+          deadEnds: intRange(0),
+          deadEndContents: z.partialRecord(z.enum(DEAD_END_CONTENTS), z.number().min(0)).refine((w) => Object.values(w).some((v) => (v ?? 0) > 0), 'needs at least one weight above 0'),
+          minShrines: z.number().int().min(0),
+          encounters: z.number().int().min(0),
+          encounterTier: z.number().int().min(1),
+          muckDeposits: z.number().int().min(0),
+          moistureSources: z.number().int().min(0),
+          thresholds: section({ count: intRange(1), kinds: weights }).nullable(),
+        }),
+      )
+      .min(1)
+      .superRefine((rings, ctx) => {
+        rings.forEach((ring, k) => {
+          const last = k === rings.length - 1;
+          if (last && ring.thresholds !== null) ctx.addIssue({ code: 'custom', path: [k, 'thresholds'], message: 'the last ring has nothing further out, so its thresholds must be null' });
+          if (!last && ring.thresholds === null) ctx.addIssue({ code: 'custom', path: [k, 'thresholds'], message: 'every ring but the last needs thresholds to the next ring' });
+          // One dead end of a ring with thresholds holds its Draught Crack.
+          const freeDeadEnds = ring.deadEnds[0] - (last ? 0 : 1);
+          if (ring.minShrines > freeDeadEnds) ctx.addIssue({ code: 'custom', path: [k, 'minShrines'], message: `more than the dead ends can hold (at least ${freeDeadEnds} besides the Draught Crack's)` });
+          if (k > 0 && ring.outerEdge <= rings[k - 1]!.outerEdge) ctx.addIssue({ code: 'custom', path: [k, 'outerEdge'], message: 'must be further out than the ring before' });
+        });
+      }),
   }),
   resources: section({
     muckPerDeposit: z.number().int().positive(),
     moisturePerSource: z.number().int().positive(),
+    // A Rich Deposit holds this many times a normal one.
+    richDepositMultiplier: z.number().int().min(1),
     bonesPerEnemy: z.number().int().min(0),
   }),
   alert: section({
@@ -167,7 +224,7 @@ export const enemiesSchema = section({
   }
 });
 
-/** Kinds of open ground a biome can have (rock walls are counted separately, with rockShare). */
+/** Kinds of open ground a biome can have (rock is wherever the caves are not). */
 export const GROUND_TYPES = ['water', 'mud', 'roots', 'salt'] as const;
 
 export const biomesSchema = section({
@@ -178,7 +235,6 @@ export const biomesSchema = section({
       displayName: z.string().min(1),
       decorations: z.array(z.enum(DECORATION_KINDS)),
       ground: z.partialRecord(z.enum(GROUND_TYPES), share),
-      rockShare: share,
       // How likely encounters are here compared with other biomes (1 = normal, 1.5 = half as many again).
       encounterDensity: z.number().positive().optional(),
       colors: section({ ground: hexColor, detail: hexColor, water: hexColor, rock: hexColor, glow: hexColor }),
@@ -289,6 +345,113 @@ export const combosSchema = section({
   });
 });
 
+/** A thing the hydra can do at a place (world.json places). */
+const placeActionSchema = section({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  // Said after the action.
+  result: z.string().min(1).optional(),
+  // Only a hydra with a head of this class (heads.json) can do it.
+  headClass: z.string().min(1).optional(),
+  movementCost: z.number().int().min(0).optional(),
+  // Once per run.
+  once: z.boolean().optional(),
+  // Can be done again after this many turns.
+  cooldownTurns: z.number().int().min(1).optional(),
+  gain: lootSchema.optional(),
+  // A condition (world.json conditions) put on the hydra for a number of turns.
+  condition: section({ id: z.string().min(1), turns: z.number().int().min(1) }).optional(),
+  // The hydra is carried along the place's current.
+  carry: z.boolean().optional(),
+  // One hidden threshold is shown on the map.
+  revealHiddenThreshold: z.boolean().optional(),
+});
+
+const PLACE_TYPES = ['landmark', 'location', 'rare'] as const;
+
+const placeSchema = section({
+  type: z.enum(PLACE_TYPES),
+  // Landmarks and locations: the biome they belong to.
+  biome: z.string().min(1).optional(),
+  // Rare places: the chance (0–1) a world has it, and where it goes (a chamber of ring `ring`, or any; or a dead end).
+  chance: share.optional(),
+  where: z.enum(['chamber', 'deadEnd']).optional(),
+  ring: z.number().int().min(1).optional(),
+  name: z.string().min(1),
+  text: z.string().min(1),
+  // Heard before the place is seen.
+  echo: z.string().min(1).optional(),
+  actions: z.array(placeActionSchema).optional(),
+  // Battles this many hexes away or closer don't raise the Alert.
+  silencesBattlesWithin: z.number().int().min(0).optional(),
+}).superRefine((place, ctx) => {
+  if (place.type !== 'rare' && place.biome === undefined) ctx.addIssue({ code: 'custom', path: ['biome'], message: `a ${place.type} needs the biome it belongs to` });
+  if (place.type === 'rare' && (place.chance === undefined || place.where === undefined)) {
+    ctx.addIssue({ code: 'custom', path: ['type'], message: 'a rare place needs "chance" and "where"' });
+  }
+  const ids = new Set<string>();
+  (place.actions ?? []).forEach((action, a) => {
+    if (ids.has(action.id)) ctx.addIssue({ code: 'custom', path: ['actions', a, 'id'], message: `action id "${action.id}" is used twice` });
+    ids.add(action.id);
+  });
+});
+
+const thresholdSchema = section({
+  name: z.string().min(1),
+  text: z.string().min(1),
+  // Looks like rock until the hydra stands next to it; `hint` is what gives it away.
+  hidden: z.boolean().optional(),
+  hint: z.string().min(1).optional(),
+  // Opened by digging: one dig per turn, `turns` digs (each threshold gets its own number from the range).
+  dig: section({ label: z.string().min(1), turns: intRange(1), progress: z.string().min(1) }).optional(),
+  // Opened at once by a head of this class (heads.json).
+  open: section({ headClass: z.string().min(1), label: z.string().min(1) }).optional(),
+  alwaysOpen: z.boolean().optional(),
+  // A rare place: a world has it with this chance (0–1).
+  rareChance: share.optional(),
+}).superRefine((t, ctx) => {
+  const ways = [t.hidden === true, t.dig !== undefined, t.open !== undefined, t.alwaysOpen === true].filter(Boolean).length;
+  if (ways !== 1) ctx.addIssue({ code: 'custom', path: [], message: 'a threshold needs exactly one of: "hidden": true, "dig", "open", "alwaysOpen": true' });
+  if (t.hidden && t.hint === undefined) ctx.addIssue({ code: 'custom', path: ['hint'], message: 'a hidden threshold needs a hint (what gives it away)' });
+});
+
+const named = { name: z.string().min(1), text: z.string().min(1) };
+
+export const worldSchema = section({
+  thresholds: entries(thresholdSchema),
+  places: entries(placeSchema),
+  remains: section({
+    loot: section({ muck: intRange(0), moisture: intRange(0), bones: intRange(0) }),
+    // "any", or a biome id.
+    lines: entries(z.array(z.string().min(1)).min(1)),
+  }),
+  guardedHoard: section({ ...named, loot: lootSchema }),
+  patchFinds: entries(z.enum(PATCH_FINDS)),
+  echoes: entries(z.string().min(1)),
+  conditions: entries(section({ ...named, movement: z.number().int().optional(), revealsEncounters: z.boolean().optional() })),
+  runModifiers: section({
+    wetYear: section({ ...named, waterShareBonus: share, moistureMultiplier: z.number().positive() }),
+    myceliumBloom: section({ ...named, extraFungalPatches: intRange(0), fungalBiome: z.string().min(1) }),
+    oldWorkings: section({ ...named, extraEncounters: z.number().int().min(0) }),
+  }),
+}).superRefine((world, ctx) => {
+  // The generator relies on these.
+  const needed = { draughtCrack: 'hidden', cinderScar: 'alwaysOpen', oldWorkings: 'alwaysOpen' } as const;
+  for (const [id, way] of Object.entries(needed)) {
+    const t = world.thresholds[id];
+    if (!t) ctx.addIssue({ code: 'custom', path: ['thresholds'], message: `needs the threshold "${id}" (the generator places it)` });
+    else if (t[way] !== true) ctx.addIssue({ code: 'custom', path: ['thresholds', id], message: `must have "${way}": true` });
+  }
+  if (!world.remains.lines['any']) ctx.addIssue({ code: 'custom', path: ['remains', 'lines'], message: 'needs the pool "any"' });
+  for (const [id, place] of Object.entries(world.places)) {
+    for (const [a, action] of (place.actions ?? []).entries()) {
+      if (action.condition && !world.conditions[action.condition.id]) {
+        ctx.addIssue({ code: 'custom', path: ['places', id, 'actions', a, 'condition', 'id'], message: `unknown condition "${action.condition.id}"; known: ${Object.keys(world.conditions).join(', ')}` });
+      }
+    }
+  }
+});
+
 export const paletteSchema = z
   .object({
     underground: z
@@ -383,6 +546,7 @@ export type EnemiesData = z.infer<typeof enemiesSchema>;
 export type CombosData = z.infer<typeof combosSchema>;
 export type BiomesData = z.infer<typeof biomesSchema>;
 export type ShrinesData = z.infer<typeof shrinesSchema>;
+export type WorldData = z.infer<typeof worldSchema>;
 export type Palette = z.infer<typeof paletteSchema>;
 export type GameText = z.infer<typeof textSchema>;
 export type AssetManifest = z.infer<typeof manifestSchema>;

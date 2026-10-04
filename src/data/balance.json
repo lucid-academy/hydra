@@ -1,8 +1,11 @@
 {
   "map": {
-    "movementPointsPerTurn": 5,
-    "sightRangeHexes": 2,
-    "undergroundRadius": 14
+    "//": "TODO(design): working values. landmarkSightRange: landmarks this many hexes away or closer are seen even through rock. echoRange: an echo is heard when a place or patch not yet seen is this many hexes away or closer.",
+    "movementPointsPerTurn": 6,
+    "sightRangeHexes": 3,
+    "undergroundRadius": 20,
+    "landmarkSightRange": 7,
+    "echoRange": 4
   },
   "terrain": {
     "water": {
@@ -27,20 +30,88 @@
     }
   },
   "undergroundGenerator": {
-    "//": "TODO(design): working values. Distances in hexes. Biomes and their ground are in biomes.json. Encounters get stronger with distance from the lair: tierStartsAtDistance[0] is where tier 1 starts, [1] tier 2, [2] tier 3 (tiers of groups are in enemies.json).",
-    "smoothingPasses": 2,
-    "minPassableShare": 0.5,
-    "lairBiomeRadius": 3,
-    "shrines": { "count": 4, "minDistanceFromLair": 6, "minDistanceApart": 5 },
-    "passages": { "count": 2, "minDistanceFromLair": 10, "minDistanceApart": 8 },
-    "encounters": { "count": 18, "minDistanceFromLair": 3, "minDistanceApart": 2, "tierStartsAtDistance": [0, 7, 11] },
-    "muckDeposits": { "count": 16, "minDistanceFromLair": 2 },
-    "moistureSources": { "count": 8, "minDistanceFromLair": 2 }
+    "//": "TODO(design): working values (GAME_DESIGN.md §9). Distances in hexes. Ranges like [2, 4] mean from 2 to 4, picked at random for each world. Weights like { \"remains\": 40, \"shrine\": 20 }: bigger comes up more often. rings go from the lair outward; a ring's thresholds lead to the next ring. thresholdSpacing: thresholds of one border lie at least this share of the circle apart (0.2 = a fifth). outerEdge: distance from the rings' middle to the ring's outer edge before it wobbles (it is squeezed where the map is too small). Biomes and their ground are in biomes.json; thresholds, places, remains and run modifiers in world.json.",
+    "lairRadius": 3,
+    "lairExits": [2, 3],
+    "ringCenterOffset": 3,
+    "edgeWobble": 2.5,
+    "minRingWidth": 3,
+    "bandThickness": [1, 3],
+    "chamberSpacing": 4,
+    "corridors": {
+      "//": "narrowShare: share of corridors one hex wide (the others are two). extraLinkShare: corridors beyond the minimum that make loops, as a share of the minimum. winding: how much corridors wander (0 = straight).",
+      "narrowShare": 0.4,
+      "extraLinkShare": 0.2,
+      "winding": 2
+    },
+    "deadEndSpur": [3, 6],
+    "deadEndPocket": [1, 3],
+    "thresholdSpacing": 0.2,
+    "encounterSpacing": 3,
+    "encounterMinDistanceFromLair": 4,
+    "passages": { "firstRing": 1, "secondRings": [2, 3] },
+    "locationsPerBiome": [1, 2],
+    "maxRarePlaces": 2,
+    "undertowLength": [4, 7],
+    "rings": [
+      {
+        "outerEdge": 8,
+        "mainBiomes": ["floodedCaves", "rootTangle"],
+        "mainBiomeShare": [0.3, 0.7],
+        "patches": [2, 3],
+        "patchBiomes": { "oldCrypts": 50, "saltMines": 50 },
+        "chambers": [6, 8],
+        "chamberSize": [4, 10],
+        "deadEnds": [3, 5],
+        "deadEndContents": { "remains": 40, "shrine": 20, "richDeposit": 30, "guardedHoard": 10 },
+        "minShrines": 1,
+        "encounters": 5,
+        "encounterTier": 1,
+        "muckDeposits": 6,
+        "moistureSources": 4,
+        "thresholds": { "count": [2, 4], "kinds": { "rubbleChoke": 3, "rootWall": 1, "saltPlug": 1, "smoulderingSeam": 1 } }
+      },
+      {
+        "outerEdge": 14,
+        "mainBiomes": ["oldCrypts", "saltMines"],
+        "mainBiomeShare": [0.3, 0.7],
+        "patches": [3, 4],
+        "patchBiomes": { "fungalDeeps": 40, "floodedCaves": 30, "rootTangle": 30 },
+        "chambers": [8, 11],
+        "chamberSize": [4, 11],
+        "deadEnds": [5, 8],
+        "deadEndContents": { "remains": 35, "shrine": 20, "richDeposit": 25, "guardedHoard": 20 },
+        "minShrines": 1,
+        "encounters": 7,
+        "encounterTier": 2,
+        "muckDeposits": 7,
+        "moistureSources": 5,
+        "thresholds": { "count": [2, 4], "kinds": { "rubbleChoke": 1, "rootWall": 1, "saltPlug": 2, "smoulderingSeam": 2 } }
+      },
+      {
+        "outerEdge": 18.5,
+        "mainBiomes": ["fungalDeeps"],
+        "mainBiomeShare": [1, 1],
+        "patches": [3, 5],
+        "patchBiomes": { "oldCrypts": 35, "saltMines": 35, "floodedCaves": 15, "rootTangle": 15 },
+        "chambers": [10, 14],
+        "chamberSize": [4, 13],
+        "deadEnds": [7, 10],
+        "deadEndContents": { "remains": 30, "shrine": 20, "richDeposit": 25, "guardedHoard": 25 },
+        "minShrines": 1,
+        "encounters": 8,
+        "encounterTier": 3,
+        "muckDeposits": 8,
+        "moistureSources": 5,
+        "thresholds": null
+      }
+    ]
   },
   "resources": {
     "//": "TODO(design): working values.",
     "muckPerDeposit": 10,
     "moisturePerSource": 10,
+    "richDepositMultiplier": 2,
     "bonesPerEnemy": 2
   },
   "alert": {

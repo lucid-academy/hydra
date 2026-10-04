@@ -1,0 +1,245 @@
+{
+  "//": "TODO(design): working texts and numbers written by Claude (M2c); change them freely. What lies in the underground besides terrain: thresholds between rings, places (landmarks, biome locations, rare places), remains, hoards, echoes, conditions and run modifiers. Numbers of how many and where are in balance.json undergroundGenerator.",
+
+  "thresholds": {
+    "//": "Ways through the rock bands between rings (GAME_DESIGN.md §9.3). hidden: looks like rock until the hydra stands next to it, and a draught gives it away (hint). dig: opened by digging, one dig per turn, it takes `turns` digs (a range: each threshold gets its own). open: opened with one action by a head of class `headClass` (heads.json). alwaysOpen: open from the start. rareChance: the threshold is a rare place, in a world with this chance (0–1).",
+    "draughtCrack": {
+      "name": "Draught Crack",
+      "text": "A crack in the rock, and air moving through it. Just wide enough, if all the heads breathe in at once. They do not agree on when.",
+      "hidden": true,
+      "hint": "A draught. The rock nearby is breathing."
+    },
+    "rubbleChoke": {
+      "name": "Rubble Choke",
+      "text": "A tunnel, and then a great deal of rock where the tunnel used to be.",
+      "dig": { "label": "Dig through the rubble.", "turns": [1, 2], "progress": "You dig until your claws ache. The rubble shifts, sulks, and stays." }
+    },
+    "rootWall": {
+      "name": "Root Wall",
+      "text": "Roots as thick as a man's leg have grown across the tunnel, and refuse to discuss it.",
+      "open": { "headClass": "biter", "label": "Gnaw through the roots." }
+    },
+    "saltPlug": {
+      "name": "Salt Plug",
+      "text": "A plug of white salt seals the tunnel. Someone began carving a saint into it, then thought better of the face.",
+      "open": { "headClass": "acidSpitter", "label": "Dissolve the salt." }
+    },
+    "smoulderingSeam": {
+      "name": "Smouldering Seam",
+      "text": "A seam of coal has been smouldering here for a century. The Order lists it as a minor miracle.",
+      "open": { "headClass": "mistBreather", "label": "Smother the embers." }
+    },
+    "cinderScar": {
+      "name": "Cinder Scar",
+      "text": "A tunnel with glassy walls, melted through the rock long ago. Still warm. Something very small and very hot came this way, in very large numbers.",
+      "alwaysOpen": true,
+      "rareChance": 0.15
+    },
+    "oldWorkings": {
+      "name": "Old Workings",
+      "text": "An old shaft of the Order, cut dead straight through the rock with no regard for anyone's feelings.",
+      "alwaysOpen": true
+    }
+  },
+
+  "places": {
+    "//": "landmark: one for each main biome of a ring, always, seen from afar. location: 1–2 per biome, from its pool. rare: in a world with `chance` (0–1); where: chamber (of ring `ring`) or deadEnd. echo: the line heard before the place is seen. actions: what the hydra can do there. An action can: cost movement (movementCost), need a head class (headClass), be done once (once) or every few turns (cooldownTurns), give resources (gain), put a condition on the hydra (condition, from conditions below), carry the hydra along a current (carry), show one hidden threshold (revealHiddenThreshold). result: what is said after. silencesBattlesWithin: battles this many hexes away or closer don't raise the Alert.",
+    "sunkenOak": {
+      "type": "landmark",
+      "biome": "rootTangle",
+      "name": "The Sunken Oak",
+      "text": "A whole oak fell through the ceiling and landed upside down. It has gone on growing, out of spite."
+    },
+    "drownedChapel": {
+      "type": "landmark",
+      "biome": "floodedCaves",
+      "name": "The Drowned Chapel",
+      "text": "A chapel of the Order, drowned up to its bell tower. The bell still hangs there, waiting for a congregation that breathes water."
+    },
+    "ossuaryCathedral": {
+      "type": "landmark",
+      "biome": "oldCrypts",
+      "name": "The Ossuary Cathedral",
+      "text": "A cathedral with chandeliers of bone. The founders of the Order, arranged by height."
+    },
+    "saltSaint": {
+      "type": "landmark",
+      "biome": "saltMines",
+      "name": "The Salt Saint",
+      "text": "A huge salt statue of a miner, licked to a shine. Nobody knows by whom. Several heads look guilty."
+    },
+    "motherCap": {
+      "type": "landmark",
+      "biome": "fungalDeeps",
+      "name": "The Mother Cap",
+      "text": "A mushroom whose cap is the ceiling of the cave. The light under it is purple and very patient."
+    },
+    "undertow": {
+      "type": "location",
+      "biome": "floodedCaves",
+      "name": "Undertow",
+      "text": "Under the black water, a current runs somewhere with more conviction than anything else down here.",
+      "echo": "Water moves somewhere ahead, with purpose.",
+      "actions": [
+        { "id": "ride", "label": "Let the current take you.", "movementCost": 1, "carry": true, "result": "The current takes you home. Roughly." }
+      ]
+    },
+    "gallowsRoots": {
+      "type": "location",
+      "biome": "rootTangle",
+      "name": "Gallows Roots",
+      "text": "The Order's gallows tree grew roots down here. The roots kept what the tree dropped: the bones of heretics, filed neatly.",
+      "echo": "Somewhere ahead, wood creaks under a weight that is no longer there.",
+      "actions": [
+        { "id": "bones", "label": "Take the bones.", "once": true, "gain": { "bones": 12 }, "result": "The heretics don't object. Nobody asked them the first time either." }
+      ]
+    },
+    "brineLake": {
+      "type": "location",
+      "biome": "saltMines",
+      "name": "Brine Lake",
+      "text": "A still lake of brine, white at the edges. It tastes of tears and old pickles.",
+      "echo": "You smell salt and still water.",
+      "actions": [
+        { "id": "drink", "label": "Drink.", "cooldownTurns": 3, "gain": { "moisture": 25 }, "condition": { "id": "salted", "turns": 3 }, "result": "Refreshing, the way a slap is refreshing. Your hide stiffens with salt." }
+      ]
+    },
+    "ninefoldCamp": {
+      "type": "location",
+      "biome": "saltMines",
+      "name": "Ninefold Camp",
+      "text": "A camp of the Ninefold, cultists who believe the hydra is holy. They have made you a banner. The spelling is creative.",
+      "echo": "Someone ahead is singing in nine parts. Badly.",
+      "actions": [
+        { "id": "gifts", "label": "Accept their gifts.", "cooldownTurns": 5, "gain": { "muck": 10, "moisture": 5 }, "result": "They bring what they have and sing in nine parts. The heads are flattered and pretend not to be." }
+      ]
+    },
+    "myceliumWhisper": {
+      "type": "location",
+      "biome": "fungalDeeps",
+      "name": "Mycelium Whisper",
+      "text": "The floor here is one great web of mycelium. Lay a head on it, and it listens on your behalf.",
+      "echo": "The ground ahead whispers back.",
+      "actions": [
+        { "id": "listen", "label": "Put a head to the mycelium.", "cooldownTurns": 8, "condition": { "id": "myceliumWhisper", "turns": 4 }, "result": "The underground hums into one ear. Every footstep of the Order, counted and filed." }
+      ]
+    },
+    "silentBell": {
+      "type": "location",
+      "biome": "fungalDeeps",
+      "name": "The Silent Bell",
+      "text": "A resonator of the Hushed, overgrown with fungus. It hums too low to hear. Nearby, fighting makes no sound the Order can hear.",
+      "echo": "A hum, too low to hear. Your teeth hear it.",
+      "silencesBattlesWithin": 3
+    },
+    "lostSurvey": {
+      "type": "rare",
+      "chance": 0.15,
+      "where": "deadEnd",
+      "name": "The Lost Survey",
+      "text": "A whole survey party of the Order, still holding its instruments. Their last report is very precise about being lost.",
+      "echo": "Paper rustles ahead. Official paper.",
+      "actions": [
+        { "id": "map", "label": "Take their map.", "once": true, "gain": { "bones": 6 }, "revealHiddenThreshold": true, "result": "The map is wrong everywhere but one place: a crack in the rock nobody was meant to find." }
+      ]
+    },
+    "hushedStair": {
+      "type": "rare",
+      "chance": 0.12,
+      "where": "chamber",
+      "ring": 3,
+      "name": "The Hushed Stair",
+      "text": "Stairs going down into the dark, behind a door with no handle on this side. The stone hums when the Serpent speaks.",
+      "echo": "Below you, something like a staircase is breathing."
+    }
+  },
+
+  "remains": {
+    "//": "Remains in dead ends: loot is one of these resources, picked at random, in this range. lines: one is shown when the hydra finds the remains; \"any\" can be found anywhere, a biome's lines only in that biome.",
+    "loot": { "muck": [4, 8], "moisture": [4, 8], "bones": [2, 5] },
+    "lines": {
+      "any": [
+        "A brother of the Order. He died waiting for permission to retreat.",
+        "Three surveyors and one map. The map is wrong.",
+        "A Discordant pilgrim. Still humming.",
+        "A torchbearer whose torch went out first. He is holding it up anyway.",
+        "A tax collector of the Order. The ledger survived him. So did the debts.",
+        "Someone who came down to see if the hydra was real.",
+        "A novice with a list of sins to confess. Item four: went into the caves.",
+        "A knight in very good armour. It held. He did not.",
+        "An inquisitor of the Order, mid-sentence."
+      ],
+      "floodedCaves": [
+        "A drowned priest, still holding his breath on principle.",
+        "A lantern-bearer, swollen with water. The lantern is fine."
+      ],
+      "rootTangle": [
+        "A woodcutter who came down after a root. The root won.",
+        "A pilgrim caught in the roots, like a fly in a very slow web."
+      ],
+      "oldCrypts": [
+        "A grave robber, sharing a niche with the saint he came to rob. They seem to get on.",
+        "A crypt-keeper, filed under the wrong saint."
+      ],
+      "saltMines": [
+        "A miner, preserved in salt. He looks better than he did alive.",
+        "A cart driver of the salt mines, and his cart, and his receipts."
+      ],
+      "fungalDeeps": [
+        "Something that was a man, under a coat of soft grey fungus. It looks content.",
+        "An alchemist who came for the mushrooms and stayed."
+      ]
+    }
+  },
+
+  "guardedHoard": {
+    "name": "A hoard",
+    "text": "Somebody piled up supplies here and left a guard. The guard was the easy part.",
+    "loot": { "muck": 25, "moisture": 15, "bones": 6 }
+  },
+
+  "patchFinds": {
+    "//": "What a patch (a chamber in another ring's biome) holds when its biome has no location left for it: remains (with the biome's lines), richDeposit or shrine.",
+    "floodedCaves": "richDeposit",
+    "rootTangle": "remains",
+    "oldCrypts": "remains",
+    "saltMines": "richDeposit",
+    "fungalDeeps": "remains"
+  },
+
+  "echoes": {
+    "//": "Lines heard at the edge of the known map, giving away the biome of a patch around the corner. Places have their own echo.",
+    "floodedCaves": "Water drips somewhere ahead, very patiently.",
+    "rootTangle": "Roots creak ahead, like an old house settling.",
+    "oldCrypts": "You smell old incense.",
+    "saltMines": "The air ahead turns dry and tastes of tears.",
+    "fungalDeeps": "Something glows, faintly purple."
+  },
+
+  "conditions": {
+    "//": "Conditions on the hydra that last a few turns. movement: change of movement points per turn. revealsEncounters: every encounter on the map is shown.",
+    "salted": { "name": "Salted", "text": "Salt dries the hide stiff. One move fewer each turn.", "movement": -1 },
+    "myceliumWhisper": { "name": "Mycelium Whisper", "text": "The mycelium tells you where the Order is.", "revealsEncounters": true }
+  },
+
+  "runModifiers": {
+    "//": "Modifiers that change the world (GAME_DESIGN.md §9.6). For now they are turned on with the URL parameter ?modifiers=wetYear,oldWorkings. waterShareBonus: share of water added in biomes that have water. moistureMultiplier: more Moisture sources. extraFungalPatches: patches of fungalBiome added to each ring where it is not the main biome. extraEncounters: encounters along the shaft.",
+    "wetYear": {
+      "name": "Wet Year",
+      "text": "A wet year. Water seeps into everything, including morale.",
+      "waterShareBonus": 0.15,
+      "moistureMultiplier": 1.5
+    },
+    "myceliumBloom": {
+      "name": "Mycelium Bloom",
+      "text": "The mycelium is blooming. Fungus turns up where it has no business, which is everywhere.",
+      "extraFungalPatches": [1, 2],
+      "fungalBiome": "fungalDeeps"
+    },
+    "oldWorkings": {
+      "name": "Old Workings",
+      "text": "An old shaft of the Order cuts straight through the outer rings. The Order still uses it, out of habit.",
+      "extraEncounters": 3
+    }
+  }
+}
