@@ -126,15 +126,18 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 
 **Czekają na Piotra:**
 1. Wrażenia z playtestu M2b: mapa, kapliczki, leże, nowe biomy.
-2. Nowa tekstura soli do Salt Mines (Piotr wybrał nowy obrazek, prompt już przyciemniony) i malowane portrety głów (sekcja 3.2, „Nowy kierunek”).
+2. Nowa tekstura soli do Salt Mines (Piotr wybrał nowy obrazek, prompt już przyciemniony). Malowane portrety głów już są (sekcja 3.2).
 3. Okładka gry przyszła w projekcie Hydra 2026-10-04. Do repo (`art/raw/key_art.png`) trafi przy propozycji palety.
 4. Start M2a (głowy): projekt 9 głów jest zatwierdzony i wpisany do `GAME_DESIGN.md`, budowa na hasło Piotra.
+5. Propozycja eksploracji (mapa w pierścieniach, roboczo etap M2c) w dokumencie Claude „Hydra: eksploracja, biomy i świat”: decyzje 1, 2, 4, 5 i 6. Decyzję 3 (prawda o Hushed) zastąpił świat Piotra, wpisany do `GAME_DESIGN.md` §1.
 
 **Z `GAME_DESIGN.md` §16 (decyduje Piotr):**
 - ile kapliczek Płomienia trzeba zgasić;
 - nowe głowy słabsze i rosnące (od czego rosną?);
-- Wielki Wąż w fabule;
+- głos Węża w walce: pauza czy krótka kwestia;
 - pula głów: które klasy od startu, a które do odblokowania.
+
+**Z `GAME_DESIGN.md` §1, „Świat” (`TODO(design)`):** odpowiedzi na tajemnice Hushed, jednostki i eventy The Discordant, czy Cinderkin walczą w bitwach.
 
 **Pomysły na później, do rozmowy:**
 - głowy działające tylko po swojej stronie Body;
