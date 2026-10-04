@@ -445,10 +445,13 @@ export class MapScene extends Phaser.Scene {
     }
     this.showingBiomeName = true;
     const { width, height } = this.scale.gameSize;
+    // The camera zooms even what doesn't scroll, around the middle of the screen (2× on phones), so that is undone here.
+    const zoom = this.cameras.main.zoom;
     const label = this.add
       // Low on the screen, clear of the HUD's messages at the top.
-      .text(width / 2, height - 64, name, { fontFamily: 'Georgia, serif', fontSize: '15px', color: '#e8e0d0', backgroundColor: '#05090acc', padding: { x: 8, y: 3 } })
+      .text(width / 2, height / 2 + (height / 2 - 64) / zoom, name, { fontFamily: 'Georgia, serif', fontSize: '15px', color: '#e8e0d0', backgroundColor: '#05090acc', padding: { x: 8, y: 3 } })
       .setOrigin(0.5, 0)
+      .setScale(1 / zoom)
       .setScrollFactor(0)
       .setDepth(100)
       .setAlpha(0);
