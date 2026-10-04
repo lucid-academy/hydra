@@ -291,6 +291,7 @@ export function carveCaves(rng: Rng, grid: HexGrid, shape: WorldShape, s: Underg
       caves.kept[gate] = 1;
       break;
     }
+    if (caves.shaft.length === 0) return 'old workings: no room for the shaft';
   }
 
   // ---- Dead ends: each Draught Crack lies at the end of one; a chamber with one way out is one too (GAME_DESIGN.md §9.1);

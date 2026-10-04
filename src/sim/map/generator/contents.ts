@@ -97,9 +97,11 @@ export function placeContents(
     }
   };
   let blessings: string[] = [];
+  const shrinesIn = new Array<number>(rings + 1).fill(0);
   const shrineAt = (i: number) => {
     if (blessings.length === 0) blessings = shuffled(rng, s.shrineBlessingIds);
     put(i, { kind: 'shrine', blessingId: blessings.pop()!, used: false });
+    shrinesIn[zone[i]!] = (shrinesIn[zone[i]!] ?? 0) + 1;
   };
   const place = (i: number, placeId: string, carryPath: Hex[] | null = null) =>
     put(i, { kind: 'place', placeId, visited: false, used: [], readyOnTurn: {}, carryPath });
@@ -238,17 +240,34 @@ export function placeContents(
     chamberHasPlace[c] = true;
   }
 
-  // Patches without a location hold a find of their biome; chambers with one way out are dead ends, so they hold something too.
+  // Patches without a location hold a find of their biome; chambers with one way out are dead ends, so they hold something
+  // too: first the shrines their ring still lacks.
   for (const c of chamberIndices) {
     const chamber = caves.chambers[c]!;
     const holdsSomething = chamberHasPlace[c] || chamber.hexes.some((i) => objects[i] !== null);
     if (holdsSomething || (!patch[c] && chamber.exits > 1)) continue;
     const at = spotIn(c);
     if (at === null) return `finds: chamber ${c} full`;
-    const find = patch[c] ? (s.patchFinds[chamberBiome[c]!] ?? 'remains') : rng.weightedPick(s.rings[chamber.ring - 1]!.deadEndContents.filter((w) => w.id !== 'guardedHoard')).id;
+    const ring = s.rings[chamber.ring - 1]!;
+    const find = patch[c]
+      ? (s.patchFinds[chamberBiome[c]!] ?? 'remains')
+      : shrinesIn[chamber.ring]! < ring.minShrines
+        ? 'shrine'
+        : rng.weightedPick(ring.deadEndContents.filter((w) => w.id !== 'guardedHoard')).id;
     if (find === 'shrine') shrineAt(at);
     else if (find === 'richDeposit') richAt(at);
     else remainsAt(at, patch[c] ? chamberBiome[c]! : null);
+  }
+  // A ring whose dead ends are all taken (by its Draught Crack and patches) still gets its shrines: in a chamber of its own,
+  // as far from the lair as there is room.
+  for (let k = 1; k <= rings; k++) {
+    const options = chamberIndices
+      .filter((c) => caves.chambers[c]!.ring === k && !patch[c] && !chamberHasPlace[c])
+      .map((c) => spotIn(c))
+      .filter((i): i is number => i !== null)
+      .sort((a, b) => grid.steps(b, lairCenter) - grid.steps(a, lairCenter));
+    while (shrinesIn[k]! < s.rings[k - 1]!.minShrines && options.length > 0) shrineAt(options.shift()!);
+    if (shrinesIn[k]! < s.rings[k - 1]!.minShrines) return `shrines: only ${shrinesIn[k]} in ring ${k}`;
   }
 
   // ---- Passages to the surface: one in the first ring, one in a ring further out; far from the lair within the ring.
@@ -262,6 +281,16 @@ export function placeContents(
 
   // ---- Encounters: each ring its own strength; denser in some biomes and in narrow passes. Guards of hoards count.
   const encounterHexes = [...guards];
+  // Old Workings first: the Order still walks its old shaft, on top of each ring's own encounters.
+  if (caves.shaft.length > 0) {
+    const options = caves.shaft.filter((i) => free(i) && zone[i]! >= 1 && zone[i]! <= rings);
+    const picked = pickSpread(rng, grid, options, s.modifierRules.oldWorkings.extraEncounters, s.encounterSpacing, () => 1, encounterHexes);
+    if (s.modifierRules.oldWorkings.extraEncounters > 0 && picked.length === 0) return 'old workings: no room for the Order';
+    for (const i of picked) {
+      put(i, encounter(zone[i]!));
+      encounterHexes.push(i);
+    }
+  }
   for (let k = 1; k <= rings; k++) {
     const ring = s.rings[k - 1]!;
     const wanted = ring.encounters - guards.filter((g) => zone[g] === k).length;
@@ -274,15 +303,6 @@ export function placeContents(
     if (picked.length < wanted) return `encounters: only ${picked.length} of ${wanted} fit in ring ${k}`;
     for (const i of picked) {
       put(i, encounter(k));
-      encounterHexes.push(i);
-    }
-  }
-  // Old Workings: the Order still walks its old shaft.
-  if (caves.shaft.length > 0) {
-    const options = caves.shaft.filter((i) => free(i) && zone[i]! >= 1 && zone[i]! <= rings);
-    const picked = pickSpread(rng, grid, options, s.modifierRules.oldWorkings.extraEncounters, s.encounterSpacing, () => 1, encounterHexes);
-    for (const i of picked) {
-      put(i, encounter(zone[i]!));
       encounterHexes.push(i);
     }
   }
