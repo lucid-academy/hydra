@@ -7,6 +7,7 @@ import { BODY_FOOT, TILE } from './battleArt';
 import { fillHex, hexRowSpans } from './drawing';
 import type { PlaceholderDrawer } from './drawing';
 import { mapPlaceholderDrawers, mapPlaceholderFor } from './mapPlaceholders';
+import { worldPlaceholderDrawers } from './worldPlaceholders';
 
 const drawTitleBackground: PlaceholderDrawer = (scene, key, width, height, palette) => {
   const g = scene.make.graphics({}, false);
@@ -297,6 +298,7 @@ function battleDot(fill: string, rim: string): PlaceholderDrawer {
 
 export const placeholderDrawers: Readonly<Record<string, PlaceholderDrawer>> = {
   ...mapPlaceholderDrawers,
+  ...worldPlaceholderDrawers,
   battle_hex_mark: battleHexShape(false),
   battle_hex_fill: battleHexShape(true),
   battle_shadow: battleBlob(false),

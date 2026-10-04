@@ -6,11 +6,11 @@ import * as Phaser from 'phaser';
 import type { GameData } from '../data';
 import { color } from '../scenes/context';
 import type { RunController } from '../scenes/RunController';
-import { hexRound } from '../sim/hex';
+import { hexKey, hexRound } from '../sim/hex';
 import type { Hex } from '../sim/hex';
 
 /** Size of one hex on the minimap, in screen pixels: across, and from row to row. */
-const DOT = { across: 3, down: 2.5 };
+const DOT = { across: 2.2, down: 1.85 };
 const PADDING = 4;
 
 export class Minimap {
@@ -46,7 +46,7 @@ export class Minimap {
   redraw(): void {
     const g = this.graphics;
     g.clear();
-    const { map, visibility, hydra } = this.run.state;
+    const { map, visibility, hydra, echoes } = this.run.state;
     // Terrain dots are a little taller than the row step, so rows touch instead of leaving dark stripes between them.
     const dot = (h: Hex, fill: number, alpha = 1, size = 2) => {
       g.fillStyle(fill, alpha);
@@ -60,17 +60,20 @@ export class Minimap {
       const fill = tile.terrain === 'rock' ? colors.rock : tile.terrain === 'water' ? colors.water : colors.ground;
       dot(tile.hex, color(fill), state === 'visible' ? 1 : 0.6);
     }
-    // Things worth finding again: the lair, shrines, passages, the Order's people.
+    // Things worth finding again: the lair, shrines, passages, places, thresholds, the Order's people, echoes.
     const { palette } = this.data;
     for (const key of visibility.keys()) {
       const tile = map.tiles.get(key);
-      const kind = tile?.object?.kind;
-      if (!tile || !kind) continue;
-      if (kind === 'lair') dot(tile.hex, color(palette.underground.bioluminescence), 1, 3);
-      else if (kind === 'shrine') dot(tile.hex, 0x7fe0d6, 1, 2);
-      else if (kind === 'passage') dot(tile.hex, 0xd0e4dc, 1, 2);
-      else if (kind === 'encounter') dot(tile.hex, color(palette.order.bannerRed), 1, 2);
+      const object = tile?.object;
+      if (!tile || !object) continue;
+      if (object.kind === 'lair') dot(tile.hex, color(palette.underground.bioluminescence), 1, 3);
+      else if (object.kind === 'shrine' && !object.used) dot(tile.hex, 0x7fe0d6, 1, 2);
+      else if (object.kind === 'passage') dot(tile.hex, 0xd0e4dc, 1, 2);
+      else if (object.kind === 'place') dot(tile.hex, color(palette.order.gold), 1, 2);
+      else if (object.kind === 'threshold' && object.state !== 'hidden') dot(tile.hex, object.state === 'open' ? 0xe8e0d0 : color(palette.order.orange), 1, 2);
+      else if (object.kind === 'encounter') dot(tile.hex, color(palette.order.bannerRed), 1, 2);
     }
+    for (const echo of echoes) if (!visibility.has(hexKey(echo.source))) dot(echo.mark, 0xa8c8d8, 0.9, 1);
     dot(hydra.position, 0xffffff, 1, 3);
   }
 }

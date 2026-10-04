@@ -14,6 +14,9 @@ export const MAP_ROW_HEIGHT = 18;
 /** Things standing on a hex (decorations, objects, the hydra) have their feet this far below the hex centre. */
 export const MAP_FEET_BELOW_HEX_CENTER = 3;
 
+/** Thresholds fill their whole hex: their bottom edge is this far below the hex centre (near the face's lower edge). */
+export const MAP_GATE_FEET_BELOW_HEX_CENTER = 10;
+
 /** Decorations a biome can scatter over its ground (biomes.json "decorations"); each has an image map_deco_<kind>. */
 export const DECORATION_KINDS = [
   'reeds',
