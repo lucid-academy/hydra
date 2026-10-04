@@ -1,0 +1,443 @@
+<!doctype html>
+<!-- Hydra: a showcase dialogue of the nine heads, outside the game. A static page with no build step:
+     it uses the painted portraits from art/concept/portraits/ (as WebP) over a screenshot of the battle.
+     In-game dialogues come with M5; then this page can go. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hydra · demo dialogu</title>
+<meta name="description" content="Pokazowy dialog z gry Hydra: dziewięć głów, Old Mother Toad i rycerz Zakonu, który utknął w Humphreyu.">
+<meta name="theme-color" content="#070806">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Hydra · demo dialogu">
+<meta property="og:description" content="Dziewięć głów, jedna ropucha i rycerz Zakonu, który utknął w Humphreyu.">
+<meta property="og:url" content="https://lucid-academy.github.io/hydra/dialogue-demo/">
+<meta property="og:image" content="https://lucid-academy.github.io/hydra/dialogue-demo/preview.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Crimson+Pro:ital,wght@0,400;0,500;1,400&display=swap">
+<style>
+/* Layout: a full-bleed game screen. The pixel arena sits dimmed at the back, painted busts rise
+   from the bottom on both sides (left faces right, right is mirrored), and a dark speech panel
+   carries the speaker's name plate on the speaker's side. One look only: the game is dark. */
+:root {
+  color-scheme: dark;
+  --void: #070806;                     /* page ground, under the arena */
+  --panel: rgba(13, 13, 9, 0.9);       /* speech panel */
+  --parchment: #ece3cb;                /* spoken text */
+  --parchment-dim: #a69d85;            /* narration, labels */
+  --gold: #c9a45c;                     /* old gold of the scales in the key art */
+  --gold-line: rgba(201, 164, 92, 0.38);
+  --shade: rgba(4, 5, 3, 0.86);
+  --font-name: 'Cinzel', 'Trajan Pro', Georgia, serif;
+  --font-text: 'Crimson Pro', Georgia, 'Times New Roman', serif;
+  --font-ui: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --panel-h: max(22vh, 140px);
+  --ph: min(60vh, 35vw);               /* height of a head portrait; others keep the same painting scale */
+  --rise: calc(var(--panel-h) - 2vh);  /* where portraits stand: just behind the panel's top edge */
+  --l1: 31%; --l2: 11%; --r1: 69%; --r2: 89%;
+  --text-size: clamp(17px, 1.05vw + 1.25vh, 25px);
+}
+@media (max-aspect-ratio: 1/1) {
+  :root {
+    --panel-h: max(22vh, 170px);
+    --ph: min(40vh, 66vw);
+    --rise: calc(var(--panel-h) + 1vh);
+    --l1: 31%; --l2: 11%; --r1: 69%; --r2: 89%;
+    --text-size: clamp(17px, 2.3vh, 21px);
+  }
+}
+
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--parchment);
+  font-family: var(--font-text);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#screen { position: relative; height: 100%; overflow: hidden; cursor: pointer; user-select: none; -webkit-user-select: none; }
+
+/* the game behind the dialogue: real pixels, never smoothed */
+.backdrop { position: absolute; inset: 0; }
+.backdrop img {
+  width: 100%; height: 100%; object-fit: cover; max-width: none;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  filter: brightness(0.4) saturate(0.8);
+}
+.backdrop::after {
+  content: ""; position: absolute; inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 35%, transparent 40%, var(--shade) 100%),
+    linear-gradient(to top, var(--shade) 0%, transparent 45%);
+}
+
+/* a little swamp haze drifting over the arena */
+.haze { position: absolute; inset: -20% -40%; pointer-events: none; opacity: 0.16; }
+.haze-a { background: radial-gradient(40% 30% at 30% 60%, #9fb3a2 0%, transparent 70%), radial-gradient(35% 25% at 75% 40%, #8fa597 0%, transparent 70%); animation: drift 70s linear infinite alternate; }
+.haze-b { background: radial-gradient(30% 22% at 55% 70%, #b4c2ae 0%, transparent 70%); opacity: 0.1; animation: drift 90s linear infinite alternate-reverse; }
+@keyframes drift { from { transform: translateX(-6%); } to { transform: translateX(6%); } }
+
+/* portraits */
+.actor {
+  position: absolute; bottom: var(--rise); left: 50%;
+  height: calc(var(--ph) * var(--k, 1)); margin: 0;
+  --s: 0.94; --y: 0%;
+  transform: translateX(-50%) translateY(var(--y)) scale(var(--s)); transform-origin: 50% 100%;
+  opacity: 0; z-index: 1; pointer-events: none;
+  transition: left 0.5s cubic-bezier(.2,.75,.25,1), opacity 0.4s ease, filter 0.3s ease, transform 0.3s ease;
+  filter: brightness(0.42) saturate(0.7);
+}
+.actor .pose { height: 100%; }
+.actor img { height: 100%; width: auto; max-width: none; display: block; }
+.actor.flip img { transform: scaleX(-1); }
+.actor.at-L1 { left: var(--l1); opacity: 1; z-index: 3; }
+.actor.at-L2 { left: var(--l2); opacity: 1; z-index: 2; }
+.actor.at-R1 { left: var(--r1); opacity: 1; z-index: 3; }
+.actor.at-R2 { left: var(--r2); opacity: 1; z-index: 2; }
+.actor.off-L { left: -25%; opacity: 0; }
+.actor.off-R { left: 125%; opacity: 0; }
+.actor.at-L2, .actor.at-R2 { --s: 0.84; --y: -5%; filter: brightness(0.34) saturate(0.6); }
+.actor.speaking { --s: 1; filter: none; z-index: 6; }
+.actor.at-L2.speaking, .actor.at-R2.speaking { --s: 0.92; }
+
+.pose.bob { animation: bob 0.5s ease-out; }
+.pose.shake { animation: shake 0.42s linear; }
+.pose.wriggle { animation: wriggle 0.7s ease-in-out; }
+@keyframes bob { 0% { transform: translateY(0); } 35% { transform: translateY(-2.5%) rotate(-0.6deg); } 100% { transform: translateY(0); } }
+@keyframes shake {
+  0%,100% { transform: translate(0,0); } 15% { transform: translate(-1.6%,0.4%); } 30% { transform: translate(1.6%,-0.4%); }
+  45% { transform: translate(-1.2%,0.3%); } 60% { transform: translate(1.2%,0); } 75% { transform: translate(-0.6%,0); }
+}
+@keyframes wriggle { 0%,100% { transform: rotate(0); } 20% { transform: rotate(1.4deg) translateY(-0.6%); } 45% { transform: rotate(-1.2deg); } 70% { transform: rotate(0.8deg) translateY(-0.4%); } }
+
+/* interface layer */
+.ui { position: absolute; inset: 0; z-index: 10; pointer-events: none; padding-inline: 16px; }
+.bar {
+  position: absolute; top: env(safe-area-inset-top, 0px); left: 16px; right: 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-block: 12px; font-family: var(--font-ui); font-size: 12px; letter-spacing: 0.08em;
+  color: var(--parchment-dim); text-transform: uppercase;
+}
+.bar .tag { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.bar .tag b { color: var(--gold); font-weight: 600; }
+.tools { display: flex; align-items: center; gap: 8px; pointer-events: auto; }
+.tools button {
+  font: inherit; letter-spacing: 0.06em; white-space: nowrap; color: var(--parchment); background: rgba(10, 10, 7, 0.65);
+  border: 1px solid var(--gold-line); border-radius: 3px; padding: 7px 11px; cursor: pointer;
+}
+.tools button:hover { border-color: var(--gold); }
+.tools button:focus-visible, .panel:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.tools button:disabled { opacity: 0.4; cursor: default; }
+.progress { font-variant-numeric: tabular-nums; min-width: 4.5em; text-align: right; white-space: nowrap; }
+@media (max-width: 480px) {
+  .bar .tag .sub { display: none; }
+  .tools button { padding: 6px 9px; }
+}
+
+.panel {
+  position: absolute; left: 16px; right: 16px; bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  height: var(--panel-h); max-width: 1040px; margin-inline: auto; box-sizing: border-box;
+  background: var(--panel); border: 1px solid var(--gold-line); border-radius: 4px;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.55);
+  padding: 34px clamp(18px, 3vw, 40px) 18px; pointer-events: auto;
+  display: flex; flex-direction: column;
+}
+.plate {
+  /* anchored by its bottom edge, so a name plate that wraps on a narrow screen grows upwards, not over the text */
+  position: absolute; bottom: calc(100% - 14px); left: clamp(14px, 3vw, 36px); right: auto;
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  max-width: calc(100% - 28px);
+  background: #0d0d09; border: 1px solid var(--gold-line); border-bottom: 2px solid var(--who, var(--gold));
+  padding: 6px 14px 5px; border-radius: 3px;
+}
+.plate.right { left: auto; right: clamp(14px, 3vw, 36px); }
+.plate[hidden] { display: none !important; }
+.pname { font-family: var(--font-name); font-weight: 700; font-size: clamp(15px, 1.1vw + 0.6vh, 21px); letter-spacing: 0.08em; text-transform: uppercase; color: var(--parchment); }
+.prole { font-family: var(--font-ui); font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: color-mix(in srgb, var(--who, var(--gold)) 78%, white); }
+.line {
+  margin: 0; font-size: var(--text-size); line-height: 1.42; max-width: 64ch;
+  text-wrap: pretty; min-height: 2.9em; overflow-y: auto;
+}
+.line.loud { letter-spacing: 0.04em; font-weight: 500; }
+.line.muffled { font-style: italic; color: color-mix(in srgb, var(--parchment) 82%, #e0753a); }
+.line.narration { font-style: italic; color: var(--parchment-dim); text-align: center; max-width: none; margin-top: auto; margin-bottom: auto; }
+.more {
+  position: absolute; right: 18px; bottom: 10px; color: var(--gold); font-size: 15px;
+  opacity: 0; transition: opacity 0.2s;
+}
+.more.on { opacity: 1; animation: blink 1.1s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: 0.25; } }
+
+.endcard {
+  position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%);
+  text-align: center; pointer-events: auto; display: grid; gap: 14px; justify-items: center;
+  background: rgba(8, 8, 6, 0.82); border: 1px solid var(--gold-line); border-radius: 4px; padding: 22px 28px;
+  max-width: calc(100% - 64px); box-sizing: border-box;
+}
+.endcard h2 { margin: 0; font-family: var(--font-name); font-weight: 600; font-size: clamp(18px, 2vw, 26px); letter-spacing: 0.1em; color: var(--gold); text-wrap: balance; }
+.endcard p { margin: 0; font-style: italic; color: var(--parchment-dim); }
+.endcard button { font-family: var(--font-ui); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--void); background: var(--gold); border: 0; border-radius: 3px; padding: 9px 16px; cursor: pointer; }
+.endcard button:focus-visible { outline: 2px solid var(--parchment); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .haze-a, .haze-b, .pose.bob, .pose.shake, .pose.wriggle, .more.on { animation: none; }
+  .actor { transition: opacity 0.2s ease, filter 0.2s ease; }
+}
+</style>
+
+</head>
+<body>
+<main id="screen" aria-label="Hydra dialogue demo. Tap or press Space to continue.">
+  <div class="backdrop"><img src="bg/arena.png" alt=""></div>
+  <div class="haze haze-a"></div>
+  <div class="haze haze-b"></div>
+  <div id="cast"></div>
+  <div class="ui">
+    <div class="bar">
+      <span class="tag"><b>Hydra</b><span class="sub" lang="pl"> · demo dialogu</span></span>
+      <div class="tools" lang="pl">
+        <span class="progress" id="progress" aria-live="off">1 / 45</span>
+        <button id="back" type="button" aria-label="Poprzednia kwestia">‹ Wstecz</button>
+        <button id="restart" type="button">Od nowa</button>
+      </div>
+    </div>
+    <section class="panel" id="panel" tabindex="0" role="button" aria-label="Dalej">
+      <div class="plate" id="plate"><span class="pname" id="pname"></span><span class="prole" id="prole"></span></div>
+      <p class="line" id="line" aria-live="polite"></p>
+      <span class="more" id="more" aria-hidden="true">▼</span>
+    </section>
+    <div class="endcard" id="endcard" hidden>
+      <h2>The end</h2>
+      <p>Humphrey is still chewing.</p>
+      <button id="again" type="button" lang="pl">Od początku</button>
+    </div>
+  </div>
+</main>
+
+<script>
+(() => {
+  // Who can speak. Heads keep their class colour from GAME_DESIGN.md §13.
+  const CAST = {
+    gerald:    { name: 'Gerald',          role: 'Biter',              color: '#5f9a4a', img: 'portraits/biter.webp' },
+    winifred:  { name: 'Winifred',        role: 'Acid Spitter',       color: '#b7d13a', img: 'portraits/acid_spitter.webp' },
+    ambrose:   { name: 'Ambrose',         role: 'Mist Breather',      color: '#8fb3a8', img: 'portraits/mist_breather.webp', pace: 1.9 },
+    brunhilde: { name: 'Brunhilde',       role: 'Screamer',           color: '#e3d6b4', img: 'portraits/screamer.webp', pace: 0.55, loud: true },
+    humphrey:  { name: 'Humphrey',        role: 'Glutton',            color: '#b5614a', img: 'portraits/glutton.webp' },
+    kevin:     { name: 'Kevin',           role: 'The Spare',          color: '#d28fa4', img: 'portraits/spare.webp' },
+    clement:   { name: 'Clement',         role: 'Strangler',          color: '#7d68b0', img: 'portraits/strangler.webp', pace: 1.25 },
+    mildred:   { name: 'Mildred',         role: 'Tender',             color: '#3fb8a6', img: 'portraits/tender.webp' },
+    cuthbert:  { name: 'Cuthbert',        role: 'Lantern',            color: '#8cc8f0', img: 'portraits/lantern.webp', pace: 1.3 },
+    toad:      { name: 'Old Mother Toad', role: 'Keeper of the Lair', color: '#b8a65a', img: 'portraits/old_mother_toad.webp', pace: 1.15 },
+  };
+  // Voices without a portrait: they speak through someone on stage.
+  const VOICES = {
+    osric: { name: 'Sir Osric', role: 'Knight of the Lesser Wick · inside Humphrey', color: '#e0753a', host: 'humphrey', muffled: true },
+  };
+
+  // stage: slots to change before the line (L1/L2 left, R1/R2 right; null empties a slot)
+  const SCRIPT = [
+    { stage: { L1: 'gerald', R1: 'toad' }, who: 'gerald', say: "We won. I bit most of them. You're welcome." },
+    { who: 'toad', say: 'Nine heads, one body, and a pair of legs I do not recognise.' },
+    { who: 'gerald', say: "Those are Humphrey's." },
+    { who: 'toad', say: 'Humphrey is a head, Gerald. Heads do not have legs.' },
+
+    { stage: { L2: 'humphrey' }, who: 'humphrey', say: 'Mmf.' },
+    { who: 'toad', say: 'Humphrey. Spit him out.' },
+    { who: 'humphrey', say: 'Not yet. Incense, armour polish, a hint of fear. He needs another hour.' },
+    { who: 'osric', say: 'By the Eternal Flame, I demand to be released!' },
+    { who: 'humphrey', say: "Hear that? Still talking. That's how you know he's fresh." },
+
+    { stage: { R2: 'winifred' }, who: 'winifred', say: 'For the record, I killed him. I corroded his breastplate first.' },
+    { who: 'gerald', say: 'He was still walking around.' },
+    { who: 'winifred', say: "Corrosion is a process, Gerald. You wouldn't understand." },
+    { who: 'osric', say: 'Article Nine of the Rule. No brother of the Flame shall be eaten raw.' },
+    { who: 'humphrey', say: '...He has a point. Has anyone got a fire?' },
+    { who: 'toad', say: 'We are a swamp, Humphrey.' },
+
+    { stage: { L1: 'brunhilde' }, who: 'brunhilde', say: 'I CAN SCREAM HIM OUT. STAND BACK.' },
+    { who: 'toad', say: 'Inside voice, Brunhilde.' },
+    { who: 'brunhilde', say: 'THIS IS MY INSIDE VOICE.' },
+    { who: 'osric', say: 'Is somebody shouting? It is very loud in here.' },
+
+    { stage: { R2: 'ambrose' }, who: 'ambrose', say: 'Let him rest... Everything is softer... in the mist.' },
+    { who: 'ambrose', say: 'Even digestion... Even...' },
+    { who: null, say: 'Ambrose is asleep.' },
+    { who: 'osric', say: 'The Flame never sleeps.' },
+    { who: 'toad', say: 'Lucky Flame.' },
+
+    { stage: { L1: 'clement' }, who: 'clement', say: 'I could hold him still. Shh. Just a little squeeze.' },
+    { who: 'toad', say: 'He is inside Humphrey, Clement.' },
+    { who: 'clement', say: 'Then I shall squeeze Humphrey. Sorry, Humphrey.' },
+    { who: 'humphrey', say: 'Mmf!' },
+
+    { stage: { L1: 'kevin', R2: 'mildred' }, who: 'kevin', say: "Hello. Am I a head? I think I'm a head." },
+    { who: 'mildred', say: 'Who did this to your neck? Sit still, Kevin.' },
+    { who: 'kevin', say: 'Gerald bit me. I think it was a compliment.' },
+    { who: 'mildred', say: 'Hold still, dear. This will sting.' },
+    { who: 'kevin', say: 'Is it meant to be warm?' },
+    { who: 'mildred', say: 'Yes.' },
+
+    { stage: { R2: 'cuthbert' }, who: 'cuthbert', say: 'Brother. Brother in the dark. Come closer. The light forgives.' },
+    { who: 'osric', say: 'A light! A sign! Brother, a sign!' },
+    { who: null, say: 'Sir Osric wriggles towards the light. Feet first.' },
+    { who: 'humphrey', say: 'My dinner is leaving.' },
+    { who: 'cuthbert', say: 'Closer, brother. Just a little closer.' },
+
+    { stage: { L1: 'gerald' }, who: 'gerald', say: 'I bit him.' },
+    { who: 'humphrey', say: 'That was my dinner.' },
+    { who: 'gerald', say: "You're welcome." },
+
+    { stage: { L1: 'kevin', L2: null, R2: null }, who: 'toad', say: 'I have buried eleven of you. You are not my favourite.' },
+    { who: 'kevin', say: 'Who is your favourite?' },
+    { who: 'toad', say: 'Number six. He never said a word.' },
+  ];
+
+  const SLOTS = ['L1', 'L2', 'R1', 'R2'];
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = (id) => document.getElementById(id);
+  const castEl = $('cast'), lineEl = $('line'), plateEl = $('plate'), nameEl = $('pname'), roleEl = $('prole');
+  const moreEl = $('more'), progressEl = $('progress'), endEl = $('endcard'), backBtn = $('back');
+
+  // one figure per character, created up front so every image is loaded before it is needed
+  const actors = {};
+  for (const [id, c] of Object.entries(CAST)) {
+    const fig = document.createElement('figure');
+    fig.className = 'actor off-L';
+    fig.innerHTML = '<div class="pose"><img alt=""></div>';
+    const img = fig.querySelector('img');
+    img.src = c.img; img.alt = `${c.name}, ${c.role}`; img.decoding = 'async';
+    // every bust comes from one sheet, so keep their relative size: heads are about 375 px tall there
+    const fit = () => fig.style.setProperty('--k', (img.naturalHeight / 375).toFixed(3));
+    if (img.complete && img.naturalHeight) fit(); else img.addEventListener('load', fit, { once: true });
+    castEl.appendChild(fig);
+    actors[id] = { fig, pose: fig.firstElementChild, side: 'L' };
+  }
+
+  // the stage at line i is every stage change from the start up to i
+  function stageAt(i) {
+    const s = { L1: null, L2: null, R1: null, R2: null };
+    for (let k = 0; k <= i; k++) Object.assign(s, SCRIPT[k].stage || {});
+    return s;
+  }
+
+  let index = 0, typing = null, full = '', ended = false;
+
+  function speakerOf(line) {
+    if (!line.who) return null;
+    if (CAST[line.who]) return { ...CAST[line.who], actor: line.who };
+    const v = VOICES[line.who];
+    return { ...v, actor: v.host };
+  }
+
+  function render(i, animate) {
+    const line = SCRIPT[i];
+    const stage = stageAt(i);
+    const who = speakerOf(line);
+    const where = {};
+    for (const slot of SLOTS) if (stage[slot]) where[stage[slot]] = slot;
+
+    for (const [id, a] of Object.entries(actors)) {
+      const slot = where[id];
+      const fig = a.fig;
+      fig.classList.remove('at-L1', 'at-L2', 'at-R1', 'at-R2', 'off-L', 'off-R', 'speaking');
+      if (slot) {
+        a.side = slot[0];
+        fig.classList.add('at-' + slot);
+        fig.classList.toggle('flip', a.side === 'R');   // the right side looks left
+      } else {
+        fig.classList.add('off-' + a.side);
+      }
+      if (who && who.actor === id && slot) fig.classList.add('speaking');
+    }
+
+    // name plate on the speaker's side
+    if (who) {
+      plateEl.hidden = false;
+      nameEl.textContent = who.name;
+      roleEl.textContent = who.role;
+      plateEl.style.setProperty('--who', who.color);
+      plateEl.classList.toggle('right', (where[who.actor] || 'L')[0] === 'R');
+    } else {
+      plateEl.hidden = true;
+    }
+    lineEl.className = 'line' + (!who ? ' narration' : '') + (who && who.loud ? ' loud' : '') + (who && who.muffled ? ' muffled' : '');
+
+    // a small movement on the speaker
+    if (who && animate && !reduced) {
+      const pose = actors[who.actor].pose;
+      const kind = who.muffled ? 'wriggle' : who.loud ? 'shake' : 'bob';
+      pose.classList.remove('bob', 'shake', 'wriggle');
+      void pose.offsetWidth;
+      pose.classList.add(kind);
+    }
+
+    progressEl.textContent = `${i + 1} / ${SCRIPT.length}`;
+    backBtn.disabled = i === 0;
+    endEl.hidden = true; ended = false;
+    full = line.say;
+    if (animate && !reduced) typeOut(line.say, who ? (who.pace || 1) : 1.2);
+    else showAll();
+  }
+
+  function showAll() {
+    clearTimeout(typing); typing = null;
+    lineEl.textContent = full;
+    moreEl.classList.add('on');
+  }
+
+  function typeOut(text, pace) {
+    clearTimeout(typing);
+    moreEl.classList.remove('on');
+    let n = 0;
+    const step = () => {
+      n++;
+      lineEl.textContent = text.slice(0, n);
+      if (n >= text.length) { typing = null; moreEl.classList.add('on'); return; }
+      const ch = text[n - 1];
+      let wait = 26;
+      if (text.slice(n - 3, n) === '...') wait = 300;
+      else if ('.!?'.includes(ch) && text[n] === ' ') wait = 170;
+      else if (ch === ',') wait = 80;
+      typing = setTimeout(step, wait * pace);
+    };
+    step();
+  }
+
+  function next() {
+    if (typing) { showAll(); return; }
+    if (index < SCRIPT.length - 1) { index++; render(index, true); }
+    else if (!ended) { ended = true; endEl.hidden = false; moreEl.classList.remove('on'); }
+  }
+  function back() {
+    if (index > 0) { index--; render(index, false); }
+  }
+  function restart() { index = 0; render(0, true); }
+
+  $('screen').addEventListener('click', (e) => {
+    if (e.target.closest('button')) return;
+    next();
+  });
+  $('back').addEventListener('click', back);
+  $('restart').addEventListener('click', restart);
+  $('again').addEventListener('click', restart);
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest && e.target.closest('button')) return;
+    if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); back(); }
+  });
+
+  render(0, false);   // the first frame shows a whole line
+})();
+</script>
+</body>
+</html>

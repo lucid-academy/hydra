@@ -6,6 +6,10 @@
 - Painted portraits of the nine head classes and Old Mother Toad (`art/concept/portraits/`): made by Piotr with GPT image generation (OpenAI), October 2026. At his request Claude cut them out of the sheet and shortened the tongues of five heads; the original sheet is kept unchanged. Not in the game yet (dialogues come with M5).
 - Everything else is still a placeholder drawn in code (`src/assets/placeholders.ts`). No external asset packs.
 
+## Fonts
+
+- Cinzel and Crimson Pro (SIL Open Font License 1.1), loaded from Google Fonts. Only the dialogue demo page (`public/dialogue-demo/`) uses them, not the game.
+
 ## Libraries
 
 - [Phaser](https://phaser.io) — MIT
