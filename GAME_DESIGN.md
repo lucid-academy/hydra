@@ -79,6 +79,9 @@ Decyzje Piotra z 2026-10-04. Gracz poznaje ten świat po kawałku, a części od
 | Cinderkin | Roje owadów z głębin, które jedzą ciepło i przetapiają się między warstwami. |
 | Mycelium | Grzybnia, przewodnik po częstotliwościach. Pozwala wyraźniej słyszeć pieśń Węża i dostrzegać więcej, ale wielu istotom niesie szaleństwo. |
 | Lair | Leże hydry. |
+| Ring | Pierścień podziemi wokół leża. Umowny: nierówny kształt, własne biomy, od sąsiada oddziela go pas litej skały. |
+| Threshold | Próg: przejście między pierścieniami tej samej warstwy. Większość trzeba znaleźć albo otworzyć. Inne niż Passage, które łączy warstwy. |
+| Remains | Zwłoki w ślepym zaułku: trochę łupu i jedno zdanie o tym, kto tu zginął. |
 | Egg / Broodling | Jajo / wyklute młode. |
 | Mutation | Dziedziczna cecha przechodząca na potomków. |
 | Lineage Grimoire | Księga zaklęć rodu, przechodzi na potomków. |
@@ -105,9 +108,11 @@ Trzy poziomy pętli:
 ### 5.1 Warstwy
 Dwie osobne mapy heksagonalne: **Underground** (podziemia) i **Surface** (powierzchnia). Łączą je **Passages** (zapadliska, studnie, krypty), czyli heksy przejścia między warstwami. W podziemiach hydra porusza się swobodnie. Na powierzchnię wychodzi tylko przez Passage i tylko na heksy z Mist.
 
+**Podziemia aktu 1 to pierścienie** (decyzja Piotra z 2026-10-04): leże w środku i trzy **Rings** wokół niego (roboczo do 8, 14 i 20 heksów od leża), każdy groźniejszy od poprzedniego. Pierścienie są umowne: mają nierówny kształt i bywają przesunięte względem leża. Oddzielają je pasy litej skały, przez które prowadzi tylko kilka **Thresholds** (§9). Leże łączy się z pierścieniem 1 kilkoma szerokimi wyjściami. Głębsze warstwy przychodzą z kolejnymi aktami (§4).
+
 ### 5.2 Tury i ruch
 - Warstwa strategiczna jest turowa. Hydra to jeden żeton na mapie.
-- Hydra ma punkty ruchu na turę (startowo 5). Koszt wejścia na heks zależy od terenu (roboczo: woda 1, błoto 1, korzenie 2, sól 3, lita skała nieprzechodnia).
+- Hydra ma punkty ruchu na turę (startowo 6, roboczo; do M2b było 5). Koszt wejścia na heks zależy od terenu (roboczo: woda 1, błoto 1, korzenie 2, sól 3, lita skała nieprzechodnia).
 - Przycisk **End Turn** uruchamia turę świata: ruszają się ludzkie jednostki, Mist na powierzchni zanika, jaja się wykluwają, mogą pojawić się eventy. Sam upływ tur podnosi Alert minimalnie albo wcale (sekcja 8).
 - Na powierzchni obowiązuje cykl dnia i nocy liczony w turach (roboczo 6 tur dnia, 4 tury nocy).
 
@@ -115,7 +120,7 @@ Dwie osobne mapy heksagonalne: **Underground** (podziemia) i **Surface** (powier
 Każdy heks ma jeden z trzech stanów:
 - **Unexplored:** czarny, nic nie wiadomo.
 - **Remembered:** odkryty wcześniej, teraz poza zasięgiem wzroku. Widać przyciemniony teren i obiekty stałe. Ludzie są pokazani jako „ostatnio widziani": wyblakła ikona z informacją, ile tur temu.
-- **Visible:** w zasięgu wzroku (startowo 2 heksy od hydry). Wszystko aktualne.
+- **Visible:** w zasięgu wzroku (startowo 3 heksy od hydry, roboczo; do M2b były 2). Wszystko aktualne.
 
 Zasięg wzroku zmieniają klasy głów, przypadłości, mutacje, kapliczki i noc. Broodlingi-zwiadowcy też odsłaniają mapę. Przesłuchany jeniec może odsłonić jej fragment.
 
@@ -124,9 +129,13 @@ Zasięg wzroku zmieniają klasy głów, przypadłości, mutacje, kapliczki i noc
 - **Event:** scena z wyborami.
 - **Shrine:** podziemna kapliczka z błogosławieństwem, zwykle z haczykiem.
 - **Spell Cache:** zaklęcie, czyli umiejętność aktywna.
-- **Resource:** złoża Muck, źródła Moisture.
+- **Resource:** złoża Muck, źródła Moisture. W ślepych zaułkach bywa podwójne złoże (**Rich Deposit**).
+- **Remains:** zwłoki w ślepym zaułku, trochę łupu i jedno zdanie.
+- **Guarded Hoard:** zapas zasobów w ślepym zaułku, a przed nim spotkanie.
+- **Location:** miejsce z własną zasadą: landmark, lokacja biomu albo rzadkie miejsce (§9).
 - **Nest Site:** miejsce pod komnatę leża.
 - **Passage:** przejście między warstwami.
+- **Threshold:** przejście między pierścieniami (rodzaje w §9).
 - **Lair:** leże.
 - **Outpost:** umocniony punkt Zakonu.
 - **Flame Shrine:** kapliczka Płomienia (tylko na powierzchni).
@@ -347,22 +356,68 @@ Woda (Body szybsze, powolne leczenie), błoto, suchy grunt (Body wolniejsze), ch
 
 - Generator jest deterministyczny, działa z ziarna (seed). Wszystkie losowania w symulacji idą przez własny generator liczb losowych z ziarnem, nigdy przez `Math.random()`.
 - Seed jest widoczny w menu pauzy, a parametr URL `?seed=` odtwarza run (do testów i do dzielenia się mapą ze znajomymi).
-- Podziemia są duże (roboczo kilkaset heksów na warstwę), bo mają wystarczyć na długie wyprawy.
+- Podziemia są duże (roboczo promień 20, czyli 1261 heksów w akcie 1), bo mają wystarczyć na długie wyprawy.
 - Biomy podziemi: Flooded Caves, Root Tangle, Old Crypts (ludzkie katakumby), Salt Mines (sucho i groźnie), Fungal Deeps.
-- Generowanie: teren z szumu, gwarancja spójności (wszystko ważne osiągalne z leża), rozmieszczenie obiektów według reguł:
-  - leże blisko środka mapy,
-  - kapliczki nie bliżej niż N heksów od leża,
-  - co najmniej 2 Passages na powierzchnię,
-  - gęstość i siła spotkań rosną z odległością od leża,
-  - Spell Caches preferują ślepe zaułki (nagroda za eksplorację).
 - Powierzchnia ma osobny generator: zamek z katedrą Wiecznego Płomienia na wzgórzu po przeciwnej stronie, kapliczki Płomienia rozsiane po krainie, wsie, pola, las, rzeka, obozy Zakonu. Mgła startowo tylko przy wyjściach z Passages.
+
+### 9.1 Kształt świata (od M2c)
+Decyzja Piotra z 2026-10-04, szczegóły i schemat w dokumencie Claude „Hydra: generator świata (M2c)”. Generator działa jak w Terrarii: stały szkielet, a reszta losowana od nowa w każdym pokoleniu. Gracz uczy się reguł, nie mapy.
+- **Kroki:** szkielet pierścieni, pasy skał, jaskinie, kręte korytarze, ślepe zaułki, biomy, progi, wyjątkowe miejsca, obiekty, dekoracje i podpowiedzi, walidator. Świat, który łamie regułę, losuje się od nowa z kolejnym ziarnem.
+- **Pierścienie** (§5.1): granice falują o 2–3 heksy i bywają przesunięte względem leża, więc w jedną stronę do następnego pierścienia jest blisko, w inną daleko. Pierścień ma co najmniej 3 heksy szerokości.
+- **Jaskinie i korytarze:** komory połączone krętymi korytarzami o szerokości 1–2 heksów, z kilkoma pętlami. Spotkanie w korytarzu na jeden heks to wąskie gardło.
+- **Ślepe zaułki:** w każdym leży dokładnie jedna rzecz: Remains, Shrine, Rich Deposit, Guarded Hoard albo Draught Crack, później też Spell Cache (M2a) i Event (M5).
+
+### 9.2 Biomy pierścieni
+Udziały i wagi są robocze i żyją w danych.
+
+| Pierścień | Biomy główne | Wtrącenia |
+|---|---|---|
+| 1 | Flooded Caves i Root Tangle, każdy 30–70% pierścienia | Old Crypts, Salt Mines |
+| 2 | Old Crypts i Salt Mines, każdy 30–70% | Fungal Deeps, Flooded Caves, Root Tangle |
+| 3 | Fungal Deeps | Old Crypts, Salt Mines, Flooded Caves, Root Tangle |
+
+Wtrącenie to cała komora w obcym biomie, zawsze z jedną rzeczą z tego biomu. Ma zaskakiwać i zapowiadać, co czeka dalej.
+
+### 9.3 Thresholds
+Na granicy pierścieni stoją 2–4 progi, co najmniej 1/5 obwodu od siebie. Zawsze jest wśród nich Draught Crack, więc żadna granica nie wymaga klucza.
+
+| Threshold | Jak przejść | Od kiedy |
+|---|---|---|
+| Draught Crack | wygląda jak skała; przeciąg na sąsiednich heksach zdradza miejsce, a stanięcie obok odsłania szczelinę | M2c |
+| Rubble Choke | kopanie przez 1–2 tury | M2c |
+| Root Wall | [Biter] przegryza korzenie | M2c |
+| Salt Plug | [Acid Spitter] rozpuszcza sól | M2c |
+| Smouldering Seam | [Mist Breather] dusi żar mgłą | M2c |
+| Sealed Door | krok mini questu | M5 |
+| Cinder Bore | event przywołuje Cinderkin, które przetapiają skałę | M5 |
+
+- Progi na klasy głów działają jak wybory w eventach wymagające klasy (§10). Z M2a dojdą progi dla nowych klas.
+- Znalezisko z powierzchni albo przesłuchany jeniec może pokazać ukryty próg (M4).
+- **Cinderkin** (decyzja Piotra z 2026-10-04): nie w pierścieniu 1. Pierwsze wyjście z pierścienia 1 gracz zawsze znajduje sam, potem Cinderkin mogą otworzyć jeden dodatkowy próg na run. Rój ciągnie do ciepła, więc event wymaga czegoś gorącego. Jest nieprzewidywalny: przetapia skałę w jednym z najcieńszych miejsc pasa w pobliżu, a tunel parzy przez kilka tur.
+
+### 9.4 Miejsca, podpowiedzi i pamięć świata
+- **Pula miejsc:** landmark widoczny z daleka (jeden na każdy biom główny, zawsze), lokacje biomu (1–2 na biom, losowane z jego puli) i rzadkie miejsca (0–2 na świat, każde z szansą roboczo 10–20%): **Cinder Scar** (stary tunel Cinderkin, darmowy dodatkowy próg), **The Lost Survey** (zwłoki mierników Zakonu i mapa, która pokazuje ukryty próg), **The Hushed Stair** (zamknięte schody w dół, zapowiedź głębszej warstwy).
+- **Podpowiedzi:** przeciąg przy ukrytym progu i echa: na krawędzi znanej mapy jedno zdanie, które zdradza, co jest za zakrętem.
+- **Świat pamięta ród (M6):** miejsca potrzebne do rozpoczętego mini questu pojawiają się na pewno, a miejsca, których ród jeszcze nie widział, mają większą szansę. Ten sam seed i ta sama wiedza rodu dają ten sam świat.
+- **Świat zmienia się w trakcie gry:** zawał odcina korytarz, woda podtapia przejście, Cinderkin wytapiają nowe. Przyjdzie z eventami (M5) i Zakonem (M3).
+
+### 9.5 Rozmieszczenie obiektów
+- leże w środku mapy,
+- kapliczki nie bliżej niż N heksów od leża,
+- co najmniej 2 Passages na powierzchnię: jeden w pierścieniu 1, drugi w pierścieniu 2 albo 3, więc powierzchnia bywa ryzykownym objazdem (M4),
+- siła spotkań zależy od pierścienia, gęstość od biomu,
+- Spell Caches preferują ślepe zaułki (nagroda za eksplorację).
+
+### 9.6 Zmienność runów
 - Warstwy zmienności: układ mapy, rozmieszczenie obiektów, pula eventów, przypadłości nowych głów, skład wypraw Zakonu oraz jeden losowy **modyfikator runu**:
   - Drought: mgła zanika szybciej.
   - Wet Year: więcej wody, więcej Moisture.
   - A Generous Bequest: Zakon dostał spadek. Więcej wrogów, lepsze łupy.
   - Plague of Frogs: do ustalenia, ma być dziwnie.
   - Feast of Saint Cinder: Zakon świętuje, Alert rośnie wolniej.
-- Walidator: test generuje co najmniej 1000 seedów i sprawdza powyższe reguły (osiągalność, liczebności, brak kolizji obiektów).
+  - Mycelium Bloom: wtrącenia Fungal Deeps w każdym pierścieniu, także w pierwszym.
+  - Old Workings: stary szyb Zakonu przecina pierścienie 2 i 3 prostym korytarzem. Darmowy próg, ale wzdłuż szybu więcej spotkań z Zakonem.
+- Walidator: test generuje co najmniej 1000 seedów i sprawdza reguły z tej sekcji: każdy pierścień osiągalny od leża bez kluczy, liczby progów i obiektów, żaden ślepy zaułek nie jest pusty, szerokość pierścieni, częstość rzadkich miejsc, brak kolizji obiektów i ten sam świat z tego samego seeda.
 
 ## 10. Eventy
 
@@ -458,7 +513,7 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 **M2** (po playteście M1b podzielony na części; najpierw M2b):
 
 - **M2b: podziemia na serio.** Pełny generator z biomami i walidatorem, duża mapa w stylu Songs of Conquest, leże, kapliczki, Spell Caches, zasoby.
-- **M2c: mapa do odkrywania.** Przebudowa mapy z M2b pod eksplorację według propozycji z 2026-10-04 (dokument Claude „Hydra: eksploracja, biomy i świat”). Zakres po decyzjach Piotra: `TODO(design)`.
+- **M2c: mapa do odkrywania.** Przebudowa mapy z M2b pod eksplorację (decyzja Piotra z 2026-10-04, dokumenty Claude „Hydra: eksploracja, biomy i świat” i „Hydra: generator świata (M2c)”). Zakres: pierścienie z pasami skał (§5.1, §9), kręte korytarze i ślepe zaułki z zawartością, biomy pierścieni z wtrąceniami, Thresholds (Draught Crack, Rubble Choke i progi na trzy klasy głów, które są już w grze), Remains, Rich Deposit, Guarded Hoard, landmarki, lokacje z nagrodami, które już działają, i rzadkie miejsca, przeciągi i echa, ruch 6 i wzrok 3, ok. 20 spotkań, modyfikatory Wet Year, Mycelium Bloom i Old Workings w generatorze (na razie włączane parametrem URL), walidator na 1000 seedach, grafika zastępcza i prompty do GPT. Sealed Door i Cinder Bore przyjdą z M5, znaleziska z powierzchni z M4, pamięć rodu z M6.
 - **M2a: głowy.** Pozostałe klasy głów i ich combosy, kodeks combosów, doświadczenie i specjalizacje, umiejętności i drzewko talentów (6.9).
 
 **M3: Zakon kontratakuje.** Alert z progami, patrole i posłańcy na mapie, wyprawy, obrona leża, jaja i Broodlingi, Great Burning jako boss aktu.
@@ -479,3 +534,4 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 - **Zakończenia:** które i jak się do nich dochodzi? Propozycja Claude: obudzić Węża (z Wakers), nastroić pieśń na nowo i zająć miejsce Hushed, pójść za grzybnią poza świat Węża, zgasić Wieczny Płomień.
 - **Wiedza o świecie po wymarciu rodu:** przepada razem z rodem (jak mutacje) czy zostaje na stałe (jak odblokowania konta)? Propozycja Claude: zostaje, bo Old Mother Toad pamięta wszystkie pokolenia, a tajemnica ma się składać przez całą grę.
 - **Pula głów:** które klasy są w puli od startu, a które trzeba odblokować (odblokowania konta, §12)? Propozycja Claude: sześć pierwszych od startu, a Strangler, Tender i Lantern do odblokowania. Sposób odblokowania do ustalenia.
+- **Świat dnia:** jeden seed dziennie, ten sam dla wszystkich graczy, jak w Spelunky. Czy go chcemy i kiedy? Propozycja Claude: później, np. po M5, bo łatwo go dodać.
