@@ -1,6 +1,6 @@
 # Handoff: stan prac nad Hydrą
 
-Stan na 2026-10-04. Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
+Stan na 2026-10-04 (wieczór, po M2c). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
 
 - Gra: https://lucid-academy.github.io/hydra/
 - Repo: https://github.com/lucid-academy/hydra (na serwerze `/root/Hydra`)
@@ -9,10 +9,10 @@ Stan na 2026-10-04. Ten plik streszcza dotychczasową pracę, żeby następna se
 
 ## 1. Etap
 
-- Zrobione: **M0, M1, M1b, M2b** (sekcja 15 w `GAME_DESIGN.md`).
-- **M2b** (podziemia) jest wdrożony i czeka na playtest Piotra.
+- Zrobione: **M0, M1, M1b, M2b, M2c** (sekcja 15 w `GAME_DESIGN.md`).
+- **M2c** (świat do odkrywania) jest wdrożony 2026-10-04 i czeka na playtest Piotra. Playtest M2b nie przyszedł; M2c zmienił mapę na tyle, że lepiej grać od razu w M2c.
 - 2026-10-03 Piotr zmienił sposób pracy: grafika będzie z GPT, animacje najpierw w kodzie. Zasady są już w `CLAUDE.md`. Plan grafiki (sekcja 3.2) Piotr zatwierdził tego samego dnia i potok jest zbudowany. Wieczorem przyszła cała pierwsza partia (21 obrazków) i jest w grze; **czeka na uwagi Piotra**.
-- Następny etap gry to **M2c** (mapa do odkrywania), potem M5, M6, M2a, M3, M4, M7 (kolejność Piotra z 2026-10-04, `GAME_DESIGN.md` §15). Plan M2c czeka na OK Piotra; budowę zacząć dopiero na jego hasło. Projekt 9 głów (M2a) jest zatwierdzony (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13).
+- Następne etapy: M5, M6, M2a, M3, M4, M7 (kolejność Piotra z 2026-10-04, `GAME_DESIGN.md` §15). Każdy zaczyna się od planu i OK Piotra. Projekt 9 głów (M2a) jest zatwierdzony (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13).
 - **Zmiana kierunku, 2026-10-04:** Hydra to teraz fabularny roguelite z naciskiem na odkrywanie świata, mini questy i kilka zakończeń; bitwy rzadsze, ale ważne (`GAME_DESIGN.md` §1, §2, §4, §15).
 
 ## 2. Co zrobione
@@ -36,6 +36,15 @@ Stan na 2026-10-04. Ten plik streszcza dotychczasową pracę, żeby następna se
 - Kapliczki Wielkiego Węża z błogosławieństwami (przyjmij albo odrzuć), odpoczynek w leżu, zasoby Muck, Moisture i Bones.
 - Spotkania w trzech poziomach siły, rosnących z odległością od leża. Plansza bitwy w kolorach biomu, w którym stało spotkanie.
 - Przejścia na powierzchnię stoją na mapie, ale są zamknięte do M4.
+
+**M2c (2026-10-04): świat do odkrywania** (`GAME_DESIGN.md` §9, plan w dokumencie Claude „Hydra: generator świata (M2c)”, zatwierdzony kartą „Buduj”).
+- Mapa o promieniu 20 (1261 heksów), ruch 6, wzrok 3. Wokół leża trzy nierówne pierścienie oddzielone pasami skały: 1. Flooded Caves i Root Tangle, 2. Old Crypts i Salt Mines, 3. Fungal Deeps, w każdym łaty innych biomów. Generator w `src/sim/map/generator/` (kształt, jaskinie, biomy, zawartość), liczby w `balance.json` (`undergroundGenerator`), progi, miejsca, szczątki, warunki i modyfikatory w nowym `src/data/world.json`.
+- Komory (średnio 7, 9,5 i 12 na pierścień), kręte korytarze jedno- i dwuheksowe, pętle, ślepe zaułki zawsze z czymś (szczątki z kwestią, kapliczka, bogate złoże, zapasy pod strażą). Ok. 20 spotkań, siła rośnie z pierścieniem.
+- Progi między pierścieniami (2–4 na granicę): Draught Crack (ukryty, zdradza go przeciąg), Rubble Choke (kopanie przez kilka tur), Root Wall [Biter], Salt Plug [Acid Spitter], Smouldering Seam [Mist Breather]. Tapnięcie w znany próg podprowadza hydrę i otwiera panel. Cinder Scar (Cinderkin): w 15% światów jeden dodatkowy, zawsze otwarty próg między 2. a 3. pierścieniem (wariant B, nigdy w pierwszym). Old Workings: szyb Zakonu przy modyfikatorze, z dodatkowymi spotkaniami.
+- Miejsca: 5 punktów orientacyjnych (widać je przez skałę z 7 heksów), 6 miejsc w biomach z akcjami (zysk, stan na hydrze, prąd Undertow, wyciszenie bitew, pokazanie ukrytego progu) i 2 rzadkie. Echo miejsca słychać z 4 heksów.
+- Modyfikatory runu na razie tylko z URL: `?modifiers=wetYear,myceliumBloom,oldWorkings`. Cały świat: `?reveal=1&zoom=0.45`.
+- Walidator: 1000 seedów i każdy modyfikator; świat, który łamie regułę, losuje się od nowa (średnio 1,2 próby, 12 ms na świat).
+- Grafika zastępcza w kodzie (`src/assets/worldPlaceholders.ts`), specyfikacja w `docs/ASSETS.md`, 28 promptów w `docs/ART_PROMPTS.md`. Wysoki punkt orientacyjny prześwituje, gdy zasłania hydrę, próg, spotkanie albo kapliczkę.
 
 **Narzędzia.** `npm run smoke` gra sama jak gracz: mapa, bitwy, przegrana, kapliczki; z `-- phone` na ekranie telefonu. `npm run balance` rozgrywa setki automatycznych bitew, wynik w `docs/BALANCE.md`. `npm run shots` robi zrzuty do `docs/screens/`. `npm run art` wstawia do gry obrazki z `art/raw/` (opis w `docs/ASSETS.md`). Parametry URL są w `README.md`.
 
@@ -100,6 +109,8 @@ Plan:
 Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/` z dopiskiem `TODO(design)` i Piotr może je zmieniać.
 
 - Bagno wokół leża (Lair Swamp) to osobny, szósty biom; dokument wymienia pięć.
+- M2c: teksty miejsc, progów, szczątków, ech i modyfikatorów napisał Claude, robocze (`src/data/world.json`). Akcje miejsc i ich liczby też robocze: np. Brine Lake daje Moisture i stan Salted (−1 ruchu na 3 tury), Undertow niesie hydrę wzdłuż prądu, Silent Bell wycisza Alert z bitew w promieniu 3, Mycelium Whisper na 4 tury pokazuje wszystkie spotkania.
+- M2c: Rubble Choke kopie się 1–2 tury (kopanie zabiera resztę ruchu w turze). Old Crypts nie ma jeszcze miejsca w biomie (pula pusta), jego łaty dostają szczątki.
 - Podziemne kapliczki to kapliczki Wielkiego Węża (pomysł fabularny z §16). Każda daje całej hydrze jedno błogosławieństwo (ruch, wzrok, HP Body, regeneracja, Alert, Muck/Moisture), które można przyjąć albo odrzucić. 6 błogosławieństw w `src/data/shrines.json`, teksty napisał Claude, robocze.
 - Odpoczynek: End Turn na heksie leża leczy w pełni, a z każdej blizny wyrastają 2 nowe głowy (do limitu 9). Poza leżem leczenie 12 HP Body i 4 HP każdej głowy na turę.
 - Bones: 2 za każdego pokonanego człowieka (uproszczenie, zanim pojawią się jeńcy). Moisture ze źródeł, Muck ze złóż.
@@ -129,8 +140,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 1. Wrażenia z playtestu M2b: mapa, kapliczki, leże, nowe biomy.
 2. Nowa tekstura soli do Salt Mines (Piotr wybrał nowy obrazek, prompt już przyciemniony). Malowane portrety głów już są (sekcja 3.2).
 3. Okładka gry przyszła w projekcie Hydra 2026-10-04. Do repo (`art/raw/key_art.png`) trafi przy propozycji palety.
-4. Plan M2c (mapa do odkrywania) i jego OK.
-5. Propozycja eksploracji (mapa w pierścieniach, roboczo etap M2c) w dokumencie Claude „Hydra: eksploracja, biomy i świat”: decyzje 1, 2, 4 i 5 (6 rozstrzygnęła kolejność etapów). Decyzję 3 (prawda o Hushed) zastąpił świat Piotra, wpisany do `GAME_DESIGN.md` §1.
+4. Wrażenia z playtestu M2c: kształt świata, progi, miejsca, podpowiedzi (przeciągi, echa), modyfikatory.
 
 **Z `GAME_DESIGN.md` §16 (decyduje Piotr):**
 - ile kapliczek Płomienia trzeba zgasić;
@@ -152,6 +162,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 ## 5. Znane problemy i braki
 
 - Grafika z GPT jest na terenie (mapa i bitwa), tułowiu i głowach hydry. Reszta jest jeszcze zastępcza, rysowana w kodzie: ludzie Zakonu, obiekty i hydra na mapie, ekran tytułowy.
+- M2c: modyfikatory i „świat dnia” tylko z URL (świat dnia odłożony decyzją z 2026-10-04). Prąd Undertow nie jest narysowany na wodzie. Old Crypts bez własnego miejsca. Zewnętrzny brzeg świata przy płaskich bokach mapy idzie po jej sześciokącie. Wydajność na telefonie niezmierzona (1261 heksów rysowanych naraz). Ok. 1% światów losuje się drugi raz, bo w pierwszym pierścieniu zabrakło kapliczki.
 - Nie ma zapisu gry: odświeżenie strony zaczyna run od nowa. `CLAUDE.md` wymaga zapisu w localStorage z numerem wersji formatu, w planie jest w M6.
 - Seed widać tylko z `?debug=1`. Menu pauzy, w którym miał być (§9), jeszcze nie ma.
 - Świadomie odłożone na późniejsze etapy:
@@ -171,4 +182,4 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 3. Okładka jest: propozycja palety (próbnik i okładka w palecie) przed pixelowymi wersjami głów, po akceptacji zapis w repo. Do rozstrzygnięcia przy tym: na okładce hydra ma stare złoto i brąz, a §13 opisuje ją jako zimną (turkus, zieleń).
 4. Gdy Piotr napisze, że wrzucił grafiki: `git pull`, `npm run art`, obejrzeć wynik w grze, wdrożyć, pokazać.
 5. Zatwierdzone decyzje od razu wpisywać do `GAME_DESIGN.md`, a budować w swoim etapie.
-6. Potem M2c według planu, na hasło Piotra, i dalej kolejność z `GAME_DESIGN.md` §15.
+6. Po playteście M2c: poprawki według uwag Piotra, potem plan M5 (dialogi) i dalej kolejność z `GAME_DESIGN.md` §15.
