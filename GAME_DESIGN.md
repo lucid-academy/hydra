@@ -40,7 +40,7 @@ Gatunek: roguelite z pokoleniami. Warstwa strategiczna to turowa mapa heksagonal
 | Scar | Blizna po przypalonym kikucie. |
 | Hatchling Head | Świeżo odrośnięta głowa: poziom 1, losowa klasa, losowa przypadłość. |
 | Quirk | Przypadłość głowy (cecha z plusem, minusem albo absurdem). |
-| Status | Efekt nałożony na człowieka przez atak (Corroded, Terrified, Soaked, Stunned). |
+| Status | Efekt nałożony na człowieka przez atak (Corroded, Terrified, Soaked, Stunned, Seized, Entranced). |
 | Combo | Połączenie ataków dwóch głów albo ataku ze statusem, daje dodatkowy efekt. |
 | Mist | Mgła hydry: zasób i teren na powierzchni. |
 | Visibility | Wiedza gracza o mapie (mgła wojny): Unexplored / Remembered / Visible. |
@@ -133,7 +133,7 @@ Współrzędne osiowe (axial q, r), heksy pointy-top, algorytmy według przewodn
 
 ### 6.2 Hydra w walce
 - **Body:** duże, wolne, z własnym HP. Zajmuje 7 heksów (środek i sześć dookoła) i zaczyna bitwę na środku planszy, więc ludzie mogą je otoczyć, a głowy atakują we wszystkie strony. Śmierć Body to śmierć hydry i koniec pokolenia. Porusza się na rozkaz (prawy klik albo tapnięcie w wolne pole), krok po kroku i tylko wtedy, gdy pola, na które wchodzi, są wolne.
-- **Heads:** każda głowa to jednostka z HP, klasą, poziomem, imieniem i przypadłością. Głowy nie zajmują heksów: wyrastają dookoła Body. Głowa atakuje tylko w zasięgu szyi od Body, liczonym w heksach; zasięg to jedna z rzeczy, które odróżniają klasy głów. Ma atak podstawowy i umiejętności z czasem odnowienia. Atak podstawowy działa sam, gdy wróg wejdzie w zasięg. Umiejętności używa tylko gracz, kliknięciem; głowa nigdy nie użyje ich sama.
+- **Heads:** każda głowa to jednostka z HP, klasą, poziomem, imieniem i przypadłością. Głowy nie zajmują heksów: wyrastają dookoła Body. Głowa atakuje tylko w zasięgu szyi od Body, liczonym w heksach; zasięg to jedna z rzeczy, które odróżniają klasy głów. Ma atak podstawowy i umiejętności z czasem odnowienia. Atak podstawowy działa sam, gdy wróg wejdzie w zasięg (wyjątek: Lick Tendera sam leczy też najbardziej ranną głowę, §6.9). Umiejętności używa tylko gracz, kliknięciem; głowa nigdy nie użyje ich sama.
 - Szyje rysowane proceduralnie jako łańcuch segmentów od Body do pozycji głowy, więc głowa widocznie „sięga" do celu.
 - Sterowanie: wybór głowy klawiszami 1–9 albo kliknięciem, umiejętności Q/W/E, kliknięcie celu. Rozkazy można kolejkować w pauzie. Kilka głów naraz: Ctrl albo Shift + kliknięcie w głowy lub ich karty, albo przycisk „All heads” (klawisz A); rozkaz dostają wtedy wszystkie zaznaczone. Od początku projektujemy tak, żeby dało się grać dotykiem: duży przycisk pauzy, tapnięcie wybiera, kolejne tapnięcie wskazuje cel.
 
@@ -143,19 +143,28 @@ Współrzędne osiowe (axial q, r), heksy pointy-top, algorytmy według przewodn
 - Człowiek z ogniem (Torchbearer, zaklęcia ognia) może **przypalić** kikut: stoi przy nim kilka sekund („kanałuje"). Przypalony kikut nie odrasta do końca bitwy i zostaje blizną, którą leczy odpoczynek w leżu albo kapliczka.
 - Głowy zbierają doświadczenie między bitwami i na poziomach 3 i 5 wybierają specjalizację (jak w Tomb Guard). Stracić weterana boli, ale w zamian dostajesz dwie młode głowy. To jest główne napięcie gry.
 
-### 6.4 Klasy głów (pula startowa)
-- **Biter:** walka wręcz, duże obrażenia.
-- **Acid Spitter:** atak z dystansu, obrażenia w czasie, zdziera pancerz.
-- **Mist Breather:** tworzy chmury mgły na arenie. Hydrę w chmurze trudniej trafić, ludzie w niej zwalniają, a ogień w chmurze słabnie.
-- **Screamer:** obszarowy strach i ogłuszenie, przerywa kanałowanie (w tym przypalanie).
-- **Glutton:** zjada powalonych ludzi, leczy Body.
-- **The Spare:** bezużyteczna głowa. Nic nie robi, czasem robi coś absurdalnego. Jeśli dożyje, ma najlepsze specjalizacje w grze.
+### 6.4 Klasy głów
+Komplet to 9 klas (decyzja Piotra z 2026-10-04). Głowy dzielą się na trzy grupy: jedne przygotowują cel (nakładają status), drugie go kończą, trzecie pilnują hydry. Przygotowują: Acid Spitter, Mist Breather, Screamer, Strangler i Lantern. Kończą: Biter i Glutton. Pilnuje hydry: Tender. The Spare robi, co chce. Dobra drużyna ma po trochu z każdej grupy, a pauza służy do składania ich w odpowiedniej kolejności. Umiejętności każdej klasy są w §6.9.
+
+- **Biter:** walka wręcz, duże obrażenia. Odpowiedź na rycerzy (razem z kwasem) i Tithe Collectora. Charakter: dumny prostak, dla którego każdy problem to problem niedostatecznie pogryziony. *„I bit him. You're welcome."*
+- **Acid Spitter:** atak z dystansu, obrażenia w czasie, zdziera pancerz. Odpowiedź na rycerzy i Brazier Bearera. Charakter: zadufany pedant, poprawia inne głowy i liczy, ile pancerza już zjadł. *„Corrosion is a process. You wouldn't understand."*
+- **Mist Breather:** tworzy chmury mgły na arenie. Hydrę w chmurze trudniej trafić, ludzie w niej zwalniają, a ogień w chmurze słabnie. Odpowiedź na Torchbearera, Brazier Bearera i Crossbowmana. Charakter: senny poeta, mówi z przerwami i przysypia w środku zdania. *„Everything is... softer... in the mist."*
+- **Screamer:** obszarowy strach i ogłuszenie, przerywa kanałowanie (w tym przypalanie). Odpowiedź na Torchbearera i Censer Priesta. Charakter: diwa, mówi wielkimi literami i obraża się, gdy krzyczy ktoś inny. *„I WAS NOT SHOUTING. THIS IS MY INSIDE VOICE."*
+- **Glutton:** zjada powalonych ludzi, leczy Body, je też ogień. Odpowiedź na Brazier Bearera i Torchbearera. Charakter: smakosz, ocenia ludzi jak dania, a Zakon jak restaurację. *„Is he seasoned? He smells seasoned."*
+- **The Spare:** bezużyteczna głowa. Nic nie robi, czasem robi coś absurdalnego. Jeśli dożyje, ma najlepsze specjalizacje w grze. Charakter: zagubiona i życzliwa, pewna, że pomaga. *„Hello. Am I a head? I think I'm a head."*
+- **Strangler:** najdłuższa szyja w grze: chwyta, trzyma i przyciąga ludzi. Odpowiedź na Crossbowmana, Tithe Collectora, Censer Priesta i szarżę rycerza. Charakter: cichy, uprzejmy dusiciel, przeprasza, kiedy dusi. *„Shh. Just a little squeeze."*
+- **Tender:** leczy głowy, przyspiesza odrost i broni kikutów przed przypaleniem. Odpowiedź na Torchbearera i Headhuntera. Charakter: troskliwa i bardzo upierdliwa niania, do wszystkich mówi „dear”, także do ludzi, których liże. *„Who did this to your neck? Sit still, Kevin."* (Kevin to inna głowa z tej samej bitwy.)
+- **Lantern:** wabi ludzi fałszywym światłem. Odpowiedź na Torchbearera, Censer Priesta i Crossbowmana. Charakter: fałszywy kaznodzieja, mówi łagodnie i namaszczenie. *„Come closer, brother. The light forgives."* Zakon bierze każde światło za znak z niebios: *„A sign! Brother, a sign!"*
+
+Pula startowa: pierwsze sześć klas. Czy Strangler, Tender i Lantern są w puli od startu, czy do odblokowania: otwarte pytanie w §16.
 
 ### 6.5 Synergie i combosy
-- Głowy działają najlepiej razem. Ataki mają **tagi** (bite, acid, mist, scream, devour), a trafienia nakładają na ludzi **statusy** (Corroded, Terrified, Soaked, Stunned). Combo powstaje, gdy atak z odpowiednim tagiem trafi cel z odpowiednim statusem albo gdy dwie głowy trafią ten sam cel w krótkim oknie czasu (roboczo 1,5 s).
+- Głowy działają najlepiej razem. Ataki mają **tagi** (bite, acid, mist, scream, devour, coil, lick, light), a trafienia nakładają na ludzi **statusy** (Corroded, Terrified, Soaked, Stunned, Seized, Entranced). Combo powstaje, gdy atak z odpowiednim tagiem trafi cel z odpowiednim statusem albo gdy dwie głowy trafią ten sam cel w krótkim oknie czasu (roboczo 1,5 s).
+- **Seized:** człowiek owinięty szyją Stranglera nie chodzi, nie atakuje i nie kanałuje, a pozostałe głowy zadają mu o 25% więcej. Chwyt pęka, gdy Strangler oberwie (roboczo 8 obrażeń).
+- **Entranced:** człowiek stoi i wpatruje się w światło Lanterna, nie atakuje i nie kanałuje. Każde obrażenie go budzi. Censer Priest zdejmuje go jak każdy status.
 - Pauza jest do tego stworzona: zatrzymujesz walkę, ustawiasz kolejność ataków kilku głów, puszczasz i patrzysz, jak się składają. To główna umiejętność gracza, tak jak w Tomb Guard.
 - Combo ma być widać i czuć: nazwa wyskakuje nad celem, krótkie spowolnienie, czasem komentarz głów (*„That was my idea." / „It was not."*).
-- Pierwsze combosy:
+- Combosy (siedem pierwszych i dwanaście dodanych 2026-10-04):
 
 | Combo | Jak | Efekt |
 |---|---|---|
@@ -166,10 +175,35 @@ Współrzędne osiowe (axial q, r), heksy pointy-top, algorytmy według przewodn
 | Echo Scream | dwa Screamery krzyczą w odstępie do 1 s | podwójny zasięg ogłuszenia; głowy kłócą się, która była głośniej |
 | Pincer | dwa Bitery gryzą ten sam cel z przeciwnych stron | cel się przewraca |
 | Twin Bond | dwie głowy z tego samego kikuta atakują ten sam cel | premia do obrażeń; gdy jedna zginie, druga wpada losowo w szał albo w żałobę |
+| Hold Still | Biter gryzie cel Seized | podwójne obrażenia, chwyt trwa 1 s dłużej |
+| Room Service | Glutton na celu Seized z HP poniżej 50% | zjada go od razu |
+| Wrung Out | Coil na celu Soaked | dodatkowe obrażenia, po puszczeniu Stunned 2 s |
+| Voices in the Fog | krzyk w chmurę mgły | wszyscy w chmurze Terrified 3 s, rycerze Stunned 1 s |
+| Brittle | Sonic Crack w cel Corroded | pancerz pęka na stałe i odpryski ranią ludzi obok |
+| Pickled | Glutton zjada cel Corroded | podwójne leczenie Body |
+| Slobber | Lick w cel Soaked | cel się poślizguje, Stunned 2 s |
+| Rude Awakening | krzyk w cel Entranced | Stunned 3 s, działa też na rycerzy |
+| Anointing | kwas w cel Entranced | Zakon bierze kwas za święty olej: trans trwa dalej, Corroded 2× dłużej |
+| Marsh Light | Beacon w chmurze mgły | wabi o 2 heksy dalej, a Torchbearer, który wejdzie, gubi pochodnię |
+| Sanctuary | Beacon przy ludziach Terrified | uciekają do światła i klękają (Entranced) |
+| Triplet Bond | trzy głowy z jednego kikuta w ten sam cel | większa premia niż Twin Bond |
 
+- Kto na czym robi combo:
+  - Corroded (nakłada Acid Spitter): Biter robi Corrode & Crush, Screamer Brittle, Glutton Pickled.
+  - Mgła i Soaked (Mist Breather): Acid Spitter robi Acid Fog, Screamer Voices in the Fog, Strangler Wrung Out, Tender Slobber, Lantern Marsh Light. Sama chmura na Torchbearerze to Smother.
+  - Terrified (Screamer): Glutton robi Panic Feast, Lantern Sanctuary.
+  - Seized (Strangler): Biter robi Hold Still, Glutton Room Service.
+  - Entranced (Lantern): Screamer robi Rude Awakening, Acid Spitter Anointing.
+  - Bez statusu: Pincer (dwa Bitery), Echo Scream (dwa Screamery), Twin Bond i Triplet Bond (głowy z jednego kikuta).
+- Każda głowa ma co najmniej dwa combosy, a każdy status co najmniej dwóch odbiorców. Żadna głowa nie gra sama.
+- Próbki komentarzy po combo:
+  - Hold Still. STRANGLER: *„I've got him."* BITER: *„I know. I can see him."*
+  - Pickled. GLUTTON: *„Marinated. Thank you."* ACID SPITTER: *„It's called corrosion."*
+  - Anointing. TORCHBEARER, rozpuszczając się: *„Holy oil! I am anointed!"*
+  - Triplet Bond, gdy jedna głowa zginie: *„That was your fault." / „It was nobody's fault." / „It was your fault."*
 - The Spare w dowolnym combo dokłada losowy, absurdalny efekt.
 - Specjalizacje, mutacje i zaklęcia mogą dodawać nowe combosy i wzmacniać istniejące.
-- Zakon ma kontry: Censer Priest zdejmuje statusy, Brazier Bearer rozprasza mgłę, rycerze są odporni na strach.
+- Zakon ma kontry: Censer Priest zdejmuje statusy, Brazier Bearer rozprasza mgłę, rycerze są odporni na strach, a Headhunter rozbija chwyt Stranglera i poluje na kruchą Tender.
 - Combosy żyją w danych (JSON): warunki (status, tagi, okno czasu, klasy głów) i efekt. Nowy combo to nowy wpis, bez zmian w kodzie.
 - Odkryte combosy trafiają do kodeksu, nieodkryte widać jako „???". To zachęca do eksperymentów w kolejnych runach.
 
@@ -193,11 +227,76 @@ Woda (Body szybsze, powolne leczenie), błoto, suchy grunt (Body wolniejsze), ch
 - Po bitwie: doświadczenie, łupy, jeńcy. Jeńca można zjeść (Bones, leczenie) albo przesłuchać (dialog, informacja, odsłonięcie fragmentu mapy).
 - Stan głów (ścięte, nowe, blizny, doświadczenie) przechodzi na mapę.
 
-### 6.9 Umiejętności i drzewko talentów (kierunek Piotra, do dopracowania)
-- Każda głowa ma 2–4 umiejętności. Rozwija się je w drzewku talentów i można je ulepszać.
-- Na bitwę wybiera się 1–2 umiejętności każdej głowy, plus umiejętność ostateczną (ultimate), jeśli hydra znajdzie odpowiednie zaklęcie albo kapliczkę.
-- W drzewku talentów rozwija się też całą hydrę: mutacje, szybszy ruch, regeneracja itd.
-- Stan na 2026-10-01: Piotr jeszcze projektuje głowy; szczegóły później.
+### 6.9 Umiejętności i drzewko talentów
+- Każda głowa ma atak podstawowy, 3 umiejętności (skille) i umiejętność ostateczną (ult). Na bitwę wybiera się 2 z 3 skilli (klawisze Q i W). Ult (klawisz E) jest dostępny, jeśli hydra znajdzie odpowiednie zaklęcie albo kapliczkę. (Decyzja Piotra z 2026-10-04; wcześniej 2–4 umiejętności i 1–2 na bitwę.)
+- Skille rozwija się w drzewku talentów i można je ulepszać. W drzewku rozwija się też całą hydrę: mutacje, szybszy ruch, regeneracja itd. Drzewko i specjalizacje są jeszcze do zaprojektowania.
+- Liczby niżej są robocze i trafią do danych (`src/data/`), nie do kodu.
+
+**Biter**
+- Atak **Bite:** zasięg 2, wręcz.
+- **Crunch:** jedno ugryzienie za 2,5× obrażeń.
+- **Lockjaw:** wgryza się i trzyma cel w miejscu 3 s. Cel dalej walczy, ale nie chodzi i nie ucieknie (Tithe Collector).
+- **Thrash:** szarpie celem i odrzuca go o 2 heksy. Jeśli cel wpadnie na innego człowieka, obaj są Stunned 1 s.
+- Ult **Frenzy:** przez 6 s gryzie 3× szybciej, a każde zabójstwo leczy go o 10 HP.
+
+**Acid Spitter**
+- Atak **Spit:** zasięg 5, nakłada Corroded.
+- **Acid Pool:** kałuża kwasu na heksie i sześciu sąsiednich na 6 s. Kto w niej stoi, jest Corroded.
+- **Melt:** zdejmuje celowi cały pancerz na 8 s. Pochodnia celu gaśnie.
+- **Spray:** wachlarz plwociny, Corroded na najwyżej 3 celach.
+- Ult **Acid Rain:** przez 6 s kwas pada na całą arenę: wszyscy ludzie są Corroded, kosze żarowe gasną, a chmury mgły zamieniają się w Acid Fog.
+
+**Mist Breather**
+- Atak **Breath:** zasięg 3, zostawia chmurę mgły (promień 1, 6 s, ludzie w niej są Soaked).
+- **Fog Bank:** duża chmura (promień 2) na 10 s. Kusznicy nie widzą przez nią celu.
+- **Douse:** gasi kosz żarowy albo pochodnię, a heks pod nim na 10 s staje się wodą.
+- **Drift:** przesuwa wszystkie swoje chmury o 2 heksy w wybraną stronę.
+- Ult **Great Fog:** mgła na całej arenie przez 10 s.
+
+**Screamer**
+- Atak **Screech:** zasięg 3, Terrified 1,5 s, przerywa kanałowanie, w tym przypalanie.
+- **Howl:** strach w promieniu 2 wokół celu, Terrified 3 s. Rycerze są odporni.
+- **Sonic Crack:** fala w stożku, Stunned 2 s. Działa też na rycerzy.
+- **Rally Cry:** pozostałe głowy atakują o 25% szybciej przez 5 s.
+- Ult **Banshee Wail:** Terrified 4 s na całej arenie, rycerze Stunned 1 s, każde kanałowanie przerwane, kadzielnice Censer Priestów pękają.
+
+**Glutton**
+- Atak **Gnaw:** zasięg 2, wręcz. Powalonego człowieka zjada i leczy Body.
+- **Gulp:** od razu zjada człowieka poniżej 30% HP (rycerza poniżej 15%).
+- **Eat Fire:** zjada pochodnię albo kosz żarowy. Ogień gaśnie, a Glutton dostaje zgagi i traci trochę HP.
+- **Regurgitate:** wypluwa zbroję zjedzonego człowieka: duże obrażenia i Stunned 2 s. Jeden ładunek z każdego posiłku.
+- Ult **Bottomless:** przez 8 s sam zjada każdego człowieka w zasięgu, który ma poniżej 30% HP. Potem śpi 4 s.
+
+**The Spare**
+- Atak **Nibble:** zasięg 1. Zwykle nic nie robi, czasem daje losowy efekt (np. cel jest Stunned, bo się zdziwił).
+- Cecha bierna **Bad Idea:** raz na bitwę, w losowym momencie i nigdy w pauzie, przejmuje sterowanie na 2 s i wydaje losowy rozkaz.
+- **Copycat:** powtarza ostatni skill innej głowy z połową siły. Może przez to odpalić combo.
+- **Be Adorable:** ludzie w promieniu 2 przestają walczyć na 2 s. Rycerze też, bo są dobrze wychowani.
+- **Rummage:** wyciąga z bagna losową rzecz: garść ślimaków (leczy głowę), zgniłe jajo (chmura, Stunned), rybę (Glutton się cieszy) albo kamień (nic).
+- Ult **Multiheadeverse:** losowo działa albo nie. Gdy działa, przy każdym człowieku na chwilę pojawia się półprzezroczysta głowa z innego wymiaru: duże obrażenia, a słabszych rozrywa. Gdy nie działa, głowy się pojawiają, rozglądają, przepraszają i znikają.
+- Specjalizacje z poziomu 5, najlepsze w grze, powstaną razem z drzewkiem talentów.
+
+**Strangler**
+- Atak **Lash:** zasięg 4, najdłuższa szyja w grze.
+- **Coil:** owija cel szyją, Seized 3 s.
+- **Yank:** przyciąga cel o 3 heksy w stronę Body, np. kusznika z tylnej linii prosto pod zęby Bitera.
+- **Toss:** rzuca trzymanym człowiekiem o 3 heksy. W innego człowieka: obaj są Stunned 2 s. W kosz żarowy: kosz się przewraca i gaśnie. Można też wrzucić go w chmurę mgły albo w kałużę kwasu.
+- Ult **Great Squeeze:** chwyta naraz do 3 ludzi na 5 s, a ich pancerz pęka na stałe.
+
+**Tender**
+- Atak **Lick:** zasięg 2. Sama liże najbardziej ranną głowę i ją leczy (wyjątek od §6.2). Gdy nikt nie jest ranny albo gdy wskażesz człowieka, liże człowieka: prawie bez obrażeń, ale z tagiem lick.
+- **Mend:** leczy głowę o 40% HP i zdejmuje z niej złe efekty.
+- **Kiss It Better:** kikutu nie da się przypalić przez 6 s, a postęp przypalania wraca do zera.
+- **Hurry Up:** wybrany kikut odrasta 2× szybciej.
+- Ult **Triplets:** najbliższy odrost daje 3 głowy zamiast 2. Limit 9 głów zostaje.
+- Słabość: mało HP, więc Headhunter jest dla niej groźny, a Torchbearer przypali kikut, jeśli spóźnisz się z Kiss It Better.
+
+**Lantern**
+- Atak **Flash:** zasięg 3, Entranced 1 s.
+- **Beacon:** zapala światło na heksie na 6 s. Ludzie w promieniu 3 idą do niego i klękają (Entranced).
+- **Miracle:** jeden człowiek Entranced na 5 s. Przerywa przypalanie i modlitwę.
+- **Flare:** rozbłysk w promieniu 2, Entranced 2 s. Kusznicy przez 4 s pudłują co drugi strzał.
+- Ult **Procession:** wszyscy ludzie poza rycerzami i bossami idą gęsiego i śpiewając na wskazany heks, np. do kałuży kwasu albo w chmurę mgły.
 
 ## 7. Leże i królestwo
 
@@ -273,7 +372,21 @@ Woda (Body szybsze, powolne leczenie), błoto, suchy grunt (Body wolniejsze), ch
 - Pixel art, wewnętrzna rozdzielczość 640×360, skalowanie całkowite, bez wygładzania. Wyjątek: malowane portrety w dialogach (niżej).
 - Wzór stylu: okładka gry (key art od Piotra) i Hades. Hydra jest mroczna i groźna, bardziej wężowa niż smocza. Humor jest w kwestiach, nie w wyglądzie. Body zostanie przerobione w tym stylu. (Decyzja Piotra z 2026-10-04.)
 - Paleta z key artu. Podziemia i hydra są zimne: głęboki turkus, bagienna zieleń, czerń, chorobliwie żółtozielona bioluminescencja. Zakon i powierzchnia są ciepli: złoto, pomarańcz, czerwone chorągwie, ogień. Mist to granica między tymi światami: blada, zielonkawoszara, półprzezroczysta. Konflikt gry jest dosłownie widoczny: ciepłe światło płomieni przeciw zimnej mgle.
-- Hydra: sprite Body, proceduralne szyje, sprite'y głów z odcieniem zależnym od klasy. Dzięki temu dodanie głowy nie wymaga nowej animacji.
+- Hydra: sprite Body, proceduralne szyje i własny sprite głowy dla każdej klasy (głowa i osobno żuchwa, profil, pysk w prawo). Animacje są w kodzie, więc nowa klasa to dalej tylko nowy obrazek, bez nowej animacji. Głów nie barwimy, poza mignięciem przy trafieniu. (Decyzja Piotra z 2026-10-04; wcześniej jedna szara głowa barwiona kolorem klasy.)
+- Każda klasa głowy ma jedną cechę sylwetki, żeby rozpoznać ją po samym kształcie, i jeden kolor, który trafia na karty, ramki i akcenty na obrazkach:
+
+| Głowa | Cecha sylwetki | Kolor klasy |
+|---|---|---|
+| Biter | najmasywniejsza czaszka, blizny, bełt w łuku brwiowym | #5f9a4a |
+| Acid Spitter | kaptur kobry, świecące gruczoły kwasu | #b7d13a |
+| Mist Breather | pierzaste skrzela zamiast kolców, mgła z pyska | #8fb3a8 |
+| Screamer | kościane piszczałki zamiast grzebienia, rozwarte szczęki | #e3d6b4 |
+| Glutton | rozdęte gardło z połkniętym rycerzem | #b5614a |
+| The Spare | mała i krzywa, jedno oko ślepe | #d28fa4 |
+| Strangler | najdłuższa i najniższa, fioletowe pręgi | #7d68b0 |
+| Tender | szeroka głowa ropuchy, świecący śluz | #3fb8a6 |
+| Lantern | wędka ze świecącą bańką | #8cc8f0 |
+
 - Bitwa widziana pod skosem: plansza z heksów jak gruba płyta, postacie stojące. Warstwa eksploracji docelowo w stylu Songs of Conquest.
 - Portrety w dialogach (głowy, Old Mother Toad, jeńcy, Mistrzowie Zakonu, przodkowie): malowane, w stylu okładki i Hadesa (mocne kontury, płaskie plamy koloru, ostre światło), wycięte z tła i pokazywane w pełnej rozdzielczości ekranu nad grą pixelową. Portret głowy jest też wzorem, z którego powstaje pixelowa głowa do bitwy. (Decyzje Piotra z 2026-10-04; wcześniej portrety miały być pixelowymi popiersiami.)
 - Grafika na start: zastępcza (generowana w kodzie) i darmowe paczki CC0. Docelowe sprite'y i portrety robi Piotr w GPT, dlatego wymiary i kadrowanie każdej grafiki muszą być spisane w `docs/ASSETS.md`.
@@ -327,4 +440,4 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 - Ile kapliczek Płomienia trzeba zgasić, żeby zamek stał się celem (roboczo: wszystkie).
 - **Odrost (pomysł Piotra po playteście M1b):** nowe głowy są mniejsze i na początku zadają połowę obrażeń, żeby odrost nie dawał od razu siły. Głowy potem rosną, i dlatego z czasem hydra jest mocna. Do ustalenia: od czego rosną (doświadczenie z walk, błogosławieństwa, czas).
 - **Fabuła (pomysł Piotra):** hydra szuka błogosławieństw Wielkiego Węża, który otula swoim ciałem środek planety. Może to on sprawia, że głowy rosną. Do rozwinięcia.
-- **The Spare (pomysły Piotra):** czasem przeszkadza, np. przejmuje na chwilę kursor i nie można sterować. Ma też umiejętność „Multiheadeverse”, która losowo działa albo nie: przyzywa półprzezroczyste głowy z innych wymiarów, które na chwilę pojawiają się przy wszystkich ludziach i zadają im obrażenia albo całkiem ich rozrywają.
+- **Pula głów:** które klasy są w puli od startu, a które trzeba odblokować (odblokowania konta, §12)? Propozycja Claude: sześć pierwszych od startu, a Strangler, Tender i Lantern do odblokowania. Sposób odblokowania do ustalenia.

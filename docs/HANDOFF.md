@@ -1,6 +1,6 @@
 # Handoff: stan prac nad Hydrą
 
-Stan na 2026-10-03. Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
+Stan na 2026-10-04. Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
 
 - Gra: https://lucid-academy.github.io/hydra/
 - Repo: https://github.com/lucid-academy/hydra (na serwerze `/root/Hydra`)
@@ -12,7 +12,7 @@ Stan na 2026-10-03. Ten plik streszcza dotychczasową pracę, żeby następna se
 - Zrobione: **M0, M1, M1b, M2b** (sekcja 15 w `GAME_DESIGN.md`).
 - **M2b** (podziemia) jest wdrożony i czeka na playtest Piotra.
 - 2026-10-03 Piotr zmienił sposób pracy: grafika będzie z GPT, animacje najpierw w kodzie. Zasady są już w `CLAUDE.md`. Plan grafiki (sekcja 3.2) Piotr zatwierdził tego samego dnia i potok jest zbudowany. Wieczorem przyszła cała pierwsza partia (21 obrazków) i jest w grze; **czeka na uwagi Piotra**.
-- Następny etap gry to **M2a** (głowy), ale dopiero gdy Piotr skończy je projektować. Nie budować systemu głów bez niego.
+- Następny etap gry to **M2a** (głowy). Projekt 9 głów Piotr zatwierdził 2026-10-04 (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13). Budowę zacząć dopiero na hasło Piotra.
 
 ## 2. Co zrobione
 
@@ -126,13 +126,13 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 1. Wrażenia z playtestu M2b: mapa, kapliczki, leże, nowe biomy.
 2. Nowa tekstura soli do Salt Mines (Piotr wybrał nowy obrazek, prompt już przyciemniony) i malowane portrety głów (sekcja 3.2, „Nowy kierunek”).
 3. Okładka gry przyszła w projekcie Hydra 2026-10-04. Do repo (`art/raw/key_art.png`) trafi przy propozycji palety.
-4. Projekt głów do M2a: propozycja 9 głów czeka na zatwierdzenie (dokument Claude „Hydra: komplet 9 głów” w projekcie Hydra).
+4. Start M2a (głowy): projekt 9 głów jest zatwierdzony i wpisany do `GAME_DESIGN.md`, budowa na hasło Piotra.
 
 **Z `GAME_DESIGN.md` §16 (decyduje Piotr):**
 - ile kapliczek Płomienia trzeba zgasić;
 - nowe głowy słabsze i rosnące (od czego rosną?);
 - Wielki Wąż w fabule;
-- The Spare: przejmowanie kursora, Multiheadeverse.
+- pula głów: które klasy od startu, a które do odblokowania.
 
 **Pomysły na później, do rozmowy:**
 - głowy działające tylko po swojej stronie Body;
@@ -152,7 +152,8 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
   - Moisture i Bones tylko się zbiera, wydawanie od M3;
   - Alert tylko rośnie: bez progów, patroli, posłańców i wypraw (M3);
   - nie ma odwrotu z bitwy;
-  - umiejętności Q/W/E, doświadczenie, specjalizacje, przypadłości, klasy Screamer, Glutton i The Spare oraz combosy poza trzema pierwszymi przyjdą z M2a.
+  - umiejętności Q/W/E, doświadczenie, specjalizacje, przypadłości, klasy Screamer, Glutton, The Spare, Strangler, Tender i Lantern oraz combosy poza trzema pierwszymi przyjdą z M2a;
+  - głowa w bitwie to wciąż jedna szara głowa barwiona kolorem klasy, a `GAME_DESIGN.md` §13 mówi już o osobnym obrazku na klasę bez barwienia; zmiana przyjdzie z pixelowymi głowami.
 - Balans (`docs/BALANCE.md`): najsilniejsza grupa (Pyre Procession) pokonuje hydrę bez rozkazów w 63% bitew, a przy sensownych rozkazach w 6%. Wszystkie liczby są robocze.
 
 ## 6. Następne kroki
@@ -162,4 +163,4 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 3. Okładka jest: propozycja palety (próbnik i okładka w palecie) przed pixelowymi wersjami głów, po akceptacji zapis w repo. Do rozstrzygnięcia przy tym: na okładce hydra ma stare złoto i brąz, a §13 opisuje ją jako zimną (turkus, zieleń).
 4. Gdy Piotr napisze, że wrzucił grafiki: `git pull`, `npm run art`, obejrzeć wynik w grze, wdrożyć, pokazać.
 5. Zatwierdzone decyzje od razu wpisywać do `GAME_DESIGN.md`, a budować w swoim etapie.
-6. Potem M2a (głowy), gdy projekt głów będzie gotowy, i dalej M3 według §15.
+6. Potem M2a (głowy, projekt zatwierdzony 2026-10-04) na hasło Piotra, i dalej M3 według §15.
