@@ -1,5 +1,5 @@
 // Loads every image listed in the manifest (or draws its placeholder), cuts hex tiles out of terrain textures,
-// then starts the first scene.
+// then starts the first scene. In HD the images come from public/images-hd/, with twice the pixels.
 
 import * as Phaser from 'phaser';
 import { placeholderFor } from '../assets/placeholders';
@@ -7,6 +7,7 @@ import { isTerrainTextureKey } from '../assets/terrain';
 import { buildTerrainTiles } from '../assets/terrainTiles';
 import { getContext } from './context';
 import { SceneKey, startableScenes } from './sceneKeys';
+import { HD_DENSITY, hdFile, useDensity } from './view';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -14,17 +15,22 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    const { manifest } = getContext(this).data;
-    for (const [key, entry] of Object.entries(manifest.images)) {
+    const { data, params } = getContext(this);
+    const density = params.hd ? HD_DENSITY : 1;
+    for (const [key, entry] of Object.entries(data.manifest.images)) {
       if (entry.file === null) continue;
+      const file = params.hd ? hdFile(entry.file) : entry.file;
       // An animation: its frames side by side in one file, each width × height.
-      if (entry.frames !== undefined) this.load.spritesheet(key, entry.file, { frameWidth: entry.width, frameHeight: entry.height });
-      else this.load.image(key, entry.file);
+      if (entry.frames !== undefined) this.load.spritesheet(key, file, { frameWidth: entry.width * density, frameHeight: entry.height * density });
+      else this.load.image(key, file);
     }
   }
 
   create(): void {
     const { data, params } = getContext(this);
+    if (params.hd) {
+      for (const [key, entry] of Object.entries(data.manifest.images)) if (entry.file !== null) useDensity(this.textures.get(key), HD_DENSITY);
+    }
     for (const [key, entry] of Object.entries(data.manifest.images)) {
       if (entry.file !== null || isTerrainTextureKey(key)) continue;
       const draw = placeholderFor(key);

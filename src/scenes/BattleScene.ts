@@ -6,6 +6,7 @@
 // With no head selected, tap a free hex to move the body there (right-click always moves it).
 
 import * as Phaser from 'phaser';
+import { SCREEN } from '../scaling';
 import { BODY_FOOT, FEET_BELOW_HEX_CENTER, HEX_COLUMN_WIDTH, HEX_ROW_HEIGHT, JAW_OVERLAP, TILE } from '../assets/battleArt';
 import { battleTileKey, tileVariant } from '../assets/terrainTiles';
 import { variantKey } from '../assets/terrain';
@@ -21,6 +22,7 @@ import { color, getContext } from './context';
 import { getRun, startNewRun } from './RunController';
 import type { RunController } from './RunController';
 import { SceneKey } from './sceneKeys';
+import { fitScreenCamera } from './view';
 
 /** Top bar above the board, panel with head cards below it. */
 const ARENA_TOP = 16;
@@ -160,6 +162,7 @@ export class BattleScene extends Phaser.Scene {
     this.enemies = new Map();
     this.stumpSprites = new Map();
 
+    fitScreenCamera(this);
     this.cameras.main.setBackgroundColor(color(data.palette.underground.black));
     // The board looks like the place of the encounter: its biome, and water if it was fought in water.
     const pending = run.state.pendingBattle!;
@@ -258,7 +261,7 @@ export class BattleScene extends Phaser.Scene {
 
   private createUi(): void {
     const { palette, text, heads } = getContext(this).data;
-    const { width, height } = this.scale.gameSize;
+    const { width, height } = SCREEN;
 
     // The bars above and below the board are not interactive: the board's own tap area ends where they begin,
     // and an interactive bar could be counted as lying on top of the buttons and cards drawn on it.
@@ -376,7 +379,7 @@ export class BattleScene extends Phaser.Scene {
     });
 
     // The board area: buttons, cards and the top bar lie above it and catch their own taps first.
-    const zone = this.add.zone(0, ARENA_TOP, this.scale.gameSize.width, PANEL_TOP - ARENA_TOP).setOrigin(0, 0).setDepth(DEPTH.tile).setInteractive();
+    const zone = this.add.zone(0, ARENA_TOP, SCREEN.width, PANEL_TOP - ARENA_TOP).setOrigin(0, 0).setDepth(DEPTH.tile).setInteractive();
     zone.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       if (!this.finished) this.handleTap({ x: pointer.worldX, y: pointer.worldY }, pointer.rightButtonReleased(), wantsToAdd(pointer));
     });
@@ -877,7 +880,7 @@ export class BattleScene extends Phaser.Scene {
     this.updateButtons();
     this.drawMarks();
     const { palette, text } = getContext(this).data;
-    const { width } = this.scale.gameSize;
+    const { width } = SCREEN;
     const won = this.battle.outcome === 'won';
     const result = battleResult(this.battle, this.run.battleRules);
 

@@ -3,7 +3,7 @@
 Every graphic is loaded by a key from `src/assets/manifest.json`. To replace a placeholder with a picture from GPT:
 
 1. Save the picture as `art/raw/<key>.png`, e.g. `art/raw/battle_body.png` (any size; prompts are in `docs/ART_PROMPTS.md`).
-2. Run `npm run art`. It removes the magenta background, trims and shrinks the picture to the size listed below, saves it to `public/images/<key>.png` and sets `"file"` in the manifest. The originals in `art/raw/` are never changed, so the import can be run again at any time (e.g. once the palette is settled).
+2. Run `npm run art`. It removes the magenta background, trims and shrinks the picture to the size listed below, saves it to `public/images/<key>.png` and sets `"file"` in the manifest. It also saves a copy with twice the pixels in each direction to `public/images-hd/<key>.png`, for the game in HD (`?hd=1`, GAME_DESIGN.md §13). The originals in `art/raw/` are never changed, so the import can be run again at any time (e.g. once the palette is settled).
 3. No code changes needed.
 
 A finished PNG at the exact size can also go straight into `public/images/`, with its path (relative to `public/`) as `"file"` in the manifest.
@@ -22,7 +22,7 @@ How `npm run art` treats each kind of image (`scripts/artImport.ts`):
 General rules for all graphics (use them in every image-generator prompt):
 
 - Pixel art, hard pixel edges, no anti-aliasing, no blur, no gradients smoother than pixel dithering.
-- The game renders at **640×360** and scales up by whole numbers (2×, 3×). Draw at the listed size, not larger.
+- The game is laid out on a **640×360** screen, and every size below is in its units. The classic game draws at exactly that and scales up by whole numbers (2×, 3×); the game in HD (`?hd=1`, GAME_DESIGN.md §13) draws at the screen's resolution and uses art with **twice the pixels** of the listed size (a 14×16 decoration is a 28×32 picture). Pictures from GPT are much bigger anyway: the import makes both sizes.
 - Palette (from `src/data/palette.json`): cold underground — near-black `#05090a`, deep teal `#0e3b3f`, swamp green `#2f4a2a`, sickly yellow-green bioluminescence `#c6e04a`; warm Order — gold `#d9a93b`, orange `#e0702a`, banner red `#9e2323`, fire `#ffcf5c`; mist — pale greenish grey `#a9b8a8`, semi-transparent.
 - Mood: dark fantasy with deadpan humour. Cold mist against warm firelight.
 

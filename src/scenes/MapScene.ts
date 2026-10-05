@@ -14,15 +14,17 @@ import type { MapObject, Tile } from '../sim/map';
 import { Rng } from '../sim/rng';
 import { encountersRevealed, knownDraughts } from '../sim/turn';
 import type { RunEvent } from '../sim/turn';
+import { SCREEN } from '../scaling';
 import { exposeInspectable, exposeReachable, exposeRunSummary, markReady } from '../testHooks';
 import { color, getContext } from './context';
 import { getRun, startNewRun } from './RunController';
 import type { RunController } from './RunController';
 import { SceneKey } from './sceneKeys';
+import { pageScale, pinnedToScreen, viewScale } from './view';
 
 const LAYOUT: HexLayout = { columnWidth: MAP_COLUMN_WIDTH, rowHeight: MAP_ROW_HEIGHT, originX: 0, originY: 0 };
 const WORLD_MARGIN = 60;
-/** Pointer must move this far (in screen pixels) before a press counts as a drag, not a tap. */
+/** Pointer must move this far (in screen units) before a press counts as a drag, not a tap. */
 const DRAG_THRESHOLD = 6;
 const STEP_DURATION_MS = 130;
 /** A current carries the hydra faster than it walks. */
@@ -87,6 +89,8 @@ export class MapScene extends Phaser.Scene {
   private token!: Phaser.GameObjects.Image;
   private animating = false;
   private press: { x: number; y: number; dragging: boolean } | null = null;
+  /** Catches presses on the map: it covers the whole screen, which depends on the camera's zoom. */
+  private inputZone!: Phaser.GameObjects.Zone;
   /** Biome names waiting to be shown, one after another (two at once would overlap). */
   private biomeNames: string[] = [];
   private showingBiomeName = false;
@@ -444,14 +448,13 @@ export class MapScene extends Phaser.Scene {
       return;
     }
     this.showingBiomeName = true;
-    const { width, height } = this.scale.gameSize;
-    // The camera zooms even what doesn't scroll, around the middle of the screen (2× on phones), so that is undone here.
-    const zoom = this.cameras.main.zoom;
+    // The camera zooms even what doesn't scroll (2× on phones), so the label is placed and sized to undo that.
+    // Low on the screen, clear of the HUD's messages at the top.
+    const at = pinnedToScreen(this, SCREEN.width / 2, SCREEN.height - 64);
     const label = this.add
-      // Low on the screen, clear of the HUD's messages at the top.
-      .text(width / 2, height / 2 + (height / 2 - 64) / zoom, name, { fontFamily: 'Georgia, serif', fontSize: '15px', color: '#e8e0d0', backgroundColor: '#05090acc', padding: { x: 8, y: 3 } })
+      .text(at.x, at.y, name, { fontFamily: 'Georgia, serif', fontSize: '15px', color: '#e8e0d0', backgroundColor: '#05090acc', padding: { x: 8, y: 3 } })
       .setOrigin(0.5, 0)
-      .setScale(1 / zoom)
+      .setScale(at.scale)
       .setScrollFactor(0)
       .setDepth(100)
       .setAlpha(0);
@@ -543,9 +546,19 @@ export class MapScene extends Phaser.Scene {
 
   private fitCameraZoom(): void {
     const cam = this.cameras.main;
-    cam.setZoom(getContext(this).params.zoom ?? (this.scale.zoom < SMALL_SCREEN_ZOOM ? 2 : 1));
+    const zoom = getContext(this).params.zoom ?? (pageScale(this) < SMALL_SCREEN_ZOOM ? 2 : 1);
+    // In HD the camera also zooms the 640×360 screen up to the canvas's resolution.
+    cam.setZoom(zoom * viewScale(this));
     const { x, y } = hexToPixel(LAYOUT, this.run.state.hydra.position);
     cam.centerOn(x, y);
+    this.coverScreen();
+  }
+
+  /** Stretches the input zone over the whole screen, whatever the camera's zoom. */
+  private coverScreen(): void {
+    if (!this.inputZone) return;
+    const corner = pinnedToScreen(this, 0, 0);
+    this.inputZone.setPosition(corner.x, corner.y).setSize(SCREEN.width * corner.scale, SCREEN.height * corner.scale);
   }
 
   private panTo(h: Hex): void {
@@ -572,8 +585,9 @@ export class MapScene extends Phaser.Scene {
   private setUpInput(): void {
     // A full-screen zone catches presses on the map. HUD buttons sit in a scene above,
     // so pressing a button never reaches this zone.
-    const { width, height } = this.scale.gameSize;
-    const zone = this.add.zone(0, 0, width, height).setOrigin(0, 0).setScrollFactor(0).setInteractive();
+    const zone = this.add.zone(0, 0, SCREEN.width, SCREEN.height).setOrigin(0, 0).setScrollFactor(0).setInteractive();
+    this.inputZone = zone;
+    this.coverScreen();
 
     zone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       this.press = { x: pointer.x, y: pointer.y, dragging: false };
@@ -581,7 +595,7 @@ export class MapScene extends Phaser.Scene {
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (!this.press || !pointer.isDown) return;
-      if (!this.press.dragging && Phaser.Math.Distance.Between(this.press.x, this.press.y, pointer.x, pointer.y) > DRAG_THRESHOLD) {
+      if (!this.press.dragging && Phaser.Math.Distance.Between(this.press.x, this.press.y, pointer.x, pointer.y) > DRAG_THRESHOLD * viewScale(this)) {
         this.press.dragging = true;
       }
       if (this.press.dragging) {
@@ -610,10 +624,12 @@ export class MapScene extends Phaser.Scene {
 
   // ------------------------------------------------------------ test hooks
 
+  /** Where a hex is on the 640×360 screen (for tests, which tap in screen units). */
   private onScreen(h: Hex): { x: number; y: number } {
     const cam = this.cameras.main;
     const { x, y } = hexToPixel(LAYOUT, h);
-    return { x: (x - cam.worldView.x) * cam.zoom, y: (y - cam.worldView.y) * cam.zoom };
+    const k = viewScale(this);
+    return { x: ((x - cam.worldView.x) * cam.zoom) / k, y: ((y - cam.worldView.y) * cam.zoom) / k };
   }
 
   private exposeTestHooks(): void {

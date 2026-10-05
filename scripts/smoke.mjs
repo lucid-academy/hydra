@@ -6,13 +6,15 @@
 //
 // Usage: npm run smoke            (desktop window)
 //        npm run smoke -- phone   (phone held sideways)
+//        npm run smoke -- hd      (the game in HD, ?hd=1; with phone: a phone screen with 3 device pixels per pixel)
 
 import { chromium } from '@playwright/test';
 import { preview } from 'vite';
 
 const PHONE = process.argv.includes('phone');
+const HD = process.argv.includes('hd');
 const VIEWPORT = PHONE ? { width: 844, height: 390 } : { width: 1280, height: 720 };
-const LABEL = PHONE ? 'phone' : 'desktop';
+const LABEL = `${PHONE ? 'phone' : 'desktop'}${HD ? ' hd' : ''}`;
 /** Battles are fast-forwarded, so the test doesn't take minutes. */
 const SPEED = 4;
 const BATTLES_TO_WIN = 2;
@@ -40,12 +42,12 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
 const errors = [];
 
 async function openPage(query) {
-  const page = await browser.newPage({ viewport: VIEWPORT });
+  const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: HD && PHONE ? 3 : 1 });
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text());
   });
   page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto(new URL(query, baseUrl).href);
+  await page.goto(new URL(HD ? `${query}&hd=1` : query, baseUrl).href);
   return page;
 }
 

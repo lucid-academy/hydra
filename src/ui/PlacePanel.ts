@@ -6,6 +6,7 @@ import type * as Phaser from 'phaser';
 import type { GameData } from '../data';
 import { color } from '../scenes/context';
 import { Button } from './Button';
+import { SCREEN } from '../scaling';
 
 export interface PlacePanelAction {
   id: string;
@@ -50,7 +51,7 @@ export class PlacePanel {
     private readonly onAction: (id: string) => void,
     private readonly onLeave: () => void,
   ) {
-    const { width, height } = scene.scale.gameSize;
+    const { width, height } = SCREEN;
     this.container = scene.add.container(width / 2, height / 2).setDepth(90).setVisible(false);
   }
 
@@ -70,7 +71,7 @@ export class PlacePanel {
 
   private build(view: PlacePanelView): void {
     const { palette } = this.data;
-    const { width, height } = this.scene.scale.gameSize;
+    const { width, height } = SCREEN;
     const { add } = this.scene;
     this.container.removeAll(true);
     const serif = 'Georgia, serif';

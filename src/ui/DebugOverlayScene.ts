@@ -6,6 +6,7 @@ import { getContext } from '../scenes/context';
 import type { BattleScene } from '../scenes/BattleScene';
 import { getRun } from '../scenes/RunController';
 import { SceneKey } from '../scenes/sceneKeys';
+import { fitScreenCamera } from '../scenes/view';
 
 export class DebugOverlayScene extends Phaser.Scene {
   private label!: Phaser.GameObjects.Text;
@@ -15,6 +16,7 @@ export class DebugOverlayScene extends Phaser.Scene {
   }
 
   create(): void {
+    fitScreenCamera(this);
     // Below the HUD's top bar.
     this.label = this.add.text(4, 20, '', {
       fontFamily: 'monospace',

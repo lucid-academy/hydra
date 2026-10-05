@@ -3,10 +3,12 @@
 // when the hydra dies.
 
 import * as Phaser from 'phaser';
+import { SCREEN } from '../scaling';
 import { color, getContext } from '../scenes/context';
 import { requireRun, startNewRun } from '../scenes/RunController';
 import type { RunController } from '../scenes/RunController';
 import { SceneKey } from '../scenes/sceneKeys';
+import { fitScreenCamera } from '../scenes/view';
 import { hexKey } from '../sim/hex';
 import type { Hex } from '../sim/hex';
 import type { Loot } from '../sim/map';
@@ -53,8 +55,9 @@ export class HudScene extends Phaser.Scene {
 
   create(): void {
     this.run = requireRun(this);
+    fitScreenCamera(this);
     const { palette, text } = getContext(this).data;
-    const { width, height } = this.scale.gameSize;
+    const { width, height } = SCREEN;
     const mono = { fontFamily: 'monospace', fontSize: '10px' };
 
     // Top bar. Interactive, so taps on it don't reach the map below.
@@ -220,7 +223,7 @@ export class HudScene extends Phaser.Scene {
   }
 
   private toast(message: string, textColor: string): void {
-    const { width } = this.scale.gameSize;
+    const { width } = SCREEN;
     const last = this.toasts[this.toasts.length - 1];
     const label = this.add
       .text(width / 2, last ? last.y + last.height + 2 : BAR_HEIGHT + 6, message, {
@@ -255,7 +258,7 @@ export class HudScene extends Phaser.Scene {
   /** Shown when the hydra has died: the run is over, start a new one. */
   private createGameOverPanel(): Phaser.GameObjects.Container {
     const { palette, text } = getContext(this).data;
-    const { width, height } = this.scale.gameSize;
+    const { width, height } = SCREEN;
     const panel = this.add.container(width / 2, height / 2);
     // Full-screen dimmer: also blocks taps on the map while the panel is open.
     const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setInteractive();

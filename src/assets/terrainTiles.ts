@@ -1,9 +1,11 @@
 // Turns ground and rock textures into hex tiles when the game starts (the pixel work is in terrain.ts).
 // A tile gets cut variants only if its texture has a file and the tile itself has none; otherwise the game
-// keeps drawing the tile's own image or its placeholder.
+// keeps drawing the tile's own image or its placeholder. Tiles are cut at the textures' own density
+// (twice the pixels in HD), so they keep all the detail the textures have.
 
 import type * as Phaser from 'phaser';
 import type { GameData } from '../data';
+import { useDensity } from '../scenes/view';
 import { TILE } from './battleArt';
 import { MAP_ROCK_LIFT, MAP_TILE } from './mapArt';
 import { cutTile, GROUND_SHADING, groundTextureKey, ROCK_SHADING, rockTextureKey, seedOf, TERRAIN_VARIANTS, variantKey } from './terrain';
@@ -33,30 +35,41 @@ export function buildTerrainTiles(scene: Phaser.Scene, data: GameData): void {
   }
 }
 
+/** Pixels per screen unit of a loaded texture: 1 for classic art, 2 in HD. */
+export function densityOf(scene: Phaser.Scene, key: string): number {
+  const frame = scene.textures.getFrame(key);
+  return frame ? frame.cutWidth / frame.realWidth : 1;
+}
+
 /** The image to draw for a tile: one of its cut variants if the game made them, else the tile's own image or placeholder. */
 export function tileVariant(textures: Phaser.Textures.TextureManager, tileKey: string, seed: number): string {
   return textures.exists(variantKey(tileKey, 0)) ? variantKey(tileKey, (seed >>> 0) % TERRAIN_VARIANTS) : tileKey;
 }
 
-function addVariants(scene: Phaser.Scene, tileKey: string, face: Pixels, walls: Pixels, shape: TileShape, shading: TileShading): void {
+function addVariants(scene: Phaser.Scene, tileKey: string, face: Pixels & { density: number }, walls: Pixels, shape: TileShape, shading: TileShading): void {
+  const density = face.density;
+  const scaled: TileShape = { width: shape.width * density, faceHeight: shape.faceHeight * density, wallDepth: shape.wallDepth * density };
   for (let i = 0; i < TERRAIN_VARIANTS; i++) {
-    const tile = cutTile(face, walls, shape, shading, seedOf(variantKey(tileKey, i)));
+    const tile = cutTile(face, walls, scaled, shading, seedOf(variantKey(tileKey, i)));
     const canvas = document.createElement('canvas');
     canvas.width = tile.width;
     canvas.height = tile.height;
     canvas.getContext('2d')!.putImageData(new ImageData(tile.data, tile.width, tile.height), 0, 0);
-    scene.textures.addCanvas(variantKey(tileKey, i), canvas);
+    const texture = scene.textures.addCanvas(variantKey(tileKey, i), canvas);
+    if (texture) useDensity(texture, density);
   }
 }
 
-function readPixels(scene: Phaser.Scene, key: string): Pixels {
+/** A texture's pixels, and how many of them make one screen unit. */
+function readPixels(scene: Phaser.Scene, key: string): Pixels & { density: number } {
   const source = scene.textures.get(key).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
   const canvas = document.createElement('canvas');
   canvas.width = source.width;
   canvas.height = source.height;
   const context = canvas.getContext('2d', { willReadFrequently: true })!;
   context.drawImage(source, 0, 0);
-  return { width: canvas.width, height: canvas.height, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
+  const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+  return { width: canvas.width, height: canvas.height, data, density: densityOf(scene, key) };
 }
 
 function memo<T>(make: (key: string) => T): (key: string) => T {

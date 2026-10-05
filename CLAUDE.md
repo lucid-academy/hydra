@@ -98,7 +98,7 @@ Zasady:
 
 - `npm run typecheck`, `npm test` i `npm run build` muszą przejść przed każdym wdrożeniem.
 - `npm run shots`: Playwright otwiera zbudowaną grę w przeglądarce bez okna i robi zrzuty kluczowych ekranów do `docs/screens/`. Obejrzyj je, zanim napiszesz, że coś działa.
-- Parametry URL do testów i debugowania: `?seed=123`, `?scene=battle`, `?debug=1` (nakładka z informacjami: seed, tura, tiki, stan widoczności).
+- Parametry URL do testów i debugowania: `?seed=123`, `?scene=battle`, `?debug=1` (nakładka z informacjami: seed, tura, tiki, stan widoczności), `?hd=1` (gra w HD, do końca etapu „Wygląd mapy”).
 - Generator map: test przechodzi przez co najmniej 1000 seedów i sprawdza reguły z sekcji 9 dokumentu projektu.
 - Pracujemy na małym serwerze VPS. Nie zostawiaj uruchomionych serwerów deweloperskich ani przeglądarek, zamykaj procesy po użyciu. Jeśli Playwright nie mieści się w pamięci, powiedz o tym i zaproponuj robienie zrzutów w GitHub Actions.
 

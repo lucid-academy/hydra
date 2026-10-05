@@ -104,6 +104,18 @@ const SHOTS = [
   } },
   { name: 'map-place-phone', query: '?seed=138&scene=map&near=lostSurvey', viewport: { width: 844, height: 390 }, scene: 'map', act: async (page) => stepOntoPlace(page, 'lostSurvey') },
   { name: 'map-landmark', query: '?seed=123&scene=map&near=sunkenOak', viewport: DESKTOP, scene: 'map' },
+  // The stage "Wygląd mapy": the same screens in HD (?hd=1), on a desktop and on a phone with 2 device pixels per pixel.
+  { name: 'hd-map-start', query: '?seed=123&scene=map&hd=1', viewport: DESKTOP, scene: 'map' },
+  { name: 'hd-map-after-moves', query: '?seed=123&scene=map&hd=1', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await moveFarthest(page);
+    await moveFarthest(page);
+  } },
+  { name: 'hd-map-phone-landscape', query: '?seed=123&scene=map&hd=1', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map' },
+  { name: 'hd-map-landmark', query: '?seed=123&scene=map&near=sunkenOak&hd=1', viewport: DESKTOP, scene: 'map' },
+  { name: 'hd-world-123', query: '?seed=123&scene=map&reveal=1&zoom=0.45&hd=1', viewport: DESKTOP, scene: 'map' },
+  { name: 'hd-battle-start', query: '?seed=123&scene=battle&group=burningDetail&hd=1', viewport: DESKTOP, scene: 'battle', act: async (page) => {
+    await page.keyboard.press('1');
+  } },
 ];
 
 const OUT_DIR = 'docs/screens';
@@ -117,7 +129,7 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
 const errors = [];
 try {
   for (const shot of SHOTS) {
-    const page = await browser.newPage({ viewport: shot.viewport });
+    const page = await browser.newPage({ viewport: shot.viewport, deviceScaleFactor: shot.dpr ?? 1 });
     page.on('console', (msg) => {
       if (msg.type() === 'error') errors.push(`[${shot.name}] ${msg.text()}`);
     });

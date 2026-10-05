@@ -6,6 +6,7 @@ import type { GameData } from '../data';
 import type { BLESSING_EFFECTS } from '../data/schemas';
 import { color } from '../scenes/context';
 import { Button } from './Button';
+import { SCREEN } from '../scaling';
 
 type EffectName = (typeof BLESSING_EFFECTS)[number];
 
@@ -22,7 +23,7 @@ export class ShrinePanel {
     private readonly onAccept: () => void,
     private readonly onRefuse: () => void,
   ) {
-    const { width, height } = scene.scale.gameSize;
+    const { width, height } = SCREEN;
     this.container = scene.add.container(width / 2, height / 2).setDepth(90).setVisible(false);
   }
 
@@ -39,7 +40,7 @@ export class ShrinePanel {
     const { palette, text, shrines } = this.data;
     const blessing = shrines.blessings.find((b) => b.id === blessingId);
     if (!blessing) throw new Error(`Unknown blessing "${blessingId}"`);
-    const { width, height } = this.scene.scale.gameSize;
+    const { width, height } = SCREEN;
     this.container.removeAll(true);
 
     // Full-screen dimmer: also stops taps from reaching the map while the panel is open.

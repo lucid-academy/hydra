@@ -14,14 +14,17 @@ describe('parseUrlParams', () => {
       reveal: false,
       modifiers: [],
       zoom: null,
+      hd: false,
     });
   });
 
   it('returns defaults when nothing is given', () => {
-    expect(parseUrlParams('')).toEqual({ seed: null, scene: null, debug: false, group: null, hp: null, speed: null, near: null, reveal: false, modifiers: [], zoom: null });
+    expect(parseUrlParams('')).toEqual({ seed: null, scene: null, debug: false, group: null, hp: null, speed: null, near: null, reveal: false, modifiers: [], zoom: null, hd: false });
     expect(parseUrlParams('?reveal=1').reveal).toBe(true);
     expect(parseUrlParams('?near=shrine').near).toBe('shrine');
     expect(parseUrlParams('?zoom=0.45').zoom).toBe(0.45);
+    expect(parseUrlParams('?hd=1').hd).toBe(true);
+    expect(parseUrlParams('?hd=0').hd).toBe(false);
   });
 
   it('reads run modifiers as a list, without blanks or repeats', () => {

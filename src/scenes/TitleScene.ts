@@ -1,6 +1,8 @@
 import * as Phaser from 'phaser';
 import { color, getContext } from './context';
 import { SceneKey } from './sceneKeys';
+import { fitScreenCamera } from './view';
+import { SCREEN } from '../scaling';
 import { markReady } from '../testHooks';
 
 export class TitleScene extends Phaser.Scene {
@@ -11,7 +13,8 @@ export class TitleScene extends Phaser.Scene {
   create(): void {
     const { data } = getContext(this);
     const { palette, text } = data;
-    const { width, height } = this.scale.gameSize;
+    const { width, height } = SCREEN;
+    fitScreenCamera(this);
 
     this.add.image(0, 0, 'title_background').setOrigin(0, 0);
 

@@ -36,8 +36,10 @@ export class Minimap {
       .setStrokeStyle(1, 0x2c3a3a)
       .setInteractive();
     panel.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-      const r = (pointer.y - this.center.y) / DOT.down;
-      const q = (pointer.x - this.center.x) / DOT.across - r / 2;
+      // Pointer positions are canvas pixels; the HUD's camera turns them into screen units (they differ in HD).
+      const at = scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
+      const r = (at.y - this.center.y) / DOT.down;
+      const q = (at.x - this.center.x) / DOT.across - r / 2;
       onLookAt(hexRound(q, r));
     });
     this.graphics = scene.add.graphics();

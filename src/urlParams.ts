@@ -9,6 +9,7 @@
 //   ?reveal=1     show the whole underground map at the start (to look at what the generator made)
 //   ?modifiers=wetYear,oldWorkings  run modifiers that shape the world (world.json runModifiers)
 //   ?zoom=0.45    zoom of the map camera (with ?reveal=1, 0.45 shows the whole underground at once)
+//   ?hd=1         the game in HD: drawn at the screen's resolution, with art at twice the pixels (GAME_DESIGN.md §13)
 
 import { seedFromString } from './sim/rng';
 
@@ -32,6 +33,8 @@ export interface UrlParams {
   modifiers: string[];
   /** Zoom of the map camera, or null for the usual one. */
   zoom: number | null;
+  /** Draw the game in HD (until the stage "Wygląd mapy" ends, the classic 640×360 is the default). */
+  hd: boolean;
 }
 
 export function parseUrlParams(search: string): UrlParams {
@@ -55,5 +58,6 @@ export function parseUrlParams(search: string): UrlParams {
     reveal: params.get('reveal') === '1' || params.get('reveal') === 'true',
     modifiers: [...new Set((params.get('modifiers') ?? '').split(',').map((m) => m.trim()).filter((m) => m !== ''))],
     zoom: positive('zoom'),
+    hd: params.get('hd') === '1' || params.get('hd') === 'true',
   };
 }
