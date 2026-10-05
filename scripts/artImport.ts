@@ -97,7 +97,7 @@ export function importArt(sources: Picture[], key: string, entries: Record<strin
   const cleaned = sources.map((s) => dropSpecks(removeMagenta(s)));
   cleaned.forEach((c, i) => {
     if (c.opaque === 0) throw new ImportError(`${key}${sources.length > 1 ? `, frame ${i + 1}` : ''}: nothing left after removing the magenta background`);
-    if (c.magentaLeft > 0.01 * c.opaque) notes.push(`${key}: some magenta is left inside the picture (holes or a pink edge?)`);
+    if (c.magentaLeft > 0.01 * c.opaque) notes.push(`${key}: some purple or magenta is left: fine if the figure has purple, but check for holes or a pink edge`);
     if (c.opaque > 0.95 * sources[i]!.width * sources[i]!.height) notes.push(`${key}: almost nothing was removed: is the background really flat magenta?`);
   });
 
@@ -170,26 +170,80 @@ function magentaness(r: number, g: number, b: number): number {
   return Math.abs(r - b) < Math.min(r, b) - g ? Math.min(r, b) - g : 0;
 }
 
+/** Clearly background: GPT never paints exactly #FF00FF, but its magenta is always at least this magenta (red and blue above green). */
+const BACKGROUND_MAGENTANESS = 170;
+/** A soft-edge pixel is the background mixed into a colour of the figure next to it: at least this share of background... */
+const EDGE_MIN_MIX = 0.15;
+/** ...within this distance (RGB) of such a mix, and each channel between the two colours, give or take EDGE_SLACK. */
+const EDGE_TOLERANCE = 32;
+const EDGE_SLACK = 10;
+/** Magenta in shadow (GPT likes to darken the background under a figure) keeps almost no green: at most this share of red and blue. */
+const SHADOW_GREEN = 0.12;
 /**
- * Makes the magenta background see-through. GPT never paints exactly #FF00FF, so: clearly magenta pixels go,
- * and so do dimmer magenta-ish pixels joined to them (soft edges, shadows on the background), but a purple
- * inside the figure that the background doesn't reach stays.
+ * Reddish magenta, with red above blue and little green, is the background bleeding into a warm figure (brown, green,
+ * red): purple in a figure leans to blue instead (violet, lilac, the mycelium's glow), so it is not taken for this.
+ */
+const WARM_EDGE_GREEN = 0.45;
+
+/**
+ * Makes the magenta background see-through: every clearly magenta pixel (holes inside the figure too), then, from the
+ * background inwards, its shadows and the soft edge around the figure: pixels that are the background mixed into a
+ * colour of the figure next to them, or reddish magenta. Purple and pink in the figure stay, even where they touch
+ * the background.
  */
 export function removeMagenta(source: Picture): Picture {
   const { width, height } = source;
   const data = new Uint8ClampedArray(source.data);
   const background = new Uint8Array(width * height);
   const queue: number[] = [];
+  let [sumR, sumG, sumB, painted] = [0, 0, 0, 0];
   for (let i = 0; i < width * height; i++) {
     const r = data[i * 4]!;
     const g = data[i * 4 + 1]!;
     const b = data[i * 4 + 2]!;
-    const strong = data[i * 4 + 3]! < 128 || (magentaness(r, g, b) >= 120 && r >= 150 && b >= 150);
-    if (strong) {
+    const clear = data[i * 4 + 3]! < 128;
+    if (clear || (magentaness(r, g, b) >= BACKGROUND_MAGENTANESS && r >= 150 && b >= 150)) {
       background[i] = 1;
       queue.push(i);
+      if (!clear) {
+        sumR += r;
+        sumG += g;
+        sumB += b;
+        painted++;
+      }
     }
   }
+  // The background's own colour, as GPT painted it this time.
+  const bg: Rgb = painted > 0 ? [sumR / painted, sumG / painted, sumB / painted] : [255, 0, 255];
+
+  /** Is pixel n more background: magenta in shadow, or the background mixed into a colour of the figure next to it? */
+  const joinsBackground = (n: number, x: number, y: number): boolean => {
+    const p: Rgb = [data[n * 4]!, data[n * 4 + 1]!, data[n * 4 + 2]!];
+    if (magentaness(p[0], p[1], p[2]) < 50) return false;
+    if (p[1] <= SHADOW_GREEN * Math.min(p[0], p[2]) + 6) return true;
+    if (p[0] > p[2] + 16 && p[1] <= WARM_EDGE_GREEN * p[2]) return true;
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const qx = x + dx;
+        const qy = y + dy;
+        if ((dx === 0 && dy === 0) || qx < 0 || qy < 0 || qx >= width || qy >= height) continue;
+        const q = qy * width + qx;
+        if (background[q]) continue;
+        const c: Rgb = [data[q * 4]!, data[q * 4 + 1]!, data[q * 4 + 2]!];
+        const d = [bg[0] - c[0], bg[1] - c[1], bg[2] - c[2]] as const;
+        const length2 = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+        if (length2 < 60 * 60) continue; // background-coloured itself: tells nothing about the figure
+        const e = [p[0] - c[0], p[1] - c[1], p[2] - c[2]] as const;
+        const mix = (e[0] * d[0] + e[1] * d[1] + e[2] * d[2]) / length2;
+        if (mix < EDGE_MIN_MIX || mix > 1) continue;
+        if (Math.hypot(e[0] - mix * d[0], e[1] - mix * d[1], e[2] - mix * d[2]) > EDGE_TOLERANCE) continue;
+        const between = [0, 1, 2].every((k) => p[k]! >= Math.min(bg[k]!, c[k]!) - EDGE_SLACK && p[k]! <= Math.max(bg[k]!, c[k]!) + EDGE_SLACK);
+        if (between) return true;
+      }
+    }
+    return false;
+  };
+
   while (queue.length > 0) {
     const i = queue.pop()!;
     const x = i % width;
@@ -197,11 +251,9 @@ export function removeMagenta(source: Picture): Picture {
     for (const [nx, ny] of [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]] as const) {
       if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
       const n = ny * width + nx;
-      if (background[n]) continue;
-      if (magentaness(data[n * 4]!, data[n * 4 + 1]!, data[n * 4 + 2]!) >= 50) {
-        background[n] = 1;
-        queue.push(n);
-      }
+      if (background[n] || !joinsBackground(n, nx, ny)) continue;
+      background[n] = 1;
+      queue.push(n);
     }
   }
   for (let i = 0; i < width * height; i++) data[i * 4 + 3] = background[i] ? 0 : 255;

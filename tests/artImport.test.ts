@@ -54,6 +54,31 @@ describe('removing the magenta background', () => {
     const src = picture(20, 20, (x, y) => (inside(x, y, 8, 8, 12, 12) ? purple : inside(x, y, 4, 4, 16, 16) ? GREEN : MAGENTA));
     expect(at(removeMagenta(src), 10, 10)).toEqual(purple);
   });
+
+  it('keeps a purple figure that touches the background, but not its soft edge', () => {
+    // A glowing mushroom cap straight on the magenta, with a ring of half-and-half pixels around it.
+    const purple: Rgba = [192, 64, 208, 255];
+    const src = picture(20, 20, (x, y) => (inside(x, y, 6, 6, 14, 14) ? purple : inside(x, y, 5, 5, 15, 15) ? [224, 32, 232, 255] : MAGENTA));
+    const out = removeMagenta(src);
+    expect(at(out, 10, 10)).toEqual(purple);
+    expect(at(out, 6, 6)).toEqual(purple);
+    expect(at(out, 5, 5)[3]).toBe(0);
+    expect(at(out, 0, 0)[3]).toBe(0);
+  });
+
+  it('clears magenta in shadow and the reddish edge around a warm figure', () => {
+    const brown: Rgba = [112, 60, 30, 255];
+    const src = picture(30, 20, (x, y) => {
+      if (inside(x, y, 6, 6, 14, 14)) return brown;
+      if (inside(x, y, 5, 5, 15, 15)) return [200, 40, 160, 255]; // the background bleeding into the brown
+      if (inside(x, y, 18, 4, 28, 16)) return [120, 4, 122, 255]; // a shadow GPT painted on the background
+      return MAGENTA;
+    });
+    const out = removeMagenta(src);
+    expect(at(out, 10, 10)).toEqual(brown);
+    expect(at(out, 5, 9)[3]).toBe(0);
+    expect(at(out, 22, 10)[3]).toBe(0);
+  });
 });
 
 describe('shrinking', () => {

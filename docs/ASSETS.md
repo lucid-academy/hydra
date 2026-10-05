@@ -13,7 +13,7 @@ How `npm run art` treats each kind of image (`scripts/artImport.ts`):
 - **Textures** (`texture_*`): no background; the middle square of the picture is squashed to the listed size.
 - **Full-screen pictures** (`title_background`): cropped to the screen's shape and shrunk.
 - **Everything else** stands on magenta: the background goes, stray specks go, and the figure is fitted into its box keeping its shape. Things that stand (soldiers, the body, decorations, objects, portraits) sit on the bottom edge of the box; others in the middle.
-- **Purple** that touches the magenta background goes with it (a violet edge looks like a soft edge of the background), so purple and pink things need a dark outline all around.
+- **Purple** stays, even where it touches the background (since 2026-10-05): the import clears only clearly magenta pixels, magenta in shadow, and the soft edge where the background blends into the figure. Colours almost as magenta as the background itself (red and blue high, green near zero) still go with it, and a dark outline around purple and pink things still gives the cleanest edge.
 - **Tinted images** (heads, mist, marks) are turned grey, the brightest part white.
 - **Shrinking** gives each game pixel the most common colour of the block of pixels it covers, so no blurred colours appear.
 - **Animations:** frames as `art/raw/<key>_frame1.png`, `_frame2.png`... (or several figures side by side on one picture when the manifest entry has `"frames"`), cut with one common box and saved as a strip; `"frames"` in the manifest says how many.
