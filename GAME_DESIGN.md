@@ -455,7 +455,7 @@ Na granicy pierścieni stoją 2–4 progi, co najmniej 1/5 obwodu od siebie. Zaw
 
 ## 13. Styl wizualny
 
-- Pixel art, wewnętrzna rozdzielczość 640×360, skalowanie całkowite, bez wygładzania. Wyjątek: malowane portrety w dialogach (niżej).
+- Pixel art w HD, jak w Songs of Conquest: gra rysuje obraz w rozdzielczości ekranu, a pixel art jest w nim ostrą teksturą. Piksele grafik zostają kwadratowe przy każdym zoomie, a światło, cienie, ciemność i tekst są w pełnej rozdzielczości. Grafiki mają dwa razy więcej pikseli niż przy dawnych 640×360 (np. dekoracja mapy 28×32 px zamiast 14×16), więc zostaje w nich więcej szczegółów z obrazków Piotra. Malowane portrety w dialogach są w pełnej rozdzielczości (niżej). (Decyzja Piotra z 2026-10-05; wcześniej wewnętrzna rozdzielczość 640×360, skalowanie całkowite, bez wygładzania.)
 - Wzór stylu: okładka gry (key art od Piotra) i Hades. Hydra jest mroczna i groźna, bardziej wężowa niż smocza. Humor jest w kwestiach, nie w wyglądzie. Body zostanie przerobione w tym stylu. (Decyzja Piotra z 2026-10-04.)
 - Paleta z key artu. Podziemia są zimne: głęboki turkus, bagienna zieleń, czerń, chorobliwie żółtozielona bioluminescencja. Hydra jest jak na okładce i portretach głów: łuski ze starego, oliwkowego brązu w czarnej siatce, kremowe płyty brzucha, ciemny mech, bursztynowe oczy; na zimnej planszy odcina się ciepłem, a od Zakonu tym, że jest ciemna i przygaszona. (Decyzja Piotra z 2026-10-04; wcześniej hydra była zimna jak podziemia.) Zakon i powierzchnia są ciepli: złoto, pomarańcz, czerwone chorągwie, ogień. Mist to granica między tymi światami: blada, zielonkawoszara, półprzezroczysta. Konflikt gry jest dosłownie widoczny: ciepłe światło płomieni przeciw zimnej mgle.
 - Hydra: sprite Body, proceduralne szyje i własny sprite głowy dla każdej klasy (głowa i osobno żuchwa, profil, pysk w prawo). Animacje są w kodzie, więc nowa klasa to dalej tylko nowy obrazek, bez nowej animacji. Głów nie barwimy, poza mignięciem przy trafieniu. (Decyzja Piotra z 2026-10-04; wcześniej jedna szara głowa barwiona kolorem klasy.)
@@ -474,6 +474,7 @@ Na granicy pierścieni stoją 2–4 progi, co najmniej 1/5 obwodu od siebie. Zaw
 | Lantern | wędka ze świecącą bańką | #8cc8f0 |
 
 - Bitwa widziana pod skosem: plansza z heksów jak gruba płyta, postacie stojące. Warstwa eksploracji docelowo w stylu Songs of Conquest.
+- Mapa w stylu Songs of Conquest (decyzja Piotra z 2026-10-05, etap „Wygląd mapy”, §15): ziemia jest jedną powierzchnią bez widocznej siatki i szwów między heksami, z nieregularnymi granicami terenów i spokojnymi teksturami, na których odcinają się rzeczy. Rzeczy mają cień pod sobą. Zasięg ruchu to jedna linia wokół obszaru i ścieżka do wskazanego heksa, a nie obwódka na każdym heksie. Podziemia są ciemne, a światło dają hydra, świecące grzyby i miejsca. Brzeg poznanej mapy łagodnie ginie w ciemności.
 - Portrety w dialogach (głowy, Old Mother Toad, jeńcy, Mistrzowie Zakonu, przodkowie): malowane, w stylu okładki i Hadesa (mocne kontury, płaskie plamy koloru, ostre światło), wycięte z tła i pokazywane w pełnej rozdzielczości ekranu nad grą pixelową. Portret głowy jest też wzorem, z którego powstaje pixelowa głowa do bitwy. (Decyzje Piotra z 2026-10-04; wcześniej portrety miały być pixelowymi popiersiami.)
 - The Hushed widać tylko na niewyraźnych grafikach, jak ryciny ze starych ksiąg: nie do końca wiadomo, czy to humanoidy, czy bliżej im do węży. (Decyzja Piotra z 2026-10-04.)
 - Grafika na start: zastępcza (generowana w kodzie) i darmowe paczki CC0. Docelowe sprite'y i portrety robi Piotr w GPT, dlatego wymiary i kadrowanie każdej grafiki muszą być spisane w `docs/ASSETS.md`.
@@ -496,7 +497,7 @@ Na granicy pierścieni stoją 2–4 progi, co najmniej 1/5 obwodu od siebie. Zaw
 
 Zasada: po każdym etapie gra jest wdrożona i grywalna pod linkiem, a Claude Code zatrzymuje się na playtest.
 
-**Kolejność od 2026-10-04** (decyzja Piotra po zmianie kierunku na fabularny roguelite, sekcja 1): M2c, M5, M6, M2a, M3, M4, M7. Etapy zachowują swoje nazwy, więc numery nie oznaczają już kolejności.
+**Kolejność od 2026-10-04** (decyzja Piotra po zmianie kierunku na fabularny roguelite, sekcja 1): M2c, M5, M6, M2a, M3, M4, M7. Etapy zachowują swoje nazwy, więc numery nie oznaczają już kolejności. 2026-10-05 Piotr wstawił po M2c etap „Wygląd mapy”.
 
 **M0: fundament.** Projekt (Vite + TypeScript + Phaser 4), testy, skrypt do zrzutów ekranu, repo na GitHubie, automatyczne wdrożenie na GitHub Pages. Ekran startowy dostępny pod linkiem.
 
@@ -515,6 +516,8 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 - **M2b: podziemia na serio.** Pełny generator z biomami i walidatorem, duża mapa w stylu Songs of Conquest, leże, kapliczki, Spell Caches, zasoby.
 - **M2c: mapa do odkrywania.** Przebudowa mapy z M2b pod eksplorację (decyzja Piotra z 2026-10-04, dokumenty Claude „Hydra: eksploracja, biomy i świat” i „Hydra: generator świata (M2c)”). Zakres: pierścienie z pasami skał (§5.1, §9), kręte korytarze i ślepe zaułki z zawartością, biomy pierścieni z wtrąceniami, Thresholds (Draught Crack, Rubble Choke i progi na trzy klasy głów, które są już w grze), Remains, Rich Deposit, Guarded Hoard, landmarki, lokacje z nagrodami, które już działają, i rzadkie miejsca, przeciągi i echa, ruch 6 i wzrok 3, ok. 20 spotkań, modyfikatory Wet Year, Mycelium Bloom i Old Workings w generatorze (na razie włączane parametrem URL), walidator na 1000 seedach, grafika zastępcza i prompty do GPT. Sealed Door i Cinder Bore przyjdą z M5, znaleziska z powierzchni z M4, pamięć rodu z M6.
 - **M2a: głowy.** Pozostałe klasy głów i ich combosy, kodeks combosów, doświadczenie i specjalizacje, umiejętności i drzewko talentów (6.9).
+
+**Wygląd mapy (HD).** Gra w rozdzielczości ekranu z pixel artem w podwójnej gęstości i mapa w stylu Songs of Conquest (oba punkty w §13). Najpierw mapa pod osobnym linkiem (`?hd=1`) do porównania z obecną, potem bitwa i interfejs; na koniec HD zostaje jedynym trybem. Grafiki Piotra wchodzą w podwójnej gęstości z tych samych plików w `art/raw/`. (Decyzja Piotra z 2026-10-05.)
 
 **M3: Zakon kontratakuje.** Alert z progami, patrole i posłańcy na mapie, wyprawy, obrona leża, jaja i Broodlingi, Great Burning jako boss aktu.
 

@@ -72,7 +72,7 @@ Zasady:
 
 ## Grafika
 
-- Pixel art: wewnętrzna rozdzielczość 640×360, skalowanie całkowite, `pixelArt: true`, bez wygładzania.
+- Pixel art w HD (decyzja Piotra z 2026-10-05, `GAME_DESIGN.md` §13): obraz w rozdzielczości ekranu, pixel art ostry przy każdym zoomie (`render.smoothPixelArt` w Phaserze 4), grafiki w podwójnej gęstości. Układ ekranu i rozmiary w manifeście liczą się w jednostkach dawnego 640×360, a plik grafiki ma dwa razy więcej pikseli. Do końca etapu „Wygląd mapy” HD działa pod `?hd=1`, a domyślnie gra jest jeszcze w 640×360 ze skalowaniem całkowitym.
 - Każda grafika przez klucz w manifeście (`src/assets/manifest.json`). Podmiana grafiki to podmiana pliku, bez zmian w kodzie.
 - Na start grafika zastępcza generowana w kodzie (kształty w paletach z dokumentu projektu) albo paczki **wyłącznie na licencji CC0** (np. Kenney). Każde źródło wpisz do `CREDITS.md`.
 - Prowadź `docs/ASSETS.md`: dla każdej grafiki wymiary w pikselach, kadrowanie, punkt zaczepienia, liczba klatek, tło. Piotr będzie generował docelowe grafiki w GPT według tej specyfikacji, więc pisz ją tak, żeby dało się z niej zrobić prompt do generatora obrazów.
