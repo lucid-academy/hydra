@@ -4,6 +4,7 @@
 // A picture is named after its manifest key: art/raw/battle_body.png. Frames of an animation: <key>_frame1.png,
 // <key>_frame2.png, ... The originals in art/raw/ are only read, never changed. Results go to public/images/
 // and the manifest gets their paths. With art/palette.json ({"colors": ["#rrggbb", ...]}) colours are matched to it.
+// A picture uploaded under another name is listed in art/aliases.json ({"file name": "manifest key"}).
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, parse, resolve } from 'node:path';
 import sharp from 'sharp';
@@ -13,12 +14,14 @@ const RAW = 'art/raw';
 const OUT = 'public/images';
 const MANIFEST = 'src/assets/manifest.json';
 const PALETTE = 'art/palette.json';
+const ALIASES = 'art/aliases.json';
 const PICTURE = /\.(png|jpe?g|webp)$/i;
 
 const { module: art } = await runnerImport(resolve('scripts/artImport.ts'), { logLevel: 'warn' });
 const wanted = process.argv.slice(2);
 const manifest = JSON.parse(readFileSync(MANIFEST, 'utf8'));
 const palette = existsSync(PALETTE) ? JSON.parse(readFileSync(PALETTE, 'utf8')).colors.map(art.parseHexColor) : null;
+const aliases = existsSync(ALIASES) ? JSON.parse(readFileSync(ALIASES, 'utf8')) : {};
 
 // Pictures grouped by key; frames of one animation go together, in order.
 const groups = new Map();
@@ -26,7 +29,8 @@ for (const name of existsSync(RAW) ? readdirSync(RAW).sort() : []) {
   if (!PICTURE.test(name)) continue;
   const base = parse(name).name;
   const frame = /^(.+)_frame(\d+)$/.exec(base);
-  const key = frame ? frame[1] : base;
+  const own = frame ? frame[1] : base;
+  const key = typeof aliases[own] === 'string' ? aliases[own] : own;
   const list = groups.get(key) ?? [];
   list.push({ name, order: frame ? Number(frame[2]) : 0 });
   groups.set(key, list);
@@ -42,7 +46,12 @@ for (const [key, files] of groups) {
     continue;
   }
   if (!manifest.images[key]) {
-    console.log(`✗ ${files.map((f) => f.name).join(', ')}: no image "${key}" in ${MANIFEST}. Is the file name a manifest key?`);
+    console.log(`✗ ${files.map((f) => f.name).join(', ')}: no image "${key}" in ${MANIFEST}. Is the file name a manifest key (or listed in ${ALIASES})?`);
+    failed++;
+    continue;
+  }
+  if (files.length > 1 && files.some((f) => f.order === 0)) {
+    console.log(`✗ ${key}: ${files.map((f) => f.name).join(', ')} are all pictures of it. Keep one, or name animation frames <key>_frame1.png, ...`);
     failed++;
     continue;
   }

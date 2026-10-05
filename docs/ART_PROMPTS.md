@@ -5,7 +5,7 @@ Gotowe prompty do generatora obrazów w GPT. Każdy jest w osobnym bloku, do sko
 ## Jak z nich korzystać
 
 1. Skopiuj cały blok i wklej do GPT. Jeśli wynik się nie podoba, dopisz poprawkę zwykłymi słowami („remove the shadow", „more contrast", „make the pixels bigger") albo wygeneruj od nowa.
-2. Pobierz obrazek (PNG, rozmiar z GPT jest w porządku, skrypt i tak go zmniejszy) i nazwij go dokładnie tak jak w nagłówku, np. `texture_ground_lairSwamp_mud.png`.
+2. Pobierz obrazek (PNG, rozmiar z GPT jest w porządku, skrypt i tak go zmniejszy) i nazwij go tak jak w nagłówku, np. `texture_ground_lairSwamp_mud.png`. Jeśli przyjdzie pod inną nazwą (np. `decor_reeds.png`), też dobrze: Claude dopisze ją do listy `art/aliases.json` i plik zostanie taki, jaki jest.
 3. Wyślij go w wątku projektu Hydra albo wrzuć na GitHubie do folderu `art/raw/`. Oryginałów nikt potem nie zmienia.
 4. Skrypt `npm run art` wycina tło, zmniejsza obrazek do rozmiaru gry, wstawia go do gry i zgłasza problemy.
 
@@ -354,7 +354,7 @@ Size: in the game the portrait is 128 by 160 pixels, so keep the shapes bold and
 Teren każdego biomu (grunt i skała) jest już w grze z Twoich tekstur. Żeby biom był kompletny, brakuje mu dekoracji (drobne rzeczy rozrzucone kępami po podłodze), punktu orientacyjnego i miejsc. Poniżej biom po biomie, od leża na zewnątrz. Dekoracja wspólna kilku biomom jest przy pierwszym, który jej używa. Zacznij od Lair Swamp, Flooded Caves i Root Tangle: to okolica startu.
 
 - Dekoracje są malutkie (14×16 pikseli), więc odrzucaj wyniki z drobnymi detalami: po zmniejszeniu zostają tylko duże plamy koloru.
-- Fioletowe rzeczy (grzyby, Mother Cap, grzybnia) muszą mieć ciemny obrys dookoła. Skrypt usuwa magentę razem z fioletem, który jej dotyka.
+- Fioletowe rzeczy (grzyby, Mother Cap, grzybnia) najlepiej z ciemnym obrysem dookoła. Fiolet już nie znika razem z tłem, ale kolor prawie taki jak magenta tła zniknie.
 - Specyfikacja (rozmiary, punkt zaczepienia) jest w `docs/ASSETS.md`.
 - Bez promptów zostają: hydra i ludzie Zakonu na mapie (czekają na styl jednostek), przejście na powierzchnię (wróci w M4), przeciąg i echo (zostają z kodu).
 
