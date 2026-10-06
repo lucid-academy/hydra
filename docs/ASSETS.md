@@ -272,11 +272,11 @@ Real art comes in two parts, so the game can open the mouth: **battle_head** is 
 
 The size was 20×14 until the first GPT head (2026-10-03): GPT drew it at about 43×21 pixels of its own, and squeezed to 20 px it turned to noise. At 36 px it keeps its eye, teeth and crest.
 
-## Class heads: battle_head_biter, battle_head_biter_jaw (the other classes follow)
+## Class heads: battle_head_<class>, battle_head_<class>_jaw
 
 | | |
 |---|---|
-| Size | battle_head_biter 40×24 px, its jaw battle_head_biter_jaw 40×12 px (the other classes get their slots with their prompts) |
+| Size | head and jaw, width × height in px: biter 40×24 and 40×12; acidSpitter 38×26 and 38×12; mistBreather 38×24 and 38×12; screamer 38×28 and 38×12; glutton 38×24 and 38×22 (the swollen throat hangs from the jaw); spare 32×18 and 32×10; strangler 44×18 and 44×10; tender 40×26 and 40×12; lantern 40×34 and 40×12 (the lure rises above the head). Only the Biter's (and the old green Spare's) are measured from a picture; the others are guesses from the portraits, tuned when each is imported. |
 | Frames | 1 (static; the game animates it, as battle_head) |
 | Anchor | centre, as battle_head |
 | Background | transparent |

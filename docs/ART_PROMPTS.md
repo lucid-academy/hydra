@@ -28,7 +28,7 @@ Background: one flat, solid magenta #FF00FF everywhere around the subject, with 
 
 ## Hydra w bitwie: tułów i głowy w stylu okładki
 
-Hydra dostaje wygląd z okładki i portretów: stary brąz w czarnej siatce, kremowe płyty brzucha, mech. Najpierw próba na dwóch obrazkach, tułowiu i głowie Bitera (razem z próbą Zakonu i hydry na mapie z następnej sekcji). Prompty na pozostałe osiem głów dopiszę po próbie.
+Hydra dostaje wygląd z okładki i portretów: stary brąz w czarnej siatce, kremowe płyty brzucha, mech. Najpierw próba na dwóch obrazkach, tułowiu i głowie Bitera (razem z próbą Zakonu i hydry na mapie z następnej sekcji). Prompty na pozostałe osiem głów są w sekcji „Hydra w bitwie: pozostałe głowy”.
 
 Próba (tułów, Biter, Man-at-Arms, oddział i hydra na mapie) jest w grze od 2026-10-06 i czeka na uwagi Piotra.
 
@@ -72,7 +72,7 @@ Size: in the game the whole head with its jaw is only about 80 by 60 pixels, so 
 Zakon Wiecznego Ognia wygląda jak rycerze z okładki: płytowe zbroje, bordowe tuniki i peleryny, czerwone chorągwie, ciepłe złoto. Herbem jest złoty płomień (od nazwy Zakonu), a nie lew z okładki. Próba na trzech obrazkach: Man-at-Arms w bitwie, jego oddział na mapie i hydra na mapie. Najlepiej zrób je w tej samej rozmowie z GPT co tułów hydry, zaraz po nim: wtedy piksele wyjdą tej samej wielkości.
 
 - Wzór Zakonu: `zakon-z-okladki.png` (wycinek okładki) w `hydra-grafika/wzory/`.
-- Prompty na Headhuntera, Torchbearera i dwa większe oddziały dopiszę po próbie. Pozostałe typy Zakonu (§6.6) dostaną prompty, gdy wejdą do gry ich zasady.
+- Prompty na Headhuntera, Torchbearera i dwa większe oddziały są w sekcji „Zakon: Headhunter, Torchbearer i większe oddziały”. Pozostałe typy Zakonu (§6.6) dostaną prompty, gdy wejdą do gry ich zasady.
 - Na razie Zakon rusza się w kodzie (kołysanie, wypad, mignięcie przy trafieniu, upadek). Animacje klatkowe (chód, cios, śmierć) mogą przyjść później z PixelLab.
 
 ### `battle_enemy_manAtArms.png`: Man-at-Arms, zbrojny Zakonu w bitwie
@@ -112,6 +112,196 @@ Background: one flat, solid magenta #FF00FF everywhere around the subject, with 
 Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art hydra body from the battle: draw THE SAME hydra, whole and much smaller, as the player's piece on the game's map, with the same size of pixels and the same colours.
 Subject: the giant swamp hydra as a small game piece: the mound of bronze coils with three heads on short, thick necks rising from its top, the heads looking different ways (one left, one right, one up and forward), mouths closed, small amber eyes glowing (#d3a224). Old bronze scales (#342513, #64461f, #907246) in a near-black net (#120e08), pale cream belly plates (#c1b18e), a few strands of dark olive moss (#45422a). Dark and menacing, more snake than dragon, never cute. Seen in the game's three-quarter view from above, lit from the upper left. The lowest coil rests on the ground at the bottom middle of the picture. A dark outline all around. No water, no ground, no shadow: the game adds them.
 Size: on the map it is only about 52 by 56 pixels, so: one clear, bold silhouette; the three heads must read as heads.
+```
+
+## Hydra w bitwie: pozostałe głowy
+
+Pozostałe osiem głów, w tym samym stylu co Biter z próby. Do każdego promptu dołącz trzy obrazki z folderu `hydra-grafika/wzory/` w plikach projektu: portret tej głowy (`<klasa>-portret.png`, np. `acidSpitter-portret.png`), pixelowy tułów (`tulow-pixel.png`) i pixelowego Bitera (`biter-pixel.png`). Najlepiej w jednej rozmowie z GPT, głowa po głowie: wtedy piksele wyjdą tej samej wielkości.
+
+- Głowa i żuchwa jak u Bitera: dwa kawałki obok siebie, z przerwą, oba tak, jak leżą przy zamkniętym pysku.
+- Cecha sylwetki z `GAME_DESIGN.md` §13 (kaptur, skrzela, piszczałki, gardło, wędka) należy do głowy i może ją wydłużyć albo podwyższyć. Rozmiar w grze ustawię po imporcie, tak żeby czaszki były podobnej wielkości (Biter największy, The Spare najmniejsza).
+- Mist Breather bez mgły z pyska: mgłę rysuje gra. Szczęki Screamera gra rozewrze sama.
+- W grze są dziś trzy klasy (Biter, Acid Spitter, Mist Breather). Pozostałe wejdą z etapem M2a, ale ich głowy mogą być gotowe wcześniej.
+- The Spare: ten prompt rysuje ją w brązie, jak resztę, zamiast zielonej głowy z 2026-10-05 (pytanie o nią jest na karcie w wątku „Repo i potok grafiki”). Nowy obrazek wrzuć pod tą samą nazwą, `battle_head_spare.png`.
+
+### `battle_head_acidSpitter.png`: Acid Spitter (kaptur kobry, świecące gruczoły)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite in two separate pieces on the flat magenta background, side by side, with a clear gap of magenta between them (they must not touch). Three pictures are attached: the painted portrait of the Acid Spitter shows WHAT to draw (its head, the cobra hood with its glowing acid glands, and its colours); the pixel-art hydra body and the pixel-art Biter head from the game show HOW to draw it (the same size of pixels, the same outline and the same bronze), so the head clearly belongs to the same hydra as the Biter.
+Subject: the Acid Spitter, one of the hydra's heads, raised in the air and seen from the side, snout pointing RIGHT. A narrow, haughty snake head with a small glowing amber eye (#d3a224) and long thin fangs. Behind the skull a cobra hood spreads like a frill, its inside dotted with acid glands that glow sickly yellow-green (#c6e04a, brightest in the middle, darker #8a9c2a at the edges); one or two glowing drops of acid hang from the fangs. Old bronze scales (#342513, #64461f, #907246) in a near-black net (#120e08), pale cream plates (#c1b18e) under the jaw, a few short strands of dark olive moss (#45422a) hanging from the back of the skull. Dark and menacing, more snake than dragon, never cute. No tongue and no neck: the head ends right behind the skull, the game draws the neck. Both pieces as they sit with the mouth shut: the game opens and shuts the mouth. A dark outline all around.
+- LEFT piece: the head without its lower jaw (skull, upper jaw with its fangs and acid drops, eye and the hood), snout pointing right.
+- RIGHT piece: the lower jaw alone, at the size it has on the head, also pointing right, with its fangs.
+Size: in the game the whole head with its jaw is only about 76 by 64 pixels, so keep it bold: one clear silhouette and a few big shapes. The hood and its glowing glands must still read at that size.
+```
+
+### `battle_head_mistBreather.png`: Mist Breather (pierzaste skrzela)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite in two separate pieces on the flat magenta background, side by side, with a clear gap of magenta between them (they must not touch). Three pictures are attached: the painted portrait of the Mist Breather shows WHAT to draw (its head, the feathery gills and its colours); the pixel-art hydra body and the pixel-art Biter head from the game show HOW to draw it (the same size of pixels, the same outline and the same bronze), so the head clearly belongs to the same hydra as the Biter.
+Subject: the Mist Breather, one of the hydra's heads, raised in the air and seen from the side, snout pointing RIGHT. A long, sleepy snake head with a heavy-lidded amber eye (#d3a224), half closed. Instead of spines, feathery gills like an axolotl's fan out from the back of the skull, pale grey-green (#8fb3a8) at their tips fading into the bronze at their roots. No mist and no breath: the game draws the mist. Old bronze scales (#342513, #64461f, #907246) in a near-black net (#120e08), pale cream plates (#c1b18e) under the jaw, a few short strands of dark olive moss (#45422a) hanging from the back of the skull. Dark and menacing, more snake than dragon, never cute. No tongue and no neck: the head ends right behind the skull, the game draws the neck. Both pieces as they sit with the mouth shut: the game opens and shuts the mouth. A dark outline all around.
+- LEFT piece: the head without its lower jaw (skull, upper jaw with its fangs, eye and the feathery gills), snout pointing right.
+- RIGHT piece: the lower jaw alone, at the size it has on the head, also pointing right, with its fangs.
+Size: in the game the whole head with its jaw is only about 76 by 60 pixels, so keep it bold: one clear silhouette and a few big shapes. The feathery gills must still read at that size.
+```
+
+### `battle_head_screamer.png`: Screamer (kościane piszczałki)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite in two separate pieces on the flat magenta background, side by side, with a clear gap of magenta between them (they must not touch). Three pictures are attached: the painted portrait of the Screamer shows WHAT to draw (its head, the bone pipes and its colours); the pixel-art hydra body and the pixel-art Biter head from the game show HOW to draw it (the same size of pixels, the same outline and the same bronze), so the head clearly belongs to the same hydra as the Biter.
+Subject: the Screamer, one of the hydra's heads, raised in the air and seen from the side, snout pointing RIGHT. A proud snake head with a wide mouth, a fierce amber eye (#d3a224) and long fangs. Instead of a crest, a row of hollow bone pipes like a small church organ rises from the back of the skull, pale old bone (#e3d6b4, shaded #a8987a) with dark round openings at their tops. The game opens its jaws wide when it screams, so draw the pieces like every other head. Old bronze scales (#342513, #64461f, #907246) in a near-black net (#120e08), pale cream plates (#c1b18e) under the jaw, a few short strands of dark olive moss (#45422a) hanging from the back of the skull. Dark and menacing, more snake than dragon, never cute. No tongue and no neck: the head ends right behind the skull, the game draws the neck. Both pieces as they sit with the mouth shut: the game opens and shuts the mouth. A dark outline all around.
+- LEFT piece: the head without its lower jaw (skull, upper jaw with its fangs, eye and the bone pipes), snout pointing right.
+- RIGHT piece: the lower jaw alone, at the size it has on the head, also pointing right, with its fangs.
+Size: in the game the whole head with its jaw is only about 76 by 68 pixels, so keep it bold: one clear silhouette and a few big shapes. The bone pipes must still read at that size.
+```
+
+### `battle_head_glutton.png`: Glutton (rozdęte gardło z połkniętym rycerzem)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite in two separate pieces on the flat magenta background, side by side, with a clear gap of magenta between them (they must not touch). Three pictures are attached: the painted portrait of the Glutton shows WHAT to draw (its head, the swollen throat with a swallowed knight inside, and its colours); the pixel-art hydra body and the pixel-art Biter head from the game show HOW to draw it (the same size of pixels, the same outline and the same bronze), so the head clearly belongs to the same hydra as the Biter.
+Subject: the Glutton, one of the hydra's heads, raised in the air and seen from the side, snout pointing RIGHT. A heavy, round snake head with small greedy amber eyes (#d3a224) and blunt fangs. Under its lower jaw hangs a huge swollen throat, the skin stretched thin and reddish (#b5614a, shaded #7a3a2a), with the shape of a swallowed knight in armour pressing through it: the round top of a helmet and a steel boot. Old bronze scales (#342513, #64461f, #907246) in a near-black net (#120e08), pale cream plates (#c1b18e) under the jaw, a few short strands of dark olive moss (#45422a) hanging from the back of the skull. Dark and menacing, more snake than dragon, never cute. No tongue and no neck: the head ends right behind the skull, the game draws the neck. Both pieces as they sit with the mouth shut: the game opens and shuts the mouth. A dark outline all around.
+- LEFT piece: the head without its lower jaw (skull, upper jaw with its fangs and the eyes), snout pointing right.
+- RIGHT piece: the lower jaw alone, at the size it has on the head, also pointing right, with its fangs and the swollen throat with the swallowed knight hanging under it.
+Size: in the game the whole head with its jaw is only about 76 by 76 pixels, so keep it bold: one clear silhouette and a few big shapes. The swollen throat and the shape of the knight in it must still read at that size.
+```
+
+### `battle_head_spare.png`: The Spare (mała, krzywa, jedno oko ślepe)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite in two separate pieces on the flat magenta background, side by side, with a clear gap of magenta between them (they must not touch). Three pictures are attached: the painted portrait of the Spare shows WHAT to draw (its head, the blind eye and its colours); the pixel-art hydra body and the pixel-art Biter head from the game show HOW to draw it (the same size of pixels, the same outline and the same bronze), so the head clearly belongs to the same hydra as the Biter.
+Subject: The Spare, the smallest of the hydra's heads, raised in the air and seen from the side, snout pointing RIGHT. A small, slightly crooked snake head: the skull a little lopsided, the snout bent, a few fangs missing, and its one eye that we see blind, milky white (#d8d4c8) with no pupil. The same bronze as every other head, a little paler and patchier, with a few reddish scales (#d28fa4 only as a faint tint). Sad and odd, still a hydra's head, never comic. Old bronze scales (#342513, #64461f, #907246) in a near-black net (#120e08), pale cream plates (#c1b18e) under the jaw, a few short strands of dark olive moss (#45422a) hanging from the back of the skull. Dark and menacing, more snake than dragon, never cute. No tongue and no neck: the head ends right behind the skull, the game draws the neck. Both pieces as they sit with the mouth shut: the game opens and shuts the mouth. A dark outline all around.
+- LEFT piece: the head without its lower jaw (skull, upper jaw with its fangs and the blind eye), snout pointing right.
+- RIGHT piece: the lower jaw alone, at the size it has on the head, also pointing right, with its few fangs.
+Size: in the game the whole head with its jaw is only about 60 by 44 pixels, so keep it bold: one clear silhouette and a few big shapes. The blind white eye and the crooked snout must still read at that size.
+```
+
+### `battle_head_strangler.png`: Strangler (najdłuższa i najniższa, fioletowe pręgi)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite in two separate pieces on the flat magenta background, side by side, with a clear gap of magenta between them (they must not touch). Three pictures are attached: the painted portrait of the Strangler shows WHAT to draw (its head, the purple stripes and its colours); the pixel-art hydra body and the pixel-art Biter head from the game show HOW to draw it (the same size of pixels, the same outline and the same bronze), so the head clearly belongs to the same hydra as the Biter.
+Subject: the Strangler, one of the hydra's heads, raised in the air and seen from the side, snout pointing RIGHT. The longest and lowest head of all: a long, flat, narrow skull like a pit viper's, a low brow over a calm amber eye (#d3a224), thin fangs, a row of dark spines along the back of the skull. Purple stripes (#7d68b0, shaded #4a3a70) run across the bronze scales from the snout to the back of the head. Old bronze scales (#342513, #64461f, #907246) in a near-black net (#120e08), pale cream plates (#c1b18e) under the jaw, a few short strands of dark olive moss (#45422a) hanging from the back of the skull. Dark and menacing, more snake than dragon, never cute. No tongue and no neck: the head ends right behind the skull, the game draws the neck. Both pieces as they sit with the mouth shut: the game opens and shuts the mouth. A dark outline all around.
+- LEFT piece: the head without its lower jaw (skull, upper jaw with its fangs, eye, spines and stripes), snout pointing right.
+- RIGHT piece: the lower jaw alone, at the size it has on the head, also pointing right, with its fangs.
+Size: in the game the whole head with its jaw is only about 88 by 44 pixels, so keep it bold: one clear silhouette and a few big shapes. The long low shape and the purple stripes must still read at that size.
+```
+
+### `battle_head_tender.png`: Tender (szeroka głowa ropuchy, świecący śluz)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite in two separate pieces on the flat magenta background, side by side, with a clear gap of magenta between them (they must not touch). Three pictures are attached: the painted portrait of the Tender shows WHAT to draw (its head, the glowing slime and its colours); the pixel-art hydra body and the pixel-art Biter head from the game show HOW to draw it (the same size of pixels, the same outline and the same bronze), so the head clearly belongs to the same hydra as the Biter.
+Subject: the Tender, one of the hydra's heads, raised in the air and seen from the side, snout pointing RIGHT. A wide, flat toad-like head with a broad mouth, a heavy-lidded caring amber eye (#d3a224) and small fangs; the bronze scales turn into bumpy toad skin with warts that glow teal (#3fb8a6, brightest in the middle), and a few drops of glowing teal slime hang from its lips. Old bronze scales (#342513, #64461f, #907246) in a near-black net (#120e08), pale cream plates (#c1b18e) under the jaw, a few short strands of dark olive moss (#45422a) hanging from the back of the skull. Dark and menacing, more snake than dragon, never cute. No tongue and no neck: the head ends right behind the skull, the game draws the neck. Both pieces as they sit with the mouth shut: the game opens and shuts the mouth. A dark outline all around.
+- LEFT piece: the head without its lower jaw (skull, upper jaw with its fangs, eye and the glowing warts), snout pointing right.
+- RIGHT piece: the lower jaw alone, at the size it has on the head, also pointing right, with its small fangs.
+Size: in the game the whole head with its jaw is only about 80 by 64 pixels, so keep it bold: one clear silhouette and a few big shapes. The wide toad shape and the glowing warts must still read at that size.
+```
+
+### `battle_head_lantern.png`: Lantern (wędka ze świecącą bańką)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite in two separate pieces on the flat magenta background, side by side, with a clear gap of magenta between them (they must not touch). Three pictures are attached: the painted portrait of the Lantern shows WHAT to draw (its head, the lure with its glowing orb and its colours); the pixel-art hydra body and the pixel-art Biter head from the game show HOW to draw it (the same size of pixels, the same outline and the same bronze), so the head clearly belongs to the same hydra as the Biter.
+Subject: the Lantern, one of the hydra's heads, raised in the air and seen from the side, snout pointing RIGHT. A lean snake head with a gentle-looking amber eye (#d3a224), long fangs and a few blue-tinted scales on the brow. From its forehead grows a long thin lure stalk that arches forward over the snout, like an anglerfish's, with a glowing pale-blue orb (#8cc8f0, white in the middle) hanging from its tip in front of the snout. Keep a wide gap of magenta between the orb and the jaw piece. Old bronze scales (#342513, #64461f, #907246) in a near-black net (#120e08), pale cream plates (#c1b18e) under the jaw, a few short strands of dark olive moss (#45422a) hanging from the back of the skull. Dark and menacing, more snake than dragon, never cute. No tongue and no neck: the head ends right behind the skull, the game draws the neck. Both pieces as they sit with the mouth shut: the game opens and shuts the mouth. A dark outline all around.
+- LEFT piece: the head without its lower jaw (skull, upper jaw with its fangs, eye and the lure with its orb), snout pointing right.
+- RIGHT piece: the lower jaw alone, at the size it has on the head, also pointing right, with its fangs.
+Size: in the game the whole head with its jaw is only about 80 by 84 pixels, so keep it bold: one clear silhouette and a few big shapes. The lure and its glowing orb must still read at that size.
+```
+
+## Zakon: Headhunter, Torchbearer i większe oddziały
+
+Reszta Zakonu z próby, w stylu Man-at-Arms. Do postaci w bitwie dołącz pixelowego Man-at-Arms (`man-at-arms-pixel.png` w `hydra-grafika/wzory/`), a do oddziałów na mapie oddział z jednym zbrojnym (`oddzial-pixel.png`); wycinek okładki (`zakon-z-okladki.png`) też się przyda.
+
+- Pochodnia Torchbearera to jedyny jasny ogień na planszy: gra świeci z jej płomienia. Gdzie jest płomień, ustawię po imporcie.
+- Oddziały na mapie: im silniejszy, tym więcej ludzi i większa chorągiew. Drugi stopień to Man-at-Arms i Headhunter, trzeci to jeszcze Torchbearer z płonącą pochodnią.
+- Pozostałe typy Zakonu (§6.6) dostaną prompty, gdy wejdą do gry ich zasady.
+
+### `battle_enemy_headhunter.png`: Headhunter, łowca głów (topór)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art Man-at-Arms from the game: draw another member of THE SAME Order in the same style (the same size of pixels, the same dark outline, the same view, the same warm colours), so they clearly belong together.
+Subject: a Headhunter of the Order of the Eternal Flame, the soldier who hunts the hydra's heads, standing ready to strike, seen from the side and a little from above, facing RIGHT. Broader and heavier than the Man-at-Arms: a closed steel helmet, heavy plate over mail, a dark blood-red tabard (#5e1414, shaded darker) with the gold flame emblem (#d9a93b) on the chest, a short dark cape, and a big two-handed bearded axe held in both hands, raised over his shoulder with the blade towards the enemy. A string of hydra fangs hangs from his belt as trophies. Grim and dead serious. Feet on the ground at the bottom middle of the picture. A dark outline all around. No ground and no shadow: the game adds them.
+Size: in the game the soldier is only about 52 by 76 pixels, a man next to a hydra body about 288 pixels wide, so keep it bold: one clear silhouette. The big axe and the dark red must still read at that size: he must not be mistaken for the Man-at-Arms.
+```
+
+### `battle_enemy_torchbearer.png`: Torchbearer, brat świecki z pochodnią
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art Man-at-Arms from the game: draw another member of THE SAME Order in the same style (the same size of pixels, the same dark outline, the same view, the same warm colours), so they clearly belong together.
+Subject: a Torchbearer of the Order of the Eternal Flame: a lay brother, not a soldier, standing ready, seen from the side and a little from above, facing RIGHT. A plain brown wool habit (#6b4a2a, shaded #3e2a18) with a rope belt, a tonsured head (bald crown, a ring of hair), no helmet and no armour, a small gold flame embroidered on the chest, sandals. He holds a burning torch high in his right hand, in front of him, towards the enemy: its flame (fire #ffcf5c in the middle, orange #e0702a at the edges) is the brightest thing in the picture. Pious and dead serious. Feet on the ground at the bottom middle of the picture. A dark outline all around. No ground and no shadow: the game adds them.
+Size: in the game he is only about 52 by 76 pixels, a man next to a hydra body about 288 pixels wide, so keep it bold: one clear silhouette. The bright torch flame and the brown habit must still read at that size.
+```
+
+### `map_encounter_2.png`: oddział Zakonu na mapie, drugi stopień (dwóch ludzi)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw a bigger marker of THE SAME kind, with the same size of pixels, the same colours and the same view.
+Subject: two people of the Order of the Eternal Flame standing guard beside a tall wooden pole with a bigger banner-red flag (#9e2323) bearing a gold flame (#d9a93b): the Man-at-Arms with his sword and a Headhunter in a dark blood-red tabard with a big two-handed axe, side by side in front of the pole, facing the viewer at an angle, in the game's three-quarter view from above, lit from the upper left. Their feet and the foot of the pole stand on the ground along the bottom of the picture. A dark outline all around. No ground and no shadow: the game adds them.
+Size: on the map the whole marker is only about 72 by 76 pixels, so keep it bold: one clear silhouette. The red flag must be easy to spot from afar, and bigger than on the one-soldier marker.
+```
+
+### `map_encounter_3.png`: oddział Zakonu na mapie, trzeci stopień (trzech ludzi z pochodnią)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw a bigger marker of THE SAME kind, with the same size of pixels, the same colours and the same view.
+Subject: three people of the Order of the Eternal Flame beside a tall wooden pole with a big banner-red flag (#9e2323) bearing a gold flame (#d9a93b): the Man-at-Arms with his sword, a Headhunter with a big two-handed axe and a Torchbearer in a brown habit holding a burning torch high, its flame (fire #ffcf5c, orange #e0702a) the brightest thing in the picture. They stand side by side in front of the pole, facing the viewer at an angle, in the game's three-quarter view from above, lit from the upper left. Their feet and the foot of the pole stand on the ground along the bottom of the picture. A dark outline all around. No ground and no shadow: the game adds them.
+Size: on the map the whole marker is only about 88 by 80 pixels, so keep it bold: one clear silhouette. The big red flag and the torch must be easy to spot from afar.
 ```
 
 ## Pierwsza partia: 5 obrazków
