@@ -60,6 +60,12 @@ async function tap(page, point) {
 
 const timesReady = (page, scene) => page.evaluate((s) => window.__hydra.readyScenes.filter((x) => x === s).length, scene);
 
+/** Waits until the map has shown the last move: the hydra has walked and the view has followed it. */
+async function waitForMap(page) {
+  await page.waitForFunction(() => !window.__hydra.mapBusy?.(), null, { timeout: 15_000 });
+  await page.waitForTimeout(100);
+}
+
 async function waitForScene(page, scene, timesBefore = 0) {
   await page.waitForFunction(([s, n]) => (window.__hydra?.readyScenes.filter((x) => x === s).length ?? 0) > n, [scene, timesBefore], { timeout: 15_000 });
   await page.waitForTimeout(400); // let it draw
@@ -78,6 +84,7 @@ async function mapStep(page, step) {
   if (points.length === 0) {
     await tap(page, END_TURN_BUTTON);
     await page.waitForTimeout(250);
+    await waitForMap(page);
     return;
   }
   const mostNew = Math.max(...points.map((p) => p.unexploredNear));
@@ -85,7 +92,7 @@ async function mapStep(page, step) {
     points.find((p) => p.encounter) ??
     (mostNew > 0 ? points.find((p) => p.unexploredNear === mostNew) : points[(step * 7) % points.length]);
   await tap(page, target);
-  await page.waitForTimeout(900); // walking + camera pan
+  await waitForMap(page);
 }
 
 /**

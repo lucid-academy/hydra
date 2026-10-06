@@ -41,7 +41,9 @@ async function moveFarthest(page) {
   const canvas = (await page.locator('canvas').boundingBox()) ?? { x: 0, y: 0, width: 640, height: 360 };
   const scale = canvas.width / 640;
   await page.mouse.click(canvas.x + target.x * scale, canvas.y + target.y * scale);
-  await page.waitForTimeout(1200); // walking + camera pan
+  // Walking and the view following, however long the drawing takes.
+  await page.waitForFunction(() => !window.__hydra.mapBusy?.(), null, { timeout: 15_000 });
+  await page.waitForTimeout(300);
 }
 
 const SHOTS = [

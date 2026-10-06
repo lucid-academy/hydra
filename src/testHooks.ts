@@ -34,6 +34,8 @@ declare global {
       reachableOnScreen?: () => ScreenPoint[];
       /** Screen positions (in game pixels) of thresholds and places a tap would open. */
       inspectableOnScreen?: () => InspectablePoint[];
+      /** The map is still showing a move (the hydra walking, the view following it): taps now may land elsewhere. */
+      mapBusy?: () => boolean;
       /** The open place or threshold panel: where its buttons are (game pixels), or null when none is open. */
       placePanel?: () => { leave: { x: number; y: number }; actions: Array<{ id: string; x: number; y: number; enabled: boolean }> } | null;
       /** Short summary of the current battle; positions in game pixels (640×360). */
@@ -91,6 +93,10 @@ export function exposeReachable(probe: () => ScreenPoint[]): void {
 
 export function exposeInspectable(probe: () => InspectablePoint[]): void {
   hooks().inspectableOnScreen = probe;
+}
+
+export function exposeMapBusy(probe: () => boolean): void {
+  hooks().mapBusy = probe;
 }
 
 export function exposeRunSummary(summary: NonNullable<Window['__hydra']>['runSummary']): void {

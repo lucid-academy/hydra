@@ -65,6 +65,7 @@ The strategic map uses the same slanted view as the battle, in the spirit of Son
 - Things that stand on a hex have their **feet at the bottom middle** of the image; the game puts the feet 3 px below the hex centre.
 - The numbers the game relies on are also in `src/assets/mapArt.ts`.
 - Biomes (`src/data/biomes.json`) decide which ground, rock and decoration images a hex uses. A new biome needs its own `map_ground_…` and `map_rock_…` images in the manifest; with `"file": null` the game draws a placeholder from the biome's colours.
+- **In HD** (`?hd=1`) the map has no hex tiles: the ground is painted straight from the terrain textures (`texture_ground_…`, `texture_rock_…`) as one surface, rock raised 12 px with cliffs and shadows (`src/assets/groundPainter.ts`). `map_ground_…`, `map_rock_…`, `map_mark` and `map_fog_edge` are not used there. The light, the soft shadows under things, the darkness and the line around where the hydra can go are made in code and are not art to replace.
 
 ## Map ground: map_ground_<biome>_<water|mud|roots|salt>
 

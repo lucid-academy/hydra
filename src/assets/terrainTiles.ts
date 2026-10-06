@@ -61,7 +61,7 @@ function addVariants(scene: Phaser.Scene, tileKey: string, face: Pixels & { dens
 }
 
 /** A texture's pixels, and how many of them make one screen unit. */
-function readPixels(scene: Phaser.Scene, key: string): Pixels & { density: number } {
+export function readPixels(scene: Phaser.Scene, key: string): Pixels & { density: number } {
   const source = scene.textures.get(key).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
   const canvas = document.createElement('canvas');
   canvas.width = source.width;

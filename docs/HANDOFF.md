@@ -1,6 +1,6 @@
 # Handoff: stan prac nad Hydrą
 
-Stan na 2026-10-04 (wieczór, po M2c). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
+Stan na 2026-10-05 (wieczór, etap „Wygląd mapy” w toku). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
 
 - Gra: https://lucid-academy.github.io/hydra/
 - Repo: https://github.com/lucid-academy/hydra (na serwerze `/root/Hydra`)
@@ -13,6 +13,7 @@ Stan na 2026-10-04 (wieczór, po M2c). Ten plik streszcza dotychczasową pracę,
 - **M2c** (świat do odkrywania) jest wdrożony 2026-10-04 i czeka na playtest Piotra. Playtest M2b nie przyszedł; M2c zmienił mapę na tyle, że lepiej grać od razu w M2c.
 - 2026-10-03 Piotr zmienił sposób pracy: grafika będzie z GPT, animacje najpierw w kodzie. Zasady są już w `CLAUDE.md`. Plan grafiki (sekcja 3.2) Piotr zatwierdził tego samego dnia i potok jest zbudowany. Wieczorem przyszła cała pierwsza partia (21 obrazków) i jest w grze; **czeka na uwagi Piotra**.
 - Następne etapy: M5, M6, M2a, M3, M4, M7 (kolejność Piotra z 2026-10-04, `GAME_DESIGN.md` §15). Każdy zaczyna się od planu i OK Piotra. Projekt 9 głów (M2a) jest zatwierdzony (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13).
+- **Wygląd mapy (HD), od 2026-10-05:** Piotr wybrał na karcie przejście na HD pixel art (`GAME_DESIGN.md` §13, §15). Mapa w HD jest pod `?hd=1` do porównania z obecną (opis w sekcji 3.2, „Wygląd mapy w HD”). **Czeka na uwagi Piotra**; potem bitwa i interfejs w HD, a na koniec HD zostaje jedynym trybem.
 - **Zmiana kierunku, 2026-10-04:** Hydra to teraz fabularny roguelite z naciskiem na odkrywanie świata, mini questy i kilka zakończeń; bitwy rzadsze, ale ważne (`GAME_DESIGN.md` §1, §2, §4, §15).
 
 ## 2. Co zrobione
@@ -82,6 +83,14 @@ Do tego czasu malowane portrety leżą w `art/concept/`, bo `npm run art` odrzuc
 
 **Reszta grafik mapy, 2026-10-05 wieczorem:** Piotr wrzucił ostatnie 20 obrazków mapy (progi zamknięte i otwarte, kapliczka, Muck i źródła w dwóch wersjach, szczątki, skarb, Lost Survey, Hushed Stair). 19 z nich trafiło przez GitHuba do głównego folderu repo zamiast do `art/raw/`; przeniesione `git mv`, treść bez zmian. Nazwy to klucze z manifestu, więc bez aliasów. Dubli nie było. Tym samym na mapie są już wszystkie 44 obrazki z `docs/ART_PROMPTS.md`; w kodzie rysowane zostają: hydra, oddziały Zakonu, przejście, znaczniki zasięgu, brzeg mgły, poświaty, przeciągi i echa. Piotr ocenił, że mapa jest nieczytelna, rzeczy zlewają się z terenem, a heksy są brzydkie (chciałby efekt jak w Songs of Conquest); diagnoza i pytanie o przejście na HD pixel art są w wątku „Repo i potok grafiki”.
 
+**Wygląd mapy w HD, 2026-10-05:** Piotr wybrał HD (karta o 21:07 UTC; decyzja w `GAME_DESIGN.md` §13 i §15, commit b6a2308). Kolejność z karty: najpierw mapa w HD pod osobnym linkiem do porównania z obecną, potem bitwa i interfejs, potem HD jako jedyny tryb (wtedy usunąć klasyczną ścieżkę i obrazki 1×). Zrobione:
+- `?hd=1` (commit 171f778): płótno w pikselach ekranu (`src/scaling.ts`, `fitCanvas`), sceny dalej układane na ekranie 640×360, kamery powiększają (`src/scenes/view.ts`), tekst ostry, `npm run art` robi drugą kopię obrazków z podwójną liczbą pikseli w `public/images-hd/`.
+- Ziemia mapy malowana jako jedna powierzchnia (`src/assets/groundPainter.ts`, czysty TypeScript z testami; na ekran wystawia ją `src/scenes/mapGround.ts`): bez siatki i szwów, granice terenów lekko błądzą, skała wznosi się jedną bryłą z klifami (jasny lewy, ciemny prawy) i rzuca cień w prawo w dół, brzegi wody, tekstury uspokojone. Malowane są tylko znane heksy, po kawałku, gdy hydra odkrywa. Skała przy otwartym terenie ma własne obrazki sortowane z resztą, więc klif zasłania to, co stoi za nim; prześwituje, gdy zasłania hydrę, spotkanie, kapliczkę albo zamknięty próg.
+- Ciemność `visibility` (nie mist): miękka warstwa, poza zasięgiem wzroku przyciemniona, nieznane czarne, krawędź rozmyta.
+- Zasięg ruchu jedną zaokrągloną linią z poświatą (`src/scenes/hexOutline.ts`) zamiast obrysu każdego heksa. Linia leży na ziemi, więc skała przed nią ją zasłania; słaba kopia nad wszystkim, co stoi, pokazuje tam jej kształt. Na komputerze kropki prowadzą do heksu pod myszką.
+- Miękkie cienie pod rzeczami i hydrą; światło (`src/scenes/mapLight.ts`): jaśniej wokół hydry i wszystkiego, co świeci, w kolorze światła, trochę ciemniej gdzie indziej.
+Ruch w HD kosztuje do ok. 0,1 s malowania na serwerze testowym (zmierzone, zanim ciemność zaczęła się liczyć tylko wokół zmian); pierwsze wejście na mapę ok. 0,4 s.
+
 Plan:
 
 1. **Kąt kamery:** widok 3/4 z góry, kamera ok. 45° nad ziemią, światło z lewej góry. Tak już są narysowane plansza bitwy i mapa (heksy spłaszczone do ok. 0,7 wysokości), więc nic do przebudowy. Portrety i ekran tytułowy to osobne ujęcia, na wprost.
@@ -134,8 +143,11 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 - Wysyłanie plików z sesji na telefon nie działa („session is not on a project thread"). Obrazki do obejrzenia wrzucać do `docs/` i dawać link do GitHuba.
 - Konektory w Claude (Gmail, Kalendarz, Dysk, Claude Docs) czekają na autoryzację przez Piotra w ustawieniach claude.ai. Do tego czasu są niedostępne.
 - Sprawdzenie wdrożenia: nazwa pliku `assets/index-*.js` na stronie gry ma się zgadzać z lokalnym `dist/assets/`. Wdrożenie trwa ok. minuty.
-- Haki testowe `window.__hydra` (gotowe sceny, podsumowanie bitwy i runu, heksy w zasięgu) czytają `smoke` i `shots`.
+- Haki testowe `window.__hydra` (gotowe sceny, podsumowanie bitwy i runu, heksy w zasięgu, `mapBusy`: czy mapa jeszcze pokazuje ruch) czytają `smoke` i `shots`. Po tapnięciu na mapie czekają na koniec ruchu przez `mapBusy`, a nie stały czas: w HD na wolnym serwerze ruch z przesunięciem widoku trwa ponad sekundę i tapnięcia trafiały w przesuwającą się mapę.
 - Pułapki Phasera 4:
+  - tekstura z płótna o boku będącym potęgą dwójki dostaje przy każdym `refresh()` powtarzanie, a wtedy na jej brzegu widać cienką linię przeciwnego brzegu; dlatego kawałki ziemi mają 250 px, a arkusze skał 1000 px;
+  - `ScaleManager` przy zoomie 1 nie ustawia rozmiaru płótna w CSS, a `CameraManager` przy zmianie rozmiaru dopasowuje tylko kamery domyślnego rozmiaru (stąd `fitScreenCamera` i ręczne CSS w `src/main.ts`);
+  - `renderer.addBlendMode` w 4.2.1 zwraca numer o jeden za mały; numer nowego trybu to długość `renderer.blendModes` sprzed dodania (`src/scenes/mapLight.ts`);
   - zdarzenia klawiszy z kolejki wracają w tej samej klatce, dlatego używać `onKeyDown` z `src/ui/keys.ts`;
   - interaktywne obiekty w przebudowywanym kontenerze czasem nie łapią tapnięć (dlatego karty głów są zwykłymi obiektami);
   - nie kłaść interaktywnych pasków pod przyciskami.
@@ -143,6 +155,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 ## 4. Otwarte pytania
 
 **Czekają na Piotra:**
+0. Porównanie mapy w HD (`?hd=1`) z obecną i uwagi do niej (etap „Wygląd mapy”).
 1. Wrażenia z playtestu M2b: mapa, kapliczki, leże, nowe biomy.
 2. Nowa tekstura soli do Salt Mines (Piotr wybrał nowy obrazek, prompt już przyciemniony). Malowane portrety głów już są (sekcja 3.2).
 3. Okładka gry przyszła w projekcie Hydra 2026-10-04. Do repo (`art/raw/key_art.png`) trafi przy propozycji palety.
@@ -167,6 +180,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 
 ## 5. Znane problemy i braki
 
+- HD (`?hd=1`) na razie zmienia tylko mapę: bitwa, HUD, panele i ekran tytułowy są w HD ostre, ale wyglądają jak dotąd. Klasyczna mapa zostaje bez zmian do końca etapu. Malowanie przy ruchu na telefonie niezmierzone.
 - Grafika z GPT jest na terenie (mapa i bitwa), tułowiu i głowach hydry. Reszta jest jeszcze zastępcza, rysowana w kodzie: ludzie Zakonu, obiekty i hydra na mapie, ekran tytułowy.
 - M2c: modyfikatory i „świat dnia” tylko z URL (świat dnia odłożony decyzją z 2026-10-04). Prąd Undertow nie jest narysowany na wodzie. Old Crypts bez własnego miejsca. Zewnętrzny brzeg świata przy płaskich bokach mapy idzie po jej sześciokącie. Wydajność na telefonie niezmierzona (1261 heksów rysowanych naraz). Ok. 1% światów losuje się drugi raz, bo w pierwszym pierścieniu zabrakło kapliczki.
 - Nie ma zapisu gry: odświeżenie strony zaczyna run od nowa. `CLAUDE.md` wymaga zapisu w localStorage z numerem wersji formatu, w planie jest w M6.
@@ -183,6 +197,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 
 ## 6. Następne kroki
 
+0. Etap „Wygląd mapy”: poprawki mapy w HD według uwag Piotra, potem bitwa i interfejs w HD, potem HD jedynym trybem.
 1. Poczekać na odpowiedzi Piotra (sekcja 4).
 2. Pierwsza partia jest w grze. Dalej z `docs/ANIMATIONS.md` (stan „do zrobienia”): oddech i drgnięcie tułowia, ścięcie głowy. Kolejne grafiki: ludzie Zakonu, obiekty i hydra na mapie, tło tytułu (prompty trzeba dopisać do `docs/ART_PROMPTS.md`).
 3. Głowy i tułów w stylu okładki (sekcja 3.2, „Pixelowe głowy i nowy tułów”): czekamy na próbę od Piotra (tułów i Biter; kolor hydry ustalony: brąz z okładki). Przy imporcie próby: propozycja palety (próbnik i okładka w palecie), po akceptacji zapis w repo, potem prompty na pozostałe osiem głów.
