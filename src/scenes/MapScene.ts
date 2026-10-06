@@ -57,6 +57,11 @@ const STANDING_OPEN_THRESHOLDS: readonly string[] = ['oldWorkings'];
 // Ground lies flat at the bottom; everything that stands up is sorted by how low on the screen it stands.
 // In HD a faint copy of the reach line lies over all of it, and the light over that, under the glows.
 const DEPTH = { ground: 0, shadow: 1, darkness: 2, decal: 4, mark: 5, standing: 10, reachOver: 20, light: 29, glow: 30, fogEdge: 35, hint: 40 } as const;
+/**
+ * The hydra is sorted as if its feet were this much further forward, so it stands over everything on its own hex
+ * (the rim of its lair's pool is 6 px in front of its feet) but still behind the next row (MAP_ROW_HEIGHT further).
+ */
+const TOKEN_IN_FRONT = 7;
 
 /**
  * HD: the line around everywhere the hydra can go. Corners rounded this many times; a soft glow under a thin line
@@ -379,7 +384,11 @@ export class MapScene extends Phaser.Scene {
     // A closed threshold fills its hex, so it has no shadow of its own.
     if (this.hd && object.kind !== 'threshold') view.objectShadow = this.contactShadow(x, feet, view.object.width);
     const light = (tint: string, scale: number, alpha: number, height: number) => view.objectGlows.push(this.glow(x, feet - height, tint, scale, alpha, feet));
-    if (object.kind === 'lair') light(palette.underground.bioluminescence, 1.3, 0.45, 9);
+    if (object.kind === 'lair') {
+      // The pool glows on the ground round it, under the hydra sitting in it, so the hydra keeps its own colours.
+      light(palette.underground.bioluminescence, 1.3, 0.45, 9);
+      view.objectGlows.at(-1)?.image.setDepth(this.standingDepth(feet) + 0.0002);
+    }
     if (object.kind === 'shrine' && !object.used) light('#7fe0d6', 0.9, 0.55, 40);
     if (object.kind === 'moisture') light('#7fd0e0', object.rich ? 0.7 : 0.5, 0.45, 6);
     if (object.kind === 'passage') light('#d0e4dc', 0.8, 0.35, 8);
@@ -416,6 +425,10 @@ export class MapScene extends Phaser.Scene {
 
   private standingDepth(feetY: number): number {
     return DEPTH.standing + feetY / 1000;
+  }
+
+  private tokenDepth(feetY: number): number {
+    return this.standingDepth(feetY + TOKEN_IN_FRONT) + 0.0005;
   }
 
   // ------------------------------------------------------------ keeping it up to date
@@ -681,7 +694,7 @@ export class MapScene extends Phaser.Scene {
       targets: this.token,
       tweens: steps,
       onUpdate: () => {
-        this.token.setDepth(this.standingDepth(this.token.y) + 0.0005);
+        this.token.setDepth(this.tokenDepth(this.token.y));
         this.tokenShadow?.setPosition(this.token.x, this.token.y - 1);
         this.drawLights();
       },
@@ -714,7 +727,7 @@ export class MapScene extends Phaser.Scene {
 
   private placeToken(h: Hex): void {
     const { x, y } = this.tokenPosition(h);
-    this.token.setPosition(x, y).setDepth(this.standingDepth(y) + 0.0005);
+    this.token.setPosition(x, y).setDepth(this.tokenDepth(y));
     this.tokenShadow?.setPosition(x, y - 1);
   }
 
