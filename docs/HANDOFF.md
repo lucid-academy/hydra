@@ -84,7 +84,9 @@ Do tego czasu malowane portrety leżą w `art/concept/`, bo `npm run art` odrzuc
 - Szyje wychodzą z owalu wokół korony splotów (`NECK_RING` w `src/assets/battleArt.ts`), są grubsze i w brązie tułowia, z kremowym pasem brzucha po stronie, w którą patrzy głowa.
 - Bitwa bierze głowę klasy, gdy ta ma obrazek (na razie Biter); pozostałe klasy dalej mają szarą głowę barwioną kolorem klasy. Zawias żuchwy liczony osobno dla każdej żuchwy, w jednostkach ekranu (w HD wcześniej wychodził w pikselach obrazka, dwa razy za daleko). Żuchwa Bitera zachodzi na głowę o 11 zamiast 3 (`JAW_OVERLAP_BY_CLASS`), bo pod pyskiem wisi mech.
 - Mapa: hydra rysowana nad wszystkim na swoim heksie (przedni brzeg sadzawki leża zasłaniał jej sploty), a poświata leża leży pod nią, więc hydra zachowuje swoje kolory. Oddział pierwszego stopnia ma obrazek (22×36, wąski jak u GPT); silniejsze oddziały, Headhunter i Torchbearer dalej rysowane w kodzie.
-Nie zrobione z planu próby: propozycja palety z okładki i oddech tułowia.
+Nie zrobione z planu próby: oddech tułowia.
+
+**Paleta, 2026-10-06:** propozycja ze stroną porównania (https://claude.ai/artifact/4LEtNHLCxqqR2qd2Mn5s9P): 32 kolory z okładki (k-means w Lab, ważony nasyceniem, żeby złoto i oczy dostały własne kolory), 9 kolorów klas z §13 i 16 kolorów z naszych grafik. Sama okładka to ciepły zachód słońca, więc robiła podziemia brązowoszare, a rycerzom brała czerwone płaszcze; pełniejsza paleta zostawiała mapę prawie bez zmian, ale zdejmowała z głów kolory klas (próba na portretach: Strangler bez fioletu, Lantern bez niebieskiego). Piotr wybrał na karcie „Bez palety” (`GAME_DESIGN.md` §13): `art/palette.json` nie ma, kolory zostają jak z GPT. Do palety wracamy, gdy będą narysowane wszystkie głowy i Zakon.
 
 **Pierwsze grafiki mapy, 2026-10-05:** Piotr wrzucił przez GitHuba 24 obrazki mapy (12 dekoracji, 11 miejsc, leże) i głowę The Spare. Przyszły pod jego nazwami (`decor_*`, `landmark_*`, `site_*`, `map_lairSwamp_lair`), więc import czyta listę `art/aliases.json` (nazwa pliku → klucz), a pliki zostają, jakie są. Wycinanie tła zmienione: fiolet w postaci zostaje (grzyby, Mother Cap, grzybnia, Silent Bell znikały razem z magentą), znika tylko wyraźna magenta, magenta w cieniu i miękka krawędź (piksele, które są mieszanką tła i koloru postaci obok, oraz czerwonawa magenta przy ciepłych postaciach). Stare obrazki dają po imporcie to samo, poza przesunięciem siatki o piksel w portrecie Ropuchy. Brakuje jeszcze: `map_place_lostSurvey`, `map_place_hushedStair`, progi, kapliczka, Muck i źródła, szczątki, skarb. Głowa The Spare (zielona, komiczna, bez ślepego oka) przeczy §13 i portretowi; jest zaimportowana do swojego miejsca w manifeście, ale gra jej nie pokazuje (głowy klas wejdą z próbą Bitera); pytanie do Piotra na karcie.
 
@@ -117,10 +119,10 @@ Plan:
 2. **Skrypt `npm run art`** (biblioteka sharp, tylko jako narzędzie, do gry nie trafia):
    - wycina magentę z tolerancją, bo GPT nie trzyma idealnego koloru;
    - przycina i zmniejsza bez wygładzania: każdy piksel bierze najczęstszy kolor ze swojego bloku;
-   - sprowadza kolory do palety i zapisuje plik w `public/images/` z wpisem `file` w manifeście.
+   - zapisuje plik w `public/images/` z wpisem `file` w manifeście; kolory sprowadza do palety tylko wtedy, gdy jest `art/palette.json` (na razie jej nie ma, punkt 4).
    - Rozmiary bierze z manifestu (te same liczby co w `docs/ASSETS.md`). `art/raw/` tylko czyta.
 3. **Nazwy plików** w `art/raw/` to klucze z manifestu (np. `battle_body.png`). Kilka części na jednym obrazku (np. głowa i żuchwa) skrypt rozdziela po plamach na magencie.
-4. **Paleta:** ok. 32–48 kolorów w rampach (odcienie jednego koloru od ciemnego do jasnego), wyciągnięta z okładki. Do akceptacji Piotr dostaje próbnik i okładkę przerobioną na tę paletę. Obecne 9 kolorów z `src/data/palette.json` wchodzi do niej. Generować grafiki można przed ustaleniem palety: surowe pliki zostają, import da się powtórzyć.
+4. **Paleta:** na razie bez: kolory zostają jak z GPT (decyzja Piotra z 2026-10-06, `GAME_DESIGN.md` §13). Gdy do niej wrócimy (po wszystkich głowach i Zakonie), potrzebne są rampy dla każdego koloru klasy i dla zimnych kolorów podziemi, a nie same kolory okładki. Skrypt nakłada paletę z `art/palette.json`; surowe pliki zostają, więc import da się powtórzyć.
 5. **Teren z tekstur:**
    - tekstury są rysowane prosto z góry, skrypt spłaszcza je do kąta kamery;
    - gra przy starcie wycina z nich heksy z obwódką i ścianką, raz, a nie maską na żywo (wydajność na telefonie);
@@ -178,7 +180,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 0. Etap „Wygląd mapy”: uwagi do bitwy i napisów w HD (`?hd=1`, `?scene=battle&hd=1`). Krój Piotr wybrał na karcie 2026-10-06: „Księga” (z tym zgoda na OFL dla czcionek; wpisane w `GAME_DESIGN.md` §13 i `CLAUDE.md`, wdrożone).
 1. Wrażenia z playtestu M2b: mapa, kapliczki, leże, nowe biomy.
 2. Nowa tekstura soli do Salt Mines (Piotr wybrał nowy obrazek, prompt już przyciemniony). Malowane portrety głów już są (sekcja 3.2).
-3. Okładka gry przyszła w projekcie Hydra 2026-10-04. Do repo (`art/raw/key_art.png`) trafi przy propozycji palety.
+3. Okładka gry przyszła w projekcie Hydra 2026-10-04; kopia jest w plikach projektu (`hydra-grafika/wzory/okladka.png`). Do repo nie trafia, bo palety na razie nie ma (decyzja z 2026-10-06).
 4. Wrażenia z playtestu M2c: kształt świata, progi, miejsca, podpowiedzi (przeciągi, echa), modyfikatory.
 
 **Z `GAME_DESIGN.md` §16 (decyduje Piotr):**
@@ -219,7 +221,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 0. Etap „Wygląd mapy”: poprawki bitwy i napisów w HD według uwag Piotra, potem HD jedynym trybem (bez klasycznej ścieżki i obrazków 1×).
 1. Poczekać na odpowiedzi Piotra (sekcja 4).
 2. Dalej z `docs/ANIMATIONS.md` (stan „do zrobienia”): oddech i drgnięcie tułowia, ścięcie głowy. Kolejne grafiki: reszta Zakonu po uwagach do próby (Zakon jak rycerze z okładki, z herbem złotego płomienia zamiast lwa; wzór dla GPT: `hydra-grafika/wzory/zakon-z-okladki.png` w plikach projektu), przejście na powierzchnię, tło tytułu.
-3. Głowy i tułów w stylu okładki (sekcja 3.2, „Próba hydry i Zakonu w grze”): próba jest w grze od 2026-10-06, Piotr napisał „ok”. Prompty na pozostałe osiem głów, Headhuntera, Torchbearera i dwa większe oddziały są w `docs/ART_PROMPTS.md` od 2026-10-06, a ich wzory (portrety, pixelowy tułów, Biter, Man-at-Arms, oddział) w plikach projektu, `hydra-grafika/wzory/`; w manifeście są już miejsca na głowy. Przy imporcie: rozmiar głowy w manifeście z obrazka, `JAW_OVERLAP_BY_CLASS` z linii pyska, `TORCH_FLAME` z płomienia Torchbearera. Dalej: propozycja palety z okładki (próbnik, okładka i próba w palecie), po akceptacji zapis w `art/palette.json`.
+3. Głowy i tułów w stylu okładki (sekcja 3.2, „Próba hydry i Zakonu w grze”): próba jest w grze od 2026-10-06, Piotr napisał „ok”. Prompty na pozostałe osiem głów, Headhuntera, Torchbearera i dwa większe oddziały są w `docs/ART_PROMPTS.md` od 2026-10-06, a ich wzory (portrety, pixelowy tułów, Biter, Man-at-Arms, oddział) w plikach projektu, `hydra-grafika/wzory/`; w manifeście są już miejsca na głowy. Przy imporcie: rozmiar głowy w manifeście z obrazka, `JAW_OVERLAP_BY_CLASS` z linii pyska, `TORCH_FLAME` z płomienia Torchbearera. Palety na razie nie ma (decyzja z 2026-10-06, sekcja 3.2).
 4. Gdy Piotr napisze, że wrzucił grafiki: `git pull`, `npm run art`, obejrzeć wynik w grze, wdrożyć, pokazać.
 5. Zatwierdzone decyzje od razu wpisywać do `GAME_DESIGN.md`, a budować w swoim etapie.
 6. Po playteście M2c: poprawki według uwag Piotra, potem plan M5 (dialogi) i dalej kolejność z `GAME_DESIGN.md` §15.

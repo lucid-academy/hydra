@@ -81,8 +81,8 @@ Zasady:
 ## Grafika z GPT
 
 - `art/raw/`: surowe obrazki od Piotra (z GPT, później z PixelLab). Oryginałów nigdy nie nadpisuj ani nie edytuj, skrypt tylko z nich czyta.
-- Skrypt importu: wycina jednolite tło magenta `#FF00FF`, przycina, zmniejsza do rozmiaru z `docs/ASSETS.md` bez wygładzania, sprowadza kolory do palety gry i zapisuje gotowy plik tam, gdzie wskazuje manifest. Obsługuje pojedyncze obrazki, sprite sheety i osobne klatki PNG.
-- Paleta gry pochodzi z okładki (key art), którą Piotr wrzuca do `art/raw/`. Dopóki nie ma zatwierdzonej palety, zaproponuj ją na podstawie okładki.
+- Skrypt importu: wycina jednolite tło magenta `#FF00FF`, przycina, zmniejsza do rozmiaru z `docs/ASSETS.md` bez wygładzania i zapisuje gotowy plik tam, gdzie wskazuje manifest. Obsługuje pojedyncze obrazki, sprite sheety i osobne klatki PNG.
+- Kolory grafik zostają takie, jak je narysował GPT, bez sprowadzania do stałej palety (decyzja Piotra z 2026-10-06, `GAME_DESIGN.md` §13). Kolorystykę okładki niesie blok stylu w promptach. Do palety wracamy, gdy będą narysowane wszystkie głowy i Zakon; skrypt nałoży ją sam, gdy powstanie `art/palette.json`.
 - Jeden kąt kamery dla całego świata gry (mapa, bitwa, jednostki), zapisany w stałym bloku stylu w `docs/ART_PROMPTS.md`.
 - Teren heksów powstaje z kwadratowych, powtarzalnych tekstur, które gra przycina do kształtu heksa. GPT nie umie rysować heksów, więc nie zamawiaj u niego heksów.
 - `docs/ART_PROMPTS.md`: gotowe prompty do GPT po angielsku. Każdy zaczyna się od tego samego stałego bloku stylu (kąt kamery, paleta, pixel art, tło magenta).

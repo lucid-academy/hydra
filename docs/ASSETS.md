@@ -17,7 +17,7 @@ How `npm run art` treats each kind of image (`scripts/artImport.ts`):
 - **Tinted images** (heads, mist, marks) are turned grey, the brightest part white.
 - **Shrinking** gives each game pixel the most common colour of the block of pixels it covers, so no blurred colours appear.
 - **Animations:** frames as `art/raw/<key>_frame1.png`, `_frame2.png`... (or several figures side by side on one picture when the manifest entry has `"frames"`), cut with one common box and saved as a strip; `"frames"` in the manifest says how many.
-- **Palette:** when `art/palette.json` exists (`{"colors": ["#rrggbb", ...]}`), every colour is replaced by the nearest palette colour.
+- **Palette:** when `art/palette.json` exists (`{"colors": ["#rrggbb", ...]}`), every colour is replaced by the nearest palette colour. There is none for now: colours stay as drawn (Piotr's decision of 2026-10-06, `GAME_DESIGN.md` §13).
 
 General rules for all graphics (use them in every image-generator prompt):
 
