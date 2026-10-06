@@ -108,10 +108,10 @@ export class HeadCards {
       const bg = this.scene.add.rectangle(x, top, this.cardWidth, CARD_HEIGHT, 0x0b1112, 0.95).setOrigin(0, 0).setInteractive({ useHandCursor: true });
       bg.on('pointerup', (pointer: Phaser.Input.Pointer) => this.onSelect(head.id, wantsToAdd(pointer)));
       const stripe = this.scene.add.rectangle(x, top, 3, CARD_HEIGHT, classColor).setOrigin(0, 0);
-      const name = this.scene.add.text(x + 5, top + 2, `${i + 1} ${head.name}`, { fontFamily: FONT.text, fontSize: '9px', color: '#e8f0e0', fixedWidth: textWidth });
-      const cls = this.scene.add.text(x + 5, top + 13, this.style.classNames[head.classId] ?? head.classId, {
+      const name = this.scene.add.text(x + 5, top + 2, `${i + 1} ${head.name}`, { fontFamily: FONT.text, fontSize: '10px', color: '#e8f0e0', fixedWidth: textWidth });
+      const cls = this.scene.add.text(x + 5, top + 14, this.style.classNames[head.classId] ?? head.classId, {
         fontFamily: FONT.text,
-        fontSize: '8px',
+        fontSize: '9px',
         color: '#9fb0a0',
         fixedWidth: textWidth,
       });

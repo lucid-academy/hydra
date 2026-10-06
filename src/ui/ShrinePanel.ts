@@ -13,6 +13,7 @@ type EffectName = (typeof BLESSING_EFFECTS)[number];
 
 const WIDTH = 360;
 const HEIGHT = 176;
+const BUTTON_HEIGHT = 22;
 
 export class ShrinePanel {
   private readonly container: Phaser.GameObjects.Container;
@@ -73,9 +74,16 @@ export class ShrinePanel {
       x += t.width + gap;
     }
 
-    const style = { width: 110, height: 22, fill: color(palette.underground.deepTeal), border: color(palette.underground.bioluminescence), textColor: '#ffffff', fontSize: '11px' };
-    const accept = new Button(this.scene, -62, HEIGHT / 2 - 20, text.shrine.acceptButton, style, () => this.onAccept());
-    const refuse = new Button(this.scene, 62, HEIGHT / 2 - 20, text.shrine.refuseButton, { ...style, fill: 0x1a1f20, border: 0x5a6a6a }, () => this.onRefuse());
+    // The buttons stay where they are; what is written sits in the middle of the space above them.
+    const buttonsY = HEIGHT / 2 - 20;
+    const written = [title, name, words, ...effects];
+    const writtenBottom = Math.max(...written.map((t) => t.y + t.height));
+    const spare = buttonsY - BUTTON_HEIGHT / 2 - 10 - writtenBottom;
+    if (spare > 0) for (const t of written) t.setY(Math.round(t.y + spare / 2));
+
+    const style = { width: 110, height: BUTTON_HEIGHT, fill: color(palette.underground.deepTeal), border: color(palette.underground.bioluminescence), textColor: '#ffffff', fontSize: '11px' };
+    const accept = new Button(this.scene, -62, buttonsY, text.shrine.acceptButton, style, () => this.onAccept());
+    const refuse = new Button(this.scene, 62, buttonsY, text.shrine.refuseButton, { ...style, fill: 0x1a1f20, border: 0x5a6a6a }, () => this.onRefuse());
     this.container.add([dim, box, title, name, words, ...effects, accept, refuse]);
   }
 }

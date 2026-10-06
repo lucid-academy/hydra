@@ -440,7 +440,7 @@ export class BattleScene extends Phaser.Scene {
       width - 40,
       ARENA_TOP / 2,
       text.battle.selectAllButton,
-      { ...buttonStyle, width: 74, height: 13, fontSize: '9px' },
+      { ...buttonStyle, width: 74, height: 13, fontSize: '10px' },
       () => this.selectAllHeads(),
     );
     for (const b of [this.pauseButton, this.speedButton, allHeads]) b.setDepth(DEPTH.ui + 2);
