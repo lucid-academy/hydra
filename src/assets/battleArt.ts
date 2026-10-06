@@ -15,6 +15,12 @@ export const BODY_FOOT = { x: 66, y: 66 };
 export const FEET_BELOW_HEX_CENTER = 5;
 
 /**
+ * The flame of a soldier's torch (battle_enemy_torchbearer), from the bottom middle of the image: this far towards the
+ * way the soldier faces (the image faces right) and this far up. The light of the torch shines from here.
+ */
+export const TORCH_FLAME = { x: 10, y: 32 };
+
+/**
  * The lower jaw (battle_head_jaw) hangs under the head image, both centred on the same point: its top edge overlaps
  * the head's bottom edge by this many pixels. 3 closes the mouth of the first GPT head: the teeth interlock.
  */

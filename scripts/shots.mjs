@@ -118,6 +118,14 @@ const SHOTS = [
   { name: 'hd-battle-start', query: '?seed=123&scene=battle&group=burningDetail&hd=1', viewport: DESKTOP, scene: 'battle', act: async (page) => {
     await page.keyboard.press('1');
   } },
+  { name: 'hd-battle-fight', query: '?seed=123&scene=battle&group=burningDetail&hd=1', viewport: DESKTOP, scene: 'battle', act: async (page) => {
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(12_000);
+  } },
+  { name: 'hd-battle-phone-landscape', query: '?seed=123&scene=battle&group=patrol&hd=1', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'battle', act: async (page) => {
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(8_000);
+  } },
 ];
 
 const OUT_DIR = 'docs/screens';

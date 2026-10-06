@@ -234,6 +234,8 @@ Two parts, one under the other:
 - **Top face (upper 36 px):** a pointy-top hex squashed vertically: top point at (21, 0), straight sides at x=0 and x=41 from y=9 to y=27, bottom point at (21, 35). Keep it quiet and low-contrast (soldiers, heads and HP bars are drawn on top) with a 1 px darker rim, so neighbouring hexes read as separate fields.
 - **Wall (lower 10 px):** earth under the two lower edges of the hex, as if the board were a thick slab: darker on the left half, a little lighter on the right, a few darker horizontal layers. Only the front row of the board shows its walls; the next row covers the rest.
 
+**In HD** (`?hd=1`) the battle board has no tiles when its ground has a texture: the whole board is painted from the texture as one surface, walls along the front edge (`paintBoard` in `src/assets/terrain.ts`), with a faint line along the sides of the hexes. The line round a head's reach, the rings round targets, the light, the torch glow and the soft shadows are made in code and are not art to replace.
+
 The ground should match the biome's map ground (see map_ground_*), only larger: swamp mud, wet stone, dark soil with roots, spongy fungal ground; the water tiles are murky still water in the biome's tint.
 
 Prompt sketch: *"Pixel art game tile, 42x46 pixels, transparent background. A pointy-top hexagon floor tile seen from a slanted top-down angle (squashed vertically, 42 wide and 36 tall), [dark olive swamp mud / wet grey-green stone / dark soil with roots / purplish spongy fungal ground / murky still water], subtle detail and a 1 px darker rim; below its two lower edges a 10 px thick earth side wall, darker on the left, slightly lighter on the right, like a board game slab. Hard pixels, no anti-aliasing, dark fantasy underground."*
@@ -298,7 +300,7 @@ People of the Order of the Eternal Flame, standing, seen from the side and a lit
 
 - **battle_enemy_manAtArms:** banner-red tabard with a small gold flame, steel helmet with a visor, a sword held upright.
 - **battle_enemy_headhunter:** dark blood-red, broader build, a big axe.
-- **battle_enemy_torchbearer:** a lay brother in a brown habit, tonsured head, no helmet, carrying a burning torch: the only bright, warm flame on the board.
+- **battle_enemy_torchbearer:** a lay brother in a brown habit, tonsured head, no helmet, carrying a burning torch: the only bright, warm flame on the board. The middle of the flame is **10 px right of and 32 px above the feet** (in the HD picture 20 and 64 px; `TORCH_FLAME` in `src/assets/battleArt.ts`): in HD the torch's light and glow shine from there.
 
 A new enemy type needs an image with the key `battle_enemy_<type id from enemies.json>`; without one, the game shows the Man-at-Arms.
 
@@ -333,7 +335,7 @@ Since 2026-10-04 dialogue portraits are painted (GAME_DESIGN.md §13). This pixe
 
 ## battle_mist_puff
 
-20×11 px, anchor centre. A small puff of mist: solid middle breaking up into scattered pixels at the edge, **white**. The game tints it pale greenish grey (or yellow-green when the Mist turns to Acid Fog) and floats a few of them over each misty hex. Can stay a code placeholder.
+20×11 px, anchor centre. A small puff of mist: solid middle breaking up into scattered pixels at the edge, **white**. The game tints it pale greenish grey (or yellow-green when the Mist turns to Acid Fog) and floats a few of them over each misty hex. Can stay a code placeholder; in HD, without a file, the game floats soft puffs made in code instead.
 
 ## battle_shadow, battle_hex_mark, battle_hex_fill
 
@@ -342,3 +344,5 @@ Helpers that can stay code placeholders:
 - **battle_shadow** (22×7): a plain oval, drawn black and half see-through under each soldier's feet.
 - **battle_hex_mark** (42×36): the outline of a squashed hex in white, tinted by the game to show a head's reach, targets and where the body is going.
 - **battle_hex_fill** (42×36): the same hex filled white, tinted pale for Mist over a hex.
+
+In HD the game draws soft shadows, lines and soft Mist patches in code instead, so these three are only for the classic game.
