@@ -6,6 +6,7 @@ import type { GameData } from '../data';
 import type { BLESSING_EFFECTS } from '../data/schemas';
 import { color } from '../scenes/context';
 import { Button } from './Button';
+import { FONT } from './fonts';
 import { SCREEN } from '../scaling';
 
 type EffectName = (typeof BLESSING_EFFECTS)[number];
@@ -47,10 +48,10 @@ export class ShrinePanel {
     const dim = this.scene.add.rectangle(0, 0, width, height, 0x000000, 0.55).setInteractive();
     const box = this.scene.add.rectangle(0, 0, WIDTH, HEIGHT, color(palette.underground.black), 0.96).setStrokeStyle(1, 0x7fe0d6);
     const top = -HEIGHT / 2;
-    const title = this.scene.add.text(0, top + 8, text.shrine.title, { fontFamily: 'Georgia, serif', fontSize: '10px', color: palette.order.gold }).setOrigin(0.5, 0);
-    const name = this.scene.add.text(0, top + 22, blessing.name, { fontFamily: 'Georgia, serif', fontSize: '15px', color: '#e8e0d0' }).setOrigin(0.5, 0);
+    const title = this.scene.add.text(0, top + 8, text.shrine.title, { fontFamily: FONT.title, fontSize: '10px', color: palette.order.gold }).setOrigin(0.5, 0);
+    const name = this.scene.add.text(0, top + 22, blessing.name, { fontFamily: FONT.title, fontSize: '15px', color: '#e8e0d0' }).setOrigin(0.5, 0);
     const words = this.scene.add
-      .text(0, top + 44, blessing.text, { fontFamily: 'Georgia, serif', fontSize: '10px', color: '#c8c0b0', align: 'center', wordWrap: { width: WIDTH - 30 } })
+      .text(0, top + 44, blessing.text, { fontFamily: FONT.story, fontSize: '10px', color: '#c8c0b0', align: 'center', wordWrap: { width: WIDTH - 30 } })
       .setOrigin(0.5, 0);
 
     // What it changes, side by side and centred.
@@ -59,7 +60,7 @@ export class ShrinePanel {
       const good = effect === 'alert' ? n < 0 : n > 0;
       return this.scene.add
         .text(0, words.y + words.height + 14, text.shrine.effects[effect].replace('{n}', signed), {
-          fontFamily: 'monospace',
+          fontFamily: FONT.text,
           fontSize: '10px',
           color: good ? palette.underground.bioluminescence : palette.order.orange,
         })

@@ -1,6 +1,7 @@
 // A simple tappable text button, sized for fingers as well as the mouse.
 
 import * as Phaser from 'phaser';
+import { FONT } from './fonts';
 
 export interface ButtonStyle {
   width: number;
@@ -23,7 +24,7 @@ export class Button extends Phaser.GameObjects.Container {
       .setStrokeStyle(1, style.border)
       .setInteractive({ useHandCursor: true });
     this.label = scene.add
-      .text(0, 0, text, { fontFamily: 'monospace', fontSize: style.fontSize ?? '11px', color: style.textColor })
+      .text(0, 0, text, { fontFamily: FONT.text, fontSize: style.fontSize ?? '11px', color: style.textColor })
       .setOrigin(0.5);
     this.add([this.background, this.label]);
     this.setSize(style.width, style.height);

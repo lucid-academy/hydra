@@ -162,7 +162,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 ## 4. Otwarte pytania
 
 **Czekają na Piotra:**
-0. Porównanie mapy w HD (`?hd=1`) z obecną i uwagi do niej (etap „Wygląd mapy”).
+0. Etap „Wygląd mapy”: uwagi do bitwy w HD (`?scene=battle&hd=1`) i wybór czcionki interfejsu na karcie z 2026-10-06: Księga (IM Fell English SC na tytuły, Alegreya na dłuższe teksty, Alegreya Sans na resztę; polecana), Piksel (Pixelify Sans), Gotyk (Jacquard 24 i Pixelify Sans) albo Systemowa. Próbki na stronie „Hydra w HD” (link w wątku „Repo i potok grafiki”). Kroje są na licencji OFL, a `CLAUDE.md` dopuszcza dotąd tylko gotowe paczki CC0, więc wybór kroju to też zgoda na OFL dla czcionek: wtedy dopisać to do `CLAUDE.md`, a pliki licencji i źródła do `CREDITS.md`. Kroje gry są zebrane w `src/ui/fonts.ts`.
 1. Wrażenia z playtestu M2b: mapa, kapliczki, leże, nowe biomy.
 2. Nowa tekstura soli do Salt Mines (Piotr wybrał nowy obrazek, prompt już przyciemniony). Malowane portrety głów już są (sekcja 3.2).
 3. Okładka gry przyszła w projekcie Hydra 2026-10-04. Do repo (`art/raw/key_art.png`) trafi przy propozycji palety.

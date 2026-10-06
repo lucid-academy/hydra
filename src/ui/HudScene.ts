@@ -10,6 +10,7 @@ import type { RunController } from '../scenes/RunController';
 import { SceneKey } from '../scenes/sceneKeys';
 import { fitScreenCamera } from '../scenes/view';
 import { hexKey } from '../sim/hex';
+import { FONT } from './fonts';
 import type { Hex } from '../sim/hex';
 import type { Loot } from '../sim/map';
 import { canDoPlaceAction, canWorkThreshold, pendingPlaceTile, pendingThreshold } from '../sim/turn';
@@ -58,7 +59,7 @@ export class HudScene extends Phaser.Scene {
     fitScreenCamera(this);
     const { palette, text } = getContext(this).data;
     const { width, height } = SCREEN;
-    const mono = { fontFamily: 'monospace', fontSize: '10px' };
+    const mono = { fontFamily: FONT.text, fontSize: '10px' };
 
     // Top bar. Interactive, so taps on it don't reach the map below.
     this.add.rectangle(0, 0, width, BAR_HEIGHT, color(palette.underground.black), 0.85).setOrigin(0, 0).setInteractive();
@@ -227,7 +228,7 @@ export class HudScene extends Phaser.Scene {
     const last = this.toasts[this.toasts.length - 1];
     const label = this.add
       .text(width / 2, last ? last.y + last.height + 2 : BAR_HEIGHT + 6, message, {
-        fontFamily: 'monospace',
+        fontFamily: FONT.text,
         fontSize: '10px',
         color: textColor,
         backgroundColor: '#05090acc',
@@ -264,10 +265,10 @@ export class HudScene extends Phaser.Scene {
     const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setInteractive();
     const box = this.add.rectangle(0, 0, 300, 120, color(palette.underground.black)).setStrokeStyle(1, color(palette.order.bannerRed));
     const title = this.add
-      .text(0, -32, text.gameOver.title, { fontFamily: 'Georgia, serif', fontSize: '16px', color: palette.order.fire })
+      .text(0, -32, text.gameOver.title, { fontFamily: FONT.title, fontSize: '16px', color: palette.order.fire })
       .setOrigin(0.5);
     const body = this.add
-      .text(0, -6, text.gameOver.body, { fontFamily: 'Georgia, serif', fontSize: '11px', color: '#e8e0d0', align: 'center', wordWrap: { width: 270 } })
+      .text(0, -6, text.gameOver.body, { fontFamily: FONT.story, fontSize: '11px', color: '#e8e0d0', align: 'center', wordWrap: { width: 270 } })
       .setOrigin(0.5);
     const again = new Button(
       this,

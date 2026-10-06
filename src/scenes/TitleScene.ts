@@ -4,6 +4,7 @@ import { SceneKey } from './sceneKeys';
 import { fitScreenCamera } from './view';
 import { SCREEN } from '../scaling';
 import { markReady } from '../testHooks';
+import { FONT } from '../ui/fonts';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -20,7 +21,7 @@ export class TitleScene extends Phaser.Scene {
 
     this.add
       .text(width / 2, 70, text.title.gameTitle, {
-        fontFamily: 'Georgia, serif',
+        fontFamily: FONT.title,
         fontSize: '56px',
         fontStyle: 'bold',
         color: palette.underground.bioluminescence,
@@ -31,7 +32,7 @@ export class TitleScene extends Phaser.Scene {
 
     this.add
       .text(width / 2, 116, text.title.subtitle, {
-        fontFamily: 'Georgia, serif',
+        fontFamily: FONT.story,
         fontSize: '12px',
         fontStyle: 'italic',
         color: palette.mist,
@@ -40,7 +41,7 @@ export class TitleScene extends Phaser.Scene {
 
     const prompt = this.add
       .text(width / 2, height - 40, text.title.pressToStart, {
-        fontFamily: 'monospace',
+        fontFamily: FONT.text,
         fontSize: '12px',
         color: palette.order.gold,
         backgroundColor: palette.underground.black,

@@ -6,6 +6,7 @@ import type * as Phaser from 'phaser';
 import type { GameData } from '../data';
 import { color } from '../scenes/context';
 import { Button } from './Button';
+import { FONT } from './fonts';
 import { SCREEN } from '../scaling';
 
 export interface PlacePanelAction {
@@ -74,19 +75,18 @@ export class PlacePanel {
     const { width, height } = SCREEN;
     const { add } = this.scene;
     this.container.removeAll(true);
-    const serif = 'Georgia, serif';
 
     // Laid out top to bottom first; the box is sized to fit and everything is then moved to centre it.
     const parts: Phaser.GameObjects.GameObject[] = [];
     let y = 8;
-    const line = (text: string, size: number, fill: string, gapAfter: number): Phaser.GameObjects.Text => {
-      const t = add.text(0, y, text, { fontFamily: serif, fontSize: `${size}px`, color: fill, align: 'center', wordWrap: { width: WIDTH - 30 } }).setOrigin(0.5, 0);
+    const line = (text: string, size: number, fill: string, gapAfter: number, font: string = FONT.story): Phaser.GameObjects.Text => {
+      const t = add.text(0, y, text, { fontFamily: font, fontSize: `${size}px`, color: fill, align: 'center', wordWrap: { width: WIDTH - 30 } }).setOrigin(0.5, 0);
       parts.push(t);
       y += t.height + gapAfter;
       return t;
     };
-    line(view.kind, 10, palette.order.gold, 2);
-    line(view.name, 15, '#e8e0d0', 6);
+    line(view.kind, 10, palette.order.gold, 2, FONT.title);
+    line(view.name, 15, '#e8e0d0', 6, FONT.title);
     line(view.text, 10, '#c8c0b0', 6);
     if (view.status) line(view.status, 10, '#d8d0c0', 4);
     if (view.result) line(view.result, 10, palette.underground.bioluminescence, 6);
@@ -99,7 +99,7 @@ export class PlacePanel {
       actionButtons.push(button);
       y += ACTION.height + ACTION.gap;
       if (action.why) {
-        const why = add.text(0, y - 2, action.why, { fontFamily: 'monospace', fontSize: '9px', color: palette.order.orange }).setOrigin(0.5, 0);
+        const why = add.text(0, y - 2, action.why, { fontFamily: FONT.text, fontSize: '9px', color: palette.order.orange }).setOrigin(0.5, 0);
         parts.push(why);
         y += why.height + ACTION.gap;
       }

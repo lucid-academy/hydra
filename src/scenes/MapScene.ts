@@ -27,6 +27,7 @@ import { getRun, startNewRun } from './RunController';
 import type { RunController } from './RunController';
 import { SceneKey } from './sceneKeys';
 import { pageScale, pinnedToScreen, viewScale } from './view';
+import { FONT } from '../ui/fonts';
 
 const LAYOUT: HexLayout = { columnWidth: MAP_COLUMN_WIDTH, rowHeight: MAP_ROW_HEIGHT, originX: 0, originY: 0 };
 const WORLD_MARGIN = 60;
@@ -636,7 +637,7 @@ export class MapScene extends Phaser.Scene {
     // Low on the screen, clear of the HUD's messages at the top.
     const at = pinnedToScreen(this, SCREEN.width / 2, SCREEN.height - 64);
     const label = this.add
-      .text(at.x, at.y, name, { fontFamily: 'Georgia, serif', fontSize: '15px', color: '#e8e0d0', backgroundColor: '#05090acc', padding: { x: 8, y: 3 } })
+      .text(at.x, at.y, name, { fontFamily: FONT.title, fontSize: '15px', color: '#e8e0d0', backgroundColor: '#05090acc', padding: { x: 8, y: 3 } })
       .setOrigin(0.5, 0)
       .setScale(at.scale)
       .setScrollFactor(0)

@@ -19,6 +19,7 @@ import type { Hex, HexLayout } from '../sim/hex';
 import { exposeBattleSummary, markReady } from '../testHooks';
 import { Button } from '../ui/Button';
 import { HeadCards } from '../ui/HeadCards';
+import { FONT } from '../ui/fonts';
 import { onKeyDown, wantsToAdd } from '../ui/keys';
 import { color, getContext } from './context';
 import { getRun, startNewRun } from './RunController';
@@ -381,10 +382,10 @@ export class BattleScene extends Phaser.Scene {
     // The bars above and below the board are not interactive: the board's own tap area ends where they begin,
     // and an interactive bar could be counted as lying on top of the buttons and cards drawn on it.
     this.add.rectangle(0, 0, width, ARENA_TOP, color(palette.underground.black), 0.9).setOrigin(0, 0).setDepth(DEPTH.ui);
-    this.bodyHpText = this.add.text(6, 3, '', { fontFamily: 'monospace', fontSize: '10px', color: '#d8e4d0' }).setDepth(DEPTH.ui + 1);
+    this.bodyHpText = this.add.text(6, 3, '', { fontFamily: FONT.text, fontSize: '10px', color: '#d8e4d0' }).setDepth(DEPTH.ui + 1);
     // Paused = the word in the top bar plus a gold frame around the board area, so nothing on the board is covered.
     this.pausedText = this.add
-      .text(width / 2, 3, text.battle.paused, { fontFamily: 'monospace', fontSize: '10px', color: palette.order.gold })
+      .text(width / 2, 3, text.battle.paused, { fontFamily: FONT.text, fontSize: '10px', color: palette.order.gold })
       .setOrigin(0.5, 0)
       .setDepth(DEPTH.ui + 1);
     this.pausedFrame = this.add.graphics().setDepth(DEPTH.ui - 1);
@@ -394,7 +395,7 @@ export class BattleScene extends Phaser.Scene {
     // How to play, shown until the battle is started. It lies over the front wall of the board, where it covers nobody.
     this.hintText = this.add
       .text(width / 2, PANEL_TOP - 1, text.battle.hintSelectHead, {
-        fontFamily: 'monospace',
+        fontFamily: FONT.text,
         fontSize: '10px',
         color: '#e8f0e0',
         backgroundColor: '#000000bb',
@@ -1064,7 +1065,7 @@ export class BattleScene extends Phaser.Scene {
   private floatText(at: Point, message: string, textColor: string, fontSize = '10px'): void {
     const label = this.add
       .text(Math.round(at.x), Math.round(at.y), message, {
-        fontFamily: 'monospace',
+        fontFamily: FONT.callout,
         fontSize,
         color: textColor,
         backgroundColor: '#000000aa',
@@ -1090,7 +1091,7 @@ export class BattleScene extends Phaser.Scene {
     const box = this.add.rectangle(0, 0, 300, 90, color(palette.underground.black), 0.95).setStrokeStyle(1, color(won ? palette.underground.bioluminescence : palette.order.bannerRed));
     const title = this.add
       .text(0, -22, won ? text.battle.victoryTitle : text.battle.defeatTitle, {
-        fontFamily: 'Georgia, serif',
+        fontFamily: FONT.title,
         fontSize: '13px',
         color: won ? '#e8f0e0' : palette.order.fire,
         align: 'center',
