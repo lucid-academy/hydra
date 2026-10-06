@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { hexOutlines, roundCorners } from '../src/scenes/hexOutline';
-import { hex, hexNeighbors } from '../src/sim/hex';
+import { hexEdges, hexOutlines, roundCorners } from '../src/scenes/hexOutline';
+import { hex, hexesInRange, hexNeighbors } from '../src/sim/hex';
 
 const LAYOUT = { columnWidth: 30, rowHeight: 18, originX: 0, originY: 0 };
 const sorted = (points: Array<{ x: number; y: number }>) => points.map((p) => `${p.x},${p.y}`).sort();
@@ -69,5 +69,21 @@ describe('rounding corners', () => {
       expect(p.y).toBeGreaterThanOrEqual(0);
       expect(p.y).toBeLessThanOrEqual(8);
     }
+  });
+});
+
+describe('the sides of a group of hexes', () => {
+  const key = ([a, b]: [{ x: number; y: number }, { x: number; y: number }]) => [`${a.x},${a.y}`, `${b.x},${b.y}`].sort().join(' ');
+
+  it('gives every side of a single hex', () => {
+    expect(hexEdges([hex(0, 0)], LAYOUT)).toHaveLength(6);
+  });
+
+  it('gives a side two hexes share only once', () => {
+    expect(hexEdges([hex(0, 0), hex(1, 0)], LAYOUT)).toHaveLength(11);
+    // A hex and its six neighbours: 42 sides, 12 of them shared.
+    const edges = hexEdges(hexesInRange(hex(0, 0), 1), LAYOUT);
+    expect(edges).toHaveLength(30);
+    expect(new Set(edges.map(key)).size).toBe(30);
   });
 });

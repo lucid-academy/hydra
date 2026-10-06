@@ -93,6 +93,49 @@ export function cutTile(faceTexture: Pixels, wallTexture: Pixels, shape: TileSha
   return out;
 }
 
+/**
+ * The whole battle board as one picture (HD, GAME_DESIGN.md §13): each hex's face is cut from the texture right where
+ * it lies on the board, so neighbouring hexes join without seams or rims, and walls show under the board's front edge
+ * only (every other wall hides under the faces in front of it). `centers` are the hexes' middles in the picture's own
+ * pixels, `shape` is in the same pixels, and the texture repeats across the picture.
+ */
+export function paintBoard(
+  faceTexture: Pixels,
+  wallTexture: Pixels,
+  centers: ReadonlyArray<{ x: number; y: number }>,
+  size: { width: number; height: number },
+  shape: TileShape,
+  shading: TileShading,
+): Pixels {
+  const { width, faceHeight, wallDepth } = shape;
+  const out: Pixels = { width: size.width, height: size.height, data: new Uint8ClampedArray(size.width * size.height * 4) };
+  const spans = hexRowSpans(width, faceHeight);
+  const corners = centers.map((c) => ({ left: Math.round(c.x - width / 2), top: Math.round(c.y - faceHeight / 2) }));
+  const paint = (from: Pixels, x: number, y: number, shade: number): void => {
+    if (x >= 0 && y >= 0 && x < out.width && y < out.height) copyPixel(from, x, y, out, x, y, shade);
+  };
+
+  // Walls first, as on a single tile; the faces then cover all of them but those along the front edge.
+  for (const { left, top } of corners) {
+    for (let offset = wallDepth; offset >= 1; offset--) {
+      spans.forEach(([x0, x1], y) => {
+        const outY = y + offset;
+        const half = x0 + Math.ceil((x1 - x0) / 2);
+        const layer = (outY - faceHeight) % 3 === 2 ? shading.wallLayers : 1;
+        for (let x = x0; x < x1; x++) paint(wallTexture, left + x, top + outY, (x < half ? shading.wallLeft : shading.wallRight) * layer);
+      });
+    }
+  }
+  // Each face reaches a pixel past its sides: rounding can leave a one-pixel gap between neighbours, and where faces
+  // overlap they show the same pixel of the texture anyway.
+  for (const { left, top } of corners) {
+    spans.forEach(([x0, x1], y) => {
+      for (let x = x0 - 1; x <= x1; x++) paint(faceTexture, left + x, top + y, shading.face);
+    });
+  }
+  return out;
+}
+
 /** Copies one texture pixel (wrapping round if the texture is too small), made darker or lighter, fully opaque. */
 function copyPixel(from: Pixels, fx: number, fy: number, to: Pixels, tx: number, ty: number, shade: number): void {
   const src = ((((fy % from.height) + from.height) % from.height) * from.width + (((fx % from.width) + from.width) % from.width)) * 4;

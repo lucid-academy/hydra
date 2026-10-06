@@ -1,6 +1,6 @@
-// The line around a group of hexes on the map, such as everywhere the hydra can go this turn (in HD, GAME_DESIGN.md
-// §13): one line around the whole group, with rounded corners, instead of an outline on every hex.
-// Plain geometry, no Phaser, so it can be tested.
+// The line around a group of hexes, such as everywhere the hydra can go this turn (in HD, GAME_DESIGN.md §13): one
+// line around the whole group, with rounded corners, instead of an outline on every hex. Also the sides of a group's
+// hexes, each once, for a faint grid. Plain geometry, no Phaser, so it can be tested.
 
 import { HEX_DIRECTIONS, hexAdd, hexKey, hexToPixel } from '../sim/hex';
 import type { Hex, HexLayout } from '../sim/hex';
@@ -15,21 +15,8 @@ export interface Point {
  * not in the group). Each line is a list of hex corners; the last one joins back to the first.
  */
 export function hexOutlines(hexes: Iterable<Hex>, layout: HexLayout): Point[][] {
-  const group = new Map<string, Hex>();
-  for (const h of hexes) group.set(hexKey(h), h);
-
-  // The corners of a hex, from its centre. The side towards neighbour `d` (HEX_DIRECTIONS) runs from corner d to d + 1.
-  const halfWidth = layout.columnWidth / 2;
-  const top = (layout.rowHeight * 2) / 3;
-  const side = layout.rowHeight / 3;
-  const corners: Point[] = [
-    { x: halfWidth, y: side },
-    { x: halfWidth, y: -side },
-    { x: 0, y: -top },
-    { x: -halfWidth, y: -side },
-    { x: -halfWidth, y: side },
-    { x: 0, y: top },
-  ];
+  const group = groupOf(hexes);
+  const corners = hexCorners(layout);
 
   // Every side between a hex of the group and one outside it, found by the corner it starts at. All of them run the
   // same way round their hex, so where one ends the next one starts, and each corner starts at most one.
@@ -62,6 +49,28 @@ export function hexOutlines(hexes: Iterable<Hex>, layout: HexLayout): Point[][] 
   return lines;
 }
 
+/** Every side of every hex in a group, once: a side two hexes of the group share comes only once. */
+export function hexEdges(hexes: Iterable<Hex>, layout: HexLayout): Array<[Point, Point]> {
+  const group = groupOf(hexes);
+  const corners = hexCorners(layout);
+  const edges: Array<[Point, Point]> = [];
+  for (const [key, h] of group) {
+    const centre = hexToPixel(layout, h);
+    HEX_DIRECTIONS.forEach((direction, d) => {
+      const other = hexKey(hexAdd(h, direction));
+      // A shared side is drawn by the hex whose key comes first.
+      if (group.has(other) && other < key) return;
+      const a = corners[d]!;
+      const b = corners[(d + 1) % 6]!;
+      edges.push([
+        { x: centre.x + a.x, y: centre.y + a.y },
+        { x: centre.x + b.x, y: centre.y + b.y },
+      ]);
+    });
+  }
+  return edges;
+}
+
 /** Rounds the corners of a closed line by cutting each one off, `passes` times (Chaikin's method). */
 export function roundCorners(line: readonly Point[], passes: number): Point[] {
   let points = [...line];
@@ -74,6 +83,28 @@ export function roundCorners(line: readonly Point[], passes: number): Point[] {
     points = cut;
   }
   return points;
+}
+
+/** The hexes of a group by key, each once. */
+function groupOf(hexes: Iterable<Hex>): Map<string, Hex> {
+  const group = new Map<string, Hex>();
+  for (const h of hexes) group.set(hexKey(h), h);
+  return group;
+}
+
+/** The corners of a hex, from its centre. The side towards neighbour `d` (HEX_DIRECTIONS) runs from corner d to d + 1. */
+function hexCorners(layout: HexLayout): Point[] {
+  const halfWidth = layout.columnWidth / 2;
+  const top = (layout.rowHeight * 2) / 3;
+  const side = layout.rowHeight / 3;
+  return [
+    { x: halfWidth, y: side },
+    { x: halfWidth, y: -side },
+    { x: 0, y: -top },
+    { x: -halfWidth, y: -side },
+    { x: -halfWidth, y: side },
+    { x: 0, y: top },
+  ];
 }
 
 /** Corners of neighbouring hexes are the same point; rounding makes them the same key too. */

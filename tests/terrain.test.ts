@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { hexRowSpans } from '../src/assets/drawing';
-import { cutTile, GROUND_SHADING, isTerrainTextureKey } from '../src/assets/terrain';
+import { cutTile, GROUND_SHADING, isTerrainTextureKey, paintBoard } from '../src/assets/terrain';
 import type { Pixels, TileShape } from '../src/assets/terrain';
+import { hexesInRange, hexKey, hexNeighbors, hexToPixel } from '../src/sim/hex';
 
 /** A texture where every pixel says where it is: red = x, green = y, blue = 200. */
 function coordinateTexture(width: number, height: number): Pixels {
@@ -66,5 +67,60 @@ describe('cutting hex tiles from textures', () => {
   it('knows which manifest images are textures', () => {
     expect(isTerrainTextureKey('texture_ground_lairSwamp_mud')).toBe(true);
     expect(isTerrainTextureKey('map_ground_lairSwamp_mud')).toBe(false);
+  });
+});
+
+describe('painting the whole battle board as one picture', () => {
+  // A board of radius 2 laid out like the battle (42 wide, rows 27 apart), moved so it starts at the picture's corner.
+  const hexes = hexesInRange({ q: 0, r: 0 }, 2);
+  const layout = { columnWidth: 42, rowHeight: 27, originX: 0, originY: 0 };
+  const raw = hexes.map((h) => hexToPixel(layout, h));
+  const left = Math.min(...raw.map((c) => c.x)) - 21;
+  const top = Math.min(...raw.map((c) => c.y)) - 18;
+  const centers = raw.map((c) => ({ x: c.x - left, y: c.y - top }));
+  const size = { width: Math.max(...centers.map((c) => c.x)) + 21 + 2, height: Math.max(...centers.map((c) => c.y)) + 18 + 10 + 2 };
+  const face = coordinateTexture(300, 260);
+  const wall: Pixels = { width: 1, height: 1, data: new Uint8ClampedArray([250, 0, 0, 255]) };
+  const board = paintBoard(face, wall, centers, size, BATTLE, NO_SHADING);
+  const isWall = (x: number, y: number) => at(board, x, y)[0] === 250 && at(board, x, y)[2] === 0;
+
+  it('shows the texture right where each face lies, so neighbours join without a seam', () => {
+    let faces = 0;
+    let wrong = 0;
+    for (let y = 0; y < board.height; y++) {
+      for (let x = 0; x < board.width; x++) {
+        const [red, green, blue, alpha] = at(board, x, y);
+        if (alpha === 0 || isWall(x, y)) continue;
+        faces++;
+        if (red !== x || green !== y || blue !== 200) wrong++;
+      }
+    }
+    expect(wrong).toBe(0);
+    expect(faces).toBeGreaterThan(19 * 1000);
+  });
+
+  it('leaves no gap inside the board: a hex with all six neighbours shows only face', () => {
+    const onBoard = new Set(hexes.map(hexKey));
+    const spans = hexRowSpans(BATTLE.width, BATTLE.faceHeight);
+    let gaps = 0;
+    hexes.forEach((h, i) => {
+      if (!hexNeighbors(h).every((n) => onBoard.has(hexKey(n)))) return;
+      const x = Math.round(centers[i]!.x - 21);
+      const y = Math.round(centers[i]!.y - 18);
+      spans.forEach(([x0, x1], row) => {
+        for (let col = x0; col < x1; col++) if (at(board, x + col, y + row)[3] !== 255 || isWall(x + col, y + row)) gaps++;
+      });
+    });
+    expect(gaps).toBe(0);
+  });
+
+  it('shows walls under the front edge only, and nothing outside the board', () => {
+    const front = hexes.findIndex((h) => h.q === 0 && h.r === 2);
+    const bottom = { x: Math.round(centers[front]!.x), y: Math.round(centers[front]!.y + 18) };
+    expect(isWall(bottom.x, bottom.y + 2)).toBe(true);
+    const middle = hexes.findIndex((h) => h.q === 0 && h.r === 0);
+    expect(isWall(Math.round(centers[middle]!.x), Math.round(centers[middle]!.y + 18) + 2)).toBe(false);
+    expect(at(board, 0, 0)[3]).toBe(0);
+    expect(at(board, board.width - 1, board.height - 1)[3]).toBe(0);
   });
 });

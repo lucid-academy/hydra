@@ -1,7 +1,7 @@
 // Light on the map in HD (GAME_DESIGN.md §13): brighter around the hydra and around whatever glows (mushrooms, places,
-// shrines, the Order's torches), in the light's colour, and a little dimmer everywhere else. A picture of the light
-// over the whole map is drawn again whenever a light changes, and lies over the map so that it multiplies the colours
-// under it twice over: mid-grey leaves a colour as it is, darker dims it, lighter brightens it.
+// shrines, the Order's torches), in the light's colour, and a little dimmer everywhere else; the battle uses it too.
+// A picture of the light over the whole map is drawn again whenever a light changes, and lies over the map so that it
+// multiplies the colours under it twice over: mid-grey leaves a colour as it is, darker dims it, lighter brightens it.
 // Also the two soft pictures this needs, made here rather than drawn as art: a round light, and the shadow that lies
 // under things standing on the ground.
 
@@ -61,15 +61,19 @@ export class MapLight {
   private readonly texture: Phaser.Textures.DynamicTexture;
   private readonly image: Phaser.GameObjects.Image;
 
-  /** `area` is the part of the world the light covers (screen units); `depth` puts it over what it lights. */
+  /**
+   * `area` is the part of the world the light covers (screen units); `depth` puts it over what it lights; `key` names
+   * its picture (one per scene that has a light).
+   */
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly area: { x: number; y: number; width: number; height: number },
     depth: number,
+    key = 'map_light',
   ) {
     makeSoftTextures(scene);
-    if (scene.textures.exists('map_light')) scene.textures.remove('map_light');
-    this.texture = scene.textures.addDynamicTexture('map_light', Math.ceil(area.width / LIGHT.cell), Math.ceil(area.height / LIGHT.cell))!;
+    if (scene.textures.exists(key)) scene.textures.remove(key);
+    this.texture = scene.textures.addDynamicTexture(key, Math.ceil(area.width / LIGHT.cell), Math.ceil(area.height / LIGHT.cell))!;
     // Smooth, not pixel art: light has no pixels.
     this.texture.setSmoothPixelArt(false);
     this.image = scene.add
