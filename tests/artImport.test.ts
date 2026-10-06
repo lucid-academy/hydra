@@ -114,22 +114,23 @@ describe('importing pictures', () => {
   });
 
   it('trims a sprite, fits it into its box and stands it on the bottom edge', () => {
-    // A wide figure in the middle of a big magenta picture.
+    // A wide figure (2:1, wider than the body's box) in the middle of a big magenta picture.
     const src = picture(400, 400, (x, y) => (inside(x, y, 100, 150, 300, 250) ? GREEN : MAGENTA));
     const { images } = importArt([src], 'battle_body', entries, null);
     const body = images[0]!.picture;
-    expect([body.width, body.height]).toEqual([132, 110]);
+    const { width, height } = entries.battle_body!;
+    expect([body.width, body.height]).toEqual([width, height]);
     const box = opaqueBox(body);
-    expect([box.minX, box.maxX]).toEqual([0, 131]); // as wide as it can be
-    expect(box.maxY).toBe(109); // feet on the bottom edge
-    expect(box.maxY - box.minY + 1).toBe(66); // and the shape kept (2:1)
+    expect([box.minX, box.maxX]).toEqual([0, width - 1]); // as wide as it can be
+    expect(box.maxY).toBe(height - 1); // feet on the bottom edge
+    expect(box.maxY - box.minY + 1).toBe(width / 2); // and the shape kept (2:1)
   });
 
   it('drops stray specks GPT leaves on the background', () => {
     const src = picture(400, 400, (x, y) => (inside(x, y, 100, 150, 300, 250) || inside(x, y, 5, 5, 7, 7) ? GREEN : MAGENTA));
     const box = opaqueBox(importArt([src], 'battle_body', entries, null).images[0]!.picture);
     expect(box.minX).toBe(0); // the speck in the corner did not stretch the trimmed box
-    expect(box.maxY - box.minY + 1).toBe(66);
+    expect(box.maxY - box.minY + 1).toBe(entries.battle_body!.width / 2);
   });
 
   it('splits the head and its jaw, at one scale, and greys them for tinting', () => {
