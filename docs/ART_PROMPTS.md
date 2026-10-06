@@ -14,7 +14,8 @@ Na co uważać:
 - **Tekstury gruntu i skał** wypełniają cały kwadrat, od krawędzi do krawędzi, widziane prosto z góry, bez magenty. Gra sama spłaszcza je do kąta kamery i wycina z nich heksy, więc nie proś GPT o heksy.
 - **Wszystko inne** stoi na jednolitym tle magenta `#FF00FF`. Bez cienia na tle, bez podłogi, bez ramki. Jeśli GPT doda cień albo inne tło, poproś o poprawkę.
 - **Głowa** to dwa osobne kawałki (głowa i żuchwa), które nie mogą się stykać.
-- Rozmiary w promptach to rozmiary w grze. GPT ich nie dotrzyma i nie musi; chodzi o to, żeby rysował prosto i grubymi pikselami, bo drobne szczegóły i tak znikną po zmniejszeniu.
+- Rozmiary w promptach to rozmiary w grze. GPT ich nie dotrzyma i nie musi; chodzi o to, żeby rysował prosto i wyraźnymi pikselami, bo szczegóły mniejsze niż piksel gry i tak znikną po zmniejszeniu.
+- Od przejścia na HD (2026-10-05) gra pokazuje grafiki w podwójnej gęstości, więc nowe prompty podają rozmiar w HD, dwa razy większy niż starsze. Starych obrazków nie trzeba robić od nowa: skrypt robi obie wersje z tego samego pliku.
 
 ## Stały blok stylu
 
@@ -27,7 +28,9 @@ Background: one flat, solid magenta #FF00FF everywhere around the subject, with 
 
 ## Hydra w bitwie: tułów i głowy w stylu okładki
 
-Hydra dostaje wygląd z okładki i portretów: stary brąz w czarnej siatce, kremowe płyty brzucha, mech. Najpierw próba na dwóch obrazkach, tułowiu i głowie Bitera. Wstawię je do gry i pokażę zrzuty, a prompty na pozostałe osiem głów dopiszę po próbie.
+Hydra dostaje wygląd z okładki i portretów: stary brąz w czarnej siatce, kremowe płyty brzucha, mech. Najpierw próba na dwóch obrazkach, tułowiu i głowie Bitera (razem z próbą Zakonu i hydry na mapie z następnej sekcji). Wstawię je do gry i pokażę zrzuty, a prompty na pozostałe osiem głów dopiszę po próbie.
+
+Wzory do dołączenia w GPT leżą w plikach projektu Hydra, w folderze `hydra-grafika/wzory/`: `okladka.png` i `biter-portret.png`.
 
 - Do promptu tułowia dołącz okładkę. Do promptu głowy dołącz portret Bitera i gotowy pixelowy tułów (najprościej w tej samej rozmowie z GPT, zaraz po tułowiu).
 - Nowy tułów nazwij `battle_body.png`, tak jak stary. Stary zostaje w historii repozytorium.
@@ -44,7 +47,7 @@ Background: one flat, solid magenta #FF00FF everywhere around the subject, with 
 Request: one game sprite, centred, on the flat magenta background. The attached picture is the game's cover painting: draw the body of THAT hydra, with its scales, colours, moss and mood, as a small pixel-art game sprite.
 Subject: the body of the giant swamp hydra WITHOUT any heads or necks (the game adds the necks and heads). A huge, heavy mound of thick serpent coils piled on top of each other, like a coiled python the size of a hill, seen in the game's three-quarter view from above. The lowest coil lies on the ground in a wide oval, about one and a half times as wide as it is deep; the coils above it get smaller and pile up into a tall hump that rises above the back of the oval by about half of the oval's depth. The top of the hump is a broad, rounded crown of coils: the necks will rise from there. The tail end is tucked in between the coils. No face, no legs and nothing sticking out: necks and enemies surround it on every side, so it has no front and no back.
 Colours as on the cover: old bronze scales (#342513, #64461f, #907246, highlights #d1ba8e) in a net of near-black lines (#120e08); pale cream belly plates (#c1b18e, shaded #6b6853) showing as a band along the side of each coil; a few strands of dark olive moss (#45422a) hanging from the coils. Lit from the upper left, the lowest coil darkest. A dark outline all around. No water, ground, mist or shadow under it: the game adds them.
-Size: in the game it is only about 144 by 128 pixels, so draw the coils thick and bold and the scales as a simple net of big pixels, without tiny details.
+Size: in the game it is about 288 by 256 pixels, so draw the coils thick and bold and the scales as a clear net of square pixels; details smaller than a pixel at that size will be lost.
 ```
 
 ### `battle_head_biter.png`: głowa Bitera (dwa kawałki: głowa i żuchwa)
@@ -59,7 +62,54 @@ Request: one game sprite in two separate pieces on the flat magenta background, 
 Subject: the Biter, one of the hydra's heads, raised in the air and seen from the side, snout pointing RIGHT, mouth closed. The most massive skull of all the heads: a heavy, blunt snake head with a thick brow ridge, a small glowing amber eye (#d3a224) under it, old scars across the snout and a broken crossbow bolt stuck in the brow ridge. Old bronze scales (#342513, #64461f, #907246) in a near-black net (#120e08), pale cream plates (#c1b18e) under the jaw, a few strands of dark olive moss (#45422a), a few big fangs. Dark and menacing, more snake than dragon, never cute. No tongue and no neck: the head ends right behind the skull, the game draws the neck. A dark outline all around.
 - LEFT piece: the head without its lower jaw (skull, upper jaw with its fangs, eye, brow ridge and the bolt), snout pointing right.
 - RIGHT piece: the lower jaw alone, at the size it has on the head, also pointing right, with its fangs.
-Size: in the game the whole head with its jaw is only about 40 by 30 pixels, so keep it simple and bold: one clear silhouette and a few big shapes. The brow ridge and the bolt must still read at that size.
+Size: in the game the whole head with its jaw is only about 80 by 60 pixels, so keep it bold: one clear silhouette and a few big shapes. The brow ridge and the bolt must still read at that size.
+```
+
+## Zakon i hydra na mapie, Zakon w bitwie: próba
+
+Zakon Wiecznego Ognia wygląda jak rycerze z okładki: płytowe zbroje, bordowe tuniki i peleryny, czerwone chorągwie, ciepłe złoto. Herbem jest złoty płomień (od nazwy Zakonu), a nie lew z okładki. Próba na trzech obrazkach: Man-at-Arms w bitwie, jego oddział na mapie i hydra na mapie. Najlepiej zrób je w tej samej rozmowie z GPT co tułów hydry, zaraz po nim: wtedy piksele wyjdą tej samej wielkości.
+
+- Wzór Zakonu: `zakon-z-okladki.png` (wycinek okładki) w `hydra-grafika/wzory/`.
+- Prompty na Headhuntera, Torchbearera i dwa większe oddziały dopiszę po próbie. Pozostałe typy Zakonu (§6.6) dostaną prompty, gdy wejdą do gry ich zasady.
+- Na razie Zakon rusza się w kodzie (kołysanie, wypad, mignięcie przy trafieniu, upadek). Animacje klatkowe (chód, cios, śmierć) mogą przyjść później z PixelLab.
+
+### `battle_enemy_manAtArms.png`: Man-at-Arms, zbrojny Zakonu w bitwie
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Two pictures are attached: the detail of the game's cover painting shows WHO to draw (the soldiers of the Order of the Eternal Flame: their plate armour, red capes and banners); the pixel-art hydra body shows HOW to draw it (the same size of pixels, the same dark outline, the same view), so the soldier clearly belongs to the same game.
+Subject: a Man-at-Arms, the ordinary soldier of the Order of the Eternal Flame, standing ready to fight, seen from the side and a little from above, facing RIGHT. Grim and dead serious, like the soldiers on the cover: a steel helmet with a visor, plate armour over mail, a banner-red tabard (#9e2323, shaded darker) with a small gold flame emblem (#d9a93b) on the chest, a short dark red cape, a sword held upright in the right hand, towards the enemy, and a small shield on the far arm. Steel greys with warm highlights, lit from the upper left. Feet on the ground at the bottom middle of the picture. A dark outline all around. No ground, no shadow, no banner and no other figures: the game adds the ground and the shadow.
+Size: in the game the soldier is only about 52 by 76 pixels, a man next to a hydra body about 288 pixels wide, so keep it bold: one clear silhouette; the red tabard and the gold flame must still read at that size.
+```
+
+### `map_encounter_1.png`: oddział Zakonu na mapie (jeden zbrojny z chorągwią)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art Man-at-Arms from the battle: draw THE SAME soldier, smaller, as a marker on the game's map, with the same size of pixels and the same colours.
+Subject: one Man-at-Arms of the Order of the Eternal Flame standing guard beside a tall wooden pole with a banner-red flag (#9e2323) bearing a gold flame (#d9a93b), the flag hanging and slightly waving. The soldier stands in front of the pole, facing the viewer at an angle, sword point down, in the game's three-quarter view from above, lit from the upper left. The soldier's feet and the foot of the pole stand on the ground at the bottom middle of the picture. A dark outline all around. No ground, no shadow: the game adds them.
+Size: on the map the whole marker is only about 56 by 72 pixels, so: big shapes; the red flag must be easy to spot from afar.
+```
+
+### `map_hydra.png`: hydra na mapie
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art hydra body from the battle: draw THE SAME hydra, whole and much smaller, as the player's piece on the game's map, with the same size of pixels and the same colours.
+Subject: the giant swamp hydra as a small game piece: the mound of bronze coils with three heads on short, thick necks rising from its top, the heads looking different ways (one left, one right, one up and forward), mouths closed, small amber eyes glowing (#d3a224). Old bronze scales (#342513, #64461f, #907246) in a near-black net (#120e08), pale cream belly plates (#c1b18e), a few strands of dark olive moss (#45422a). Dark and menacing, more snake than dragon, never cute. Seen in the game's three-quarter view from above, lit from the upper left. The lowest coil rests on the ground at the bottom middle of the picture. A dark outline all around. No water, no ground, no shadow: the game adds them.
+Size: on the map it is only about 52 by 56 pixels, so: one clear, bold silhouette; the three heads must read as heads.
 ```
 
 ## Pierwsza partia: 5 obrazków

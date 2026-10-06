@@ -127,8 +127,8 @@ Small things that make each biome feel different. They do nothing in the game. E
 | map_passage | 40×64 | A way up to the surface: rubble on the ground under a shaft of pale light falling from a crack in the cave roof. |
 | map_muck | 16×10 | A glistening lump of swamp muck. |
 | map_moisture | 16×20 | A spring: a small pool with water trickling down into it from above. |
-| map_encounter_1, _2, _3 | 28×36, 36×38, 44×40 | People of the Order waiting there, with a red banner. More of them and a bigger banner the stronger the group: one soldier (tier 1), two (tier 2), three with a torch (tier 3). |
-| map_hydra | 26×28 | The hydra on the map: a squat dark green body with three heads on short necks, eyes glowing yellow-green. |
+| map_encounter_1, _2, _3 | 28×36, 36×38, 44×40 | People of the Order waiting there, with a red banner bearing a gold flame. More of them and a bigger banner the stronger the group: one soldier (tier 1), two (tier 2), three with a torch (tier 3). |
+| map_hydra | 26×28 | The hydra on the map: the battle body in miniature, bronze like the cover (GAME_DESIGN.md §13), with three heads on short necks and amber eyes. |
 
 All objects: 1 frame, anchor at the feet (bottom middle) unless noted, transparent background.
 
@@ -302,7 +302,7 @@ People of the Order of the Eternal Flame, standing, seen from the side and a lit
 
 A new enemy type needs an image with the key `battle_enemy_<type id from enemies.json>`; without one, the game shows the Man-at-Arms.
 
-Prompt sketch: *"Pixel art character sprite, 26x38 pixels, transparent background, seen from a slanted top-down three-quarter angle, standing, facing right. A man-at-arms of a grim fire-worshipping religious order: banner-red tabard with a small gold flame emblem, steel helmet with visor, sword held upright on the right. Hard pixels, no anti-aliasing, dark outline, dark fantasy with warm colours."*
+The Order looks like the soldiers on the game's cover (plate armour, red tabards and capes, red banners), with a gold flame as its emblem instead of the cover's lion. Prompts: `docs/ART_PROMPTS.md`, section "Zakon i hydra na mapie, Zakon w bitwie: próba".
 
 ## portrait_oldMotherToad
 

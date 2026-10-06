@@ -199,7 +199,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 
 0. Etap „Wygląd mapy”: poprawki mapy w HD według uwag Piotra, potem bitwa i interfejs w HD, potem HD jedynym trybem.
 1. Poczekać na odpowiedzi Piotra (sekcja 4).
-2. Pierwsza partia jest w grze. Dalej z `docs/ANIMATIONS.md` (stan „do zrobienia”): oddech i drgnięcie tułowia, ścięcie głowy. Kolejne grafiki: ludzie Zakonu, obiekty i hydra na mapie, tło tytułu (prompty trzeba dopisać do `docs/ART_PROMPTS.md`).
+2. Pierwsza partia jest w grze. Dalej z `docs/ANIMATIONS.md` (stan „do zrobienia”): oddech i drgnięcie tułowia, ścięcie głowy. Kolejne grafiki: ludzie Zakonu, obiekty i hydra na mapie, tło tytułu. Prompty na próbę Zakonu (Man-at-Arms w bitwie, jego oddział na mapie) i hydrę na mapie są w `docs/ART_PROMPTS.md` od 2026-10-06; Zakon jak rycerze z okładki, z herbem złotego płomienia zamiast lwa. Wzór dla GPT: wycinek okładki w plikach projektu, `hydra-grafika/wzory/zakon-z-okladki.png`.
 3. Głowy i tułów w stylu okładki (sekcja 3.2, „Pixelowe głowy i nowy tułów”): czekamy na próbę od Piotra (tułów i Biter; kolor hydry ustalony: brąz z okładki). Przy imporcie próby: propozycja palety (próbnik i okładka w palecie), po akceptacji zapis w repo, potem prompty na pozostałe osiem głów.
 4. Gdy Piotr napisze, że wrzucił grafiki: `git pull`, `npm run art`, obejrzeć wynik w grze, wdrożyć, pokazać.
 5. Zatwierdzone decyzje od razu wpisywać do `GAME_DESIGN.md`, a budować w swoim etapie.
