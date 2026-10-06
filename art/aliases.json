@@ -17,6 +17,7 @@
   "landmark_ossuaryCathedral": "map_place_ossuaryCathedral",
   "landmark_saltSaint": "map_place_saltSaint",
   "landmark_sunkenOak": "map_place_sunkenOak",
+  "map_enemy_manAtArms": "map_encounter_1",
   "map_lairSwamp_lair": "map_lair",
   "site_brineLake": "map_place_brineLake",
   "site_gallowsRoots": "map_place_gallowsRoots",

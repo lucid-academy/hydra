@@ -127,8 +127,8 @@ Small things that make each biome feel different. They do nothing in the game. E
 | map_passage | 40×64 | A way up to the surface: rubble on the ground under a shaft of pale light falling from a crack in the cave roof. |
 | map_muck | 16×10 | A glistening lump of swamp muck. |
 | map_moisture | 16×20 | A spring: a small pool with water trickling down into it from above. |
-| map_encounter_1, _2, _3 | 28×36, 36×38, 44×40 | People of the Order waiting there, with a red banner bearing a gold flame. More of them and a bigger banner the stronger the group: one soldier (tier 1), two (tier 2), three with a torch (tier 3). |
-| map_hydra | 26×28 | The hydra on the map: the battle body in miniature, bronze like the cover (GAME_DESIGN.md §13), with three heads on short necks and amber eyes. |
+| map_encounter_1, _2, _3 | 22×36, 36×38, 44×40 | People of the Order waiting there, with a red banner bearing a gold flame. More of them and a bigger banner the stronger the group: one soldier (tier 1), two (tier 2), three with a torch (tier 3). Tier 1 is drawn (2026-10-06: a Man-at-Arms beside a banner on a pole, as tall and narrow as GPT drew it); tiers 2 and 3 are still drawn in code. |
+| map_hydra | 26×28 | The hydra on the map: the battle body in miniature, bronze like the cover (GAME_DESIGN.md §13), with three heads on short necks and amber eyes. Drawn since 2026-10-06. The map draws it over everything on its own hex, so on its lair it sits in the pool, in front of the glowing rim. |
 
 All objects: 1 frame, anchor at the feet (bottom middle) unless noted, transparent background.
 
@@ -244,17 +244,17 @@ Prompt sketch: *"Pixel art game tile, 42x46 pixels, transparent background. A po
 
 | | |
 |---|---|
-| Size | 132×110 px |
+| Size | 144×110 px |
 | Frames | 1 (static for now) |
-| Anchor | middle of its footprint, (66, 66) from the left and top edges |
+| Anchor | middle of its footprint, (72, 70) from the left and top edges (`BODY_FOOT` in `src/assets/battleArt.ts`) |
 | Background | transparent |
 | Used in | battle, the hydra's Body |
 
-The hydra's torso seen from the side and above, **without heads and necks** (the game draws the necks rising from the upper rim of the mound, and the heads are separate images). A big, squat mound of dark green scaly hide covering seven hexes: its base is an oval about 126 px wide and 84 px tall centred on the anchor, and it rises about 20 px above that, up to the top edge of the image. Paler scales on the back, a dark outline. It has no front or back: necks leave it in every direction and soldiers stand all around it, so no tail and no head-shaped bumps.
+The hydra's torso seen from the side and above, **without heads and necks** (the game draws the necks, and the heads are separate images). Since 2026-10-06 it is drawn in the style of the cover and the head portraits: a heavy mound of thick serpent coils, old bronze scales in a near-black net, pale cream belly plates along the sides of the coils, dark olive moss (prompt: `docs/ART_PROMPTS.md`, section "Hydra w bitwie"). The lowest coil covers the seven hexes and overhangs them a little at the sides; the coils pile up into a crown about 70 px above the anchor. It has no front or back: necks leave it in every direction and soldiers stand all around it, so no tail and no head-shaped bumps.
 
-Prompt sketch: *"Pixel art, 132x110, transparent background, seen from a slanted top-down angle. The headless, neckless torso of a swamp hydra: a huge squat mound of dark green scaly hide with paler scales on its back, dark outline, light from the upper left. No head, no neck, no tail. Hard pixels, no anti-aliasing, dark fantasy."*
+The necks leave the body on an oval round the crown: its middle 40 px above the anchor, 34 px to either side and 14 px to the front and back (`NECK_RING`), each on the side its head looks to. The game draws them in the body's colours: the dark net as the outline, bronze scales, a lit stripe on the upper left and the cream belly plates on the side the head looks to.
 
-**Being redrawn (2026-10-04)** in the style of the cover and the head portraits: a heavy mound of thick serpent coils, old bronze scales in a near-black net, pale cream belly plates along the sides of the coils, dark olive moss (prompt: `docs/ART_PROMPTS.md`, section "Hydra w bitwie"). The new body will be bigger, about 144×128 px with its anchor near (72, 84): the lowest coil still covers the seven hexes, and the coils pile up higher, so the necks rise from the top of the hump. The size, the anchor (`BODY_FOOT`) and where the necks leave the body change when it is imported.
+GPT drew the coils wider than the prompt's 144×128 (about 4 to 3), so the image is 144×110. The first body (2026-10-03) was a squat green mound, 132×110 with its anchor at (66, 66); it stays in the repository's history.
 
 ## battle_head
 
@@ -276,7 +276,7 @@ The size was 20×14 until the first GPT head (2026-10-03): GPT drew it at about 
 
 | | |
 |---|---|
-| Size | battle_head_biter 40×22 px, its jaw battle_head_biter_jaw 40×10 px (the other classes get their slots with their prompts) |
+| Size | battle_head_biter 40×24 px, its jaw battle_head_biter_jaw 40×12 px (the other classes get their slots with their prompts) |
 | Frames | 1 (static; the game animates it, as battle_head) |
 | Anchor | centre, as battle_head |
 | Background | transparent |
@@ -284,7 +284,7 @@ The size was 20×14 until the first GPT head (2026-10-03): GPT drew it at about 
 
 Each head class gets its own head and jaw (GAME_DESIGN.md §13), drawn from its painted portrait in `art/concept/portraits/` and in its own colours: the game does **not** tint them. They come in the same two pieces as battle_head: GPT draws the head without its lower jaw and the jaw alone side by side on one picture (`art/raw/battle_head_<class>.png`), the import splits them, the head sits at the bottom middle of its image and the jaw at the top right. The class's feature (bolt, hood, gills, bone pipes, lure and so on) belongs to the head piece and may make it taller or longer than the skull, so each class's size is tuned in the manifest after its import, to keep the skulls about the same size (the Biter's is the biggest). Prompts: `docs/ART_PROMPTS.md`, section "Hydra w bitwie".
 
-For now the game shows the tinted battle_head for every class; the battle scene switches a class to its own head when the first one is imported.
+The battle shows a class's own head as soon as its image is imported, and the tinted battle_head for the classes still without one. The Biter has its own head since 2026-10-06. Moss hangs below the Biter's mouth, so its jaw tucks 11 px under the head image instead of 3 (`JAW_OVERLAP_BY_CLASS` in `src/assets/battleArt.ts`); each new head gets its number at import, from where its mouth line is.
 
 ## Order soldiers: battle_enemy_manAtArms, battle_enemy_headhunter, battle_enemy_torchbearer
 
@@ -298,7 +298,7 @@ For now the game shows the tinted battle_head for every class; the battle scene 
 
 People of the Order of the Eternal Flame, standing, seen from the side and a little from above, **facing right**, holding their gear on the right side (towards the enemy). Each must be recognisable at a glance by colour and gear:
 
-- **battle_enemy_manAtArms:** banner-red tabard with a small gold flame, steel helmet with a visor, a sword held upright.
+- **battle_enemy_manAtArms:** banner-red tabard with a small gold flame, steel helmet with a visor, a sword held upright. Drawn since 2026-10-06 (plate armour, a red cape and a small shield, like the cover); the other two are still drawn in code.
 - **battle_enemy_headhunter:** dark blood-red, broader build, a big axe.
 - **battle_enemy_torchbearer:** a lay brother in a brown habit, tonsured head, no helmet, carrying a burning torch: the only bright, warm flame on the board. The middle of the flame is **10 px right of and 32 px above the feet** (in the HD picture 20 and 64 px; `TORCH_FLAME` in `src/assets/battleArt.ts`): in HD the torch's light and glow shine from there.
 
