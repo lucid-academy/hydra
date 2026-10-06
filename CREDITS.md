@@ -8,6 +8,10 @@
 
 ## Fonts
 
+- The game in HD writes with three fonts under the SIL Open Font License 1.1, downloaded from Google Fonts and kept unchanged in `public/fonts/`, each with its licence beside it:
+  - IM Fell English SC by Igino Marini (`IMFellEnglishSC-Regular.ttf`, `OFL-IMFellEnglishSC.txt`);
+  - Alegreya by Juan Pablo del Peral, Huerta Tipográfica (`Alegreya-Regular.ttf`, `Alegreya-Italic.ttf`, `OFL-Alegreya.txt`);
+  - Alegreya Sans by Juan Pablo del Peral, Huerta Tipográfica (`AlegreyaSans-Regular.ttf`, `OFL-AlegreyaSans.txt`).
 - Cinzel and Crimson Pro (SIL Open Font License 1.1), loaded from Google Fonts. Only the dialogue demo page (`public/dialogue-demo/`) uses them, not the game.
 
 ## Libraries

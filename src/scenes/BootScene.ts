@@ -1,21 +1,26 @@
 // Loads every image listed in the manifest (or draws its placeholder), cuts hex tiles out of terrain textures,
-// then starts the first scene. In HD the images come from public/images-hd/, with twice the pixels.
+// then starts the first scene. In HD the images come from public/images-hd/, with twice the pixels, and the fonts
+// from public/fonts/; the first scene waits for the fonts, because a text keeps the font it was made with.
 
 import * as Phaser from 'phaser';
 import { placeholderFor } from '../assets/placeholders';
 import { isTerrainTextureKey } from '../assets/terrain';
 import { buildTerrainTiles } from '../assets/terrainTiles';
+import { loadFonts } from '../ui/fonts';
 import { getContext } from './context';
 import { SceneKey, startableScenes } from './sceneKeys';
 import { HD_DENSITY, hdFile, useDensity } from './view';
 
 export class BootScene extends Phaser.Scene {
+  private fontsReady: Promise<void> = Promise.resolve();
+
   constructor() {
     super(SceneKey.Boot);
   }
 
   preload(): void {
     const { data, params } = getContext(this);
+    this.fontsReady = loadFonts(params.hd);
     const density = params.hd ? HD_DENSITY : 1;
     for (const [key, entry] of Object.entries(data.manifest.images)) {
       if (entry.file === null) continue;
@@ -45,7 +50,9 @@ export class BootScene extends Phaser.Scene {
       else console.warn(`?scene=${params.scene} is unknown. Available: ${startableScenes.join(', ')}`);
     }
 
-    this.scene.start(first);
-    if (params.debug) this.scene.launch(SceneKey.DebugOverlay);
+    void this.fontsReady.then(() => {
+      this.scene.start(first);
+      if (params.debug) this.scene.launch(SceneKey.DebugOverlay);
+    });
   }
 }
