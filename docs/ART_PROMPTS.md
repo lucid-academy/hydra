@@ -28,7 +28,9 @@ Background: one flat, solid magenta #FF00FF everywhere around the subject, with 
 
 ## Hydra w bitwie: tułów i głowy w stylu okładki
 
-Hydra dostaje wygląd z okładki i portretów: stary brąz w czarnej siatce, kremowe płyty brzucha, mech. Najpierw próba na dwóch obrazkach, tułowiu i głowie Bitera (razem z próbą Zakonu i hydry na mapie z następnej sekcji). Wstawię je do gry i pokażę zrzuty, a prompty na pozostałe osiem głów dopiszę po próbie.
+Hydra dostaje wygląd z okładki i portretów: stary brąz w czarnej siatce, kremowe płyty brzucha, mech. Najpierw próba na dwóch obrazkach, tułowiu i głowie Bitera (razem z próbą Zakonu i hydry na mapie z następnej sekcji). Prompty na pozostałe osiem głów dopiszę po próbie.
+
+Próba (tułów, Biter, Man-at-Arms, oddział i hydra na mapie) jest w grze od 2026-10-06 i czeka na uwagi Piotra.
 
 Wzory do dołączenia w GPT leżą w plikach projektu Hydra, w folderze `hydra-grafika/wzory/`: `okladka.png` i `biter-portret.png`.
 
