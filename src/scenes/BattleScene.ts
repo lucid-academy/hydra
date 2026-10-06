@@ -9,7 +9,17 @@
 
 import * as Phaser from 'phaser';
 import { SCREEN } from '../scaling';
-import { BODY_FOOT, FEET_BELOW_HEX_CENTER, HEX_COLUMN_WIDTH, HEX_ROW_HEIGHT, JAW_OVERLAP, TILE, TORCH_FLAME } from '../assets/battleArt';
+import {
+  BODY_FOOT,
+  FEET_BELOW_HEX_CENTER,
+  HEX_COLUMN_WIDTH,
+  HEX_ROW_HEIGHT,
+  JAW_OVERLAP,
+  JAW_OVERLAP_BY_CLASS,
+  NECK_RING,
+  TILE,
+  TORCH_FLAME,
+} from '../assets/battleArt';
 import { battleTileKey, readPixels, tileVariant } from '../assets/terrainTiles';
 import { GROUND_SHADING, groundTextureKey, paintBoard, rockTextureKey, variantKey } from '../assets/terrain';
 import { applyCommand, battleResult, bodyDistance, boardHexes, canCauterize, createBattle, isAcid, isOnBoard, stepBattle } from '../sim/battle';
@@ -55,9 +65,20 @@ const JAW_OPEN_DEGREES = 25;
 /** A head that is hit jumps this many pixels away from the blow and comes back. */
 const HEAD_RECOIL_PX = 3;
 const HEAD_RECOIL_MS = 120;
-/** Neck colours, taken from the body art: its outline and a lit green of its scales. */
-const NECK_OUTLINE = 0x030b0b;
-const NECK_FILL = 0x486a33;
+/** How thick a neck is: its radius where it leaves the body and where it meets the head (screen pixels). */
+const NECK_RADIUS = { body: 7.5, head: 5.5 } as const;
+/**
+ * A neck is drawn in layers of discs, colours taken from the body art: the dark net round its scales as the outline,
+ * the bronze scales, a lit stripe on the upper left (where the light comes from) and the pale belly plates on the
+ * side its head looks to. Each layer: its discs' radius and how far they are off the neck's middle, sideways
+ * (towards where the head looks) and down, all as shares of the neck's radius.
+ */
+const NECK_LAYERS = [
+  { color: 0x171510, size: 1, toward: 0, down: 0 },
+  { color: 0x6e5228, size: 0.8, toward: 0, down: 0 },
+  { color: 0x9a7a40, size: 0.26, toward: -0.3, down: -0.45 },
+  { color: 0xc1b18e, size: 0.28, toward: 0.55, down: 0.35 },
+] as const;
 
 // Depths: board, then things on it sorted by how low on the screen they stand, then necks and heads, then UI.
 // In HD the light lies over everything on the board and under the bars and the UI, and the glow of torches over it.
@@ -97,6 +118,9 @@ interface HeadView {
   sprite: Phaser.GameObjects.Image;
   /** The lower jaw, its own image so the mouth can open (empty while the head is a placeholder). */
   jaw: Phaser.GameObjects.Image;
+  /** The point of the jaw image it turns around when the mouth opens, and how far it tucks under the head. */
+  hinge: Point;
+  overlap: number;
   x: number;
   y: number;
   lungeUntil: number;
@@ -147,8 +171,6 @@ export class BattleScene extends Phaser.Scene {
   private heads = new Map<string, HeadView>();
   private enemies = new Map<number, EnemyView>();
   private stumpSprites = new Map<number, Phaser.GameObjects.Image>();
-  /** The point of the jaw image it turns around when the mouth opens. */
-  private jawHinge: Point = { x: 0, y: 0 };
   private necks!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Graphics;
   private cards!: HeadCards;
@@ -224,7 +246,6 @@ export class BattleScene extends Phaser.Scene {
         shown: '',
       };
     }
-    this.jawHinge = jawHinge(this.textures);
     this.necks = this.add.graphics().setDepth(DEPTH.necks);
     this.overlay = this.add.graphics().setDepth(DEPTH.overlay);
 
@@ -368,9 +389,12 @@ export class BattleScene extends Phaser.Scene {
     return this.walkerPosition(this.battle.body, this.battle.body.center).point;
   }
 
-  /** Where a neck leaves the body: on the upper rim of the mound, in the neck's direction. */
+  /** Where a neck leaves the body: on the crown of the mound, in the neck's direction (NECK_RING). */
   private neckBase(body: Point, angle: number): Point {
-    return { x: body.x + Math.cos(angle) * 44, y: body.y - 16 + Math.sin(angle) * 24 };
+    return {
+      x: body.x + Math.cos(angle) * NECK_RING.halfWidth,
+      y: body.y - NECK_RING.above + Math.sin(angle) * NECK_RING.halfDepth,
+    };
   }
 
   // ------------------------------------------------------------ UI
@@ -602,14 +626,26 @@ export class BattleScene extends Phaser.Scene {
     for (const head of this.battle.heads) {
       if (this.heads.has(head.id)) continue;
       const base = this.neckBase(body, head.anchorAngle);
-      const tint = color(heads.classes[head.classId]?.color ?? '#cccccc');
-      const sprite = this.add.image(base.x, base.y, 'battle_head').setDepth(DEPTH.heads).setTint(tint);
-      const jaw = this.add.image(base.x, base.y, 'battle_head_jaw').setDepth(DEPTH.jaws).setTint(tint);
-      jaw.setOrigin(this.jawHinge.x / jaw.width, this.jawHinge.y / jaw.height);
+      // A class with its own drawn head shows it as drawn (GAME_DESIGN.md §13); the others share one grey head tinted
+      // in the class's colour.
+      const own = `battle_head_${head.classId}`;
+      const hasOwn = this.hasArt(own);
+      const headKey = hasOwn ? own : 'battle_head';
+      const sprite = this.add.image(base.x, base.y, headKey).setDepth(DEPTH.heads);
+      const jaw = this.add.image(base.x, base.y, `${headKey}_jaw`).setDepth(DEPTH.jaws);
+      if (!hasOwn) {
+        const tint = color(heads.classes[head.classId]?.color ?? '#cccccc');
+        sprite.setTint(tint);
+        jaw.setTint(tint);
+      }
+      const hinge = jawHinge(this.textures, `${headKey}_jaw`);
+      jaw.setOrigin(hinge.x / jaw.width, hinge.y / jaw.height);
       // New heads start at the stump and grow out from there.
       this.heads.set(head.id, {
         sprite,
         jaw,
+        hinge,
+        overlap: (hasOwn ? JAW_OVERLAP_BY_CLASS[head.classId] : undefined) ?? JAW_OVERLAP,
         x: base.x,
         y: base.y,
         lungeUntil: 0,
@@ -781,12 +817,12 @@ export class BattleScene extends Phaser.Scene {
       }
       x = Math.round(x);
       y = Math.round(y);
-      this.drawNeck(base, { x, y });
+      this.drawNeck(base, { x, y }, facing);
       view.sprite.setPosition(x, y).setFlipX(facing < 0);
       // The jaw hangs under the head and turns around its back end; mirrored (negative scale) when facing left,
       // so it still turns around that end. Its image is as wide as the head's, centred under it.
       view.jaw
-        .setPosition(x + facing * (this.jawHinge.x - view.jaw.width / 2), y + view.sprite.height / 2 - JAW_OVERLAP + this.jawHinge.y)
+        .setPosition(x + facing * (view.hinge.x - view.jaw.width / 2), y + view.sprite.height / 2 - view.overlap + view.hinge.y)
         .setScale(facing, 1)
         .setAngle(facing * bite * JAW_OPEN_DEGREES);
     }
@@ -795,22 +831,32 @@ export class BattleScene extends Phaser.Scene {
   /** The middle of a drawn head with its jaw, and how far it reaches from there sideways and up and down. */
   private headShape(view: HeadView): { x: number; y: number; halfWidth: number; halfHeight: number } {
     const top = view.y - view.sprite.height / 2;
-    const bottom = view.y + view.sprite.height / 2 - JAW_OVERLAP + view.jaw.height;
+    const bottom = view.y + view.sprite.height / 2 - view.overlap + view.jaw.height;
     return { x: view.x, y: (top + bottom) / 2, halfWidth: view.sprite.width / 2, halfHeight: (bottom - top) / 2 };
   }
 
-  /** A neck as a chain of segments rising from the body in an arc, thinner towards the head. */
-  private drawNeck(from: Point, to: Point): void {
+  /**
+   * A neck as a chain of discs rising from the body in an arc, thinner towards the head, in the layers of NECK_LAYERS;
+   * `facing` is where the head looks (1 right, -1 left).
+   */
+  private drawNeck(from: Point, to: Point, facing: number): void {
     const bend = { x: (from.x + to.x) / 2, y: Math.min(from.y, to.y) - 18 };
     const length = Math.hypot(bend.x - from.x, bend.y - from.y) + Math.hypot(to.x - bend.x, to.y - bend.y);
     const discs = Math.max(8, Math.ceil(length / NECK_DISC_SPACING));
-    for (const [width, fill] of [[5.5, NECK_OUTLINE], [4.3, NECK_FILL]] as const) {
-      this.necks.fillStyle(fill);
-      for (let i = 0; i <= discs; i++) {
-        const t = i / discs;
-        const x = (1 - t) * (1 - t) * from.x + 2 * (1 - t) * t * bend.x + t * t * to.x;
-        const y = (1 - t) * (1 - t) * from.y + 2 * (1 - t) * t * bend.y + t * t * to.y;
-        this.necks.fillCircle(Math.round(x), Math.round(y), width - 1.5 * t);
+    const spine = Array.from({ length: discs + 1 }, (_, i) => {
+      const t = i / discs;
+      return {
+        x: (1 - t) * (1 - t) * from.x + 2 * (1 - t) * t * bend.x + t * t * to.x,
+        y: (1 - t) * (1 - t) * from.y + 2 * (1 - t) * t * bend.y + t * t * to.y,
+        radius: NECK_RADIUS.body + (NECK_RADIUS.head - NECK_RADIUS.body) * t,
+      };
+    });
+    for (const layer of NECK_LAYERS) {
+      this.necks.fillStyle(layer.color);
+      for (const p of spine) {
+        const x = p.x + facing * layer.toward * p.radius;
+        const y = p.y + layer.down * p.radius;
+        this.necks.fillCircle(Math.round(x), Math.round(y), p.radius * layer.size);
       }
     }
   }
@@ -1113,13 +1159,17 @@ export class BattleScene extends Phaser.Scene {
   }
 }
 
-/** The point the lower jaw turns around: the top of its back end (its leftmost drawn column), in image pixels. */
-function jawHinge(textures: Phaser.Textures.TextureManager): Point {
-  const { width, height } = textures.getFrame('battle_head_jaw');
-  for (let x = 0; x < width; x++) {
-    for (let y = 0; y < height; y++) if ((textures.getPixelAlpha(x, y, 'battle_head_jaw') ?? 0) > 0) return { x, y };
+/**
+ * The point a lower jaw turns around: the top of its back end (its leftmost drawn column), in screen units from the
+ * image's corner. HD images have more pixels per unit (useDensity), so their pixels are counted and then divided.
+ */
+function jawHinge(textures: Phaser.Textures.TextureManager, key: string): Point {
+  const frame = textures.getFrame(key);
+  const density = frame.source.resolution || 1;
+  for (let x = 0; x < frame.cutWidth; x++) {
+    for (let y = 0; y < frame.cutHeight; y++) if ((textures.getPixelAlpha(x, y, key) ?? 0) > 0) return { x: x / density, y: y / density };
   }
-  return { x: width / 2, y: 0 }; // an empty jaw (the placeholder head has its jaw drawn in)
+  return { x: frame.width / 2, y: 0 }; // an empty jaw (the placeholder head has its jaw drawn in)
 }
 
 function hpBar(g: Phaser.GameObjects.Graphics, cx: number, y: number, width: number, share: number, fill: number): void {

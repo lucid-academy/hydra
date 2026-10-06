@@ -16,14 +16,14 @@ Klatki jednej animacji: osobne pliki `art/raw/<klucz>_frame1.png`, `_frame2.png`
 
 | Animacja | Jak | Klatki | Rozmiar | fps | Zaczepienie | Kierunki | Stan |
 |---|---|---|---|---|---|---|---|
-| Przesuwanie po planszy | kod: ślizg z heksu na heks | – | 132×110 | – | środek podstawy (66, 66) | brak (bez przodu i tyłu) | jest |
+| Przesuwanie po planszy | kod: ślizg z heksu na heks | – | 144×110 | – | środek podstawy (72, 70) | brak (bez przodu i tyłu) | jest |
 | Mignięcie przy trafieniu | kod: 70 ms na biało | – | | | | | jest |
 | Oddech | kod: lekkie spłaszczanie i rozciąganie w pionie, ok. 3 s na cykl | – | | | | | do zrobienia |
 | Drgnięcie przy mocnym ciosie | kod: odrzut o 1–2 px od ciosu i powrót | – | | | | | do zrobienia |
 
-## Głowy: battle_head i battle_head_jaw
+## Głowy: battle_head i battle_head_jaw, głowy klas
 
-Jeden szary obrazek dla wszystkich klas, gra barwi go kolorem klasy. Żuchwa to osobny obrazek, żeby dało się otwierać pysk.
+Jeden szary obrazek dla klas bez własnej głowy, gra barwi go kolorem klasy. Klasa z własną głową (od 2026-10-06 Biter: `battle_head_biter` 40×24, żuchwa 40×12, zachodzi na głowę o 11 px) ma te same animacje, bez barwienia. Żuchwa to osobny obrazek, żeby dało się otwierać pysk.
 
 | Animacja | Jak | Klatki | Rozmiar | fps | Zaczepienie | Kierunki | Stan |
 |---|---|---|---|---|---|---|---|
@@ -37,7 +37,7 @@ Jeden szary obrazek dla wszystkich klas, gra barwi go kolorem klasy. Żuchwa to 
 
 ## Szyje
 
-Rysowane w całości w kodzie: łańcuch nakładających się krążków po łuku od tułowia do głowy, cieńszy przy głowie. Ruszają się razem z głową. Kolory wzięte z tułowia: obrys #030b0b i zielone wypełnienie #486a33 (`NECK_OUTLINE`, `NECK_FILL` w `src/scenes/BattleScene.ts`). Stan: `jest`.
+Rysowane w całości w kodzie: łańcuch nakładających się krążków po łuku od korony tułowia do głowy, cieńszy przy głowie. Ruszają się razem z głową. Kolory wzięte z tułowia (od 2026-10-06 brąz): ciemny obrys, brązowe łuski, jasny pasek z lewej góry i kremowy pas brzucha po stronie, w którą patrzy głowa (`NECK_LAYERS`, `NECK_RADIUS` w `src/scenes/BattleScene.ts`; skąd wychodzą: `NECK_RING` w `src/assets/battleArt.ts`). Stan: `jest`.
 
 ## Ludzie Zakonu: battle_enemy_manAtArms, battle_enemy_headhunter, battle_enemy_torchbearer
 
