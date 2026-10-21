@@ -253,3 +253,19 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 4. Gdy Piotr napisze, że wrzucił grafiki: `git pull`, `npm run art`, obejrzeć wynik w grze, wdrożyć, pokazać.
 5. Zatwierdzone decyzje od razu wpisywać do `GAME_DESIGN.md`, a budować w swoim etapie.
 6. Kolejność etapów z `GAME_DESIGN.md` §15: M2a, M3, M4, M7.
+
+## M2a: głowy i combosy (wątek „Głowy i balans bitwy”, od 2026-10-21)
+
+Budowane na gałęzi `claude/project-thread-lil67f`, równolegle z M6 w wątku „Następny etap gry”. Plan wysłany Piotrowi 2026-10-21; do main nic nie wchodzi przed jego OK. Pytania A (pula głów), B (odrost 6 czy 8 s) i C (słabsza nowa głowa) czekają na odpowiedź.
+
+Zrobione:
+- Symulacja (`src/sim/battle/`): statusy z flagami w `combos.json` (`canWalk`, `canAttack`, `canChannel`, `flees`, `damageTakenMultiplier`, `endsOnDamage`, `breaksWhenHolderTakes`): Terrified, Stunned, Seized, Entranced oraz pomocnicze Pinned, Charmed, Melted (`TODO(design)`: spoza sześciu statusów ze słownika). Chwyt Stranglera (głowa trzyma człowieka, pęka po 8 obrażeniach), odrzut i przyciąganie, rzut, kałuże, światła Lanterna (wabią, ludzie klękają), sen i jedzenie Gluttona, nastroje bliźniaków po śmierci jednego, Bad Idea The Spare.
+- Jeden słownik efektów dla ataków, umiejętności i combosów: `src/data/battleSchemas.ts` (kształt w JSON), `effects.ts` (wykonanie). Umiejętności w `skills.ts`: cel (człowiek, heks, głowa, kikut, nic), zasięg, obszar, efekty i rzeczy specjalne.
+- Dane: 9 klas z atakiem podstawowym, po 3 umiejętności i ult (36 umiejętności, `heads.json` „skills”), 19 combosów z opisami i kwestiami (`combos.json`). Combosy mogą wymagać kilku głów (`otherHeads`: ta sama klasa, ten sam kikut, przeciwne strony), progu HP, posiłku albo zapalenia światła.
+- Bitwa: przyciski Q/W/E nad kartami dla jednej wybranej głowy, celowanie z zasięgiem umiejętności, ⇄ przed startem zamienia umiejętność na trzecią (wybór zostaje w `HeadRecord.skills`), kwestie głów po combosach, nazwy statusów nad ludźmi, kałuże i światła na planszy, klęczący i zataczający się ludzie, kodeks combosów (przycisk Codex, `localStorage` „hydra.codex.v1”, osobno od zapisu M6).
+- Do testów: `?scene=battle&heads=strangler,lantern,tender` (głowy bitwy testowej), `?ults=1` (ulty pod E).
+- `npm run balance`: trzeci gracz „focus + skills” i tabela klas (trzecia głowa startowej hydry zamieniana na każdą klasę). Glutton leczył Body prawie do zera strat, więc `devourHeal` 15 → 8.
+
+Nie zrobione (brak projektu albo czeka na Piotra): doświadczenie i poziomy (§16: od czego rosną głowy), specjalizacje, drzewko talentów, przypadłości; skąd hydra dostaje ulty (zaklęcia, kapliczki). Efekty na wrogów, których jeszcze nie ma (kusznik, kosze żarowe, rycerze), są w danych jako `TODO(design)`. Nowe klasy mają szarą głowę barwioną kolorem klasy do czasu obrazków.
+
+Wniosek z balansu: gracz używający umiejętności wygrywa prawie wszystko (pyreProcession 97% → 100%, strata HP Body 132 → 90). Do wyrównania razem z nowymi wrogami (M3) albo po playteście.
