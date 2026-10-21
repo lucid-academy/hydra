@@ -42,7 +42,7 @@
       "color": "#b5614a",
       "maxHp": 46,
       "//": "devourHeal: HP the body gets back when the Glutton eats a human (a human it bit to death, or one it gulped whole).",
-      "attack": { "name": "Gnaw", "damage": 8, "cooldownSeconds": 2.4, "range": 2, "melee": true, "tags": ["devour"], "devourHeal": 15 },
+      "attack": { "name": "Gnaw", "damage": 8, "cooldownSeconds": 2.4, "range": 2, "melee": true, "tags": ["devour"], "devourHeal": 8 },
       "skills": ["gulp", "eatFire", "regurgitate"],
       "ultimate": "bottomless"
     },
