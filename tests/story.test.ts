@@ -173,7 +173,7 @@ describe('events', () => {
         needsCondition: null,
         cost: { muck: 0, moisture: 0, bones: 0 },
         chance: null,
-        success: { text: 'Got it.', loot: { muck: 5, moisture: 0, bones: 0 }, alert: 0, bodyHp: 0, headsHp: 0, condition: null, reveal: 0, battle: null, setFlags: ['took'], dialogue: null, newHead: null, bore: false },
+        success: { text: 'Got it.', loot: { muck: 5, moisture: 0, bones: 0 }, alert: 0, bodyHp: 0, headsHp: 0, condition: null, reveal: 0, battle: null, setFlags: ['took'], dialogue: null, newHead: null, bore: false, mutation: null },
         failure: null,
       },
     ],

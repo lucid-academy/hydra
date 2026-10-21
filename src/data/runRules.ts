@@ -1,6 +1,7 @@
 // Picks the values the strategic-map simulation needs out of the data files.
 
 import type { BiomeSettings, PlaceSettings, UndergroundGeneratorSettings } from '../sim/map';
+import type { LineageRules } from '../sim/lineage';
 import type { EventOutcome, PlaceAction, RunRules, StoryRules } from '../sim/turn';
 import type { GameData } from './index';
 import type { Balance, EventsData } from './schemas';
@@ -90,7 +91,9 @@ export function generatorSettingsFrom(data: GameData): UndergroundGeneratorSetti
     remainsLines: Object.fromEntries(Object.entries(world.remains.lines).map(([pool, lines]) => [pool, lines.length])),
     remainsLoot: world.remains.loot,
     hoardLoot: world.guardedHoard.loot,
-    // Run modifiers are picked per run (for now with ?modifiers=); see createRun.
+    // Places the world remembers and run modifiers are given per run; see createRun.
+    placesSeen: [],
+    seenRarePlaceChance: gen.seenRarePlaceChance,
     modifiers: [],
     modifierRules: {
       wetYear: { waterShareBonus: wetYear.waterShareBonus, moistureMultiplier: wetYear.moistureMultiplier },
@@ -135,6 +138,8 @@ export function runRulesFrom(data: GameData): RunRules {
         },
       ]),
     ),
+    mutations: Object.fromEntries(data.mutations.mutations.map((m) => [m.id, m.effects])),
+    marks: { chance: data.shrines.marks.chance, rings: data.shrines.marks.rings },
     bore: Object.entries(world.thresholds)
       .filter(([, t]) => t.bore !== undefined)
       .map(([id, t]) => ({ thresholdId: id, ...t.bore! }))[0] ?? null,
@@ -183,10 +188,14 @@ export function storyRulesFrom(data: GameData): StoryRules {
     dialogue: o.dialogue ?? null,
     newHead: o.newHead ?? null,
     bore: o.bore === true,
+    mutation: o.mutation ?? null,
   });
   return {
     speakerNames: dialogues.speakers,
     serpentVoice: dialogues.serpentVoice,
+    ancestorVoiceChance: data.lineage.ancestorVoice.chance,
+    dialogueIds: new Set(dialogues.dialogues.map((d) => d.id)),
+    mutationNames: Object.fromEntries(data.mutations.mutations.map((m) => [m.id, m.name])),
     dialogues: dialogues.dialogues.map((d) => ({
       id: d.id,
       trigger: d.trigger,
@@ -218,5 +227,24 @@ export function storyRulesFrom(data: GameData): StoryRules {
     })),
     biomeNames: Object.fromEntries(Object.entries(data.biomes.biomes).map(([id, b]) => [id, b.displayName])),
     headClassNames: Object.fromEntries(Object.entries(data.heads.classes).map(([id, c]) => [id, c.displayName])),
+  };
+}
+
+/** Names, inheritance, epitaphs, how long each flag is remembered and what the account can unlock (GAME_DESIGN.md §12). */
+export function lineageRulesFrom(data: GameData): LineageRules {
+  const { lineage, world } = data;
+  return {
+    names: lineage.names,
+    takeAncestorName: lineage.takeAncestorName,
+    inheritedShare: lineage.inheritedShare,
+    epitaphs: { byEnemy: lineage.epitaphs.byEnemy, any: lineage.epitaphs.any, ended: lineage.epitaphs.ended },
+    flagScopes: Object.fromEntries(Object.entries(data.flags.flags).map(([id, f]) => [id, f.scope])),
+    biomeNames: Object.fromEntries(Object.entries(data.biomes.biomes).map(([id, b]) => [id, b.displayName])),
+    dialogueIds: new Set(data.dialogues.dialogues.map((d) => d.id)),
+    unlocks: Object.entries(world.runModifiers).flatMap(([id, m]) => {
+      if (typeof m === 'string') return []; // the "//" note
+      const { text: _text, '//': _note, ...challenge } = m.unlock;
+      return [{ id, challenge }];
+    }),
   };
 }

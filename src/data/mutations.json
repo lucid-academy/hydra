@@ -1,0 +1,53 @@
+{
+  "//": "TODO(design): the first mutations (GAME_DESIGN.md §12), written by Claude for M6; names, texts and numbers are working values, change them freely. A mutation is a mark on the hydra that her heiresses can inherit (a random half of her mutations, rounded up: lineage.json inheritedShare). It comes from some events (an outcome with \"mutation\") and from a marking shrine of the Serpent (shrines.json marks). effects, all optional, negative numbers are the catch: movement (points per turn), sight (hexes), bodyMaxHp, regeneration (body HP healed per turn), headMaxHpPercent (every head's max HP, in percent), startingHeads (heads a hydra hatches with; only from the next generation on, never fewer than 1), alertPercent (the Alert rises this many percent faster; negative = slower), findsPercent (more Muck and Moisture from deposits and springs, in percent), echoRange (echoes are heard this many hexes further). In M6 only effects on the map and the hydra's numbers; mutations that work in battle (e.g. Fireproof Scales) come after M2a.",
+  "mutations": [
+    {
+      "id": "thickNecked",
+      "name": "Thick-necked",
+      "text": "The necks are thicker than they need to be. The heads find this reassuring, and say so.",
+      "effects": { "headMaxHpPercent": 20 }
+    },
+    {
+      "id": "paranoid",
+      "name": "Paranoid",
+      "text": "One head always faces backwards, and is right about the Order more often than is comfortable. It hatches alone, so it can keep an eye on the others.",
+      "effects": { "sight": 1, "startingHeads": -1 }
+    },
+    {
+      "id": "longBodied",
+      "name": "Long-bodied",
+      "text": "A body made for long tunnels. There is more of it at both ends and rather less in the middle.",
+      "effects": { "movement": 1, "bodyMaxHp": -30 }
+    },
+    {
+      "id": "slowBlood",
+      "name": "Slow Blood",
+      "text": "Wounds close slowly, but they close. So does everything else.",
+      "effects": { "regeneration": 6, "movement": -1 }
+    },
+    {
+      "id": "bogScented",
+      "name": "Bog-scented",
+      "text": "Smells so exactly like the swamp that the Order takes a while to notice the swamp is moving. The smell gets in the eyes.",
+      "effects": { "alertPercent": -25, "sight": -1 }
+    },
+    {
+      "id": "hoardersGut",
+      "name": "Hoarder's Gut",
+      "text": "Finds Muck everywhere and keeps all of it. Rattles faintly when it walks.",
+      "effects": { "findsPercent": 30, "alertPercent": 10 }
+    },
+    {
+      "id": "manyMouthed",
+      "name": "Many-mouthed",
+      "text": "Hatches with one head more than strictly necessary. The necks are thinner for it, and so is the conversation.",
+      "effects": { "startingHeads": 1, "headMaxHpPercent": -15 }
+    },
+    {
+      "id": "echoEared",
+      "name": "Echo-eared",
+      "text": "Hears the deep places talking from far off. Mostly they talk about her.",
+      "effects": { "echoRange": 3 }
+    }
+  ]
+}

@@ -19,6 +19,7 @@ import type {
   StoryState,
   StoryTrigger,
 } from './types';
+import { gainMutation } from './mutations';
 import { boreTunnel, growHeads, look, openThreshold, pendingThreshold, raiseAlert, startCondition, tileAt } from './world';
 
 /** What happened just now, for the conditions of a dialogue (and the names in its lines). */
@@ -31,6 +32,10 @@ export interface StoryFacts {
   newEnemyTypes?: readonly string[];
   /** Heads that just grew (ids), for head:new. */
   newHeadIds?: readonly string[];
+  /** A new generation: her mother's name and killer (an enemy type), and the mutations she inherited. */
+  mother?: string;
+  motherKilledBy?: string | null;
+  inherited?: readonly string[];
 }
 
 export function newStory(seed: number, lairBiome: string): StoryState {
@@ -57,7 +62,12 @@ export function conditionsHold(state: RunState, c: StoryConditions, facts: Story
     (c.severedAtLeast === undefined || (facts.severed ?? 0) >= c.severedAtLeast) &&
     (c.grownAtLeast === undefined || (facts.grown ?? 0) >= c.grownAtLeast) &&
     (c.cauterizedAtLeast === undefined || (facts.cauterized ?? 0) >= c.cauterizedAtLeast) &&
-    (c.newEnemyTypes === undefined || c.newEnemyTypes.some((t) => (facts.newEnemyTypes ?? []).includes(t)))
+    (c.newEnemyTypes === undefined || c.newEnemyTypes.some((t) => (facts.newEnemyTypes ?? []).includes(t))) &&
+    (c.minGeneration === undefined || state.generation >= c.minGeneration) &&
+    (c.maxGeneration === undefined || state.generation <= c.maxGeneration) &&
+    (c.mutations ?? []).every((id) => hydra.mutations.includes(id)) &&
+    (c.inheritedAtLeast === undefined || (facts.inherited ?? []).length >= c.inheritedAtLeast) &&
+    (c.motherKilledBy === undefined || (facts.motherKilledBy !== undefined && facts.motherKilledBy !== null && c.motherKilledBy.includes(facts.motherKilledBy)))
   );
 }
 
@@ -79,7 +89,9 @@ function best<T extends { priority: number }>(fitting: readonly T[]): T[] {
 /**
  * The lines of a dialogue with their speakers found among the heads, or null if a speaker can't be found
  * (head:other needs two heads, head:new a new one, head:<class> a head of that class).
- * {any}, {other} and {new} in a text are those heads' names, {biome} the biome's name.
+ * {any}, {other} and {new} in a text are those heads' names, {biome} the biome's name, {name} the hydra's, {lineage}
+ * her lineage's, {mother} her mother's, and {mutation} one of the mutations she inherited (or else carries); a dialogue
+ * that needs a mother or a mutation she doesn't have can't be said.
  */
 function castDialogue(state: RunState, rules: RunRules, d: DialogueRules, facts: StoryFacts, rng: Rng): ShownDialogue | null {
   const heads = state.hydra.heads;
@@ -88,7 +100,7 @@ function castDialogue(state: RunState, rules: RunRules, d: DialogueRules, facts:
   const all = [...d.lines, ...d.choices.flatMap((c) => c.reply)];
   const taken = () => new Set([...cast.values()].map((h) => h.id));
   // Heads of a class first, so head:any never turns out to be the same head as head:biter.
-  const classRoles = [...new Set(all.map((l) => l.speaker.replace(/^head:/, '')))].filter((r) => r !== 'toad' && r !== 'serpent' && !['new', 'any', 'other'].includes(r));
+  const classRoles = [...new Set(all.map((l) => l.speaker.replace(/^head:/, '')))].filter((r) => !['toad', 'serpent', 'ancestor', 'new', 'any', 'other'].includes(r));
   for (const role of classRoles) {
     const pool = heads.filter((h) => h.classId === role && !taken().has(h.id));
     if (pool.length === 0) return null;
@@ -101,12 +113,25 @@ function castDialogue(state: RunState, rules: RunRules, d: DialogueRules, facts:
     cast.set(role, rng.pick(pool));
   }
   const story = rules.story;
+  const uses = (placeholder: string) => all.some((l) => l.text.includes(`{${placeholder}}`)) || d.choices.some((c) => c.text.includes(`{${placeholder}}`));
+  if ((uses('mother') || all.some((l) => l.speaker === 'ancestor')) && !facts.mother) return null;
+  let mutation: string | null = null;
+  if (uses('mutation')) {
+    const pool = (facts.inherited ?? []).length > 0 ? facts.inherited! : state.hydra.mutations;
+    if (pool.length === 0) return null;
+    mutation = story.mutationNames[rng.pick(pool)] ?? null;
+  }
   const fill = (text: string) =>
     text
       .replace(/\{(any|other|new)\}/g, (_, role: string) => cast.get(role)!.name)
-      .replace(/\{biome\}/g, story.biomeNames[facts.biome ?? tileAt(state, state.hydra.position)?.biome ?? ''] ?? '');
+      .replace(/\{biome\}/g, story.biomeNames[facts.biome ?? tileAt(state, state.hydra.position)?.biome ?? ''] ?? '')
+      .replace(/\{name\}/g, state.hydra.name)
+      .replace(/\{lineage\}/g, state.lineageName)
+      .replace(/\{mother\}/g, facts.mother ?? '')
+      .replace(/\{mutation\}/g, mutation ?? '');
   const line = (l: DialogueLineRules): ShownLine => {
     if (l.speaker === 'toad' || l.speaker === 'serpent') return { speaker: l.speaker, name: story.speakerNames[l.speaker] ?? l.speaker, classId: null, text: fill(l.text) };
+    if (l.speaker === 'ancestor') return { speaker: 'ancestor', name: facts.mother ?? story.speakerNames.ancestor ?? '', classId: null, text: fill(l.text) };
     const head = cast.get(l.speaker.replace(/^head:/, ''))!;
     return { speaker: 'head', name: head.name, classId: head.classId, text: fill(l.text) };
   };
@@ -267,6 +292,7 @@ function applyOutcome(state: RunState, rules: RunRules, o: EventOutcome, at: Hex
   }
   setFlags(state, o.setFlags);
   if (o.newHead) growHeads(state, rules, 1, o.newHead);
+  if (o.mutation) gainMutation(state, o.mutation, rules, events);
   if (o.bore) {
     const tunnel = withRng(state.story, (rng) => boreTunnel(state, rules, at, rng));
     events.push(tunnel ? { type: 'tunnelBored', at: tunnel.at, path: tunnel.path } : { type: 'boreFailed' });

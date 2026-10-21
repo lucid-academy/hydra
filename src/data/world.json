@@ -243,21 +243,24 @@
   },
 
   "runModifiers": {
-    "//": "Modifiers that change the world (GAME_DESIGN.md §9.6). For now they are turned on with the URL parameter ?modifiers=wetYear,oldWorkings. waterShareBonus: share of water added in biomes that have water. moistureMultiplier: more Moisture sources. extraFungalPatches: patches of fungalBiome added to each ring where it is not the main biome. extraEncounters: encounters along the shaft.",
+    "//": "Modifiers that change the world (GAME_DESIGN.md §9.6). Each generation gets one of the modifiers the account has unlocked, at random (M6); for tests, the URL parameter ?modifiers=wetYear,oldWorkings turns them on. unlock: the challenge that unlocks it, and how it is told (TODO(design): Claude's first choice): reachRing (a hydra stands in this ring), battlesWon (one hydra wins this many battles), generation (a lineage gets this far), flag (a story flag from flags.json is known), turns (one hydra lives this many turns). waterShareBonus: share of water added in biomes that have water. moistureMultiplier: more Moisture sources. extraFungalPatches: patches of fungalBiome added to each ring where it is not the main biome. extraEncounters: encounters along the shaft.",
     "wetYear": {
       "name": "Wet Year",
+      "unlock": { "text": "Raise a second generation.", "generation": 2 },
       "text": "A wet year. Water seeps into everything, including morale.",
       "waterShareBonus": 0.15,
       "moistureMultiplier": 1.5
     },
     "myceliumBloom": {
       "name": "Mycelium Bloom",
+      "unlock": { "text": "Hear the mycelium.", "flag": "heardMycelium" },
       "text": "The mycelium is blooming. Fungus turns up where it has no business, which is everywhere.",
       "extraFungalPatches": [1, 2],
       "fungalBiome": "fungalDeeps"
     },
     "oldWorkings": {
       "name": "Old Workings",
+      "unlock": { "text": "Reach the third ring.", "reachRing": 3 },
       "text": "An old shaft of the Order cuts straight through the outer rings. The Order still uses it, out of habit.",
       "extraEncounters": 3
     }

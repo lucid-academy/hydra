@@ -129,6 +129,13 @@ export interface UndergroundGeneratorSettings {
   remainsLoot: Readonly<Record<'muck' | 'moisture' | 'bones', Range>>;
   /** What a Guarded Hoard gives. */
   hoardLoot: Loot;
+  /**
+   * Places (world.json ids) the world remembers from earlier generations (GAME_DESIGN.md §9.4): the generator prefers
+   * the others. A biome location seen before is picked only when its biome has no unseen one left; a rare place seen
+   * before comes up with `seenRarePlaceChance` of its chance.
+   */
+  placesSeen: readonly string[];
+  seenRarePlaceChance: number;
   /** Run modifiers in play (ids from world.json runModifiers), and what the generator does with each. */
   modifiers: readonly string[];
   modifierRules: {

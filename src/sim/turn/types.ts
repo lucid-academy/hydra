@@ -20,6 +20,47 @@ export interface BlessingEffects {
   moisture?: number;
 }
 
+/**
+ * What a mutation changes (mutations.json, GAME_DESIGN.md §12). Missing = no change. A hydra born with it has it from
+ * the start; one that gains it in her life feels the lasting part at once (all but startingHeads).
+ */
+export interface MutationEffects {
+  movement?: number;
+  sight?: number;
+  bodyMaxHp?: number;
+  regeneration?: number;
+  /** Every head's max HP, in percent. */
+  headMaxHpPercent?: number;
+  /** Heads she hatches with (from the next generation on; never fewer than 1). */
+  startingHeads?: number;
+  /** The Alert rises this many percent faster (negative: slower). */
+  alertPercent?: number;
+  /** More Muck and Moisture from deposits and springs, in percent. */
+  findsPercent?: number;
+  /** Echoes are heard this many hexes further. */
+  echoRange?: number;
+}
+
+/** What a hydra hatches with (GAME_DESIGN.md §12), given by her lineage (sim/lineage). */
+export interface Heritage {
+  /** 1 for the first hydra of a lineage. */
+  generation: number;
+  /** Her name, with its number (Morwenna II). */
+  name: string;
+  /** Her lineage is named after its first hydra. */
+  lineageName: string;
+  /** Mutations she is born with (mutations.json ids). */
+  mutations: readonly string[];
+  /** Story flags her lineage and the world remember, dialogues her lineage has heard, enemy types it has met. */
+  flags: readonly string[];
+  seen: readonly string[];
+  enemyTypesMet: readonly string[];
+  /** Places (world.json ids) the world remembers: the generator prefers the others. */
+  placesSeen: readonly string[];
+  /** Her mother, for the dialogues of a new generation (null for the first hydra of a lineage). */
+  mother: { name: string; killedBy: string | null } | null;
+}
+
 /** How a kind of threshold opens (world.json thresholds). */
 export interface ThresholdRules {
   /** Looks like rock until the hydra stands next to it; then it is open. */
@@ -90,7 +131,17 @@ export interface ConditionRules {
  * When a dialogue can start. eventOnly: only when an event's choice asks for it by id.
  * serpentInBattle: a short line of the Serpent over a battle, which goes on (no pause).
  */
-export type StoryTrigger = 'afterBattle' | 'newBiome' | 'enemyAhead' | 'restInLair' | 'serpentOnTheWay' | 'serpentInBattle' | 'eventOnly';
+export type StoryTrigger =
+  | 'afterBattle'
+  | 'newBiome'
+  | 'enemyAhead'
+  | 'restInLair'
+  | 'serpentOnTheWay'
+  | 'serpentInBattle'
+  | 'eventOnly'
+  /** A new generation hatches (Old Mother Toad greets the heiress), and an ancestress may speak through her sleep. */
+  | 'newGeneration'
+  | 'ancestorInSleep';
 
 /** What must be true for a dialogue or an event. Missing = anything goes. */
 export interface StoryConditions {
@@ -114,11 +165,20 @@ export interface StoryConditions {
   cauterizedAtLeast?: number;
   /** One of these enemy types is met for the first time. */
   newEnemyTypes?: readonly string[];
+  /** The hydra's generation (1 = the first of her lineage). */
+  minGeneration?: number;
+  maxGeneration?: number;
+  /** The hydra carries all of these mutations. */
+  mutations?: readonly string[];
+  /** A new generation: she inherited at least this many mutations, and one of these enemy types killed her mother. */
+  inheritedAtLeast?: number;
+  motherKilledBy?: readonly string[];
 }
 
 /**
- * Who says a line: toad (Old Mother Toad), serpent (the Great Serpent's voice), or a head:
- * head:any (one of the heads), head:other (another one than head:any), head:new (one that just grew), head:<class id>.
+ * Who says a line: toad (Old Mother Toad), serpent (the Great Serpent's voice), ancestor (the hydra's mother, through
+ * her sleep), or a head: head:any (one of the heads), head:other (another one than head:any), head:new (one that just
+ * grew), head:<class id>.
  */
 export type SpeakerRef = string;
 
@@ -132,7 +192,7 @@ export interface DialogueRules {
   trigger: StoryTrigger;
   /** The highest priority among the dialogues that fit is said. */
   priority: number;
-  /** Said once per run (else it can come again). */
+  /** Said once per lineage (else it can come again). */
   once: boolean;
   conditions: StoryConditions;
   lines: readonly DialogueLineRules[];
@@ -161,6 +221,8 @@ export interface EventOutcome {
   newHead: string | null;
   /** The Cinderkin melt a tunnel through the rock nearby (RunRules.bore). */
   bore: boolean;
+  /** The hydra gains this mutation (mutations.json), for herself and her heiresses. */
+  mutation: string | null;
 }
 
 export interface EventChoiceRules {
@@ -197,13 +259,18 @@ export interface StoryRules {
   events: readonly EventRules[];
   /** The Serpent speaks on the way at most every so many turns, with this chance at the end of a turn. */
   serpentVoice: { minTurnsBetween: number; chancePerTurn: number; battleChance: number };
+  /** The chance that an ancestress speaks through sleep when a new generation hatches. */
+  ancestorVoiceChance: number;
+  /** Dialogues (by id): a lineage remembers which of them it has heard; events are once per life. */
+  dialogueIds: ReadonlySet<string>;
+  mutationNames: Readonly<Record<string, string>>;
   biomeNames: Readonly<Record<string, string>>;
   headClassNames: Readonly<Record<string, string>>;
 }
 
 /** A line as shown: who says it (name; class for heads) and what. */
 export interface ShownLine {
-  speaker: 'toad' | 'serpent' | 'head';
+  speaker: 'toad' | 'serpent' | 'ancestor' | 'head';
   name: string;
   classId: string | null;
   text: string;
@@ -217,7 +284,7 @@ export interface ShownDialogue {
 
 export interface StoryState {
   flags: string[];
-  /** Dialogues and events that happened (ids), for `once`. */
+  /** Dialogues and events that happened (ids), for `once`: dialogues of the whole lineage, events of this life. */
   seen: string[];
   enemyTypesMet: string[];
   biomesEntered: string[];
@@ -256,6 +323,10 @@ export interface RunRules {
   /** What each blessing (by id) does. */
   blessings: Readonly<Record<string, BlessingEffects>>;
   thresholds: Readonly<Record<string, ThresholdRules>>;
+  /** What each mutation (by id) does. */
+  mutations: Readonly<Record<string, MutationEffects>>;
+  /** Marking shrines: with this chance a world has one, in one of these rings, offering a mutation instead of a blessing. */
+  marks: { chance: number; rings: readonly number[] };
   /** How the Cinderkin melt a tunnel (null: no threshold in world.json can be bored). */
   bore: BoreRules | null;
   places: Readonly<Record<string, PlaceRules>>;
@@ -264,6 +335,12 @@ export interface RunRules {
 }
 
 export interface Hydra {
+  /** With her number (Morwenna II). */
+  name: string;
+  /** Mutations she carries (mutations.json ids): those she was born with first, then those gained in her life. */
+  mutations: string[];
+  /** Of those, the ones she was born with. */
+  inherited: string[];
   position: Hex;
   movementLeft: number;
   /** Movement points at the start of each turn (blessings can change it; conditions change it for a while). */
@@ -299,6 +376,9 @@ export interface HeardEcho {
 
 export interface RunState {
   readonly seed: number;
+  /** The hydra's generation in her lineage (1 = the first), and her lineage's name. */
+  generation: number;
+  lineageName: string;
   turn: number;
   map: HexMap;
   hydra: Hydra;
@@ -317,12 +397,16 @@ export interface RunState {
   /** Hidden thresholds whose draught the hydra has felt (hex keys). */
   draughtsFelt: string[];
   battlesFought: number;
+  /** The deepest ring the hydra has stood in (0 = only the lair's swamp). */
+  deepestRing: number;
   /** Next free number for ids of heads grown in battles. */
   nextId: number;
   /** Random numbers for things that happen on the map (e.g. which heads grow from a healed scar). */
   rngState: number;
   /** The hydra died: this run is over. */
   over: boolean;
+  /** Where she fell and to whom (an encounter group and its enemy types), once she has died. */
+  deathCause: { at: Hex; groupId: string; enemyTypes: string[] } | null;
   story: StoryState;
   /** The event the hydra stands at, until its panel is closed; `result` once a choice is made. */
   pendingEvent: { at: Hex; eventId: string; result: { text: string; choice: number; success: boolean } | null } | null;
@@ -342,6 +426,8 @@ export type RunEvent =
   | { type: 'shrineReached'; at: Hex; blessingId: string }
   | { type: 'blessingAccepted'; blessingId: string }
   | { type: 'blessingRefused'; blessingId: string }
+  /** A marking shrine: its mark (a mutation) was taken. */
+  | { type: 'markAccepted'; mutationId: string }
   | { type: 'placeReached'; at: Hex; placeId: string; firstVisit: boolean }
   | { type: 'placeAction'; at: Hex; placeId: string; actionId: string; gain: Loot }
   | { type: 'landmarkSighted'; at: Hex; placeId: string }
@@ -358,6 +444,7 @@ export type RunEvent =
   | { type: 'boreFailed' }
   | { type: 'burned'; at: Hex; amount: number }
   | { type: 'tunnelCooled' }
+  | { type: 'mutationGained'; id: string }
   | { type: 'conditionStarted'; id: string; turns: number }
   | { type: 'conditionEnded'; id: string }
   | { type: 'rested'; healedScars: number; newHeadIds: string[] }

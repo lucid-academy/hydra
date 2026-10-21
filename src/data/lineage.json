@@ -1,0 +1,39 @@
+{
+  "//": "TODO(design): lineages and generations (GAME_DESIGN.md §12), written by Claude for M6; change freely. names: what a hydra can be called, picked at random; a name that comes again in the same lineage gets a number (Morwenna II), and the lineage is named after its first hydra. takeAncestorName: the chance that an heiress is named after one of her ancestresses (so numbers come up). inheritedShare: the share of her mother's mutations an heiress inherits, picked at random and rounded up. ancestorVoice.chance: how often an ancestress speaks through sleep when a new generation hatches (dialogues.json, trigger ancestorInSleep). epitaphs: the lines of the Book of Lineages, after the hydra's name. byEnemy: by the kind of enemy that killed her (enemies.json types; when a group of several kinds kills her, one of them is picked); any: when the killer has no lines of its own; ended: the last hydra of a lineage the player ended by starting a new one. {turns}: how many turns she lived; {biome}: where she fell.",
+  "names": [
+    "Morwenna", "Ysolde", "Gudrun", "Hespera", "Brannagh", "Ottilie", "Agathe", "Wendeline", "Mab", "Sabeth",
+    "Orla", "Ethne", "Grizel", "Hildegund", "Ermengarde", "Clothilde", "Melisende", "Isolt", "Brunhild", "Radegund",
+    "Sigrun", "Odile", "Perpetua", "Scholastica", "Walpurga", "Kunigunde", "Eulalie", "Petronel", "Ursel", "Bathilde"
+  ],
+  "takeAncestorName": 0.35,
+  "inheritedShare": 0.5,
+  "ancestorVoice": { "chance": 0.5 },
+  "epitaphs": {
+    "byEnemy": {
+      "manAtArms": [
+        "Slain by a man-at-arms collecting the tithe. He gave her a receipt.",
+        "Cut down by a patrol that had been told she was a rumour.",
+        "Killed by soldiers of the Order, who took turns, as is proper."
+      ],
+      "headhunter": [
+        "Taken one head at a time by a headhunter, who was paid by the head.",
+        "Slain by a headhunter. He kept a receipt for every neck.",
+        "Outnumbered, briefly, by a man with an axe."
+      ],
+      "torchbearer": [
+        "Burnt shut, neck by neck, by a lay brother with a torch and a great deal of patience.",
+        "Cauterised by the Order. The smell was entered into the record.",
+        "Slain by a torchbearer who had never been allowed to hold the torch before."
+      ]
+    },
+    "any": [
+      "Slain by the Order of the Eternal Flame. A report was filed in triplicate.",
+      "Fell in the {biome} after {turns} turns. The heads still disagree about whose fault it was.",
+      "Lived {turns} turns. The Order will hold a small mass about it."
+    ],
+    "ended": [
+      "Left the swamp to another line. Nobody filed anything.",
+      "The last of her line, by choice. Old Mother Toad kept her name anyway."
+    ]
+  }
+}

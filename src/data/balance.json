@@ -30,7 +30,7 @@
     }
   },
   "undergroundGenerator": {
-    "//": "TODO(design): working values (GAME_DESIGN.md §9). Distances in hexes. Ranges like [2, 4] mean from 2 to 4, picked at random for each world. Weights like { \"remains\": 40, \"shrine\": 20 }: bigger comes up more often. rings go from the lair outward; a ring's thresholds lead to the next ring. thresholdSpacing: thresholds of one border lie at least this share of the circle apart (0.2 = a fifth). outerEdge: distance from the rings' middle to the ring's outer edge before it wobbles (it is squeezed where the map is too small). Biomes and their ground are in biomes.json; thresholds, places, remains and run modifiers in world.json.",
+    "//": "TODO(design): working values (GAME_DESIGN.md §9). Distances in hexes. Ranges like [2, 4] mean from 2 to 4, picked at random for each world. Weights like { \"remains\": 40, \"shrine\": 20 }: bigger comes up more often. rings go from the lair outward; a ring's thresholds lead to the next ring. thresholdSpacing: thresholds of one border lie at least this share of the circle apart (0.2 = a fifth). outerEdge: distance from the rings' middle to the ring's outer edge before it wobbles (it is squeezed where the map is too small). seenRarePlaceChance: a rare place the world remembers from an earlier generation comes up with this share of its chance (§9.4); a biome location seen before is picked only when its biome has no unseen one left. Biomes and their ground are in biomes.json; thresholds, places, remains and run modifiers in world.json.",
     "lairRadius": 3,
     "lairExits": [2, 3],
     "ringCenterOffset": 3,
@@ -52,6 +52,7 @@
     "passages": { "firstRing": 1, "secondRings": [2, 3] },
     "locationsPerBiome": [1, 2],
     "maxRarePlaces": 2,
+    "seenRarePlaceChance": 0.5,
     "undertowLength": [4, 7],
     "rings": [
       {

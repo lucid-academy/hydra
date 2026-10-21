@@ -80,6 +80,7 @@ export const balanceSchema = section({
     passages: section({ firstRing: z.number().int().min(1), secondRings: z.array(z.number().int().min(1)).min(1) }),
     locationsPerBiome: intRange(0),
     maxRarePlaces: z.number().int().min(0),
+    seenRarePlaceChance: share,
     undertowLength: intRange(2),
     rings: z
       .array(
@@ -266,6 +267,9 @@ export const shrinesSchema = section({
       }),
     )
     .min(1),
+  // A marking shrine (GAME_DESIGN.md §12): with this chance a world has one, in one of these rings. It offers a mutation
+  // (mutations.json) the hydra doesn't carry yet, for her and her heiresses, instead of a blessing.
+  marks: section({ chance: share, rings: z.array(z.number().int().min(1)).min(1) }),
 }).superRefine((data, ctx) => {
   const ids = new Set<string>();
   data.blessings.forEach((b, i) => {
@@ -440,6 +444,23 @@ const thresholdSchema = section({
 
 const named = { name: z.string().min(1), text: z.string().min(1) };
 
+/**
+ * How the account unlocks a run modifier (M6, GAME_DESIGN.md §9.6, §12): one simple challenge, and how it is told.
+ * reachRing: a hydra stands in this ring; battlesWon: one hydra wins this many battles; generation: a lineage gets this
+ * far; flag: a story flag (flags.json) is known; turns: one hydra lives this many turns.
+ */
+const unlockSchema = section({
+  text: z.string().min(1),
+  reachRing: z.number().int().min(1).optional(),
+  battlesWon: z.number().int().min(1).optional(),
+  generation: z.number().int().min(2).optional(),
+  flag: z.string().min(1).optional(),
+  turns: z.number().int().min(1).optional(),
+}).refine(
+  (u) => [u.reachRing, u.battlesWon, u.generation, u.flag, u.turns].filter((v) => v !== undefined).length === 1,
+  'needs exactly one challenge: reachRing, battlesWon, generation, flag or turns',
+);
+
 export const worldSchema = section({
   thresholds: entries(thresholdSchema),
   places: entries(placeSchema),
@@ -453,9 +474,9 @@ export const worldSchema = section({
   echoes: entries(z.string().min(1)),
   conditions: entries(section({ ...named, movement: z.number().int().optional(), revealsEncounters: z.boolean().optional() })),
   runModifiers: section({
-    wetYear: section({ ...named, waterShareBonus: share, moistureMultiplier: z.number().positive() }),
-    myceliumBloom: section({ ...named, extraFungalPatches: intRange(0), fungalBiome: z.string().min(1) }),
-    oldWorkings: section({ ...named, extraEncounters: z.number().int().min(0) }),
+    wetYear: section({ ...named, unlock: unlockSchema, waterShareBonus: share, moistureMultiplier: z.number().positive() }),
+    myceliumBloom: section({ ...named, unlock: unlockSchema, extraFungalPatches: intRange(0), fungalBiome: z.string().min(1) }),
+    oldWorkings: section({ ...named, unlock: unlockSchema, extraEncounters: z.number().int().min(0) }),
   }),
 }).superRefine((world, ctx) => {
   // The generator relies on these.
@@ -607,7 +628,7 @@ export const textSchema = z
 
 // ---------------------------------------------------------------- story: dialogues.json and events.json
 
-const STORY_TRIGGERS = ['afterBattle', 'newBiome', 'enemyAhead', 'restInLair', 'serpentOnTheWay', 'serpentInBattle', 'eventOnly'] as const;
+const STORY_TRIGGERS = ['afterBattle', 'newBiome', 'enemyAhead', 'restInLair', 'serpentOnTheWay', 'serpentInBattle', 'eventOnly', 'newGeneration', 'ancestorInSleep'] as const;
 const flagList = z.array(z.string().min(1));
 const storyConditionsSchema = section({
   rings: z.array(z.number().int().min(0)).optional(),
@@ -625,14 +646,19 @@ const storyConditionsSchema = section({
   grownAtLeast: z.number().int().min(0).optional(),
   cauterizedAtLeast: z.number().int().min(0).optional(),
   newEnemyTypes: z.array(z.string().min(1)).optional(),
+  minGeneration: z.number().int().min(1).optional(),
+  maxGeneration: z.number().int().min(1).optional(),
+  mutations: z.array(z.string().min(1)).optional(),
+  inheritedAtLeast: z.number().int().min(0).optional(),
+  motherKilledBy: z.array(z.string().min(1)).optional(),
 });
 const speakerSchema = z
   .string()
-  .regex(/^(toad|serpent|head:[A-Za-z]+)$/, 'expected "toad", "serpent", "head:any", "head:other", "head:new" or "head:<class id>"');
+  .regex(/^(toad|serpent|ancestor|head:[A-Za-z]+)$/, 'expected "toad", "serpent", "ancestor", "head:any", "head:other", "head:new" or "head:<class id>"');
 const dialogueLineSchema = section({ speaker: speakerSchema, text: z.string().min(1) });
 
 export const dialoguesSchema = section({
-  speakers: section({ toad: z.string().min(1), serpent: z.string().min(1) }),
+  speakers: section({ toad: z.string().min(1), serpent: z.string().min(1), ancestor: z.string().min(1) }),
   serpentVoice: section({ minTurnsBetween: z.number().int().min(0), chancePerTurn: share, battleChance: share }),
   dialogues: z.array(
     section({
@@ -663,6 +689,7 @@ const eventOutcomeSchema = section({
   dialogue: z.string().min(1).optional(),
   newHead: z.string().min(1).optional(),
   bore: z.boolean().optional(),
+  mutation: z.string().min(1).optional(),
 });
 const costSchema = section({ muck: z.number().int().min(0).optional(), moisture: z.number().int().min(0).optional(), bones: z.number().int().min(0).optional() });
 
@@ -699,6 +726,44 @@ export const eventsSchema = section({
   ),
 });
 
+// ---------------------------------------------------------------- generations: mutations.json, lineage.json, flags.json
+
+/** What a mutation can change (see mutations.json). */
+export const MUTATION_EFFECTS = ['movement', 'sight', 'bodyMaxHp', 'regeneration', 'headMaxHpPercent', 'startingHeads', 'alertPercent', 'findsPercent', 'echoRange'] as const;
+
+export const mutationsSchema = section({
+  mutations: z
+    .array(
+      section({
+        id: z.string().min(1),
+        name: z.string().min(1),
+        text: z.string().min(1),
+        effects: z.partialRecord(z.enum(MUTATION_EFFECTS), z.number().int()),
+      }),
+    )
+    .min(1),
+}).superRefine((data, ctx) => {
+  const ids = new Set<string>();
+  data.mutations.forEach((m, i) => {
+    if (ids.has(m.id)) ctx.addIssue({ code: 'custom', path: ['mutations', i, 'id'], message: `mutation id "${m.id}" is used twice` });
+    ids.add(m.id);
+  });
+});
+
+const lines = z.array(z.string().min(1));
+export const lineageSchema = section({
+  names: z.array(z.string().min(1)).min(1),
+  takeAncestorName: share,
+  inheritedShare: share,
+  ancestorVoice: section({ chance: share }),
+  epitaphs: section({ byEnemy: entries(lines.min(1)), any: lines.min(1), ended: lines.min(1) }),
+});
+
+export const FLAG_SCOPES = ['life', 'lineage', 'world'] as const;
+export const flagsSchema = section({
+  flags: entries(section({ scope: z.enum(FLAG_SCOPES), about: z.string().min(1) })),
+});
+
 const manifestEntrySchema = z
   .object({
     // Path to the image file inside public/, or null to use the placeholder drawn in code.
@@ -729,3 +794,6 @@ export type AssetManifest = z.infer<typeof manifestSchema>;
 export type DialoguesData = z.infer<typeof dialoguesSchema>;
 export type StoryConditionsData = z.infer<typeof storyConditionsSchema>;
 export type EventsData = z.infer<typeof eventsSchema>;
+export type MutationsData = z.infer<typeof mutationsSchema>;
+export type LineageData = z.infer<typeof lineageSchema>;
+export type FlagsData = z.infer<typeof flagsSchema>;

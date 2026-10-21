@@ -51,6 +51,7 @@ const outcome = (over: Partial<EventOutcome>): EventOutcome => ({
   dialogue: null,
   newHead: null,
   bore: false,
+  mutation: null,
   ...over,
 });
 

@@ -1,7 +1,7 @@
 {
-  "//": "TODO(design): first batch of dialogues, written by Claude for M5 (GAME_DESIGN.md §1, §11, §14); change them freely. trigger: when the dialogue can come up: afterBattle, newBiome (first step into a biome), enemyAhead (an encounter is about to start), restInLair (end of a turn in the lair: Old Mother Toad), serpentOnTheWay (end of a turn away from the lair, now and then), serpentInBattle (one short line over the battle, only the first line is used), eventOnly (only when an event's choice asks for it by id). Of the dialogues that fit, the one with the highest priority comes up (ties: random). once: said at most once per run (default true). conditions (all must hold; leave one out to not care): rings, biomes (where the hydra stands, or the new biome), flags, notFlags, minAlert, maxAlert, minTurn, headClasses, minHeads, maxHeads, won, severedAtLeast, grownAtLeast, cauterizedAtLeast (in the battle just fought, or heads grown at rest), newEnemyTypes (met for the first time). speaker: toad, serpent, head:any (any head), head:other (a different head), head:new (a head that just grew), head:<class id> (a head of that class, e.g. head:biter). If the heads can't be found, the dialogue is skipped. In a text {any}, {other}, {new} are those heads' names and {biome} the biome's name. setFlags: flags set when said; a choice can set its own and has a reply.",
+  "//": "TODO(design): first batch of dialogues, written by Claude for M5 (GAME_DESIGN.md §1, §11, §14); change them freely. trigger: when the dialogue can come up: afterBattle, newBiome (first step into a biome), enemyAhead (an encounter is about to start), restInLair (end of a turn in the lair: Old Mother Toad), serpentOnTheWay (end of a turn away from the lair, now and then), serpentInBattle (one short line over the battle, only the first line is used), eventOnly (only when an event's choice asks for it by id), newGeneration (a new generation hatches: Old Mother Toad greets the heiress), ancestorInSleep (now and then when a new generation hatches, lineage.json ancestorVoice). Of the dialogues that fit, the one with the highest priority comes up (ties: random). once: said at most once per lineage (default true): an heiress doesn't hear again what her mothers heard, a new lineage does. conditions (all must hold; leave one out to not care): rings, biomes (where the hydra stands, or the new biome), flags, notFlags, minAlert, maxAlert, minTurn, headClasses, minHeads, maxHeads, won, severedAtLeast, grownAtLeast, cauterizedAtLeast (in the battle just fought, or heads grown at rest), newEnemyTypes (met for the first time), minGeneration, maxGeneration (the hydra's generation, 1 = the first of her lineage), mutations (she carries all of these, mutations.json), inheritedAtLeast and motherKilledBy (a new generation: mutations inherited, enemy types that killed her mother). Every flag must be listed in flags.json. speaker: toad, serpent, ancestor (the hydra's mother, through her sleep: no portrait), head:any (any head), head:other (a different head), head:new (a head that just grew), head:<class id> (a head of that class, e.g. head:biter). If the heads can't be found, the dialogue is skipped. In a text {any}, {other}, {new} are those heads' names, {biome} the biome's name, {name} the hydra's name, {lineage} her lineage's, {mother} her mother's and {mutation} one of the mutations she inherited (or carries). setFlags: flags set when said; a choice can set its own and has a reply.",
 
-  "speakers": { "toad": "Old Mother Toad", "serpent": "The Great Serpent" },
+  "speakers": { "toad": "Old Mother Toad", "serpent": "The Great Serpent", "ancestor": "An Ancestress" },
 
   "serpentVoice": {
     "//": "How often the Serpent speaks on the way: at most once every minTurnsBetween turns, then with chancePerTurn at the end of each turn. battleChance: chance of a short line at the start of a battle.",
@@ -507,6 +507,168 @@
         { "speaker": "head:any", "text": "They melted us a tunnel." },
         { "speaker": "toad", "text": "They melted themselves a tunnel. You happened to be standing at one end of it." },
         { "speaker": "toad", "text": "Their hives are cathedrals of cold lava, somewhere below. Nobody who has gone to look has come back warm." }
+      ]
+    },
+
+    {
+      "id": "heiressFirst",
+      "trigger": "newGeneration",
+      "priority": 10,
+      "conditions": { "maxGeneration": 2 },
+      "lines": [
+        { "speaker": "toad", "text": "So. {mother} is dead, and here you are. You have her eyes. Several of them." },
+        { "speaker": "head:any", "text": "Who is {mother}?" },
+        { "speaker": "toad", "text": "Your mother. Try not to make a habit of this." },
+        { "speaker": "head:other", "text": "Of what?" },
+        { "speaker": "toad", "text": "Either." }
+      ]
+    },
+    {
+      "id": "heiressManAtArms",
+      "trigger": "newGeneration",
+      "priority": 8,
+      "conditions": { "motherKilledBy": ["manAtArms"] },
+      "lines": [
+        { "speaker": "toad", "text": "Men-at-arms killed {mother}. They will want the forms signed by her next of kin." },
+        { "speaker": "head:any", "text": "That's us." },
+        { "speaker": "toad", "text": "Then sign nothing, {name}. Bite whoever brings the pen." }
+      ]
+    },
+    {
+      "id": "heiressHeadhunter",
+      "trigger": "newGeneration",
+      "priority": 8,
+      "conditions": { "motherKilledBy": ["headhunter"] },
+      "lines": [
+        { "speaker": "toad", "text": "A headhunter took {mother}, one head at a time. He is paid by the head." },
+        { "speaker": "head:any", "text": "How many did she have?" },
+        { "speaker": "toad", "text": "Enough to make him comfortable. Grow more than she did. It is the only revenge that pays." }
+      ]
+    },
+    {
+      "id": "heiressTorchbearer",
+      "trigger": "newGeneration",
+      "priority": 8,
+      "conditions": { "motherKilledBy": ["torchbearer"] },
+      "lines": [
+        { "speaker": "toad", "text": "{mother} was burnt shut by a lay brother with a torch. Neck by neck. He was very thorough." },
+        { "speaker": "head:any", "text": "Is that why everything smells of smoke?" },
+        { "speaker": "toad", "text": "Everything smells of smoke because the Order exists. Mind the torches, {name}." }
+      ]
+    },
+    {
+      "id": "heiressNotFavourite",
+      "trigger": "newGeneration",
+      "priority": 7,
+      "conditions": { "minGeneration": 4 },
+      "lines": [
+        { "speaker": "toad", "text": "I have buried a good many of you, {name}. You are not my favourite." },
+        { "speaker": "head:any", "text": "Who is?" },
+        { "speaker": "toad", "text": "The first one. She knew when to keep her mouths shut." }
+      ]
+    },
+    {
+      "id": "heiressMark",
+      "trigger": "newGeneration",
+      "priority": 6,
+      "conditions": { "inheritedAtLeast": 1 },
+      "lines": [
+        { "speaker": "toad", "text": "You carry {mother}'s mark: {mutation}." },
+        { "speaker": "head:any", "text": "Is that good?" },
+        { "speaker": "toad", "text": "It was not good enough for her. Make better use of it." }
+      ]
+    },
+    {
+      "id": "heiressUpYouGet",
+      "trigger": "newGeneration",
+      "once": false,
+      "lines": [
+        { "speaker": "toad", "text": "Up you get, {name} of the Line of {lineage}. The swamp won't defend itself, and neither will I." }
+      ]
+    },
+    {
+      "id": "heiressLikeAnEgg",
+      "trigger": "newGeneration",
+      "once": false,
+      "lines": [
+        { "speaker": "toad", "text": "{name}. Eat something. You still look like an egg." },
+        { "speaker": "head:any", "text": "We were an egg this morning." },
+        { "speaker": "toad", "text": "It shows." }
+      ]
+    },
+    {
+      "id": "heiressThrilled",
+      "trigger": "newGeneration",
+      "once": false,
+      "lines": [
+        { "speaker": "toad", "text": "Another hydra. The Order will be thrilled." },
+        { "speaker": "head:any", "text": "Will they?" },
+        { "speaker": "toad", "text": "No." }
+      ]
+    },
+    {
+      "id": "heiressInheritance",
+      "trigger": "newGeneration",
+      "once": false,
+      "conditions": { "inheritedAtLeast": 1 },
+      "lines": [
+        { "speaker": "head:any", "text": "Something of {mother}'s came down to us: {mutation}." },
+        { "speaker": "head:other", "text": "I wanted her teeth." },
+        { "speaker": "head:any", "text": "Everybody wanted her teeth." }
+      ]
+    },
+    {
+      "id": "dreamTorches",
+      "trigger": "ancestorInSleep",
+      "priority": 5,
+      "conditions": { "motherKilledBy": ["torchbearer"] },
+      "lines": [
+        { "speaker": "ancestor", "text": "...the torches... count the torches before you bite, {name}... I never counted..." },
+        { "speaker": "head:any", "text": "Did anyone else hear that?" },
+        { "speaker": "head:other", "text": "No. Go back to sleep." }
+      ]
+    },
+    {
+      "id": "dreamReceipt",
+      "trigger": "ancestorInSleep",
+      "priority": 5,
+      "conditions": { "motherKilledBy": ["manAtArms"] },
+      "lines": [
+        { "speaker": "ancestor", "text": "...he gave me a receipt... keep it safe... they will ask for it..." },
+        { "speaker": "head:any", "text": "Keep what?" },
+        { "speaker": "head:other", "text": "It's a dream. Don't keep anything." }
+      ]
+    },
+    {
+      "id": "dreamPole",
+      "trigger": "ancestorInSleep",
+      "priority": 5,
+      "conditions": { "motherKilledBy": ["headhunter"] },
+      "lines": [
+        { "speaker": "ancestor", "text": "...my heads are on his pole... they are still arguing..." },
+        { "speaker": "head:any", "text": "That sounds like us." },
+        { "speaker": "head:other", "text": "That sounds like us, for ever." }
+      ]
+    },
+    {
+      "id": "dreamDeeper",
+      "trigger": "ancestorInSleep",
+      "lines": [
+        { "speaker": "ancestor", "text": "...go deeper, {name}... I never went deep enough... down there the Serpent sleeps lighter..." },
+        { "speaker": "head:any", "text": "Was that Mother?" },
+        { "speaker": "head:other", "text": "Mother is dead." },
+        { "speaker": "head:any", "text": "Then she is very persistent." }
+      ]
+    },
+    {
+      "id": "dreamAdvice",
+      "trigger": "ancestorInSleep",
+      "priority": -1,
+      "once": false,
+      "lines": [
+        { "speaker": "ancestor", "text": "...eat well... sleep in the mud... trust nothing that is on fire..." },
+        { "speaker": "head:any", "text": "Good advice." },
+        { "speaker": "head:other", "text": "From someone who's dead." }
       ]
     }
   ]

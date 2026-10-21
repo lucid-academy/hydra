@@ -6,6 +6,7 @@ import type { Hex } from '../hex';
 import { hexesSeenFrom, updateVisibility } from '../map';
 import type { HexMap, Loot, MapObject, Tile } from '../map';
 import { Rng } from '../rng';
+import { headMaxHp, mutationTotal } from './mutations';
 import type { HeardEcho, PlaceAction, RunEvent, RunRules, RunState } from './types';
 
 type ThresholdTile = Tile & { object: Extract<MapObject, { kind: 'threshold' }> };
@@ -35,8 +36,10 @@ export function look(state: RunState, rules: RunRules): number {
   return updateVisibility(state.visibility, hexesSeenFrom(state.map, state.hydra.position, state.hydra.sightRange, rules.terrain));
 }
 
+/** Changes the Alert. A rise is faster or slower with the hydra's mutations (Bog-scented: slower). */
 export function raiseAlert(state: RunState, amount: number, rules: RunRules): void {
-  state.alert = Math.min(rules.alertMax, Math.max(rules.alertMin, state.alert + amount));
+  const change = amount > 0 ? amount * (1 + mutationTotal(state.hydra, rules, 'alertPercent') / 100) : amount;
+  state.alert = Math.min(rules.alertMax, Math.max(rules.alertMin, state.alert + change));
 }
 
 export function addLoot(state: RunState, loot: Loot): void {
@@ -61,10 +64,13 @@ export function arriveAt(state: RunState, step: Hex, rules: RunRules, events: Ru
   const discovered = lookAround(state, rules, events);
 
   const tile = tileAt(state, step)!;
+  if (tile.region === 'ring') state.deepestRing = Math.max(state.deepestRing, tile.ring);
   const object = tile.object;
   if (object?.kind === 'muck' || object?.kind === 'moisture') {
-    state.resources[object.kind] += object.amount;
-    events.push({ type: 'collected', resource: object.kind, amount: object.amount, rich: object.rich, at: step });
+    // More with the hydra's mutations (Hoarder's Gut).
+    const amount = Math.round(object.amount * (1 + mutationTotal(state.hydra, rules, 'findsPercent') / 100));
+    state.resources[object.kind] += amount;
+    events.push({ type: 'collected', resource: object.kind, amount, rich: object.rich, at: step });
     tile.object = null;
   } else if (object?.kind === 'remains' && !object.looted) {
     addLoot(state, object.loot);
@@ -101,7 +107,8 @@ export function growHeads(state: RunState, rules: RunRules, count: number, class
     const cls = classId === null ? rng.pick(rules.hatchlingClasses) : { classId, maxHp: rules.headMaxHp[classId] ?? 1 };
     const taken = new Set(state.hydra.heads.map((h) => h.name));
     const free = rules.headNames.filter((name) => !taken.has(name));
-    const head = { id: `h${state.nextId++}`, name: rng.pick(free.length > 0 ? free : rules.headNames), classId: cls.classId, level: 1, hp: cls.maxHp, maxHp: cls.maxHp };
+    const maxHp = headMaxHp(state.hydra, rules, cls.maxHp);
+    const head = { id: `h${state.nextId++}`, name: rng.pick(free.length > 0 ? free : rules.headNames), classId: cls.classId, level: 1, hp: maxHp, maxHp };
     state.hydra.heads.push(head);
     ids.push(head.id);
   }
@@ -164,7 +171,7 @@ export function knownDraughts(state: RunState): Hex[] {
 function hearEchoes(state: RunState, rules: RunRules, events: RunEvent[]): void {
   for (const source of state.map.layout.echoSources) {
     if (state.visibility.has(hexKey(source.at)) || state.echoes.some((e) => hexEquals(e.source, source.at))) continue;
-    if (hexDistance(state.hydra.position, source.at) > rules.echoRange) continue;
+    if (hexDistance(state.hydra.position, source.at) > rules.echoRange + mutationTotal(state.hydra, rules, 'echoRange')) continue;
     const echo: HeardEcho = { source: source.at, mark: nearestSeenHex(state, source.at), placeId: source.placeId, biome: source.biome };
     state.echoes.push(echo);
     events.push({ type: 'echoHeard', echo });
