@@ -696,6 +696,20 @@ export const textSchema = z
       victoryTitle: z.string().min(1),
       defeatTitle: z.string().min(1),
       continueButton: z.string().min(1),
+      '//skills': z.string().optional(),
+      hintSkills: z.string(),
+      aimEnemy: z.string().min(1),
+      aimHex: z.string().min(1),
+      aimHead: z.string().min(1),
+      aimStump: z.string().min(1),
+      // {name}: the head.
+      rage: z.string().min(1),
+      grief: z.string().min(1),
+      badIdea: z.string().min(1),
+      eaten: z.string().min(1),
+      skillFizzled: z.string().min(1),
+      // What The Spare finds with Rummage, by the find's id in heads.json.
+      rummage: z.record(z.string(), z.string().min(1)),
     }),
     lineages: section({
       beginButton: z.string().min(1),

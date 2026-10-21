@@ -2,6 +2,7 @@
 // Runs the battle simulation in fixed ticks and draws it; taps and keys become commands to the simulation.
 // The battle starts paused. Space / the Pause button stops and starts the ticks; orders can be given while paused.
 // Controls: tap a head (or its card, or 1–9) to select it, then tap an enemy to make it attack.
+// Skills: with one head selected, Q / W / E (or the skill buttons) pick a skill, then tap what it is aimed at.
 // Several heads at once: Ctrl or Shift + tap on heads or cards (Shift + 1–9), or "All heads" (key A).
 // With no head selected, tap a free hex to move the body there (right-click always moves it).
 // The board is one painted surface (GAME_DESIGN.md §13) with a faint grid, reach is one line round the area,
@@ -22,14 +23,29 @@ import {
 } from '../assets/battleArt';
 import { battleTileKey, readPixels, tileVariant } from '../assets/terrainTiles';
 import { GROUND_SHADING, groundTextureKey, paintBoard, rockTextureKey, variantKey } from '../assets/terrain';
-import { applyCommand, battleResult, bodyDistance, boardHexes, canCauterize, createBattle, isAcid, isOnBoard, stepBattle } from '../sim/battle';
-import type { BattleEvent, BattleHead, BattleState, Enemy, Walker } from '../sim/battle';
+import {
+  applyCommand,
+  battleResult,
+  bodyDistance,
+  boardHexes,
+  canCauterize,
+  createBattle,
+  enemyCan,
+  hasStatus,
+  isAcid,
+  isOnBoard,
+  skillCooldown,
+  skillInSlot,
+  stepBattle,
+} from '../sim/battle';
+import type { BattleEvent, BattleHead, BattleSetup, BattleState, Enemy, HeadRecord, MistCloud, SkillAim, Walker } from '../sim/battle';
 import { hexDistance, hexKey, hexToPixel, pixelToHex } from '../sim/hex';
 import type { Hex, HexLayout } from '../sim/hex';
 import type { ShownLine } from '../sim/turn';
 import { exposeBattleSummary, markReady } from '../testHooks';
 import { Button } from '../ui/Button';
 import { HeadCards } from '../ui/HeadCards';
+import { SkillBar } from '../ui/SkillBar';
 import { FONT } from '../ui/fonts';
 import { onKeyDown, wantsToAdd } from '../ui/keys';
 import { color, getContext } from './context';
@@ -50,6 +66,14 @@ const PANEL_TOP = 316;
 const LAYOUT: HexLayout = { columnWidth: HEX_COLUMN_WIDTH, rowHeight: HEX_ROW_HEIGHT, originX: 320, originY: 170 };
 const SPEEDS = [1, 0.5] as const;
 const DEFAULT_TEST_GROUP = 'burningDetail';
+/** The skill buttons lie over the front edge of the board, in the middle (SkillBar is 372 wide). */
+const SKILL_BAR = { x: 134, y: PANEL_TOP - 21 } as const;
+/** A tap this close to a stump picks it (for skills aimed at stumps). */
+const STUMP_TAP_RADIUS = 16;
+/** Combo lines: one after another, each this long on screen. */
+const COMBO_LINE_MS = 1300;
+/** Statuses not called out over the human when they take hold (they come and go all the time). */
+const QUIET_STATUSES = new Set(['soaked']);
 /** After a combo the battle runs this many times slower for a moment, so the player can see it land. */
 const COMBO_SLOWDOWN = 0.3;
 const COMBO_SLOWDOWN_MS = 350;
@@ -169,7 +193,8 @@ export class BattleScene extends Phaser.Scene {
   private light!: MapLight;
   private bodyShadow!: Phaser.GameObjects.Image;
   private mistTiles = new Map<string, Phaser.GameObjects.Image>();
-  private mistPuffs = new Map<number, Phaser.GameObjects.Image[]>();
+  /** Puffs of each cloud, by cloudKey (so a cloud moved by Drift gets new puffs where it is now). */
+  private mistPuffs = new Map<string, Phaser.GameObjects.Image[]>();
   private bodySprite!: Phaser.GameObjects.Image;
   private heads = new Map<string, HeadView>();
   private enemies = new Map<number, EnemyView>();
@@ -181,6 +206,9 @@ export class BattleScene extends Phaser.Scene {
   private pausedText!: Phaser.GameObjects.Text;
   private pausedFrame!: Phaser.GameObjects.Graphics;
   private hintText!: Phaser.GameObjects.Text;
+  private skillBar!: SkillBar;
+  /** The skill the player is aiming (picked with Q / W / E), or null. */
+  private aiming: { headId: string; slot: number } | null = null;
   private pauseButton!: Button;
   private speedButton!: Button;
 
@@ -208,7 +236,8 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.battle = createBattle(setup, run.battleRules);
+    this.battle = createBattle(this.withTestHeads(setup, params.scene === SceneKey.Battle ? params.heads : [], params.ults), run.battleRules);
+    this.aiming = null;
     this.serpentLine = (params.say ? run.serpentLineForTest(params.say) : null) ?? run.serpentLine();
     this.combosSeen = [];
     // Every battle starts paused: time to look around and give the first orders.
@@ -266,6 +295,21 @@ export class BattleScene extends Phaser.Scene {
       combos: [...this.combosSeen],
     }));
     markReady(SceneKey.Battle);
+  }
+
+  /**
+   * ?ults=1 unlocks ultimate skills; with ?scene=battle, ?heads=strangler,lantern gives the test battle these heads
+   * (so classes that don't grow on the map yet can be tried).
+   */
+  private withTestHeads(setup: BattleSetup, classes: readonly string[], ults: boolean): BattleSetup {
+    const rules = this.run.battleRules;
+    const valid = classes.filter((c) => c in rules.headClasses).slice(0, rules.maxHeads);
+    if (valid.length === 0) return { ...setup, ultimatesUnlocked: ults };
+    const heads: HeadRecord[] = valid.map((classId, i) => {
+      const { maxHp } = rules.headClasses[classId]!;
+      return { id: `t${i + 1}`, name: rules.headNames[i % rules.headNames.length]!, classId, level: 1, hp: maxHp, maxHp };
+    });
+    return { ...setup, heads, ultimatesUnlocked: ults };
   }
 
   // ------------------------------------------------------------ board
@@ -460,7 +504,121 @@ export class BattleScene extends Phaser.Scene {
       () => this.selectAllHeads(),
     );
     for (const b of [this.pauseButton, this.speedButton, allHeads]) b.setDepth(DEPTH.ui + 2);
+    this.skillBar = new SkillBar(
+      this,
+      SKILL_BAR.x,
+      SKILL_BAR.y,
+      (slot) => this.startSkill(slot),
+      (slot) => this.swapSkill(slot),
+    );
     this.updateButtons();
+  }
+
+  /** The one picked head, or null when none or several are picked. */
+  private singleSelected(): BattleHead | null {
+    if (this.selected.size !== 1) return null;
+    const [id] = this.selected;
+    return this.battle.heads.find((h) => h.id === id) ?? null;
+  }
+
+  /** Q / W / E or a skill button: a skill that needs no aim is ordered at once; the others wait for a tap on their target. */
+  private startSkill(slot: number): void {
+    if (this.finished) return;
+    const head = this.singleSelected();
+    if (!head) return;
+    const skill = skillInSlot(this.battle, head, slot, this.run.battleRules);
+    if (!skill) return;
+    if (this.aiming && this.aiming.headId === head.id && this.aiming.slot === slot) {
+      this.aiming = null; // the same key again: never mind
+      return;
+    }
+    if (skill.target === 'none') {
+      this.aiming = null;
+      applyCommand(this.battle, { type: 'useSkill', headId: head.id, slot, aim: { kind: 'none' } }, this.run.battleRules);
+      return;
+    }
+    this.aiming = { headId: head.id, slot };
+  }
+
+  /** Before the battle: the ⇄ next to Q or W puts the class's third skill in that slot. */
+  private swapSkill(slot: number): void {
+    const head = this.singleSelected();
+    if (!head || this.battle.tick > 0) return;
+    const own = this.run.battleRules.headClasses[head.classId]!.skills;
+    const spare = own.find((id) => !head.skills.includes(id));
+    if (!spare) return;
+    const skills = [...head.skills];
+    skills[slot] = spare;
+    applyCommand(this.battle, { type: 'chooseSkills', headId: head.id, skills }, this.run.battleRules);
+    this.aiming = null;
+  }
+
+  /** A tap while aiming a skill: its target, if the tap found one of the right kind. Any other tap just stops aiming. */
+  private aimAt(at: Point, tappedHex: Hex): void {
+    const aiming = this.aiming!;
+    this.aiming = null;
+    const rules = this.run.battleRules;
+    const head = this.battle.heads.find((h) => h.id === aiming.headId);
+    const skill = head ? skillInSlot(this.battle, head, aiming.slot, rules) : null;
+    if (!head || !skill) return;
+    let aim: SkillAim | null = null;
+    switch (skill.target) {
+      case 'enemy': {
+        const enemy = this.enemyAt(at, tappedHex);
+        if (enemy) aim = { kind: 'enemy', enemyId: enemy.id };
+        break;
+      }
+      case 'hex':
+        if (isOnBoard(tappedHex, rules)) aim = { kind: 'hex', at: tappedHex };
+        break;
+      case 'head': {
+        const target = this.headAt(at);
+        if (target) aim = { kind: 'head', headId: target.id };
+        break;
+      }
+      case 'stump': {
+        const body = this.bodyCenter();
+        let best: number | null = null;
+        let bestDistance = STUMP_TAP_RADIUS;
+        for (const stump of this.battle.stumps) {
+          if (stump.cauterized) continue;
+          const p = this.neckBase(body, stump.anchorAngle);
+          const d = Math.hypot(p.x - at.x, p.y - at.y);
+          if (d <= bestDistance) {
+            best = stump.id;
+            bestDistance = d;
+          }
+        }
+        if (best !== null) aim = { kind: 'stump', stumpId: best };
+        break;
+      }
+      case 'none':
+        aim = { kind: 'none' };
+        break;
+    }
+    if (aim) applyCommand(this.battle, { type: 'useSkill', headId: head.id, slot: aiming.slot, aim }, rules);
+  }
+
+  /** The hint under the board: how to play before the start, how to aim while aiming. */
+  private updateHint(): void {
+    const { text, heads } = getContext(this).data;
+    let message: string | null = null;
+    if (!this.finished && this.aiming) {
+      const head = this.battle.heads.find((h) => h.id === this.aiming!.headId);
+      const skill = head ? skillInSlot(this.battle, head, this.aiming.slot, this.run.battleRules) : null;
+      if (skill) {
+        const template = { enemy: text.battle.aimEnemy, hex: text.battle.aimHex, head: text.battle.aimHead, stump: text.battle.aimStump, none: '' }[skill.target];
+        message = template.replace('{skill}', heads.skills[skill.id]?.displayName ?? skill.id);
+      }
+    } else if (!this.started && !this.finished) {
+      message = this.singleSelected() ? text.battle.hintSkills : text.battle.hintSelectHead;
+    }
+    const barShown = this.singleSelected() !== null && !this.finished;
+    if (message) {
+      if (this.hintText.text !== message) this.hintText.setText(message);
+      this.hintText.setY(barShown ? SKILL_BAR.y - 2 : PANEL_TOP - 1);
+    }
+    this.hintText.setVisible(message !== null && message !== '');
   }
 
   private updateButtons(): void {
@@ -469,7 +627,6 @@ export class BattleScene extends Phaser.Scene {
     this.speedButton.setLabel(`${text.battle.speed} ${SPEEDS[this.speedIndex]}×`);
     this.pausedText.setVisible(this.paused && !this.finished);
     this.pausedFrame.setVisible(this.paused && !this.finished);
-    this.hintText.setVisible(!this.started && !this.finished);
   }
 
   private togglePause(): void {
@@ -534,10 +691,16 @@ export class BattleScene extends Phaser.Scene {
       // Key codes, not characters: Shift + 1 still counts as 1 on every keyboard layout.
       const digit = /^Digit([1-9])$/.exec(event.code);
       if (event.code === 'Space') this.togglePause();
-      else if (event.key === 'Escape') this.selected = new Set();
+      else if (event.key === 'Escape') {
+        if (this.aiming) this.aiming = null;
+        else this.selected = new Set();
+      } else if (event.code === 'KeyQ') this.startSkill(0);
+      else if (event.code === 'KeyW') this.startSkill(1);
+      else if (event.code === 'KeyE') this.startSkill(2);
       else if (event.code === 'KeyA') this.selectAllHeads();
       else if (digit) {
         const head = this.battle.heads[Number(digit[1]) - 1];
+        this.aiming = null;
         if (head) this.selectHead(head.id, event.shiftKey);
       }
     });
@@ -552,6 +715,11 @@ export class BattleScene extends Phaser.Scene {
   private handleTap(at: Point, rightButton: boolean, add: boolean): void {
     const rules = this.run.battleRules;
     const tappedHex = pixelToHex(LAYOUT, at.x, at.y);
+    if (this.aiming) {
+      if (!rightButton) this.aimAt(at, tappedHex);
+      else this.aiming = null;
+      return;
+    }
     if (!rightButton) {
       // With heads picked, a tap on an enemy is an order, even if a head hangs right next to it;
       // with none picked, a tap picks a head.
@@ -628,6 +796,7 @@ export class BattleScene extends Phaser.Scene {
       }
     }
     for (const id of this.selected) if (!this.battle.heads.some((h) => h.id === id)) this.selected.delete(id);
+    if (this.aiming && !this.selected.has(this.aiming.headId)) this.aiming = null;
     this.syncSprites();
     this.draw(delta);
     if (this.battle.outcome && !this.finished) this.finish();
@@ -712,14 +881,14 @@ export class BattleScene extends Phaser.Scene {
       if (!this.stumpSprites.has(stump.id)) this.stumpSprites.set(stump.id, this.add.image(0, 0, 'battle_stump').setDepth(DEPTH.necks - 1));
     }
 
-    const cloudIds = new Set(this.battle.clouds.map((c) => c.id));
+    const cloudIds = new Set(this.battle.clouds.map(cloudKey));
     for (const [id, puffs] of this.mistPuffs) {
       if (cloudIds.has(id)) continue;
       for (const puff of puffs) puff.destroy();
       this.mistPuffs.delete(id);
     }
     for (const cloud of this.battle.clouds) {
-      if (this.mistPuffs.has(cloud.id)) continue;
+      if (this.mistPuffs.has(cloudKey(cloud))) continue;
       const puffs = boardHexes(this.run.battleRules)
         .filter((h) => hexDistance(h, cloud.center) <= cloud.radius)
         .map((h) => {
@@ -730,7 +899,7 @@ export class BattleScene extends Phaser.Scene {
             : this.add.image(p.x, p.y - 10, 'battle_mist_puff');
           return puff.setDepth(DEPTH.mist).setAlpha(0).setData('x0', p.x);
         });
-      this.mistPuffs.set(cloud.id, puffs);
+      this.mistPuffs.set(cloudKey(cloud), puffs);
     }
   }
 
@@ -759,6 +928,33 @@ export class BattleScene extends Phaser.Scene {
       this.battle.heads.map((h) => ({ ...h, charge: 1 - h.cooldown / rules.headClasses[h.classId]!.attack.cooldownTicks })),
       this.selected,
     );
+    this.drawSkillBar();
+    this.updateHint();
+  }
+
+  private drawSkillBar(): void {
+    const rules = this.run.battleRules;
+    const { heads } = getContext(this).data;
+    const head = this.finished ? null : this.singleSelected();
+    if (!head) {
+      this.skillBar.show([], false);
+      return;
+    }
+    const slots = this.battle.ultimatesUnlocked ? [0, 1, 2] : [0, 1];
+    const infos = slots.flatMap((slot) => {
+      const skill = skillInSlot(this.battle, head, slot, rules);
+      if (!skill) return [];
+      const waiting = head.pendingSkill?.slot === slot;
+      return [
+        {
+          name: heads.skills[skill.id]?.displayName ?? skill.id,
+          cooling: skillCooldown(head, skill.id) / skill.cooldownTicks,
+          aiming: waiting || (this.aiming?.headId === head.id && this.aiming.slot === slot),
+          unusable: (skill.needsHeld && head.holdingId === null) || (skill.usesMeal && head.meals <= 0),
+        },
+      ];
+    });
+    this.skillBar.show(infos, this.battle.tick === 0);
   }
 
   private drawEnemy(enemy: Enemy, body: Point, now: number): void {
@@ -771,6 +967,11 @@ export class BattleScene extends Phaser.Scene {
     view.shadow.setPosition(Math.round(x), Math.round(y));
     // Standing still they shift their weight a little; walking they hop; attacking they lunge.
     y -= hop > 0 ? Math.round(hop * 3) : Math.sin(now / 280 + view.phase) > 0.6 ? 1 : 0;
+    // Kneeling in a trance sits a little lower; stunned, they sway.
+    const rules = this.run.battleRules;
+    if (hasStatus(enemy, 'entranced')) y += 3;
+    const reeling = hop === 0 && !enemyCan(enemy, 'canWalk', rules) && !enemyCan(enemy, 'canAttack', rules) && !hasStatus(enemy, 'entranced');
+    view.sprite.setAngle(reeling ? Math.sin(now / 120 + view.phase) * 6 : 0);
     if (now < view.lungeUntil) {
       x += Math.sign(view.lungeTo.x - x) * 3;
       y += Math.sign(view.lungeTo.y - y) * 2;
@@ -791,7 +992,8 @@ export class BattleScene extends Phaser.Scene {
       if (!view) continue;
       const base = this.neckBase(body, head.anchorAngle);
       const target = head.targetId !== null ? this.enemies.get(head.targetId) : undefined;
-      const melee = rules.headClasses[head.classId]!.attack.melee;
+      // A head holding a human (Strangler) is out there with it, like a biting head.
+      const melee = rules.headClasses[head.classId]!.attack.melee || (head.holdingId !== null && head.holdingId === head.targetId);
       let want: Point;
       let facing = Math.cos(head.anchorAngle) >= 0 ? 1 : -1;
       if (target && melee) {
@@ -895,7 +1097,7 @@ export class BattleScene extends Phaser.Scene {
         const prev = cover.get(hexKey(h));
         cover.set(hexKey(h), { alpha: Math.max(prev?.alpha ?? 0, fade), acid: (prev?.acid ?? false) || acid });
       }
-      (this.mistPuffs.get(cloud.id) ?? []).forEach((puff, i) => {
+      (this.mistPuffs.get(cloudKey(cloud)) ?? []).forEach((puff, i) => {
         const drift = Math.round(Math.sin(now / 900 + i * 1.3 + cloud.id) * 3);
         puff
           .setX((puff.getData('x0') as number) + drift)
@@ -929,7 +1131,11 @@ export class BattleScene extends Phaser.Scene {
     }
     const target = this.finished ? null : this.battle.body.moveTarget;
     if (target) rings.push({ hex: target, tint: 0xe8f0e0 });
-    const reach = picked.length > 0 ? Math.max(...picked.map(rangeOf)) : 0;
+    // While aiming a skill, its own reach.
+    const aimedHead = this.aiming ? this.battle.heads.find((h) => h.id === this.aiming!.headId) : undefined;
+    const aimedSkill = aimedHead ? skillInSlot(this.battle, aimedHead, this.aiming!.slot, rules) : null;
+    const aimReach = aimedSkill && (aimedSkill.target === 'enemy' || aimedSkill.target === 'hex') ? aimedSkill.range : null;
+    const reach = aimReach ?? (picked.length > 0 ? Math.max(...picked.map(rangeOf)) : 0);
     const shown = `${hexKey(center)}|${reach}|${rings.map((r) => `${hexKey(r.hex)}:${r.tint}`).join(',')}`;
     const view = this.reach;
     if (shown === view.shown) return;
@@ -966,6 +1172,10 @@ export class BattleScene extends Phaser.Scene {
       const flame = { x: view.sprite.x + (view.sprite.flipX ? -TORCH_FLAME.x : TORCH_FLAME.x), y: view.sprite.y - TORCH_FLAME.y };
       view.glow.setPosition(flame.x, flame.y).setAlpha(torch.glowAlpha * flicker);
       lights.push({ ...flame, radius: torch.radius, color: color(palette.order.orange), strength: torch.strength * flicker });
+    }
+    for (const beacon of this.battle.beacons) {
+      const p = this.hexCenter(beacon.at);
+      lights.push({ x: p.x, y: p.y - 18, radius: 70, color: 0xcfe8ff, strength: 0.35 });
     }
     for (const cloud of this.battle.clouds) {
       if (!isAcid(this.battle, cloud)) continue;
@@ -1022,6 +1232,23 @@ export class BattleScene extends Phaser.Scene {
         g.lineBetween(shape.x, shape.y, ordered.feet.x, ordered.feet.y - 16);
       }
     }
+    // Acid pools: the hexes they cover; beacons: a pale light on their hex.
+    for (const pool of this.battle.pools) {
+      for (const h of boardHexes(rules)) {
+        if (hexDistance(h, pool.center) > pool.radius) continue;
+        const p = this.hexCenter(h);
+        g.fillStyle(color(combos.statuses[pool.status]?.color ?? '#b7d13a'), 0.22);
+        g.fillEllipse(p.x, p.y, TILE.width * 0.8, TILE.width * 0.42);
+      }
+    }
+    for (const beacon of this.battle.beacons) {
+      const p = this.hexCenter(beacon.at);
+      const pulse = 0.6 + 0.4 * Math.sin(this.time.now / 160);
+      g.fillStyle(0xcfe8ff, 0.5 * pulse);
+      g.fillCircle(p.x, p.y - 18, 4);
+      g.lineStyle(1, 0xcfe8ff, 0.7);
+      g.lineBetween(p.x, p.y - 14, p.x, p.y);
+    }
     // Regrowth timer under each open stump.
     for (const stump of this.battle.stumps) {
       if (stump.cauterized) continue;
@@ -1061,12 +1288,96 @@ export class BattleScene extends Phaser.Scene {
           this.floatText({ x: at.x, y: at.y - 50 }, name, palette.order.gold, '12px');
           this.slowdownLeft = COMBO_SLOWDOWN_MS;
           this.combosSeen.push(event.comboId);
+          this.sayComboLines(event);
+          break;
+        }
+        case 'skill': {
+          const view = this.heads.get(event.headId);
+          if (!view) break;
+          const name = event.worked ? (getContext(this).data.heads.skills[event.skillId]?.displayName ?? event.skillId) : text.battle.skillFizzled;
+          this.floatText({ x: view.x, y: view.y - 22 }, name, event.worked ? '#c6e04a' : '#9fb0a0');
+          break;
+        }
+        case 'status': {
+          if (QUIET_STATUSES.has(event.status)) break;
+          const status = combos.statuses[event.status];
+          const feet = this.enemies.get(event.enemyId)?.feet ?? this.hexFeet(event.at);
+          if (status) this.floatText({ x: feet.x, y: feet.y - 56 }, status.displayName, status.color, '9px');
+          break;
+        }
+        case 'devoured': {
+          const at = this.hexFeet(event.at);
+          this.floatText({ x: at.x, y: at.y - 30 }, text.battle.eaten, '#d98a6a');
+          break;
+        }
+        case 'mood':
+        case 'badIdea': {
+          const head = this.battle.heads.find((h) => h.id === event.headId);
+          const view = this.heads.get(event.headId);
+          if (!head || !view) break;
+          const template = event.type === 'badIdea' ? text.battle.badIdea : event.mood === 'rage' ? text.battle.rage : text.battle.grief;
+          this.floatText({ x: view.x, y: view.y - 24 }, template.replace('{name}', head.name), event.type === 'badIdea' ? '#d28fa4' : '#e3d6b4');
+          break;
+        }
+        case 'rummage': {
+          const view = this.heads.get(event.headId);
+          if (view) this.floatText({ x: view.x, y: view.y - 24 }, text.battle.rummage[event.find] ?? event.find, '#d28fa4');
           break;
         }
         default:
           break;
       }
     }
+  }
+
+  /**
+   * What the heads (or the human) say when a combo goes off (combos.json "lines"), one line after another, over the
+   * speaker: a head of the named class, preferably one that took part; "any": the heads that took part, in turn.
+   */
+  private sayComboLines(event: Extract<BattleEvent, { type: 'combo' }>): void {
+    const lines = getContext(this).data.combos.combos.find((c) => c.id === event.comboId)?.lines ?? [];
+    if (lines.length === 0) return;
+    const taking = event.headIds.map((id) => this.battle.heads.find((h) => h.id === id)).filter((h): h is BattleHead => h !== undefined);
+    const used = new Set<string>();
+    lines.forEach((line, i) => {
+      let at: Point | null = null;
+      if (line.speaker === 'enemy') {
+        const feet = event.enemyId !== null ? this.enemies.get(event.enemyId)?.feet : undefined;
+        const p = feet ?? this.hexFeet(event.at);
+        at = { x: p.x, y: p.y - 64 };
+      } else {
+        const pool = line.speaker === 'any' ? taking : [...taking, ...this.battle.heads].filter((h) => h.classId === line.speaker);
+        const head = pool.find((h) => !used.has(h.id)) ?? pool[0];
+        const view = head ? this.heads.get(head.id) : undefined;
+        if (head && view) {
+          used.add(head.id);
+          at = { x: view.x, y: view.y - 30 };
+        }
+      }
+      if (!at) return;
+      const words = this.add
+        .text(Math.round(at.x), Math.round(at.y), line.text, {
+          fontFamily: FONT.story,
+          fontStyle: 'italic',
+          fontSize: '10px',
+          color: '#f2ead0',
+          stroke: '#05090a',
+          strokeThickness: 3,
+          align: 'center',
+          wordWrap: { width: 160 },
+        })
+        .setOrigin(0.5, 1)
+        .setDepth(DEPTH.text + 1)
+        .setAlpha(0);
+      this.tweens.chain({
+        targets: words,
+        tweens: [
+          { alpha: 1, delay: i * COMBO_LINE_MS, duration: 150 },
+          { alpha: 0, delay: COMBO_LINE_MS - 300, duration: 150 },
+        ],
+        onComplete: () => words.destroy(),
+      });
+    });
   }
 
   /** Who hit whom: the attacker lunges, the one hit flashes. */
@@ -1159,6 +1470,10 @@ function jawHinge(textures: Phaser.Textures.TextureManager, key: string): Point 
     for (let y = 0; y < frame.cutHeight; y++) if ((textures.getPixelAlpha(x, y, key) ?? 0) > 0) return { x: x / density, y: y / density };
   }
   return { x: frame.width / 2, y: 0 }; // an empty jaw (the placeholder head has its jaw drawn in)
+}
+
+function cloudKey(cloud: MistCloud): string {
+  return `${cloud.id}@${hexKey(cloud.center)}`;
 }
 
 function hpBar(g: Phaser.GameObjects.Graphics, cx: number, y: number, width: number, share: number, fill: number): void {
