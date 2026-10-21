@@ -1,1 +1,243 @@
-{"events":[]}
+{
+  "//": "TODO(design): first batch of events, written by Claude for M5 (GAME_DESIGN.md §10, §14); texts and numbers are working values, change them freely. An event happens when the hydra steps on an event site on the map (balance.json undergroundGenerator.rings[].eventSites). Of the events that fit (conditions, as in dialogues.json), those with the highest priority are drawn by weight. once: happens at most once per run (default true). quest: the mini quest the event is a step of (steps are chained by flags: a step sets a flag, the next step needs it). A choice can need a head (needsHead: class id), cost resources (cost), and either have one outcome, or be a gamble: chance (0–1) of success, otherwise failure. An outcome has a text and may: give or take muck, moisture, bones; change the alert; heal or hurt the body (bodyHp) and every head (headsHp, never below 1); put a condition on the hydra (condition, world.json); show the map around (reveal: hexes); start a battle (battle: an encounter group, enemies.json); set flags (setFlags); start a dialogue (dialogue: an id from dialogues.json); grow a head (newHead: class id).",
+
+  "events": [
+    {
+      "id": "noviceChecklist",
+      "title": "A Novice with a Checklist",
+      "text": "A novice of the Order of the Eternal Flame is inspecting this cave for heresy. He has a checklist. He has reached 'hydra' and is looking for a pencil.",
+      "choices": [
+        { "text": "Eat him.", "outcome": { "text": "He tasted of chalk and diligence. Someone will notice the inspections have stopped.", "bones": 4, "alert": 5 } },
+        { "text": "Fog up his spectacles.", "needsHead": "mistBreather", "outcome": { "text": "He wanders off, writing 'no hydra observed' with great confidence.", "alert": -5 } },
+        {
+          "text": "Let him finish.",
+          "chance": 0.5,
+          "success": { "text": "He ticks 'cave: damp' and leaves, satisfied with a job well done.", "alert": -3 },
+          "failure": { "text": "He ticks 'hydra: yes' and blows a whistle. Two more novices arrive, both with torches.", "battle": "lostNovices" }
+        }
+      ]
+    },
+    {
+      "id": "certifiedRelic",
+      "title": "A Certified Relic",
+      "text": "A wooden box on a ledge, sealed with the Order's wax. The certificate inside swears it holds the left toe of Saint Cinder. It is the fourth left toe of Saint Cinder you have heard of.",
+      "choices": [
+        { "text": "Eat the toe.", "outcome": { "text": "It is, against all odds, a toe. Holy or not, it goes down well.", "bodyHp": 30 } },
+        { "text": "Test it.", "needsHead": "acidSpitter", "outcome": { "text": "A pig's toe. The certificate, however, is perfectly genuine. The box is good for scrap.", "muck": 6, "bones": 2 } },
+        { "text": "Leave it for the faithful.", "outcome": { "text": "Somewhere above, a pilgrimage is planned around this ledge. You have time." } }
+      ]
+    },
+    {
+      "id": "groaningRock",
+      "title": "Groaning Rock",
+      "text": "The ceiling here creaks like an old man getting up. Small stones patter down. Something larger is thinking about it.",
+      "choices": [
+        {
+          "text": "Hurry through.",
+          "chance": 0.6,
+          "success": { "text": "Nothing falls. The rock sighs behind you, disappointed." },
+          "failure": { "text": "A boulder lands on the body. The heads argue about whose idea it was to hurry.", "bodyHp": -30 }
+        },
+        { "text": "Prop it up with muck.", "cost": { "muck": 6 }, "outcome": { "text": "The ceiling settles. From the steady ledge you can see a good way down the tunnels.", "reveal": 5 } }
+      ]
+    },
+    {
+      "id": "theDrummer",
+      "title": "The Drummer",
+      "text": "A man sits in the dark, beating a drum made from his own shield. Every beat is slightly wrong. 'You hear it too,' he says. 'The song. It's out of tune. I am fixing it.' He is not fixing it.",
+      "choices": [
+        {
+          "text": "Listen with him.",
+          "chance": 0.5,
+          "success": { "text": "For a moment the beats line up, and the heads hear something vast breathe in. The tunnels around you feel very clear.", "reveal": 6, "setFlags": ["metDiscordant"] },
+          "failure": { "text": "The wrong beat crawls into every skull at once. The heads spend the rest of the day arguing about rhythm.", "headsHp": -8, "setFlags": ["metDiscordant"] }
+        },
+        { "text": "Eat him.", "outcome": { "text": "The drum keeps going for a while on its own.", "bones": 3, "setFlags": ["metDiscordant"] } },
+        { "text": "Leave him to it.", "outcome": { "text": "Behind you the beat goes on, wrong, and certain of itself.", "setFlags": ["metDiscordant"] } }
+      ]
+    },
+    {
+      "id": "nineCandles",
+      "title": "Nine Candles",
+      "text": "Nine unlit candles in a circle around a bowl of fish heads. A note in a shaky hand: 'For the Many-Headed. One candle for each head, when you have nine. We are patient.'",
+      "choices": [
+        { "text": "Eat the fish heads.", "outcome": { "text": "The heads count the candles, then each other. They arrive at different numbers.", "bodyHp": 15, "moisture": 4 } },
+        { "text": "Leave the offering.", "outcome": { "text": "Someone will come back and find it untouched. Somehow, that will mean a great deal to them.", "setFlags": ["ninefoldFriend"] } }
+      ]
+    },
+    {
+      "id": "chalkWarning",
+      "title": "A Warning in Chalk",
+      "text": "Chalk on the wall: a serpent with one head, and next to it a hydra, crossed out nine times. Underneath, in capitals: THE SERPENT IS ONE. The chalk dust on the floor is fresh.",
+      "choices": [
+        { "text": "Add a few heads to the serpent.", "outcome": { "text": "Better. The heads argue over whose likeness it is.", "setFlags": ["angeredOneCoil"] } },
+        { "text": "Erase it.", "needsHead": "acidSpitter", "outcome": { "text": "The chalk hisses off the wall, and a good deal of the wall goes with it. Underneath is softer, older rock.", "muck": 5 } },
+        { "text": "Move on quietly.", "outcome": { "text": "You leave the wall as it is. It watches you go, with one eye." } }
+      ]
+    },
+    {
+      "id": "warmCrack",
+      "title": "A Warm Crack",
+      "text": "The rock here is warm to the touch, and humming. Something inside is eating the heat, a little at a time, with many small mouths.",
+      "choices": [
+        { "text": "Press the body against it.", "outcome": { "text": "Warm, for the first time in a long time. The humming moves closer. You leave before it gets ideas.", "bodyHp": 25 } },
+        { "text": "Breathe mist into it.", "needsHead": "mistBreather", "outcome": { "text": "The humming stops. Then it starts again, further off, offended. The cooled rock cracks open onto a lookout.", "reveal": 5 } },
+        { "text": "Leave it humming.", "outcome": { "text": "Some doors are best left humming." } }
+      ]
+    },
+    {
+      "id": "titheBox",
+      "title": "The Tithe Box",
+      "text": "An iron box bolted to the rock. On its lid: TITHES FOR THE ETERNAL FLAME. TEN PARTS IN A HUNDRED. RECEIPTS ISSUED.",
+      "choices": [
+        { "text": "Break it open.", "outcome": { "text": "Inside: a small fortune in muck and a receipt book. The Order will want the book back.", "muck": 12, "alert": 4 } },
+        { "text": "Pay the tithe.", "cost": { "muck": 3 }, "outcome": { "text": "A receipt slides out of a slot. It thanks you for your contribution to the burning of your swamp.", "alert": -6 } }
+      ]
+    },
+    {
+      "id": "paleRing",
+      "title": "A Ring of Pale Caps",
+      "text": "A perfect circle of pale mushrooms. Inside it the dust lies very still, and time seems to be holding its breath. Something on the far side of the air is looking back.",
+      "conditions": { "biomes": ["fungalDeeps", "rootTangle", "floodedCaves"] },
+      "choices": [
+        {
+          "text": "Step into the ring.",
+          "chance": 0.5,
+          "success": { "text": "For one long moment the heads are a single body and agree on everything. Afterwards they argue about who agreed first. The mycelium keeps whispering.", "condition": { "id": "myceliumWhisper", "turns": 4 }, "setFlags": ["heardMycelium"] },
+          "failure": { "text": "Too many songs at once. Something with too many eyes says something kind, and it is the worst thing the heads have ever heard.", "headsHp": -8, "setFlags": ["heardMycelium"] }
+        },
+        { "text": "Eat a cap.", "outcome": { "text": "It tastes of earth and of the colour green.", "bodyHp": 20 } },
+        { "text": "Walk around it.", "outcome": { "text": "Wise. The ring looks almost disappointed." } }
+      ]
+    },
+    {
+      "id": "lostPilgrim",
+      "title": "A Lost Pilgrim",
+      "text": "A pilgrim of the Order, lost for days. He has eaten his candles. He asks, very politely, which way is up.",
+      "choices": [
+        { "text": "Point the way up.", "outcome": { "text": "He thanks you and leaves to tell everyone about the kind monster. Nobody will believe the kind part.", "alert": 5 } },
+        { "text": "Point the wrong way.", "outcome": { "text": "He thanks you and walks deeper. The Order will search for him in all the wrong places.", "alert": -4 } },
+        { "text": "Eat him.", "outcome": { "text": "He was mostly candle.", "bones": 3 } }
+      ]
+    },
+    {
+      "id": "pillarOfSalt",
+      "title": "A Pillar of Salt",
+      "text": "A man made of salt, caught mid-step, holding a lantern made of salt. A plaque at his feet: BROTHER OSRIC, WHO WAS TOLD TO WAIT HERE. He is still waiting.",
+      "choices": [
+        { "text": "Lick him.", "outcome": { "text": "Salt. Very loyal salt. Your hide stiffens.", "moisture": -4, "condition": { "id": "salted", "turns": 3 } } },
+        { "text": "Take the lantern.", "needsHead": "biter", "outcome": { "text": "The hand comes off with the lantern. Brother Osric does not complain. He is still waiting.", "muck": 8 } },
+        { "text": "Leave him waiting.", "outcome": { "text": "Somebody should come back for him. Nobody will." } }
+      ]
+    },
+    {
+      "id": "oldSkull",
+      "title": "An Old Skull",
+      "text": "A skull with too many eye sockets, half sunk in the mud. Not human. Not quite yours. The teeth match your own.",
+      "choices": [
+        { "text": "Bury it.", "outcome": { "text": "None of the heads knows the words, so they hum something instead. For a moment it sounds like someone else's song.", "setFlags": ["foundAncestor"] } },
+        { "text": "Crack it for the marrow.", "outcome": { "text": "Old marrow, dry as paper. Nobody says anything for a while.", "bones": 6, "setFlags": ["foundAncestor"] } }
+      ]
+    },
+
+    {
+      "id": "hushedCarving",
+      "title": "A Carving in the Rock",
+      "quest": "The Silent Song",
+      "weight": 3,
+      "text": "Carved into the wall: tall figures, or long ones, it is hard to say, standing around a coiled shape. Their mouths are open. Beneath them run rows of marks like notes of music. Or teeth.",
+      "choices": [
+        { "text": "Study the marks.", "outcome": { "text": "Each head reads the marks differently. One hears a lullaby, one a warning, one a shopping list. They agree it is important.", "setFlags": ["hushedCarving"] } },
+        { "text": "Copy the marks onto a scale.", "needsHead": "acidSpitter", "outcome": { "text": "A precise copy, etched into a scale. A little itchy. The marks seem to point somewhere further in.", "reveal": 4, "setFlags": ["hushedCarving"] } },
+        { "text": "Leave it.", "outcome": { "text": "Old scratches on an old wall. The underground is full of them." } }
+      ]
+    },
+    {
+      "id": "coldMachine",
+      "title": "The Cold Machine",
+      "quest": "The Silent Song",
+      "priority": 5,
+      "conditions": { "flags": ["hushedCarving"] },
+      "text": "A machine of brass pipes and stone bellows, taller than the hydra, grown over with moss. Pipes run down into the rock, toward something warm. The coiled shape from the carving is hammered into its side. It is silent, but only just.",
+      "choices": [
+        { "text": "Breathe into the bellows.", "needsHead": "mistBreather", "outcome": { "text": "The pipes cough mist, then hold one low note. Far below, something turns over in its sleep.", "setFlags": ["hushedMachine", "hushedMachineWoke"], "dialogue": "machineStirs" } },
+        {
+          "text": "Hit it.",
+          "chance": 0.4,
+          "success": { "text": "It shudders and hums a single note. Then it sulks. Far below, something stirs.", "setFlags": ["hushedMachine", "hushedMachineWoke"], "dialogue": "machineStirs" },
+          "failure": { "text": "A pipe bursts. Scalding steam, and an echo that carries a long way.", "bodyHp": -20, "alert": 3, "setFlags": ["hushedMachine"] }
+        },
+        { "text": "Strip it for brass.", "outcome": { "text": "Good metal. The machine lets out a long, thin whistle as it comes apart, like someone remembering a tune too late.", "muck": 15, "setFlags": ["hushedMachine"] } }
+      ]
+    },
+    {
+      "id": "lastNote",
+      "title": "The Last Note",
+      "quest": "The Silent Song",
+      "priority": 5,
+      "conditions": { "flags": ["hushedMachine"], "rings": [2, 3] },
+      "text": "A round chamber with walls too smooth for any tool. In the middle lies a mask with no mouth, made for a face longer than any human's. As you come near, the whole room hums the note the machine played.",
+      "choices": [
+        { "text": "Listen.", "outcome": { "text": "The note opens like a door. For one heartbeat you understand the song. Then the heartbeat ends, but the tunnels around stay clear in your mind.", "reveal": 7, "setFlags": ["hushedSongHeard"], "dialogue": "lastNoteHeard" } },
+        { "text": "Take the mask to Old Mother Toad.", "outcome": { "text": "It weighs nothing. The heads take turns carrying it, and none of them wants a turn.", "setFlags": ["hushedMaskTaken"] } },
+        { "text": "Eat the mask.", "needsHead": "biter", "outcome": { "text": "It tastes of nothing at all. The humming stops. Everyone pretends not to be relieved.", "bodyHp": 40, "headsHp": 10 } }
+      ]
+    },
+
+    {
+      "id": "surveyStake",
+      "title": "A Surveyor's Stake",
+      "quest": "The Subterranean Survey",
+      "weight": 3,
+      "text": "A red-painted stake, a measuring chain, and a sign: THIS CAVE IS THE PROPERTY OF THE ORDER OF THE ETERNAL FLAME, PENDING SURVEY. TRESPASSERS WILL BE CATALOGUED.",
+      "choices": [
+        { "text": "Follow the chain.", "outcome": { "text": "The chain runs off into the dark, marked every ten yards in neat red paint.", "reveal": 5, "setFlags": ["surveyChain"] } },
+        { "text": "Move the stake a few yards.", "outcome": { "text": "According to the Order, this cave is now slightly smaller.", "alert": -2, "setFlags": ["surveyChain"] } },
+        { "text": "Eat the stake.", "outcome": { "text": "It tastes of red paint and good intentions.", "muck": 3 } }
+      ]
+    },
+    {
+      "id": "surveyors",
+      "title": "The Surveyors",
+      "quest": "The Subterranean Survey",
+      "priority": 5,
+      "conditions": { "flags": ["surveyChain"] },
+      "text": "Three surveyors of the Order sit round a lantern, arguing over a map. The map is upside down. One of them sees you and writes something down.",
+      "choices": [
+        { "text": "Attack.", "outcome": { "text": "The surveyors drop the map and pick up torches. Two of them, anyway. The third keeps writing.", "battle": "lostNovices", "setFlags": ["surveyDone"] } },
+        {
+          "text": "Let them measure you.",
+          "chance": 0.6,
+          "success": { "text": "They measure every neck, twice. The report will call you 'a large damp nuisance, not a priority'.", "alert": -6, "setFlags": ["surveyDone"] },
+          "failure": { "text": "They measure every neck, twice, and then they count the necks. They count again. One of them runs.", "alert": 8, "setFlags": ["surveyDone"] }
+        },
+        { "text": "Correct their map.", "needsHead": "acidSpitter", "outcome": { "text": "The Acid Spitter cannot bear an upside-down map. It turns it the right way up, then makes a few improvements. The surveyors leave to chart a lake that is not there.", "alert": -8, "setFlags": ["surveyDone"] } }
+      ]
+    },
+    {
+      "id": "surveyOffice",
+      "title": "The Survey Office",
+      "quest": "The Subterranean Survey",
+      "priority": 5,
+      "conditions": { "flags": ["surveyDone"], "rings": [2, 3] },
+      "text": "A camp table in the dark: ink, wax, the seal of the Order and a stack of forms. A sign on the table: SUBTERRANEAN SURVEY OFFICE. CLOSED FOR PRAYER.",
+      "choices": [
+        { "text": "Stamp yourself 'Surveyed'.", "outcome": { "text": "Officially, this hydra has been seen to. It says so in red wax.", "alert": -10, "setFlags": ["surveyStamped"] } },
+        { "text": "Take the maps.", "outcome": { "text": "Neat, careful maps, every one of them wrong in a different and useful way.", "reveal": 9 } },
+        { "text": "Eat the forms.", "outcome": { "text": "The Order will have to fill them all in again. It is the cruellest thing you have ever done.", "bodyHp": 20, "alert": 4 } }
+      ]
+    },
+
+    {
+      "id": "stillPool",
+      "title": "A Still Pool",
+      "priority": -10,
+      "once": false,
+      "text": "A still, black pool. Nothing happens here, which in the underground counts as an event.",
+      "choices": [
+        { "text": "Drink.", "outcome": { "text": "Cold, clean, and quiet.", "moisture": 6 } },
+        { "text": "Rest a moment.", "outcome": { "text": "The heads doze off one by one. None at the same time, but it's a start.", "bodyHp": 15 } }
+      ]
+    }
+  ]
+}
