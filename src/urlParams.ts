@@ -18,6 +18,8 @@
 //   ?ancestors=3  the lineage has already lost this many hydras (each with a mutation, slain by the Order), so the
 //                 hydra is an heiress: with ?scene=map her map, ?scene=generation the screen after the last death,
 //                 ?scene=book the Book of Lineages
+//   ?heads=strangler,lantern,tender  with ?scene=battle: the test battle's heads, by class (heads.json)
+//   ?ults=1       ultimate skills (key E) can be used in battle
 // A URL with any of these but seed, debug, speed and zoom is a test: the saved game is neither loaded nor saved
 // (testUrl). ?seed= alone picks the world of a lineage started from the title.
 
@@ -53,6 +55,10 @@ export interface UrlParams {
   conditions: string[];
   /** Hydras of the lineage that have already died, or null. */
   ancestors: number | null;
+  /** Head classes for a test battle (empty = the usual heads). */
+  heads: string[];
+  /** Ultimate skills can be used in battle. */
+  ults: boolean;
 }
 
 export function parseUrlParams(search: string): UrlParams {
@@ -83,6 +89,8 @@ export function parseUrlParams(search: string): UrlParams {
     flags: list('flags'),
     conditions: list('conditions'),
     ancestors: positive('ancestors') === null ? null : Math.floor(positive('ancestors')!),
+    heads: (params.get('heads') ?? '').split(',').map((h) => h.trim()).filter((h) => h !== ''),
+    ults: params.get('ults') === '1' || params.get('ults') === 'true',
   };
 }
 
@@ -102,6 +110,8 @@ export function testUrl(params: UrlParams): boolean {
     params.modifiers.length > 0 ||
     params.group !== null ||
     params.hp !== null ||
-    params.ancestors !== null
+    params.ancestors !== null ||
+    params.heads.length > 0 ||
+    params.ults
   );
 }

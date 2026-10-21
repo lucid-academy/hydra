@@ -87,7 +87,24 @@
     "victoryTitle": "The Order retreats. Mostly into you.",
     "defeatTitle": "The hydra is dead.",
     "continueButton": "Continue",
-    "selectAllButton": "All heads"
+    "selectAllButton": "All heads",
+    "//skills": "M2a. aim*: the hint while the player aims a skill ({skill}: its name). hintSkills: shown with the skill buttons before the battle starts.",
+    "hintSkills": "Q, W: this head's skills. Before you start, ⇄ swaps in its third one.",
+    "aimEnemy": "{skill}: tap an enemy.",
+    "aimHex": "{skill}: tap a hex.",
+    "aimHead": "{skill}: tap a head.",
+    "aimStump": "{skill}: tap a stump.",
+    "rage": "{name} is furious.",
+    "grief": "{name} is grieving.",
+    "badIdea": "{name} has an idea.",
+    "eaten": "Eaten.",
+    "skillFizzled": "Nothing happens.",
+    "rummage": {
+      "snails": "A handful of snails.",
+      "rottenEgg": "A rotten egg.",
+      "fish": "A fish!",
+      "stone": "A stone. Lovely."
+    }
   },
   "shrine": {
     "title": "A shrine of the Great Serpent",
