@@ -115,7 +115,10 @@ function enemiesHit(state: BattleState, skill: SkillRules, aimed: Enemy | null, 
   void rules;
 }
 
-/** The skill lands on one enemy: the hit (aimed enemy only), its combos, its effects, then the enemy wakes up if it was entranced. */
+/**
+ * The skill lands on one enemy: the hit (aimed enemy only), its effects, then combos with what is on the enemy now
+ * (so Coil's grip is there for Wrung Out), then the hit wakes an Entranced enemy unless a combo kept the trance.
+ */
 function landOn(state: BattleState, head: BattleHead, skill: SkillRules, enemy: Enemy, aimed: boolean, rules: BattleRules, power: number): void {
   if (!state.enemies.includes(enemy)) return;
   const hit: HitContext = { head, tags: skill.tags, hitDamage: 0, power, keepEntranced: false };
@@ -124,12 +127,12 @@ function landOn(state: BattleState, head: BattleHead, skill: SkillRules, enemy: 
     const raw = Math.max(1, attack.damage * skill.hitMultiplier * power - enemyArmor(enemy, rules));
     hit.hitDamage = hurtEnemy(state, enemy, raw, 'head', head.id, rules, false);
   }
-  if (!state.enemies.includes(enemy)) return;
-  triggerCombos(state, 'headHitsEnemy', enemy, hit, rules);
   for (const effect of skill.effects) {
     if (!state.enemies.includes(enemy)) break;
     applyEffect(state, enemy, effect, hit, rules);
   }
+  if (!state.enemies.includes(enemy)) return;
+  triggerCombos(state, 'headHitsEnemy', enemy, hit, rules);
   if (!state.enemies.includes(enemy)) return;
   rememberHit(state, enemy, head, skill.tags, rules);
   if (hit.hitDamage > 0 && !hit.keepEntranced) wakeUp(state, enemy, rules);

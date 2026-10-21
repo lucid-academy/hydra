@@ -379,6 +379,8 @@ function headAttackLands(state: BattleState, head: BattleHead, target: Enemy, at
     return;
   }
   triggerCombos(state, 'headHitsEnemy', target, hit, rules);
+  // The hit wakes an Entranced human only now: a combo could still use the trance (Rude Awakening, Anointing).
+  if (state.enemies.includes(target) && hit.hitDamage > 0 && !hit.keepEntranced) wakeUp(state, target, rules);
   if (state.enemies.includes(target)) {
     if (attack.appliesStatus !== null) applyStatus(state, target, attack.appliesStatus, rules, attack.statusTicks);
     if (attack.randomEffects.length > 0 && random(state) < attack.randomEffectChance) {
@@ -388,9 +390,7 @@ function headAttackLands(state: BattleState, head: BattleHead, target: Enemy, at
     }
   }
   if (attack.createsMistCloud) createMistCloud(state, at, rules, undefined, undefined, head.id);
-  if (!state.enemies.includes(target)) return;
-  rememberHit(state, target, head, attack.tags, rules);
-  if (hit.hitDamage > 0 && !hit.keepEntranced) wakeUp(state, target, rules);
+  if (state.enemies.includes(target)) rememberHit(state, target, head, attack.tags, rules);
 }
 
 // ---------------------------------------------------------------- the Spare's Bad Idea
