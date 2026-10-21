@@ -65,6 +65,145 @@ export interface ConditionRules {
   revealsEncounters: boolean;
 }
 
+// ---------------------------------------------------------------- story (GAME_DESIGN.md §10, §11)
+
+/**
+ * When a dialogue can start. eventOnly: only when an event's choice asks for it by id.
+ * serpentInBattle: a short line of the Serpent over a battle, which goes on (no pause).
+ */
+export type StoryTrigger = 'afterBattle' | 'newBiome' | 'enemyAhead' | 'restInLair' | 'serpentOnTheWay' | 'serpentInBattle' | 'eventOnly';
+
+/** What must be true for a dialogue or an event. Missing = anything goes. */
+export interface StoryConditions {
+  rings?: readonly number[];
+  biomes?: readonly string[];
+  /** All of these flags are set. */
+  flags?: readonly string[];
+  /** None of these flags are set. */
+  notFlags?: readonly string[];
+  minAlert?: number;
+  maxAlert?: number;
+  minTurn?: number;
+  /** The hydra has a head of each of these classes. */
+  headClasses?: readonly string[];
+  minHeads?: number;
+  maxHeads?: number;
+  /** Facts of the moment, from what started it: */
+  won?: boolean;
+  severedAtLeast?: number;
+  grownAtLeast?: number;
+  cauterizedAtLeast?: number;
+  /** One of these enemy types is met for the first time. */
+  newEnemyTypes?: readonly string[];
+}
+
+/**
+ * Who says a line: toad (Old Mother Toad), serpent (the Great Serpent's voice), or a head:
+ * head:any (one of the heads), head:other (another one than head:any), head:new (one that just grew), head:<class id>.
+ */
+export type SpeakerRef = string;
+
+export interface DialogueLineRules {
+  speaker: SpeakerRef;
+  text: string;
+}
+
+export interface DialogueRules {
+  id: string;
+  trigger: StoryTrigger;
+  /** The highest priority among the dialogues that fit is said. */
+  priority: number;
+  /** Said once per run (else it can come again). */
+  once: boolean;
+  conditions: StoryConditions;
+  lines: readonly DialogueLineRules[];
+  setFlags: readonly string[];
+  choices: ReadonlyArray<{ text: string; setFlags: readonly string[]; reply: readonly DialogueLineRules[] }>;
+}
+
+/** What an event's choice does. */
+export interface EventOutcome {
+  text: string;
+  /** Resources gained (or lost, when negative). */
+  loot: { muck: number; moisture: number; bones: number };
+  alert: number;
+  /** Change of the body's HP, and of every head's HP. */
+  bodyHp: number;
+  headsHp: number;
+  condition: { id: string; turns: number } | null;
+  /** Hexes this far around the hydra become known. */
+  reveal: number;
+  /** A battle against this enemy group, right here. */
+  battle: string | null;
+  setFlags: readonly string[];
+  /** A dialogue (by id) said after the event. */
+  dialogue: string | null;
+  /** A new head of this class grows. */
+  newHead: string | null;
+}
+
+export interface EventChoiceRules {
+  text: string;
+  /** Needs a head of this class. */
+  needsHead: string | null;
+  /** Paid when chosen; can't be chosen without it. */
+  cost: { muck: number; moisture: number; bones: number };
+  /** A gamble: `success` with this chance, else `failure`. Null: always `success`. */
+  chance: number | null;
+  success: EventOutcome;
+  failure: EventOutcome | null;
+}
+
+export interface EventRules {
+  id: string;
+  title: string;
+  /** The mini quest this event is a step of (its name), or null. */
+  quest: string | null;
+  text: string;
+  priority: number;
+  weight: number;
+  once: boolean;
+  conditions: StoryConditions;
+  choices: readonly EventChoiceRules[];
+}
+
+export interface StoryRules {
+  /** Names of the speakers who are not heads. */
+  speakerNames: Readonly<Record<string, string>>;
+  dialogues: readonly DialogueRules[];
+  events: readonly EventRules[];
+  /** The Serpent speaks on the way at most every so many turns, with this chance at the end of a turn. */
+  serpentVoice: { minTurnsBetween: number; chancePerTurn: number; battleChance: number };
+  biomeNames: Readonly<Record<string, string>>;
+  headClassNames: Readonly<Record<string, string>>;
+}
+
+/** A line as shown: who says it (name; class for heads) and what. */
+export interface ShownLine {
+  speaker: 'toad' | 'serpent' | 'head';
+  name: string;
+  classId: string | null;
+  text: string;
+}
+
+export interface ShownDialogue {
+  id: string;
+  lines: ShownLine[];
+  choices: Array<{ text: string; reply: ShownLine[] }>;
+}
+
+export interface StoryState {
+  flags: string[];
+  /** Dialogues and events that happened (ids), for `once`. */
+  seen: string[];
+  enemyTypesMet: string[];
+  biomesEntered: string[];
+  lastSerpentTurn: number;
+  /** Dialogues waiting to be shown, first first. */
+  dialogues: ShownDialogue[];
+  rngState: number;
+}
+
 export interface RunRules {
   movementPointsPerTurn: number;
   sightRangeHexes: number;
@@ -83,6 +222,8 @@ export interface RunRules {
   /** Classes a new head can have, when a healed scar grows heads in the lair. */
   hatchlingClasses: ReadonlyArray<{ classId: string; maxHp: number }>;
   maxHeads: number;
+  /** Max HP of a head of each class. */
+  headMaxHp: Readonly<Record<string, number>>;
   headNames: readonly string[];
   healing: { bodyHpPerTurn: number; headHpPerTurn: number };
   /** Bones taken from every human of a group beaten in battle. */
@@ -94,6 +235,7 @@ export interface RunRules {
   thresholds: Readonly<Record<string, ThresholdRules>>;
   places: Readonly<Record<string, PlaceRules>>;
   conditions: Readonly<Record<string, ConditionRules>>;
+  story: StoryRules;
 }
 
 export interface Hydra {
@@ -156,6 +298,9 @@ export interface RunState {
   rngState: number;
   /** The hydra died: this run is over. */
   over: boolean;
+  story: StoryState;
+  /** The event the hydra stands at, until its panel is closed; `result` once a choice is made. */
+  pendingEvent: { at: Hex; eventId: string; result: { text: string; choice: number; success: boolean } | null } | null;
 }
 
 export type RunEvent =
@@ -184,6 +329,9 @@ export type RunEvent =
   | { type: 'conditionEnded'; id: string }
   | { type: 'rested'; healedScars: number; newHeadIds: string[] }
   | { type: 'hydraDied' }
+  | { type: 'eventReached'; at: Hex; eventId: string }
+  | { type: 'eventResolved'; at: Hex; eventId: string; choice: number; success: boolean }
+  | { type: 'dialogueQueued'; id: string }
   | { type: 'turnEnded'; turn: number };
 
 export interface Reachable {

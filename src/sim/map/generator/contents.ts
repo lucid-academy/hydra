@@ -19,6 +19,9 @@ import type { WorldShape } from './shape';
 const NARROW_ENCOUNTER_WEIGHT = 1.6;
 /** Resources keep this many steps apart. */
 const RESOURCE_SPACING = 2;
+/** Event sites keep this many steps apart, and from the lair. */
+const EVENT_SPACING = 5;
+const EVENT_MIN_STEPS_FROM_LAIR = 4;
 
 export interface ContentsPlan {
   /** Rare places this world has (ids). */
@@ -323,6 +326,15 @@ export function placeContents(
     for (const i of pickSpread(rng, grid, options(), ring.muckDeposits, RESOURCE_SPACING)) {
       put(i, { kind: 'muck', amount: s.resources.muckPerDeposit, rich: false });
     }
+  }
+
+  // ---- Event sites, ring by ring, last so they change nothing else in the world: in chambers, spread out.
+  for (let k = 1; k <= rings; k++) {
+    const options: number[] = [];
+    for (let i = 0; i < n; i++) {
+      if (zone[i] === k && free(i) && chamberOf[i]! >= 0 && deadEndOf[i] === -1 && grid.steps(i, lairCenter) >= EVENT_MIN_STEPS_FROM_LAIR) options.push(i);
+    }
+    for (const i of pickSpread(rng, grid, options, s.rings[k - 1]!.eventSites, EVENT_SPACING)) put(i, { kind: 'event', eventId: null, done: false });
   }
 
   // ---- Echoes: patches and places other than landmarks (landmarks are seen from afar instead).

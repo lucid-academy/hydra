@@ -44,6 +44,8 @@ export interface RingSettings {
   encounterTier: number;
   muckDeposits: number;
   moistureSources: number;
+  /** Hexes where something happens (an event, decided when the hydra arrives). */
+  eventSites: number;
   /** Thresholds on the border outward (to the next ring): how many, and their kinds by weight. One is always a Draught Crack. */
   thresholds: { count: Range; kinds: Weighted } | null;
 }

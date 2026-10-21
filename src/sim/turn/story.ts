@@ -1,0 +1,279 @@
+// The story on the map (GAME_DESIGN.md §10, §11): flags, dialogues that react to what happened, events with choices,
+// and mini quests (events chained by flags). All of it is data (src/data/dialogues.json, events.json); this file
+// decides which dialogue or event fits a moment, and applies what a choice does.
+
+import { hexKey, hexesInRange } from '../hex';
+import type { Hex } from '../hex';
+import { Rng } from '../rng';
+import type {
+  DialogueLineRules,
+  DialogueRules,
+  EventOutcome,
+  EventRules,
+  RunEvent,
+  RunRules,
+  RunState,
+  ShownDialogue,
+  ShownLine,
+  StoryConditions,
+  StoryState,
+  StoryTrigger,
+} from './types';
+import { growHeads, raiseAlert, startCondition, tileAt } from './world';
+
+/** What happened just now, for the conditions of a dialogue (and the names in its lines). */
+export interface StoryFacts {
+  biome?: string;
+  won?: boolean;
+  severed?: number;
+  grown?: number;
+  cauterized?: number;
+  newEnemyTypes?: readonly string[];
+  /** Heads that just grew (ids), for head:new. */
+  newHeadIds?: readonly string[];
+}
+
+export function newStory(seed: number, lairBiome: string): StoryState {
+  return { flags: [], seen: [], enemyTypesMet: [], biomesEntered: [lairBiome], lastSerpentTurn: 1, dialogues: [], rngState: (seed ^ 0x570e7) >>> 0 };
+}
+
+/** Do the conditions hold now? */
+export function conditionsHold(state: RunState, c: StoryConditions, facts: StoryFacts = {}): boolean {
+  const { story, hydra } = state;
+  const here = tileAt(state, hydra.position);
+  const has = (flag: string) => story.flags.includes(flag);
+  return (
+    (c.rings === undefined || (here !== undefined && c.rings.includes(here.ring))) &&
+    (c.biomes === undefined || (here !== undefined && c.biomes.includes(facts.biome ?? here.biome))) &&
+    (c.flags ?? []).every(has) &&
+    !(c.notFlags ?? []).some(has) &&
+    (c.minAlert === undefined || state.alert >= c.minAlert) &&
+    (c.maxAlert === undefined || state.alert <= c.maxAlert) &&
+    (c.minTurn === undefined || state.turn >= c.minTurn) &&
+    (c.headClasses ?? []).every((cls) => hydra.heads.some((h) => h.classId === cls)) &&
+    (c.minHeads === undefined || hydra.heads.length >= c.minHeads) &&
+    (c.maxHeads === undefined || hydra.heads.length <= c.maxHeads) &&
+    (c.won === undefined || facts.won === c.won) &&
+    (c.severedAtLeast === undefined || (facts.severed ?? 0) >= c.severedAtLeast) &&
+    (c.grownAtLeast === undefined || (facts.grown ?? 0) >= c.grownAtLeast) &&
+    (c.cauterizedAtLeast === undefined || (facts.cauterized ?? 0) >= c.cauterizedAtLeast) &&
+    (c.newEnemyTypes === undefined || c.newEnemyTypes.some((t) => (facts.newEnemyTypes ?? []).includes(t)))
+  );
+}
+
+function withRng<T>(story: StoryState, use: (rng: Rng) => T): T {
+  const rng = Rng.fromState(story.rngState);
+  const result = use(rng);
+  story.rngState = rng.getState();
+  return result;
+}
+
+/** Of the things that fit, those with the highest priority. */
+function best<T extends { priority: number }>(fitting: readonly T[]): T[] {
+  const top = Math.max(...fitting.map((f) => f.priority));
+  return fitting.filter((f) => f.priority === top);
+}
+
+// ---------------------------------------------------------------- dialogues
+
+/**
+ * The lines of a dialogue with their speakers found among the heads, or null if a speaker can't be found
+ * (head:other needs two heads, head:new a new one, head:<class> a head of that class).
+ * {any}, {other} and {new} in a text are those heads' names, {biome} the biome's name.
+ */
+function castDialogue(state: RunState, rules: RunRules, d: DialogueRules, facts: StoryFacts, rng: Rng): ShownDialogue | null {
+  const heads = state.hydra.heads;
+  const cast = new Map<string, (typeof heads)[number]>();
+  const newHeads = heads.filter((h) => (facts.newHeadIds ?? []).includes(h.id));
+  const all = [...d.lines, ...d.choices.flatMap((c) => c.reply)];
+  for (const role of ['new', 'any', 'other']) {
+    if (!all.some((l) => l.speaker === `head:${role}` || l.text.includes(`{${role}}`))) continue;
+    const taken = new Set([...cast.values()].map((h) => h.id));
+    const pool = (role === 'new' ? newHeads : heads).filter((h) => !taken.has(h.id));
+    if (pool.length === 0) return null;
+    cast.set(role, rng.pick(pool));
+  }
+  const story = rules.story;
+  const fill = (text: string) =>
+    text
+      .replace(/\{(any|other|new)\}/g, (_, role: string) => cast.get(role)!.name)
+      .replace(/\{biome\}/g, story.biomeNames[facts.biome ?? tileAt(state, state.hydra.position)?.biome ?? ''] ?? '');
+  const line = (l: DialogueLineRules): ShownLine | null => {
+    if (l.speaker === 'toad' || l.speaker === 'serpent') return { speaker: l.speaker, name: story.speakerNames[l.speaker] ?? l.speaker, classId: null, text: fill(l.text) };
+    const role = l.speaker.replace(/^head:/, '');
+    let head = cast.get(role);
+    if (!head) {
+      const ofClass = heads.filter((h) => h.classId === role);
+      if (ofClass.length === 0) return null;
+      head = rng.pick(ofClass);
+      cast.set(role, head);
+    }
+    return { speaker: 'head', name: head.name, classId: head.classId, text: fill(l.text) };
+  };
+  const lines = d.lines.map(line);
+  const choices = d.choices.map((c) => ({ text: fill(c.text), reply: c.reply.map(line) }));
+  if (lines.includes(null) || choices.some((c) => c.reply.includes(null))) return null;
+  return { id: d.id, lines: lines as ShownLine[], choices: choices as ShownDialogue['choices'] };
+}
+
+/** Says a dialogue: it is queued for the screen, counts as seen, and sets its flags. */
+function say(state: RunState, d: DialogueRules, shown: ShownDialogue, events: RunEvent[]): void {
+  const { story } = state;
+  story.dialogues.push(shown);
+  if (!story.seen.includes(d.id)) story.seen.push(d.id);
+  for (const flag of d.setFlags) if (!story.flags.includes(flag)) story.flags.push(flag);
+  events.push({ type: 'dialogueQueued', id: d.id });
+}
+
+/** Something happened: the dialogue that fits it best is queued (if any fits). Returns whether one was. */
+export function storyMoment(state: RunState, rules: RunRules, trigger: StoryTrigger, facts: StoryFacts, events: RunEvent[]): boolean {
+  const { story } = state;
+  const fitting = rules.story.dialogues.filter(
+    (d) => d.trigger === trigger && !(d.once && story.seen.includes(d.id)) && conditionsHold(state, d.conditions, facts),
+  );
+  return withRng(story, (rng) => {
+    // The best that can be cast; if none of the best can, the next best.
+    let left = fitting;
+    while (left.length > 0) {
+      const top = best(left);
+      const order = top.map((d) => ({ d, key: rng.next() })).sort((a, b) => a.key - b.key);
+      for (const { d } of order) {
+        const shown = castDialogue(state, rules, d, facts, rng);
+        if (shown) {
+          say(state, d, shown, events);
+          return true;
+        }
+      }
+      left = left.filter((d) => !top.includes(d));
+    }
+    return false;
+  });
+}
+
+/** Queues a dialogue by id (an event's choice asks for it). */
+export function storyDialogue(state: RunState, rules: RunRules, id: string, events: RunEvent[]): boolean {
+  const d = rules.story.dialogues.find((x) => x.id === id);
+  if (!d) throw new Error(`Unknown dialogue "${id}"`);
+  const shown = withRng(state.story, (rng) => castDialogue(state, rules, d, {}, rng));
+  if (!shown) return false;
+  say(state, d, shown, events);
+  return true;
+}
+
+/** The screen has shown the first queued dialogue; `choice` is the answer picked (if it had choices). */
+export function dialogueShown(state: RunState, rules: RunRules, choice: number | null): void {
+  const shown = state.story.dialogues.shift();
+  if (!shown || choice === null) return;
+  const flags = rules.story.dialogues.find((d) => d.id === shown.id)?.choices[choice]?.setFlags ?? [];
+  for (const flag of flags) if (!state.story.flags.includes(flag)) state.story.flags.push(flag);
+}
+
+/** At the end of a turn away from the lair, the Serpent may speak (not too often). */
+export function serpentOnTheWay(state: RunState, rules: RunRules, events: RunEvent[]): void {
+  const { story } = state;
+  const voice = rules.story.serpentVoice;
+  if (state.turn - story.lastSerpentTurn < voice.minTurnsBetween) return;
+  if (!withRng(story, (rng) => rng.chance(voice.chancePerTurn))) return;
+  if (storyMoment(state, rules, 'serpentOnTheWay', {}, events)) story.lastSerpentTurn = state.turn;
+}
+
+/** A short line of the Serpent for the battle about to start (said over the battle, without a pause), or null. */
+export function serpentInBattle(state: RunState, rules: RunRules): ShownLine | null {
+  if (!withRng(state.story, (rng) => rng.chance(rules.story.serpentVoice.battleChance))) return null;
+  const events: RunEvent[] = [];
+  if (!storyMoment(state, rules, 'serpentInBattle', {}, events)) return null;
+  // Not shown as a dialogue: the battle shows its first line itself.
+  return state.story.dialogues.pop()?.lines[0] ?? null;
+}
+
+/** Enemy types of a group met for the first time; from now on they are known. */
+export function meetEnemies(state: RunState, types: readonly string[]): string[] {
+  const fresh = [...new Set(types)].filter((t) => !state.story.enemyTypesMet.includes(t));
+  state.story.enemyTypesMet.push(...fresh);
+  return fresh;
+}
+
+// ---------------------------------------------------------------- events
+
+/** The hydra steps on an event site: the event that fits best happens (or, if none does, the site is empty). */
+export function eventArrived(state: RunState, at: Hex, rules: RunRules, events: RunEvent[]): boolean {
+  const tile = tileAt(state, at);
+  const object = tile?.object;
+  if (object?.kind !== 'event' || object.done) return false;
+  if (object.eventId === null) {
+    const { story } = state;
+    const fitting = rules.story.events.filter((e) => !(e.once && story.seen.includes(e.id)) && conditionsHold(state, e.conditions));
+    if (fitting.length === 0) {
+      object.done = true;
+      return false;
+    }
+    const picked = withRng(story, (rng) => rng.weightedPick(best(fitting)));
+    object.eventId = picked.id;
+    if (!story.seen.includes(picked.id)) story.seen.push(picked.id);
+  }
+  state.pendingEvent = { at, eventId: object.eventId, result: null };
+  events.push({ type: 'eventReached', at, eventId: object.eventId });
+  return true;
+}
+
+export function pendingEventRules(state: RunState, rules: RunRules): EventRules | null {
+  const id = state.pendingEvent?.eventId;
+  return id ? (rules.story.events.find((e) => e.id === id) ?? null) : null;
+}
+
+export type EventChoiceCheck = { can: true } | { can: false; why: 'needsHead' | 'cost' | 'done' };
+
+export function canChooseEventOption(state: RunState, rules: RunRules, index: number): EventChoiceCheck {
+  const choice = pendingEventRules(state, rules)?.choices[index];
+  if (!choice || state.pendingEvent?.result) return { can: false, why: 'done' };
+  if (choice.needsHead && !state.hydra.heads.some((h) => h.classId === choice.needsHead && h.hp > 0)) return { can: false, why: 'needsHead' };
+  const { resources } = state;
+  if (resources.muck < choice.cost.muck || resources.moisture < choice.cost.moisture || resources.bones < choice.cost.bones) return { can: false, why: 'cost' };
+  return { can: true };
+}
+
+/** Picks a choice of the event the hydra stands at: pays its cost, rolls a gamble, and applies what comes of it. */
+export function chooseEventOption(state: RunState, rules: RunRules, index: number): RunEvent[] {
+  const pending = state.pendingEvent;
+  const event = pendingEventRules(state, rules);
+  if (!pending || !event || !canChooseEventOption(state, rules, index).can) return [];
+  const choice = event.choices[index]!;
+  for (const kind of ['muck', 'moisture', 'bones'] as const) state.resources[kind] -= choice.cost[kind];
+  const success = choice.chance === null || choice.failure === null || withRng(state.story, (rng) => rng.chance(choice.chance!));
+  const outcome = success ? choice.success : choice.failure!;
+  const events: RunEvent[] = [];
+  applyOutcome(state, rules, outcome, pending.at, events);
+  pending.result = { text: outcome.text, choice: index, success };
+  const object = tileAt(state, pending.at)?.object;
+  if (object?.kind === 'event') object.done = true;
+  events.unshift({ type: 'eventResolved', at: pending.at, eventId: event.id, choice: index, success });
+  return events;
+}
+
+/** Closes the event's panel (after its choice). A battle it started waits on the map. */
+export function closeEvent(state: RunState): void {
+  if (state.pendingEvent?.result) state.pendingEvent = null;
+}
+
+function applyOutcome(state: RunState, rules: RunRules, o: EventOutcome, at: Hex, events: RunEvent[]): void {
+  const { hydra, resources } = state;
+  for (const kind of ['muck', 'moisture', 'bones'] as const) resources[kind] = Math.max(0, resources[kind] + o.loot[kind]);
+  if (o.alert !== 0) raiseAlert(state, o.alert, rules);
+  if (o.bodyHp !== 0) hydra.bodyHp = Math.max(1, Math.min(hydra.bodyMaxHp, hydra.bodyHp + o.bodyHp));
+  if (o.headsHp !== 0) for (const head of hydra.heads) head.hp = Math.max(1, Math.min(head.maxHp, head.hp + o.headsHp));
+  if (o.condition) startCondition(state, o.condition.id, o.condition.turns, rules, events);
+  if (o.reveal > 0) {
+    for (const h of hexesInRange(hydra.position, o.reveal)) {
+      const key = hexKey(h);
+      if (state.map.tiles.has(key) && !state.visibility.has(key)) state.visibility.set(key, 'remembered');
+    }
+  }
+  for (const flag of o.setFlags) if (!state.story.flags.includes(flag)) state.story.flags.push(flag);
+  if (o.newHead) growHeads(state, rules, 1, o.newHead);
+  if (o.battle) {
+    state.pendingBattle = { at, groupId: o.battle };
+    const fresh = meetEnemies(state, rules.encounterGroupMembers[o.battle] ?? []);
+    storyMoment(state, rules, 'enemyAhead', { newEnemyTypes: fresh }, events);
+  }
+  if (o.dialogue) storyDialogue(state, rules, o.dialogue, events);
+}

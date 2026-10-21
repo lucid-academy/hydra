@@ -69,6 +69,7 @@
         "encounterTier": 1,
         "muckDeposits": 6,
         "moistureSources": 4,
+        "eventSites": 3,
         "thresholds": { "count": [2, 4], "kinds": { "rubbleChoke": 3, "rootWall": 1, "saltPlug": 1, "smoulderingSeam": 1 } }
       },
       {
@@ -86,6 +87,7 @@
         "encounterTier": 2,
         "muckDeposits": 7,
         "moistureSources": 5,
+        "eventSites": 3,
         "thresholds": { "count": [2, 4], "kinds": { "rubbleChoke": 1, "rootWall": 1, "saltPlug": 2, "smoulderingSeam": 2 } }
       },
       {
@@ -103,6 +105,7 @@
         "encounterTier": 3,
         "muckDeposits": 8,
         "moistureSources": 5,
+        "eventSites": 2,
         "thresholds": null
       }
     ]
