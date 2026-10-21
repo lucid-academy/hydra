@@ -3,8 +3,10 @@ import { loadGameData } from './data';
 import { DataError } from './data/validate';
 import { fitCanvas } from './scaling';
 import { BattleScene } from './scenes/BattleScene';
+import { BookScene } from './scenes/BookScene';
 import { BootScene } from './scenes/BootScene';
 import { setContext } from './scenes/context';
+import { GenerationScene } from './scenes/GenerationScene';
 import { MapScene } from './scenes/MapScene';
 import { TitleScene } from './scenes/TitleScene';
 import { sharpenText } from './scenes/view';
@@ -23,8 +25,8 @@ function showFatalError(message: string): void {
 function start(): void {
   const data = loadGameData();
   const params = parseUrlParams(window.location.search);
-  // A fresh run gets a random seed. Math.random() is fine here: this is outside sim/, and the
-  // seed is shown in the debug overlay so any run can be replayed with ?seed=.
+  // A new lineage gets a random seed. Math.random() is fine here: this is outside sim/, and the
+  // seed is shown in the debug overlay so any lineage can be replayed with ?seed=.
   const seed = params.seed ?? Math.floor(Math.random() * 1_000_000);
   // HD (GAME_DESIGN.md §13): the canvas has the window's real pixels and pixel art is drawn sharp at any zoom
   // (smoothPixelArt: square texels with clean edges between them).
@@ -44,7 +46,7 @@ function start(): void {
     },
     banner: false,
     // Order matters: later scenes draw on top and get input first.
-    scene: [BootScene, TitleScene, MapScene, HudScene, DialogueScene, BattleScene, DebugOverlayScene],
+    scene: [BootScene, TitleScene, GenerationScene, BookScene, MapScene, HudScene, DialogueScene, BattleScene, DebugOverlayScene],
   });
   setContext(game, { data, seed, params });
   sharpenText();

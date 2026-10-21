@@ -152,6 +152,18 @@ describe('a lineage', () => {
     expect(play()).toEqual(play());
   });
 
+  it('an epitaph is not written twice in a lineage while others are left', () => {
+    const profile = newProfile();
+    const lineage = startLineage(profile, 21, lineageRules);
+    const one: LineageRules = { ...lineageRules, epitaphs: { ...lineageRules.epitaphs, byEnemy: {}, any: ['A.', 'B.', 'C.'] } };
+    for (let g = 0; g < 4; g++) {
+      const run = hatch(profile, lineage);
+      slay(run, 'patrol');
+      hydraDied(profile, lineage, run, one);
+    }
+    expect(new Set(lineage.chronicle.slice(0, 3).map((e) => e.epitaph))).toEqual(new Set(['A.', 'B.', 'C.']));
+  });
+
   it('an epitaph without lines for the killer comes from the general ones', () => {
     const profile = newProfile();
     const r: LineageRules = { ...lineageRules, epitaphs: { ...lineageRules.epitaphs, byEnemy: {} } };

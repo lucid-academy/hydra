@@ -22,6 +22,7 @@ import { hexOutlines, roundCorners } from './hexOutline';
 import { MapGround } from './mapGround';
 import { LIGHT_TEXTURE, LIGHT_TEXTURE_SIZE, MapLight, SHADOW_TEXTURE, SHADOW_TEXTURE_WIDTH, makeSoftTextures } from './mapLight';
 import type { Light } from './mapLight';
+import { lineages } from './LineageKeeper';
 import { getRun, startNewRun } from './RunController';
 import type { RunController } from './RunController';
 import { SceneKey } from './sceneKeys';
@@ -187,13 +188,18 @@ export class MapScene extends Phaser.Scene {
   create(): void {
     const firstTime = !getRun(this);
     this.run = getRun(this) ?? startNewRun(this);
+    if (this.run.state.over) {
+      // She has died: the Book of Lineages, and her heiress.
+      this.scene.start(SceneKey.Generation);
+      return;
+    }
     const { near, reveal, say, event, flags, conditions } = getContext(this).params;
     if (firstTime && flags.length > 0) this.run.flagsForTest(flags);
     if (firstTime && conditions.length > 0) this.run.conditionsForTest(conditions);
     if (firstTime && near) this.run.placeNear(near);
     if (firstTime && reveal) this.run.revealAll();
     if (firstTime && event) this.run.eventForTest(event);
-    if (firstTime && say) this.run.sayForTest(say);
+    if (firstTime && say) this.run.sayForTest(say, lineages(this).motherFacts());
     this.views = new Map();
     this.draughts = new Map();
     this.echoes = new Map();
@@ -240,8 +246,8 @@ export class MapScene extends Phaser.Scene {
 
   private drawMap(): void {
     const clumps = this.planClumps();
-    const { data, seed } = getContext(this);
-    this.ground = new MapGround(this, this.run.state.map, data, LAYOUT, seed, {
+    const { data } = getContext(this);
+    this.ground = new MapGround(this, this.run.state.map, data, LAYOUT, this.run.state.seed, {
       ground: DEPTH.ground,
       darkness: DEPTH.darkness,
       standing: (y) => this.standingDepth(y),
@@ -282,7 +288,7 @@ export class MapScene extends Phaser.Scene {
 
   /** The same map always looks the same: each hex picks its tile variant and decorations from this. */
   private hexSeed(h: Hex): number {
-    return (getContext(this).seed ^ Math.imul(h.q + 64, 73856093) ^ Math.imul(h.r + 64, 19349663)) >>> 0;
+    return (this.run.state.seed ^ Math.imul(h.q + 64, 73856093) ^ Math.imul(h.r + 64, 19349663)) >>> 0;
   }
 
   /** Ground of a hex as drawn: a closed threshold is drawn as the floor it will have, with its obstacle on it. */
@@ -1005,8 +1011,11 @@ export class MapScene extends Phaser.Scene {
     });
     exposeMapBusy(() => this.animating || this.run.animating || this.cameras.main.panEffect.isRunning);
     exposeRunSummary(() => {
-      const { turn, resources, alert, pendingBattle, pendingShrine, pendingPlace, pendingEvent, visibility, hydra, echoes, draughtsFelt, story } = this.run.state;
+      const { turn, resources, alert, pendingBattle, pendingShrine, pendingPlace, pendingEvent, visibility, hydra, echoes, draughtsFelt, story, generation } = this.run.state;
       return {
+        hydraName: hydra.name,
+        generation,
+        mutations: [...hydra.mutations],
         turn,
         muck: resources.muck,
         moisture: resources.moisture,

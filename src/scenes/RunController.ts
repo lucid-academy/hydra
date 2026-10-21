@@ -2,8 +2,6 @@
 // Scenes listen for 'changed' to redraw, and for 'events' to animate what just happened.
 
 import * as Phaser from 'phaser';
-import { battleRulesFrom } from '../data/battleRules';
-import { runRulesFrom } from '../data/runRules';
 import type { BattleResult, BattleRules, BattleSetup } from '../sim/battle';
 import type { Hex } from '../sim/hex';
 import { hex, hexDistance, hexKey, hexNeighbors } from '../sim/hex';
@@ -13,7 +11,6 @@ import {
   acceptBlessing,
   chooseEventOption,
   closeEvent,
-  createRun,
   dialogueShown,
   doPlaceAction,
   endTurn,
@@ -31,8 +28,8 @@ import {
   storyDialogue,
   workThreshold,
 } from '../sim/turn';
-import type { Journey, Reachable, RunEvent, RunRules, RunState, ShownDialogue, ShownLine } from '../sim/turn';
-import { getContext } from './context';
+import type { Journey, Reachable, RunEvent, RunRules, RunState, ShownDialogue, ShownLine, StoryFacts } from '../sim/turn';
+import { lineages } from './LineageKeeper';
 
 const REGISTRY_KEY = 'run';
 
@@ -51,11 +48,12 @@ export class RunController extends Phaser.Events.EventEmitter {
   /** A dialogue is on screen; the map and the HUD wait. Only for the screen. */
   talking = false;
 
-  constructor(seed: number, rules: RunRules, battleRules: BattleRules, modifiers: readonly string[] = []) {
+  /** A run of the living hydra: new (createRun) or saved. Lineages (LineageKeeper) make them. */
+  constructor(state: RunState, rules: RunRules, battleRules: BattleRules) {
     super();
     this.rules = rules;
     this.battleRules = battleRules;
-    this.state = createRun(seed, rules, { modifiers });
+    this.state = state;
   }
 
   reachable(): Map<string, Reachable> {
@@ -166,13 +164,16 @@ export class RunController extends Phaser.Events.EventEmitter {
 
   /**
    * For `?near=shrine` and the like: moves the hydra next to the nearest object of that kind, or the nearest place or
-   * threshold of that id (`?near=brineLake`, `?near=saltPlug`), and shows the area around it.
-   * Testing only; it skips the walk (and the Alert it would cost).
+   * threshold of that id (`?near=brineLake`, `?near=saltPlug`), or a marking shrine (`?near=mark`), and shows the
+   * area around it. Testing only; it skips the walk (and the Alert it would cost).
    */
   placeNear(kind: string): void {
     const { map, hydra } = this.state;
     const matches = (object: MapObject | null): boolean =>
-      object?.kind === kind || (object?.kind === 'place' && object.placeId === kind) || (object?.kind === 'threshold' && object.thresholdId === kind);
+      object?.kind === kind ||
+      (object?.kind === 'place' && object.placeId === kind) ||
+      (object?.kind === 'threshold' && object.thresholdId === kind) ||
+      (kind === 'mark' && object?.kind === 'shrine' && object.mark !== undefined);
     const objects = [...map.tiles.values()].filter((t) => matches(t.object)).sort((a, b) => hexDistance(a.hex, map.lair) - hexDistance(b.hex, map.lair));
     for (const target of objects) {
       const spot = hexNeighbors(target.hex)
@@ -185,13 +186,16 @@ export class RunController extends Phaser.Events.EventEmitter {
     }
   }
 
-  /** For `?say=`: queues a dialogue by id (any trigger), to see it on screen. Testing only. */
-  sayForTest(id: string): void {
+  /**
+   * For `?say=`: queues a dialogue by id (any trigger), to see it on screen; `facts` tell it of her mother (with
+   * ?ancestors=). Testing only.
+   */
+  sayForTest(id: string, facts: StoryFacts = {}): void {
     if (!this.rules.story.dialogues.some((d) => d.id === id)) {
       console.warn(`?say=${id} is not a dialogue in dialogues.json`);
       return;
     }
-    if (!storyDialogue(this.state, this.rules, id, [])) console.warn(`?say=${id}: the hydra has no heads to say it`);
+    if (!storyDialogue(this.state, this.rules, id, [], facts)) console.warn(`?say=${id}: the hydra has no heads (or no mother, or no mutation) to say it`);
   }
 
   /** For `?event=`: an event site with that event on a free hex next to the hydra. Testing only. */
@@ -240,15 +244,17 @@ export class RunController extends Phaser.Events.EventEmitter {
   }
 }
 
-/** Starts a new run with the seed from the game context and stores it for all scenes. */
-export function startNewRun(scene: Phaser.Scene, seed = getContext(scene).seed): RunController {
-  const { data, params } = getContext(scene);
-  const available = Object.keys(data.world.runModifiers).filter((id) => id !== '//');
-  const known = params.modifiers.filter((m) => available.includes(m));
-  for (const m of params.modifiers) if (!known.includes(m)) console.warn(`?modifiers=${m} is unknown. Available: ${available.join(', ')}`);
-  const run = new RunController(seed, runRulesFrom(data), battleRulesFrom(data), known);
-  scene.registry.set(REGISTRY_KEY, run);
-  return run;
+/**
+ * The run to play when a scene opens without one (a test URL such as ?scene=map): the living hydra's, or a new
+ * hydra's. With a seed: a new lineage with that seed. Either way it is stored for all scenes.
+ */
+export function startNewRun(scene: Phaser.Scene, seed?: number): RunController {
+  return seed === undefined ? lineages(scene).playNow() : lineages(scene).newLineage(seed);
+}
+
+/** Stores the run being played for all scenes. */
+export function setRun(game: Phaser.Game, run: RunController): void {
+  game.registry.set(REGISTRY_KEY, run);
 }
 
 export function getRun(scene: Phaser.Scene): RunController | undefined {

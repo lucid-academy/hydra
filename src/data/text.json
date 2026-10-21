@@ -1,8 +1,7 @@
 {
   "title": {
     "gameTitle": "HYDRA",
-    "subtitle": "The Flame never sleeps. Neither do you.",
-    "pressToStart": "Press to start"
+    "subtitle": "The Flame never sleeps. Neither do you."
   },
   "hud": {
     "turn": "Turn",
@@ -67,7 +66,8 @@
       "headsHp": "Heads {n} each",
       "reveal": "The way ahead is clearer.",
       "battle": "The Order attacks.",
-      "newHead": "A new {name} head grows."
+      "newHead": "A new {name} head grows.",
+      "mutation": "Mutation: {name}"
     }
   },
   "dialogue": {
@@ -103,9 +103,51 @@
       "moisture": "{n} Moisture"
     }
   },
-  "gameOver": {
-    "title": "The hydra is dead.",
-    "body": "The Order will file a report. In triplicate.",
-    "newRunButton": "A new hydra"
+  "lineages": {
+    "//": "M6, generations (GAME_DESIGN.md §12): the title's buttons, the screen after a death, the Book of Lineages, mutations on the map. {name}: a hydra's name with its number (or a mutation's or modifier's name); {lineage}: her lineage's name (its first hydra's); {generation}: her generation; {turns}: turns she lived; {n}: a number with its sign; {list}: names, with commas.",
+    "beginButton": "Begin",
+    "continueButton": "Continue",
+    "newLineageButton": "New Lineage",
+    "bookButton": "Book of Lineages",
+    "living": "{name} of the Line of {lineage}, generation {generation}",
+    "awaiting": "The Line of {lineage}: an heiress waits to hatch",
+    "confirmTitle": "End the Line of {lineage}?",
+    "confirmBody": "{name} goes into the Book of Lineages as the last of her line. What she learned of the world stays. Her mutations go with her.",
+    "confirmYes": "End it",
+    "confirmNo": "Keep playing",
+    "lineageName": "The Line of {lineage}",
+    "deathHeading": "From the Book of Lineages",
+    "lived": "Generation {generation}. Lived {turns} turns.",
+    "inheritsHeading": "Her heiress inherits",
+    "inheritsNothing": "Nothing. The heiress will have to make her own mistakes.",
+    "lostWithHer": "Lost with her: {list}.",
+    "unlocked": "Unlocked for every lineage: {name}. {text}",
+    "heiress": "The heiress: {name}",
+    "hatchButton": "Hatch",
+    "bookTitle": "The Book of Lineages",
+    "bookEmpty": "No hydra has lived yet. The book waits, with the patience of paper.",
+    "bookEnded": "ended",
+    "bookLiving": "living",
+    "bookStillAlive": "Still alive, for now.",
+    "bookTurns": "lived {turns} turns",
+    "bookUnlocks": "Run modifiers",
+    "bookUnlocked": "unlocked",
+    "backButton": "Back",
+    "hudName": "{name}, generation {generation}",
+    "mutationGained": "{name}. {text}",
+    "markTitle": "A marking shrine of the Great Serpent",
+    "markWords": "A mark for her and every heiress after her.",
+    "ancestorRole": "her mother, in a dream",
+    "effects": {
+      "movement": "Moves {n}",
+      "sight": "Sight {n}",
+      "bodyMaxHp": "Body HP {n}",
+      "regeneration": "Healing {n} per turn",
+      "headMaxHpPercent": "Head HP {n}%",
+      "startingHeads": "Heads at hatching {n}",
+      "alertPercent": "Alert gain {n}%",
+      "findsPercent": "Muck and Moisture found {n}%",
+      "echoRange": "Echoes heard {n} hexes further"
+    }
   }
 }

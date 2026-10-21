@@ -102,6 +102,9 @@ export function hydraDied(profile: Profile, lineage: Lineage, run: RunState, rul
   const killedBy = killers.length > 0 ? rng.pick(killers) : null;
   const lines = (killedBy !== null ? rules.epitaphs.byEnemy[killedBy] : undefined) ?? rules.epitaphs.any;
   const biome = run.deathCause ? run.map.tiles.get(hexKey(run.deathCause.at))?.biome : undefined;
+  const values = { turns: run.turn, biome: rules.biomeNames[biome ?? ''] ?? '' };
+  // An epitaph already in the lineage's book is written again only when every other one is.
+  const fresh = lines.filter((l) => !lineage.chronicle.some((e) => e.epitaph === fill(l, values)));
   const entry: ChronicleEntry = {
     generation: lineage.generation,
     name: lineage.hydraName,
@@ -109,7 +112,7 @@ export function hydraDied(profile: Profile, lineage: Lineage, run: RunState, rul
     mutations: [...run.hydra.mutations],
     end: 'slain',
     killedBy,
-    epitaph: fill(rng.pick(lines), { turns: run.turn, biome: rules.biomeNames[biome ?? ''] ?? '' }),
+    epitaph: fill(rng.pick(fresh.length > 0 ? fresh : lines), values),
   };
   lineage.chronicle.push(entry);
 

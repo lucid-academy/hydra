@@ -255,6 +255,8 @@ export const biomesSchema = section({
 
 /** What a blessing can change (see shrines.json). */
 export const BLESSING_EFFECTS = ['movement', 'sight', 'bodyMaxHp', 'regeneration', 'alert', 'muck', 'moisture'] as const;
+/** What a mutation can change (see mutations.json). */
+export const MUTATION_EFFECTS = ['movement', 'sight', 'bodyMaxHp', 'regeneration', 'headMaxHpPercent', 'startingHeads', 'alertPercent', 'findsPercent', 'echoRange'] as const;
 
 export const shrinesSchema = section({
   blessings: z
@@ -526,7 +528,6 @@ export const textSchema = z
       .object({
         gameTitle: z.string().min(1),
         subtitle: z.string(),
-        pressToStart: z.string().min(1),
       })
       .strict(),
     hud: section({
@@ -593,7 +594,7 @@ export const textSchema = z
       gamble: z.string().min(1),
       cantAfford: z.string().min(1),
       // {n}: the amount, with its sign. {name}: the head class.
-      effects: section({ alert: z.string().min(1), bodyHp: z.string().min(1), headsHp: z.string().min(1), reveal: z.string().min(1), battle: z.string().min(1), newHead: z.string().min(1) }),
+      effects: section({ alert: z.string().min(1), bodyHp: z.string().min(1), headsHp: z.string().min(1), reveal: z.string().min(1), battle: z.string().min(1), newHead: z.string().min(1), mutation: z.string().min(1) }),
     }),
     dialogue: section({ tapToContinue: z.string().min(1) }),
     shrine: section({
@@ -618,10 +619,42 @@ export const textSchema = z
       defeatTitle: z.string().min(1),
       continueButton: z.string().min(1),
     }),
-    gameOver: section({
-      title: z.string().min(1),
-      body: z.string(),
-      newRunButton: z.string().min(1),
+    lineages: section({
+      beginButton: z.string().min(1),
+      continueButton: z.string().min(1),
+      newLineageButton: z.string().min(1),
+      bookButton: z.string().min(1),
+      living: z.string().min(1),
+      awaiting: z.string().min(1),
+      confirmTitle: z.string().min(1),
+      confirmBody: z.string().min(1),
+      confirmYes: z.string().min(1),
+      confirmNo: z.string().min(1),
+      lineageName: z.string().min(1),
+      deathHeading: z.string().min(1),
+      lived: z.string().min(1),
+      inheritsHeading: z.string().min(1),
+      inheritsNothing: z.string().min(1),
+      lostWithHer: z.string().min(1),
+      unlocked: z.string().min(1),
+      heiress: z.string().min(1),
+      hatchButton: z.string().min(1),
+      bookTitle: z.string().min(1),
+      bookEmpty: z.string().min(1),
+      bookEnded: z.string().min(1),
+      bookLiving: z.string().min(1),
+      bookStillAlive: z.string().min(1),
+      bookTurns: z.string().min(1),
+      bookUnlocks: z.string().min(1),
+      bookUnlocked: z.string().min(1),
+      backButton: z.string().min(1),
+      hudName: z.string().min(1),
+      mutationGained: z.string().min(1),
+      markTitle: z.string().min(1),
+      markWords: z.string().min(1),
+      ancestorRole: z.string().min(1),
+      // How each effect of a mutation is written (mutations.json); {n} becomes the number with its sign.
+      effects: section(Object.fromEntries(MUTATION_EFFECTS.map((e) => [e, z.string().min(1)])) as Record<(typeof MUTATION_EFFECTS)[number], z.ZodString>),
     }),
   })
   .strict();
@@ -727,9 +760,6 @@ export const eventsSchema = section({
 });
 
 // ---------------------------------------------------------------- generations: mutations.json, lineage.json, flags.json
-
-/** What a mutation can change (see mutations.json). */
-export const MUTATION_EFFECTS = ['movement', 'sight', 'bodyMaxHp', 'regeneration', 'headMaxHpPercent', 'startingHeads', 'alertPercent', 'findsPercent', 'echoRange'] as const;
 
 export const mutationsSchema = section({
   mutations: z

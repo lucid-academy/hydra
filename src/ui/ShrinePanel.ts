@@ -1,5 +1,6 @@
 // Panel shown while the hydra stands at a shrine of the Great Serpent: the blessing's name, its words,
-// what it would change (good for the hydra in green, bad in orange), and Accept or Refuse.
+// what it would change (good for the hydra in green, bad in orange), and Accept or Refuse. A marking shrine offers a
+// mutation instead, for her and her heiresses (GAME_DESIGN.md §12).
 
 import * as Phaser from 'phaser';
 import type { GameData } from '../data';
@@ -7,9 +8,13 @@ import type { BLESSING_EFFECTS } from '../data/schemas';
 import { color } from '../scenes/context';
 import { Button } from './Button';
 import { FONT } from './fonts';
+import { mutationEffects, mutationName, mutationWords } from './mutationText';
 import { SCREEN } from '../scaling';
 
 type EffectName = (typeof BLESSING_EFFECTS)[number];
+
+/** What the shrine offers: its blessing, or a mark (a mutation). */
+export type ShrineOffer = { blessingId: string } | { mark: string };
 
 const WIDTH = 360;
 const HEIGHT = 176;
@@ -29,19 +34,19 @@ export class ShrinePanel {
     this.container = scene.add.container(width / 2, height / 2).setDepth(90).setVisible(false);
   }
 
-  /** Shows the panel for this blessing, or hides it (null). */
-  show(blessingId: string | null): void {
-    if (blessingId !== this.shownFor) {
-      this.shownFor = blessingId;
-      if (blessingId) this.build(blessingId);
+  /** Shows the panel for this offer, or hides it (null). */
+  show(offer: ShrineOffer | null): void {
+    const key = offer === null ? null : 'mark' in offer ? `mark:${offer.mark}` : offer.blessingId;
+    if (key !== this.shownFor) {
+      this.shownFor = key;
+      if (offer) this.build(offer);
     }
-    this.container.setVisible(blessingId !== null);
+    this.container.setVisible(offer !== null);
   }
 
-  private build(blessingId: string): void {
-    const { palette, text, shrines } = this.data;
-    const blessing = shrines.blessings.find((b) => b.id === blessingId);
-    if (!blessing) throw new Error(`Unknown blessing "${blessingId}"`);
+  private build(offer: ShrineOffer): void {
+    const { palette, text } = this.data;
+    const shown = 'mark' in offer ? this.markShown(offer.mark) : this.blessingShown(offer.blessingId);
     const { width, height } = SCREEN;
     this.container.removeAll(true);
 
@@ -49,24 +54,22 @@ export class ShrinePanel {
     const dim = this.scene.add.rectangle(0, 0, width, height, 0x000000, 0.55).setInteractive();
     const box = this.scene.add.rectangle(0, 0, WIDTH, HEIGHT, color(palette.underground.black), 0.96).setStrokeStyle(1, 0x7fe0d6);
     const top = -HEIGHT / 2;
-    const title = this.scene.add.text(0, top + 8, text.shrine.title, { fontFamily: FONT.title, fontSize: '10px', color: palette.order.gold }).setOrigin(0.5, 0);
-    const name = this.scene.add.text(0, top + 22, blessing.name, { fontFamily: FONT.title, fontSize: '15px', color: '#e8e0d0' }).setOrigin(0.5, 0);
+    const title = this.scene.add.text(0, top + 8, shown.title, { fontFamily: FONT.title, fontSize: '10px', color: palette.order.gold }).setOrigin(0.5, 0);
+    const name = this.scene.add.text(0, top + 22, shown.name, { fontFamily: FONT.title, fontSize: '15px', color: '#e8e0d0' }).setOrigin(0.5, 0);
     const words = this.scene.add
-      .text(0, top + 44, blessing.text, { fontFamily: FONT.story, fontSize: '10px', color: '#c8c0b0', align: 'center', wordWrap: { width: WIDTH - 30 } })
+      .text(0, top + 44, shown.words, { fontFamily: FONT.story, fontSize: '10px', color: '#c8c0b0', align: 'center', wordWrap: { width: WIDTH - 30 } })
       .setOrigin(0.5, 0);
 
     // What it changes, side by side and centred.
-    const effects = (Object.entries(blessing.effects) as Array<[EffectName, number]>).map(([effect, n]) => {
-      const signed = n > 0 ? `+${n}` : String(n);
-      const good = effect === 'alert' ? n < 0 : n > 0;
-      return this.scene.add
-        .text(0, words.y + words.height + 14, text.shrine.effects[effect].replace('{n}', signed), {
+    const effects = shown.effects.map(({ text: label, good }) =>
+      this.scene.add
+        .text(0, words.y + words.height + 14, label, {
           fontFamily: FONT.text,
           fontSize: '10px',
           color: good ? palette.underground.bioluminescence : palette.order.orange,
         })
-        .setOrigin(0, 0);
-    });
+        .setOrigin(0, 0),
+    );
     const gap = 14;
     let x = -(effects.reduce((sum, t) => sum + t.width, 0) + gap * (effects.length - 1)) / 2;
     for (const t of effects) {
@@ -85,5 +88,31 @@ export class ShrinePanel {
     const accept = new Button(this.scene, -62, buttonsY, text.shrine.acceptButton, style, () => this.onAccept());
     const refuse = new Button(this.scene, 62, buttonsY, text.shrine.refuseButton, { ...style, fill: 0x1a1f20, border: 0x5a6a6a }, () => this.onRefuse());
     this.container.add([dim, box, title, name, words, ...effects, accept, refuse]);
+  }
+
+  private blessingShown(blessingId: string): { title: string; name: string; words: string; effects: Array<{ text: string; good: boolean }> } {
+    const { text, shrines } = this.data;
+    const blessing = shrines.blessings.find((b) => b.id === blessingId);
+    if (!blessing) throw new Error(`Unknown blessing "${blessingId}"`);
+    return {
+      title: text.shrine.title,
+      name: blessing.name,
+      words: blessing.text,
+      effects: (Object.entries(blessing.effects) as Array<[EffectName, number]>).map(([effect, n]) => ({
+        text: text.shrine.effects[effect].replace('{n}', n > 0 ? `+${n}` : String(n)),
+        good: effect === 'alert' ? n < 0 : n > 0,
+      })),
+    };
+  }
+
+  /** A marking shrine: the mutation it offers, for the whole lineage. */
+  private markShown(mutationId: string): { title: string; name: string; words: string; effects: Array<{ text: string; good: boolean }> } {
+    const { text } = this.data;
+    return {
+      title: text.lineages.markTitle,
+      name: mutationName(this.data, mutationId),
+      words: `${mutationWords(this.data, mutationId)}\n${text.lineages.markWords}`,
+      effects: mutationEffects(this.data, mutationId),
+    };
   }
 }
