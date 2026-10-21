@@ -56,8 +56,14 @@ declare global {
         clouds: number;
         combos: string[];
       };
+      /** Buttons on the screen now (the title, the generation screen, the Book of Lineages), by name: where they are (game pixels). */
+      buttons?: () => Record<string, { x: number; y: number }>;
       /** Short summary of the current run. */
       runSummary?: () => {
+        /** The hydra's name, her generation, and the mutations she carries. */
+        hydraName: string;
+        generation: number;
+        mutations: string[];
         turn: number;
         muck: number;
         moisture: number;
@@ -122,4 +128,8 @@ export function exposePlacePanel(probe: NonNullable<Window['__hydra']>['placePan
 
 export function exposeDialogue(probe: NonNullable<Window['__hydra']>['dialogue']): void {
   hooks().dialogue = probe;
+}
+
+export function exposeButtons(probe: NonNullable<Window['__hydra']>['buttons']): void {
+  hooks().buttons = probe;
 }

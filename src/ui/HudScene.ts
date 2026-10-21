@@ -1,11 +1,12 @@
-// Map HUD drawn above the map: turn, moves, body, resources, the Alert bar, conditions, the minimap and the End Turn button.
-// Also shows short messages (finds, hints, thresholds, conditions), the shrine and place panels, and the game-over panel
-// when the hydra dies.
+// Map HUD drawn above the map: turn, moves, body, resources, the Alert bar, conditions, the minimap and the End Turn button,
+// and at the bottom the hydra's name with the mutations she carries. Also shows short messages (finds, hints,
+// thresholds, conditions, mutations, unlocks) and the shrine and place panels. When the hydra dies the map hands over
+// to the generation screen.
 
 import * as Phaser from 'phaser';
 import { SCREEN } from '../scaling';
 import { color, getContext } from '../scenes/context';
-import { requireRun, startNewRun } from '../scenes/RunController';
+import { requireRun } from '../scenes/RunController';
 import type { RunController } from '../scenes/RunController';
 import { SceneKey } from '../scenes/sceneKeys';
 import { fitScreenCamera } from '../scenes/view';
@@ -23,6 +24,7 @@ import { PlacePanel } from './PlacePanel';
 import type { PlacePanelView } from './PlacePanel';
 import { ShrinePanel } from './ShrinePanel';
 import { exposePlacePanel } from '../testHooks';
+import { fillText, mutationName, mutationWords } from './mutationText';
 
 const BAR_HEIGHT = 16;
 /** Action id of the one thing to do at a threshold (dig, or open it with a head). */
@@ -37,6 +39,8 @@ const RESOURCE_X = { muck: 228, moisture: 296, bones: 390 } as const;
 const TOAST_MS = 2400;
 /** Longer messages stay a little longer: this much per character on top of TOAST_MS. */
 const TOAST_MS_PER_CHAR = 25;
+/** Mutations: messages and the line at the bottom. */
+const MUTATION_COLOR = '#c8b0f0';
 
 export class HudScene extends Phaser.Scene {
   private run!: RunController;
@@ -44,8 +48,9 @@ export class HudScene extends Phaser.Scene {
   private alertFill!: Phaser.GameObjects.Rectangle;
   private alertValue!: Phaser.GameObjects.Text;
   private endTurnButton!: Button;
-  private gameOverPanel!: Phaser.GameObjects.Container;
   private minimap!: Minimap;
+  /** The hydra's name, generation and mutations, at the bottom. */
+  private nameText!: Phaser.GameObjects.Text;
   private shrinePanel!: ShrinePanel;
   private placePanel!: PlacePanel;
   private conditionsText!: Phaser.GameObjects.Text;
@@ -113,7 +118,9 @@ export class HudScene extends Phaser.Scene {
       },
       () => (this.run.state.pendingEvent ? this.run.closeEvent() : this.run.leavePlace()),
     );
-    this.gameOverPanel = this.createGameOverPanel();
+    this.nameText = this.add
+      .text(width / 2, height - 6, '', { ...mono, fontSize: '9px', color: MUTATION_COLOR, backgroundColor: '#05090acc', padding: { x: 4, y: 1 }, align: 'center', wordWrap: { width: 300 } })
+      .setOrigin(0.5, 1);
     this.toasts = [];
     this.placeResult = null;
     exposePlacePanel(() => (this.placePanel.visible ? this.placePanel.buttons : null));
@@ -121,15 +128,18 @@ export class HudScene extends Phaser.Scene {
     const onChanged = (): void => this.refresh();
     const onEvents = (events: RunEvent[]): void => this.announce(events);
     const onNotice = (id: 'outOfReach' | 'noWayThere' | 'journeyWaits'): void => this.toast(text.hud[id], '#c8c0b0');
+    const onUnlocked = (ids: string[]): void => this.announceUnlocks(ids);
     this.run.on('changed', onChanged);
     this.run.on('settled', onChanged);
     this.run.on('events', onEvents);
     this.run.on('notice', onNotice);
+    this.run.on('unlocked', onUnlocked);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.run.off('changed', onChanged);
       this.run.off('settled', onChanged);
       this.run.off('events', onEvents);
       this.run.off('notice', onNotice);
+      this.run.off('unlocked', onUnlocked);
     });
     // The world's run modifiers, once per run.
     if (!this.run.modifiersShown) {
@@ -230,9 +240,23 @@ export class HudScene extends Phaser.Scene {
         case 'tunnelCooled':
           this.toast(text.hud.tunnelCooled, '#c8c0b0');
           break;
+        case 'mutationGained': {
+          const data = getContext(this).data;
+          this.toast(fillText(text.lineages.mutationGained, { name: mutationName(data, event.id), text: mutationWords(data, event.id) }), MUTATION_COLOR);
+          break;
+        }
         default:
           break;
       }
+    }
+  }
+
+  /** Run modifiers unlocked for every lineage by what this hydra did. */
+  private announceUnlocks(ids: readonly string[]): void {
+    const { text, world } = getContext(this).data;
+    for (const id of ids) {
+      const modifier = world.runModifiers[id as keyof typeof world.runModifiers];
+      if (modifier && typeof modifier === 'object') this.toast(fillText(text.lineages.unlocked, { name: modifier.name, text: modifier.text }), getContext(this).data.palette.order.gold);
     }
   }
 
@@ -253,6 +277,7 @@ export class HudScene extends Phaser.Scene {
       o.newHead ? fill(effects.newHead, { name: heads.classes[o.newHead]?.displayName ?? o.newHead }) : '',
       o.reveal > 0 ? effects.reveal : '',
       o.battle ? effects.battle : '',
+      o.mutation ? fill(effects.mutation, { name: mutationName(getContext(this).data, o.mutation) }) : '',
     ].filter((part) => part);
     return parts.map((part) => (/[.!?]$/.test(part) ? part : `${part}.`)).join(' ');
   }
@@ -309,38 +334,6 @@ export class HudScene extends Phaser.Scene {
     map.lookAt?.(h);
   }
 
-  /** Shown when the hydra has died: the run is over, start a new one. */
-  private createGameOverPanel(): Phaser.GameObjects.Container {
-    const { palette, text } = getContext(this).data;
-    const { width, height } = SCREEN;
-    const panel = this.add.container(width / 2, height / 2);
-    // Full-screen dimmer: also blocks taps on the map while the panel is open.
-    const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setInteractive();
-    const box = this.add.rectangle(0, 0, 300, 120, color(palette.underground.black)).setStrokeStyle(1, color(palette.order.bannerRed));
-    const title = this.add
-      .text(0, -32, text.gameOver.title, { fontFamily: FONT.title, fontSize: '16px', color: palette.order.fire })
-      .setOrigin(0.5);
-    const body = this.add
-      .text(0, -6, text.gameOver.body, { fontFamily: FONT.story, fontSize: '11px', color: '#e8e0d0', align: 'center', wordWrap: { width: 270 } })
-      .setOrigin(0.5);
-    const again = new Button(
-      this,
-      0,
-      32,
-      text.gameOver.newRunButton,
-      { width: 140, height: 26, fill: color(palette.underground.deepTeal), border: color(palette.underground.bioluminescence), textColor: '#ffffff', fontSize: '11px' },
-      () => {
-        // A fresh random seed; Math.random is fine outside sim/.
-        startNewRun(this, Math.floor(Math.random() * 1_000_000));
-        this.scene.stop();
-        this.scene.start(SceneKey.Map);
-      },
-    );
-    panel.add([dim, box, title, body, again]);
-    panel.setDepth(100).setVisible(false);
-    return panel;
-  }
-
   private refresh(): void {
     const { text, balance, world } = getContext(this).data;
     const { turn, hydra, resources, alert, pendingBattle, pendingShrine, pendingPlace, over, map } = this.run.state;
@@ -354,15 +347,17 @@ export class HudScene extends Phaser.Scene {
     this.conditionsText.setText(hydra.conditions.map((c) => `${world.conditions[c.id]?.name ?? c.id} (${c.turnsLeft})`).join('  '));
     this.conditionsText.setVisible(hydra.conditions.length > 0);
     // Panels wait until the map has finished showing the walk there.
-    const shrine = pendingShrine && !this.run.animating ? map.tiles.get(hexKey(pendingShrine))?.object : null;
-    this.shrinePanel.show(shrine?.kind === 'shrine' ? shrine.blessingId : null);
+    const shrine = pendingShrine && !this.run.animating && !this.run.talking ? map.tiles.get(hexKey(pendingShrine))?.object : null;
+    this.shrinePanel.show(shrine?.kind === 'shrine' ? (shrine.mark ? { mark: shrine.mark } : { blessingId: shrine.blessingId }) : null);
     if (!pendingPlace || (this.placeResult && this.placeResult.at !== hexKey(pendingPlace))) this.placeResult = null;
     this.placePanel.show(this.run.animating || this.run.talking ? null : this.placeView());
     const share = (alert - balance.alert.min) / (balance.alert.max - balance.alert.min);
     this.alertFill.setSize(Math.round((ALERT_BAR_WIDTH - 2) * share), 6);
     this.alertValue.setText(String(Math.floor(alert)));
     this.endTurnButton.setEnabled(pendingBattle === null && pendingShrine === null && pendingPlace === null && this.run.state.pendingEvent === null && !this.run.talking && !over);
-    this.gameOverPanel.setVisible(over);
+    const data = getContext(this).data;
+    const name = fillText(text.lineages.hudName, { name: hydra.name, generation: this.run.state.generation });
+    this.nameText.setText([name, ...hydra.mutations.map((id) => mutationName(data, id))].join('  ·  ')).setVisible(hydra.name !== '');
     this.minimap.redraw();
   }
 

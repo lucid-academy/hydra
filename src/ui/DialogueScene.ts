@@ -2,6 +2,7 @@
 // painted portrait (heads on the left, Old Mother Toad on the right), their name on a plate, and the line types itself
 // out letter by letter. A tap (or Space, Enter) shows the whole line, the next tap the next line; some dialogues end
 // with answers to pick. The Great Serpent has no portrait: his words are centred, in italics, as if from everywhere.
+// Nor has an ancestress speaking through the hydra's sleep (her mother, when a new generation hatches).
 // It shows the run's queued dialogues one after another, then closes and lets the map carry on.
 
 import * as Phaser from 'phaser';
@@ -25,6 +26,7 @@ const TOAD_WIDTH = 250;
 const LETTERS_PER_SECOND = 55;
 const CHOICE = { width: 340, height: 22, gap: 5 };
 const SERPENT_COLOR = '#7fe0d6';
+const ANCESTOR_COLOR = '#c8b0f0';
 const TOAD_COLOR = '#b8c870';
 
 type Slot = 'left' | 'right';
@@ -126,16 +128,18 @@ export class DialogueScene extends Phaser.Scene {
     this.index = index;
     const line = this.lines[index]!;
     const { heads } = getContext(this).data;
-    const serpent = line.speaker === 'serpent';
+    // A voice without a portrait, from everywhere: the Serpent, or an ancestress in a dream.
+    const serpent = line.speaker === 'serpent' || line.speaker === 'ancestor';
+    const voiceColor = line.speaker === 'ancestor' ? ANCESTOR_COLOR : SERPENT_COLOR;
     const slot = this.slotFor(line);
     if (slot) this.portrait(slot, line.speaker === 'toad' ? 'dialogue_oldMotherToad' : `dialogue_${line.classId}`, line.speaker === 'toad' ? 'toad' : line.name);
     this.lastSlot = slot ?? this.lastSlot;
     for (const s of ['left', 'right'] as const) this.portraits[s]?.setTint(s === slot ? 0xffffff : PORTRAIT.dimTint);
 
     const classData = line.classId ? heads.classes[line.classId] : undefined;
-    const plateColor = serpent ? SERPENT_COLOR : line.speaker === 'toad' ? TOAD_COLOR : (classData?.color ?? '#e8e0d0');
+    const plateColor = serpent ? voiceColor : line.speaker === 'toad' ? TOAD_COLOR : (classData?.color ?? '#e8e0d0');
     this.name.setText(line.name).setColor(plateColor);
-    this.role.setText(classData?.displayName ?? '');
+    this.role.setText(line.speaker === 'ancestor' ? getContext(this).data.text.lineages.ancestorRole : (classData?.displayName ?? ''));
     const left = BOX.x + BOX.padding;
     const right = BOX.x + BOX.width - BOX.padding;
     if (slot === 'right') {
@@ -145,13 +149,15 @@ export class DialogueScene extends Phaser.Scene {
     } else {
       this.name.setOrigin(0, 1).setX(left);
     }
-    this.role.setX(this.name.x + (slot === 'right' ? -this.name.width - 6 : this.name.width + 6)).setOrigin(slot === 'right' ? 1 : 0, 1);
-    this.box.setStrokeStyle(1, color(serpent ? SERPENT_COLOR : plateColor), serpent ? 0.6 : 0.8);
+    // The role (a head's class, the ancestress's "her mother") follows the name; a centred name has half its width to the right.
+    const nameRight = this.name.x + (serpent ? this.name.width / 2 : this.name.width);
+    this.role.setX(slot === 'right' ? this.name.x - this.name.width - 6 : nameRight + 6).setOrigin(slot === 'right' ? 1 : 0, 1);
+    this.box.setStrokeStyle(1, color(plateColor), serpent ? 0.6 : 0.8);
 
     this.words
       .setFontFamily(FONT.story)
       .setFontStyle(serpent ? 'italic' : 'normal')
-      .setColor(serpent ? SERPENT_COLOR : '#e8e0d0')
+      .setColor(serpent ? voiceColor : '#e8e0d0')
       .setAlign(serpent ? 'center' : 'left')
       .setOrigin(serpent ? 0.5 : 0, 0)
       .setX(serpent ? SCREEN.width / 2 : left);
@@ -164,7 +170,7 @@ export class DialogueScene extends Phaser.Scene {
    * speaker is not on. The Serpent stands nowhere.
    */
   private slotFor(line: ShownLine): Slot | null {
-    if (line.speaker === 'serpent') return null;
+    if (line.speaker === 'serpent' || line.speaker === 'ancestor') return null;
     if (line.speaker === 'toad') return 'right';
     const all = [...this.dialogue.lines, ...this.dialogue.choices.flatMap((c) => c.reply)];
     if (all.some((l) => l.speaker === 'toad')) return 'left';

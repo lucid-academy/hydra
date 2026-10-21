@@ -173,10 +173,10 @@ export function storyMoment(state: RunState, rules: RunRules, trigger: StoryTrig
 }
 
 /** Queues a dialogue by id (an event's choice asks for it). */
-export function storyDialogue(state: RunState, rules: RunRules, id: string, events: RunEvent[]): boolean {
+export function storyDialogue(state: RunState, rules: RunRules, id: string, events: RunEvent[], facts: StoryFacts = {}): boolean {
   const d = rules.story.dialogues.find((x) => x.id === id);
   if (!d) throw new Error(`Unknown dialogue "${id}"`);
-  const shown = withRng(state.story, (rng) => castDialogue(state, rules, d, {}, rng));
+  const shown = withRng(state.story, (rng) => castDialogue(state, rules, d, facts, rng));
   if (!shown) return false;
   say(state, d, shown, events);
   return true;

@@ -4,6 +4,7 @@
 import * as Phaser from 'phaser';
 import { getContext } from '../scenes/context';
 import type { BattleScene } from '../scenes/BattleScene';
+import { lineages } from '../scenes/LineageKeeper';
 import { getRun } from '../scenes/RunController';
 import { SceneKey } from '../scenes/sceneKeys';
 import { fitScreenCamera } from '../scenes/view';
@@ -44,6 +45,9 @@ export class DebugOverlayScene extends Phaser.Scene {
       visibility = `${visible} visible, ${states.length - visible} remembered, ${run.map.tiles.size - states.length} unexplored`;
       turn = `${run.turn}  alert: ${run.alert.toFixed(1)}`;
     }
+    const keeper = lineages(this);
+    const lineage = keeper.lineage();
+    const lineageLine = `lineage: ${lineage ? `${lineage.name} #${lineage.number} (seed ${lineage.seed}), generation ${lineage.generation}` : '-'}  saves: ${keeper.persist ? 'on' : 'off (test URL)'}`;
     const active = this.scene.manager
       .getScenes(true)
       .map((s) => s.scene.key)
@@ -51,6 +55,7 @@ export class DebugOverlayScene extends Phaser.Scene {
     this.label.setText(
       [
         `seed: ${seed}`,
+        lineageLine,
         `scene: ${active.join(', ') || '-'}`,
         `turn: ${turn}   ticks: ${this.battleTick() ?? '-'}`,
         `visibility: ${visibility}`,
