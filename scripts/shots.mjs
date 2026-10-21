@@ -51,6 +51,28 @@ async function moveFarthest(page) {
   await page.waitForTimeout(300);
 }
 
+/** Waits for the dialogue screen and taps until line `line` of it is shown in full (or its answers are up). */
+async function readDialogueTo(page, line) {
+  await page.waitForFunction(() => window.__hydra.dialogue?.() != null, null, { timeout: 10_000 });
+  for (let i = 0; i < 20; i++) {
+    const d = await page.evaluate(() => window.__hydra.dialogue());
+    if (d.choices.length > 0 || (d.line >= line && !d.typing)) break;
+    await tapGame(page, { x: 320, y: 120 });
+    await page.waitForTimeout(250);
+  }
+  await page.waitForTimeout(400);
+}
+
+/** Steps onto the event site next to the hydra (?event=), and waits for its panel. */
+async function stepOntoEvent(page) {
+  const points = await page.evaluate(() => window.__hydra.reachableOnScreen());
+  const target = points.find((p) => p.object === 'event');
+  if (!target) throw new Error('No event site next to the hydra');
+  await goTo(page, target);
+  await page.waitForFunction(() => window.__hydra.placePanel() !== null, null, { timeout: 5_000 });
+  await page.waitForTimeout(300);
+}
+
 const SHOTS = [
   { name: 'title', query: '?seed=123', viewport: DESKTOP, scene: 'title' },
   { name: 'title-debug', query: '?seed=123&debug=1', viewport: DESKTOP, scene: 'title' },
@@ -114,6 +136,27 @@ const SHOTS = [
     await page.waitForTimeout(300);
   } },
   { name: 'map-landmark', query: '?seed=123&scene=map&near=sunkenOak', viewport: DESKTOP, scene: 'map' },
+  // M5: dialogues (Old Mother Toad, heads, the Serpent, an answer to pick) and events.
+  { name: 'dialogue-toad', query: '?seed=123&scene=map', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await tapGame(page, { x: 590, y: 340 }); // End Turn in the lair: Old Mother Toad speaks
+    await readDialogueTo(page, 1);
+  } },
+  { name: 'dialogue-heads', query: '?seed=123&scene=map&say=biomeOldCrypts', viewport: DESKTOP, scene: 'map', act: async (page) => readDialogueTo(page, 1) },
+  { name: 'dialogue-serpent', query: '?seed=123&scene=map&say=serpentFirst', viewport: DESKTOP, scene: 'map', act: async (page) => readDialogueTo(page, 0) },
+  { name: 'dialogue-choice', query: '?seed=123&scene=map&say=toadSerpent', viewport: DESKTOP, scene: 'map', act: async (page) => readDialogueTo(page, 99) },
+  { name: 'dialogue-phone', query: '?seed=123&scene=map&say=afterFirstWin', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map', act: async (page) => readDialogueTo(page, 0) },
+  { name: 'map-event-site', query: '?seed=123&scene=map&near=event', viewport: DESKTOP, scene: 'map' },
+  { name: 'event-panel', query: '?seed=123&scene=map&event=noviceChecklist', viewport: DESKTOP, scene: 'map', act: stepOntoEvent },
+  { name: 'event-result', query: '?seed=123&scene=map&event=titheBox', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await stepOntoEvent(page);
+    const panel = await page.evaluate(() => window.__hydra.placePanel());
+    await tapGame(page, panel.actions[0]); // break it open
+    await page.waitForTimeout(400);
+  } },
+  { name: 'battle-serpent', query: '?seed=123&scene=battle&group=patrol&say=battleSmall', viewport: DESKTOP, scene: 'battle', act: async (page) => {
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(1500);
+  } },
 ];
 
 const OUT_DIR = 'docs/screens';

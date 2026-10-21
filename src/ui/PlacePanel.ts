@@ -1,5 +1,5 @@
-// Panel shown while the hydra stands at a place, or next to a closed threshold: what it is, its words, what can be
-// done there, and Leave. An action that needs a head class starts with the class, e.g. "[Biter] Gnaw through the roots.";
+// Panel shown while the hydra stands at a place, or next to a closed threshold, or at an event: what it is, its words,
+// what can be done there, and Leave (an event has Continue, once a choice is made). An action that needs a head class starts with the class, e.g. "[Biter] Gnaw through the roots.";
 // one that can't be done now is greyed out, with the reason under it.
 
 import type * as Phaser from 'phaser';
@@ -28,6 +28,8 @@ export interface PlacePanelView {
   /** What was said after the last action here (null = none). */
   result: string | null;
   actions: PlacePanelAction[];
+  /** The label of the button that closes the panel, or null for none (an event waits for a choice). */
+  leave: string | null;
 }
 
 const WIDTH = 380;
@@ -36,7 +38,7 @@ const LEAVE = { width: 110, height: 22 };
 
 /** Where the panel's buttons are on screen (game pixels), for tests. */
 export interface PlacePanelButtons {
-  leave: { x: number; y: number };
+  leave: { x: number; y: number } | null;
   actions: Array<{ id: string; x: number; y: number; enabled: boolean }>;
 }
 
@@ -105,24 +107,25 @@ export class PlacePanel {
       }
     }
     y += 4;
-    const leave = new Button(this.scene, 0, y + LEAVE.height / 2, this.data.text.place.leaveButton, { ...style, width: LEAVE.width, height: LEAVE.height, fill: 0x1a1f20, border: 0x5a6a6a, fontSize: '11px' }, () =>
-      this.onLeave(),
-    );
-    y += LEAVE.height + 8;
+    const leave = view.leave
+      ? new Button(this.scene, 0, y + LEAVE.height / 2, view.leave, { ...style, width: LEAVE.width, height: LEAVE.height, fill: 0x1a1f20, border: 0x5a6a6a, fontSize: '11px' }, () => this.onLeave())
+      : null;
+    y += leave ? LEAVE.height + 8 : 4;
 
     const boxHeight = Math.min(height - 8, y);
     // Full-screen dimmer: also stops taps from reaching the map while the panel is open.
     const dim = add.rectangle(0, 0, width, height, 0x000000, 0.55).setInteractive();
     const box = add.rectangle(0, 0, WIDTH, boxHeight, color(palette.underground.black), 0.96).setStrokeStyle(1, color(palette.order.gold));
     const shift = -boxHeight / 2;
-    for (const part of [...parts, ...actionButtons, leave]) {
+    const all = [...parts, ...actionButtons, ...(leave ? [leave] : [])];
+    for (const part of all) {
       const placed = part as unknown as { y: number };
       placed.y = Math.round(placed.y + shift);
     }
-    this.container.add([dim, box, ...parts, ...actionButtons, leave]);
+    this.container.add([dim, box, ...all]);
     const screen = (b: Button) => ({ x: this.container.x + b.x, y: this.container.y + b.y });
     this.buttons = {
-      leave: screen(leave),
+      leave: leave ? screen(leave) : null,
       actions: view.actions.map((a, i) => ({ id: a.id, ...screen(actionButtons[i]!), enabled: a.enabled })),
     };
   }

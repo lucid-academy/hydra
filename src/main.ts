@@ -9,6 +9,7 @@ import { MapScene } from './scenes/MapScene';
 import { TitleScene } from './scenes/TitleScene';
 import { sharpenText } from './scenes/view';
 import { DebugOverlayScene } from './ui/DebugOverlayScene';
+import { DialogueScene } from './ui/DialogueScene';
 import { HudScene } from './ui/HudScene';
 import { parseUrlParams } from './urlParams';
 
@@ -43,7 +44,7 @@ function start(): void {
     },
     banner: false,
     // Order matters: later scenes draw on top and get input first.
-    scene: [BootScene, TitleScene, MapScene, HudScene, BattleScene, DebugOverlayScene],
+    scene: [BootScene, TitleScene, MapScene, HudScene, DialogueScene, BattleScene, DebugOverlayScene],
   });
   setContext(game, { data, seed, params });
   sharpenText();

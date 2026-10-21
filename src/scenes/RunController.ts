@@ -11,7 +11,10 @@ import { hexesSeenFrom, updateVisibility } from '../sim/map';
 import type { MapObject } from '../sim/map';
 import {
   acceptBlessing,
+  chooseEventOption,
+  closeEvent,
   createRun,
+  dialogueShown,
   doPlaceAction,
   endTurn,
   finishBattle,
@@ -22,9 +25,11 @@ import {
   plannedJourney,
   reachableHexes,
   refuseBlessing,
+  serpentInBattle,
+  storyDialogue,
   workThreshold,
 } from '../sim/turn';
-import type { Journey, Reachable, RunEvent, RunRules, RunState } from '../sim/turn';
+import type { Journey, Reachable, RunEvent, RunRules, RunState, ShownDialogue, ShownLine } from '../sim/turn';
 import { getContext } from './context';
 
 const REGISTRY_KEY = 'run';
@@ -41,6 +46,8 @@ export class RunController extends Phaser.Events.EventEmitter {
   animating = false;
   /** The run's modifiers have been shown to the player. Only for the screen. */
   modifiersShown = false;
+  /** A dialogue is on screen; the map and the HUD wait. Only for the screen. */
+  talking = false;
 
   constructor(seed: number, rules: RunRules, battleRules: BattleRules, modifiers: readonly string[] = []) {
     super();
@@ -85,6 +92,37 @@ export class RunController extends Phaser.Events.EventEmitter {
   leavePlace(): void {
     leavePlace(this.state);
     this.emit('changed');
+  }
+
+  chooseEventOption(index: number): void {
+    this.publish(chooseEventOption(this.state, this.rules, index));
+  }
+
+  /** Closes the event's panel after its choice; a dialogue or a battle it started comes next. */
+  closeEvent(): void {
+    closeEvent(this.state);
+    this.emit('changed');
+  }
+
+  /** The dialogue to show next, or null. */
+  nextDialogue(): ShownDialogue | null {
+    return this.state.story.dialogues[0] ?? null;
+  }
+
+  /** The dialogue on screen has been read to the end; `choice` is the answer picked, if it had answers. */
+  dialogueShown(choice: number | null): void {
+    dialogueShown(this.state, this.rules, choice);
+  }
+
+  /** The dialogue screen has closed. */
+  doneTalking(): void {
+    this.talking = false;
+    this.emit('changed');
+  }
+
+  /** A short line of the Serpent for the battle about to start, or null. */
+  serpentLine(): ShownLine | null {
+    return serpentInBattle(this.state, this.rules);
   }
 
   /** The map has finished showing the last move. */
@@ -138,6 +176,35 @@ export class RunController extends Phaser.Events.EventEmitter {
       updateVisibility(this.state.visibility, hexesSeenFrom(map, spot.hex, hydra.sightRange, this.rules.terrain));
       return;
     }
+  }
+
+  /** For `?say=`: queues a dialogue by id (any trigger), to see it on screen. Testing only. */
+  sayForTest(id: string): void {
+    if (!this.rules.story.dialogues.some((d) => d.id === id)) {
+      console.warn(`?say=${id} is not a dialogue in dialogues.json`);
+      return;
+    }
+    if (!storyDialogue(this.state, this.rules, id, [])) console.warn(`?say=${id}: the hydra has no heads to say it`);
+  }
+
+  /** For `?event=`: an event site with that event on a free hex next to the hydra. Testing only. */
+  eventForTest(id: string): void {
+    if (!this.rules.story.events.some((e) => e.id === id)) {
+      console.warn(`?event=${id} is not an event in events.json`);
+      return;
+    }
+    const { map, hydra } = this.state;
+    const spot = hexNeighbors(hydra.position)
+      .map((h) => map.tiles.get(hexKey(h)))
+      .find((t) => t && t.object === null && this.rules.terrain[t.terrain].moveCost !== null);
+    if (spot) spot.object = { kind: 'event', eventId: id, done: false };
+  }
+
+  /** The Serpent's battle line of a dialogue, for `?say=` with `?scene=battle`. Testing only. */
+  serpentLineForTest(id: string): ShownLine | null {
+    const d = this.rules.story.dialogues.find((x) => x.id === id && x.trigger === 'serpentInBattle');
+    const line = d?.lines[0];
+    return line ? { speaker: 'serpent', name: this.rules.story.speakerNames.serpent ?? '', classId: null, text: line.text } : null;
   }
 
   /** For `?reveal=1`: every hex becomes known (seen before), to look at the whole map. Testing only. */

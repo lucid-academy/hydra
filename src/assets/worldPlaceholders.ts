@@ -389,6 +389,28 @@ const remains = drawer((g, cx, b) => {
   px(g, '#6b5530', cx + 3, b - 8, 4, 2); // what is left of a satchel
 });
 
+/** An event site: a leaning standing stone with the Serpent's spiral carved in it, faintly teal, moss at its foot. */
+const serpentStone = drawer((g, cx, b, _w, h) => {
+  const tall = h - 3;
+  for (let row = 0; row < tall; row++) {
+    // Narrower towards a rounded top, leaning a little to the left.
+    const half = row < 2 ? 2 + row : Math.round(3 + (row / tall) * 2);
+    const x = cx - half - Math.round(((tall - row) / tall) * 1.5);
+    const y = b - tall + row;
+    px(g, '#0b0d0e', x - 1, y, half * 2 + 2, 1);
+    px(g, '#2c3335', x, y, half * 2, 1);
+    px(g, '#46504f', x, y, Math.max(1, Math.round(half * 0.7)), 1);
+  }
+  // The spiral, from the outside in.
+  const top = b - tall + 5;
+  const spiral = [[-2, 0], [-1, 0], [0, 0], [1, 0], [2, 1], [2, 2], [2, 3], [1, 4], [0, 4], [-1, 4], [-2, 3], [-2, 2], [-1, 2], [0, 2]];
+  for (const [dx, dy] of spiral) px(g, '#4fb8aa', cx + dx! - 1, top + dy!, 1, 1);
+  px(g, '#bff5ea', cx - 1, top + 2, 1, 1);
+  ellipse(g, cx, b - 1, 6, 1, '#2f4a24');
+  px(g, '#4a6a30', cx - 5, b - 2, 3, 1);
+  px(g, '#4a6a30', cx + 2, b - 3, 2, 1);
+});
+
 /** Supplies piled up by somebody: sacks, a chest, a few bones. */
 const hoard = drawer((g, cx, b) => {
   px(g, '#1a1410', cx - 12, b - 12, 13, 12);
@@ -471,6 +493,7 @@ export const worldPlaceholderDrawers: Readonly<Record<string, PlaceholderDrawer>
   map_place_lostSurvey: lostSurvey,
   map_place_hushedStair: hushedStair,
   map_remains: remains,
+  map_event: serpentStone,
   map_hoard: hoard,
   map_muck_rich: muckRich,
   map_moisture_rich: moistureRich,

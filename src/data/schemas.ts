@@ -519,6 +519,19 @@ export const textSchema = z
         done: z.string().min(1),
       }),
     }),
+    event: section({
+      kind: z.string().min(1),
+      // {quest}: the name of the mini quest the event is a step of.
+      questKind: z.string().min(1),
+      continueButton: z.string().min(1),
+      // {cost}: e.g. "6 Muck".
+      cost: z.string().min(1),
+      gamble: z.string().min(1),
+      cantAfford: z.string().min(1),
+      // {n}: the amount, with its sign. {name}: the head class.
+      effects: section({ alert: z.string().min(1), bodyHp: z.string().min(1), headsHp: z.string().min(1), reveal: z.string().min(1), battle: z.string().min(1), newHead: z.string().min(1) }),
+    }),
+    dialogue: section({ tapToContinue: z.string().min(1) }),
     shrine: section({
       title: z.string().min(1),
       acceptButton: z.string().min(1),

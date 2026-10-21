@@ -107,6 +107,16 @@
     "battle_enemy_torchbearer": { "file": null, "width": 26, "height": 38 },
     "battle_stump": { "file": null, "width": 10, "height": 8 },
     "battle_scar": { "file": null, "width": 10, "height": 8 },
+    "dialogue_biter": { "file": "portraits/biter.png", "width": 184, "height": 184 },
+    "dialogue_acidSpitter": { "file": "portraits/acidSpitter.png", "width": 171, "height": 174 },
+    "dialogue_mistBreather": { "file": "portraits/mistBreather.png", "width": 192, "height": 185 },
+    "dialogue_screamer": { "file": "portraits/screamer.png", "width": 186, "height": 190 },
+    "dialogue_glutton": { "file": "portraits/glutton.png", "width": 202, "height": 192 },
+    "dialogue_spare": { "file": "portraits/spare.png", "width": 164, "height": 172 },
+    "dialogue_strangler": { "file": "portraits/strangler.png", "width": 196, "height": 179 },
+    "dialogue_tender": { "file": "portraits/tender.png", "width": 172, "height": 183 },
+    "dialogue_lantern": { "file": "portraits/lantern.png", "width": 181, "height": 188 },
+    "dialogue_oldMotherToad": { "file": "portraits/oldMotherToad.png", "width": 222, "height": 162 },
     "portrait_oldMotherToad": { "file": "images/portrait_oldMotherToad.png", "width": 128, "height": 160 },
     "map_threshold_rubbleChoke": { "file": "images/map_threshold_rubbleChoke.png", "width": 30, "height": 30 },
     "map_threshold_rubbleChoke_open": { "file": "images/map_threshold_rubbleChoke_open.png", "width": 30, "height": 22 },
@@ -137,6 +147,7 @@
     "map_muck_rich": { "file": "images/map_muck_rich.png", "width": 22, "height": 14 },
     "map_moisture_rich": { "file": "images/map_moisture_rich.png", "width": 22, "height": 26 },
     "map_draught": { "file": null, "width": 24, "height": 16 },
-    "map_echo": { "file": null, "width": 16, "height": 16 }
+    "map_echo": { "file": null, "width": 16, "height": 16 },
+    "map_event": { "file": null, "width": 16, "height": 24 }
   }
 }
