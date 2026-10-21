@@ -98,6 +98,7 @@ export const balanceSchema = section({
           encounterTier: z.number().int().min(1),
           muckDeposits: z.number().int().min(0),
           moistureSources: z.number().int().min(0),
+          eventSites: z.number().int().min(0),
           thresholds: section({ count: intRange(1), kinds: weights }).nullable(),
         }),
       )
@@ -548,6 +549,98 @@ export const textSchema = z
   })
   .strict();
 
+// ---------------------------------------------------------------- story: dialogues.json and events.json
+
+const STORY_TRIGGERS = ['afterBattle', 'newBiome', 'enemyAhead', 'restInLair', 'serpentOnTheWay', 'serpentInBattle', 'eventOnly'] as const;
+const flagList = z.array(z.string().min(1));
+const storyConditionsSchema = section({
+  rings: z.array(z.number().int().min(0)).optional(),
+  biomes: z.array(z.string().min(1)).optional(),
+  flags: flagList.optional(),
+  notFlags: flagList.optional(),
+  minAlert: z.number().optional(),
+  maxAlert: z.number().optional(),
+  minTurn: z.number().int().optional(),
+  headClasses: z.array(z.string().min(1)).optional(),
+  minHeads: z.number().int().min(0).optional(),
+  maxHeads: z.number().int().min(0).optional(),
+  won: z.boolean().optional(),
+  severedAtLeast: z.number().int().min(0).optional(),
+  grownAtLeast: z.number().int().min(0).optional(),
+  cauterizedAtLeast: z.number().int().min(0).optional(),
+  newEnemyTypes: z.array(z.string().min(1)).optional(),
+});
+const speakerSchema = z
+  .string()
+  .regex(/^(toad|serpent|head:[A-Za-z]+)$/, 'expected "toad", "serpent", "head:any", "head:other", "head:new" or "head:<class id>"');
+const dialogueLineSchema = section({ speaker: speakerSchema, text: z.string().min(1) });
+
+export const dialoguesSchema = section({
+  speakers: section({ toad: z.string().min(1), serpent: z.string().min(1) }),
+  serpentVoice: section({ minTurnsBetween: z.number().int().min(0), chancePerTurn: share, battleChance: share }),
+  dialogues: z.array(
+    section({
+      id: z.string().min(1),
+      trigger: z.enum(STORY_TRIGGERS),
+      priority: z.number().optional(),
+      once: z.boolean().optional(),
+      conditions: storyConditionsSchema.optional(),
+      lines: z.array(dialogueLineSchema).min(1),
+      setFlags: flagList.optional(),
+      choices: z.array(section({ text: z.string().min(1), setFlags: flagList.optional(), reply: z.array(dialogueLineSchema).optional() })).optional(),
+    }),
+  ),
+});
+
+const eventOutcomeSchema = section({
+  text: z.string().min(1),
+  muck: z.number().int().optional(),
+  moisture: z.number().int().optional(),
+  bones: z.number().int().optional(),
+  alert: z.number().optional(),
+  bodyHp: z.number().int().optional(),
+  headsHp: z.number().int().optional(),
+  condition: section({ id: z.string().min(1), turns: z.number().int().min(1) }).optional(),
+  reveal: z.number().int().min(0).optional(),
+  battle: z.string().min(1).optional(),
+  setFlags: flagList.optional(),
+  dialogue: z.string().min(1).optional(),
+  newHead: z.string().min(1).optional(),
+});
+const costSchema = section({ muck: z.number().int().min(0).optional(), moisture: z.number().int().min(0).optional(), bones: z.number().int().min(0).optional() });
+
+export const eventsSchema = section({
+  events: z.array(
+    section({
+      id: z.string().min(1),
+      title: z.string().min(1),
+      quest: z.string().min(1).optional(),
+      text: z.string().min(1),
+      priority: z.number().optional(),
+      weight: z.number().positive().optional(),
+      once: z.boolean().optional(),
+      conditions: storyConditionsSchema.optional(),
+      choices: z
+        .array(
+          section({
+            text: z.string().min(1),
+            needsHead: z.string().min(1).optional(),
+            cost: costSchema.optional(),
+            outcome: eventOutcomeSchema.optional(),
+            chance: share.optional(),
+            success: eventOutcomeSchema.optional(),
+            failure: eventOutcomeSchema.optional(),
+          }).superRefine((c, ctx) => {
+            const gamble = c.chance !== undefined;
+            if (gamble && (!c.success || !c.failure || c.outcome)) ctx.addIssue({ code: 'custom', message: 'a gamble ("chance") needs "success" and "failure", and no "outcome"' });
+            if (!gamble && (!c.outcome || c.success || c.failure)) ctx.addIssue({ code: 'custom', message: 'needs an "outcome" (or "chance" with "success" and "failure")' });
+          }),
+        )
+        .min(1),
+    }),
+  ),
+});
+
 const manifestEntrySchema = z
   .object({
     // Path to the image file inside public/, or null to use the placeholder drawn in code.
@@ -575,3 +668,6 @@ export type WorldData = z.infer<typeof worldSchema>;
 export type Palette = z.infer<typeof paletteSchema>;
 export type GameText = z.infer<typeof textSchema>;
 export type AssetManifest = z.infer<typeof manifestSchema>;
+export type DialoguesData = z.infer<typeof dialoguesSchema>;
+export type StoryConditionsData = z.infer<typeof storyConditionsSchema>;
+export type EventsData = z.infer<typeof eventsSchema>;

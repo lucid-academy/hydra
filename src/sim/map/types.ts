@@ -45,7 +45,9 @@ export type MapObject =
    * readyOnTurn: turn when an action with a wait between uses can be done again.
    * carryPath: for a current, the hexes it carries the hydra along (the last one is where it lets go).
    */
-  | { kind: 'place'; placeId: string; visited: boolean; used: string[]; readyOnTurn: Record<string, number>; carryPath: Hex[] | null };
+  | { kind: 'place'; placeId: string; visited: boolean; used: string[]; readyOnTurn: Record<string, number>; carryPath: Hex[] | null }
+  /** Something happens here (an event, GAME_DESIGN.md §10): which one is decided when the hydra arrives. */
+  | { kind: 'event'; eventId: string | null; done: boolean };
 
 export type ObjectKind = MapObject['kind'];
 

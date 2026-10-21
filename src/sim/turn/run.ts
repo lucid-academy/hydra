@@ -8,8 +8,9 @@ import type { Hex } from '../hex';
 import { generateUnderground, hexesSeenFrom, updateVisibility } from '../map';
 import type { MapObject } from '../map';
 import { Rng } from '../rng';
+import { eventArrived, meetEnemies, newStory, serpentOnTheWay, storyMoment } from './story';
 import type { BlessingEffects, Journey, Reachable, RunEvent, RunRules, RunState } from './types';
-import { arriveAt, battleSilenced, lookAround, movementForTurn, raiseAlert, tickConditions, tileAt } from './world';
+import { arriveAt, battleSilenced, growHeads, lookAround, movementForTurn, raiseAlert, tickConditions, tileAt } from './world';
 
 export interface RunOptions {
   /** Run modifiers (ids from world.json runModifiers) that shape this run's world. */
@@ -55,6 +56,8 @@ export function createRun(seed: number, rules: RunRules, options: RunOptions = {
     nextId: heads.length + 1,
     rngState: rng.getState(),
     over: false,
+    story: newStory(seed, map.tiles.get(hexKey(map.lair))!.biome),
+    pendingEvent: null,
   };
   // Seeing the lair's surroundings at the start doesn't count as exploring.
   lookAround(state, rules, []);
@@ -63,12 +66,17 @@ export function createRun(seed: number, rules: RunRules, options: RunOptions = {
 
 /** The hydra is busy: a battle, a shrine or a panel waits for an answer, or it is dead. Nothing else can happen until then. */
 function isWaiting(state: RunState): boolean {
-  return state.over || state.pendingBattle !== null || state.pendingShrine !== null || state.pendingPlace !== null;
+  return state.over || state.pendingBattle !== null || state.pendingShrine !== null || state.pendingPlace !== null || state.pendingEvent !== null;
 }
 
 /** Objects the hydra stops at when it walks onto them, and can't walk through. */
 function stopsTheHydra(object: MapObject | null): boolean {
-  return object?.kind === 'encounter' || (object?.kind === 'shrine' && !object.used) || (object?.kind === 'place' && !object.visited);
+  return (
+    object?.kind === 'encounter' ||
+    (object?.kind === 'shrine' && !object.used) ||
+    (object?.kind === 'place' && !object.visited) ||
+    (object?.kind === 'event' && !object.done)
+  );
 }
 
 /**
@@ -156,7 +164,7 @@ export function moveHydra(state: RunState, target: Hex, rules: RunRules): RunEve
     walked.push(step);
     const arrived = arriveAt(state, step, rules, events);
     discovered += arrived.discovered;
-    if (arrived.stop) {
+    if (arrived.stop || eventArrived(state, step, rules, events)) {
       stopped = true;
       break;
     }
@@ -174,7 +182,15 @@ export function moveHydra(state: RunState, target: Hex, rules: RunRules): RunEve
     raiseAlert(state, discovered * rules.alertPerHexDiscovered, rules);
     events.push({ type: 'discovered', count: discovered });
   }
-  if (state.pendingBattle) events.push({ type: 'battleStarted', at: state.pendingBattle.at });
+  // The story notices a biome entered for the first time, and people of the Order never met before.
+  const newBiomes = [...new Set(walked.map((h) => tileAt(state, h)!.biome))].filter((b) => !state.story.biomesEntered.includes(b));
+  state.story.biomesEntered.push(...newBiomes);
+  if (newBiomes.length > 0) storyMoment(state, rules, 'newBiome', { biome: newBiomes[0] }, events);
+  if (state.pendingBattle) {
+    const fresh = meetEnemies(state, rules.encounterGroupMembers[state.pendingBattle.groupId] ?? []);
+    storyMoment(state, rules, 'enemyAhead', { newEnemyTypes: fresh }, events);
+    events.push({ type: 'battleStarted', at: state.pendingBattle.at });
+  }
   return events;
 }
 
@@ -297,6 +313,7 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
   state.pendingBattle = null;
   state.battlesFought += 1;
   state.nextId = result.nextId;
+  const headsBefore = state.hydra.heads;
   state.hydra.heads = result.heads.map((h) => ({ ...h }));
   state.hydra.bodyHp = result.bodyHp;
   state.hydra.scars += result.newScars;
@@ -311,7 +328,19 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
   if (tile?.object?.kind === 'encounter') tile.object = null;
   const bones = (rules.encounterGroupMembers[pending.groupId]?.length ?? 0) * rules.bonesPerEnemy;
   state.resources.bones += bones;
-  return [{ type: 'battleWon', at: pending.at, bones, silenced }];
+  const events: RunEvent[] = [{ type: 'battleWon', at: pending.at, bones, silenced }];
+  // The heads talk it over: who was lost, who grew, what was burnt shut.
+  const before = new Set(headsBefore.map((h) => h.id));
+  const after = new Set(state.hydra.heads.map((h) => h.id));
+  const newHeadIds = [...after].filter((id) => !before.has(id));
+  storyMoment(state, rules, 'afterBattle', {
+    won: true,
+    severed: [...before].filter((id) => !after.has(id)).length,
+    grown: newHeadIds.length,
+    cauterized: result.newScars,
+    newHeadIds,
+  }, events);
+  return events;
 }
 
 // ---------------------------------------------------------------- turns and the lair
@@ -337,23 +366,11 @@ export function endTurn(state: RunState, rules: RunRules): RunEvent[] {
     hydra.scars = 0;
     const newHeadIds = growHeads(state, rules, healedScars * 2);
     events.push({ type: 'rested', healedScars, newHeadIds });
+    // Old Mother Toad speaks while the hydra rests (GAME_DESIGN.md §11).
+    storyMoment(state, rules, 'restInLair', { grown: newHeadIds.length, newHeadIds }, events);
+  } else {
+    serpentOnTheWay(state, rules, events);
   }
   events.push({ type: 'turnEnded', turn: state.turn });
   return events;
-}
-
-/** New hatchling heads (random class and name), as many as fit under the head limit. */
-function growHeads(state: RunState, rules: RunRules, count: number): string[] {
-  const rng = Rng.fromState(state.rngState);
-  const ids: string[] = [];
-  for (let i = 0; i < count && state.hydra.heads.length < rules.maxHeads; i++) {
-    const cls = rng.pick(rules.hatchlingClasses);
-    const taken = new Set(state.hydra.heads.map((h) => h.name));
-    const free = rules.headNames.filter((name) => !taken.has(name));
-    const head = { id: `h${state.nextId++}`, name: rng.pick(free.length > 0 ? free : rules.headNames), classId: cls.classId, level: 1, hp: cls.maxHp, maxHp: cls.maxHp };
-    state.hydra.heads.push(head);
-    ids.push(head.id);
-  }
-  state.rngState = rng.getState();
-  return ids;
 }

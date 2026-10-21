@@ -1,9 +1,11 @@
 // Picks the values the strategic-map simulation needs out of the data files.
 
 import type { BiomeSettings, PlaceSettings, UndergroundGeneratorSettings } from '../sim/map';
-import type { PlaceAction, RunRules } from '../sim/turn';
+import type { EventOutcome, PlaceAction, RunRules, StoryRules } from '../sim/turn';
 import type { GameData } from './index';
-import type { Balance } from './schemas';
+import type { Balance, EventsData } from './schemas';
+
+type OutcomeData = NonNullable<EventsData['events'][number]['choices'][number]['outcome']>;
 
 /** `{ "remains": 40, "shrine": 20 }` → `[{ id: "remains", weight: 40 }, ...]`, leaving out weights of 0. */
 function weighted<T extends string>(weights: Partial<Record<T, number>>): Array<{ id: T; weight: number }> {
@@ -69,6 +71,7 @@ export function generatorSettingsFrom(data: GameData): UndergroundGeneratorSetti
       encounterTier: r.encounterTier,
       muckDeposits: r.muckDeposits,
       moistureSources: r.moistureSources,
+      eventSites: r.eventSites,
       thresholds: r.thresholds && { count: r.thresholds.count, kinds: weighted(r.thresholds.kinds) },
     })),
     shrineBlessingIds: data.shrines.blessings.map((b) => b.id),
@@ -146,5 +149,60 @@ export function runRulesFrom(data: GameData): RunRules {
       ]),
     ),
     conditions: Object.fromEntries(Object.entries(world.conditions).map(([id, c]) => [id, { movement: c.movement ?? 0, revealsEncounters: c.revealsEncounters === true }])),
+    headMaxHp: Object.fromEntries(Object.entries(heads.classes).map(([id, c]) => [id, c.maxHp])),
+    story: storyRulesFrom(data),
+  };
+}
+
+/** Dialogues and events with every field filled in (a missing field means "nothing" or "no limit"). */
+export function storyRulesFrom(data: GameData): StoryRules {
+  const { dialogues, events } = data;
+  const lines = (list: ReadonlyArray<{ speaker: string; text: string }> | undefined) => (list ?? []).map((l) => ({ speaker: l.speaker, text: l.text }));
+  const outcome = (o: OutcomeData): EventOutcome => ({
+    text: o.text,
+    loot: { muck: o.muck ?? 0, moisture: o.moisture ?? 0, bones: o.bones ?? 0 },
+    alert: o.alert ?? 0,
+    bodyHp: o.bodyHp ?? 0,
+    headsHp: o.headsHp ?? 0,
+    condition: o.condition ?? null,
+    reveal: o.reveal ?? 0,
+    battle: o.battle ?? null,
+    setFlags: o.setFlags ?? [],
+    dialogue: o.dialogue ?? null,
+    newHead: o.newHead ?? null,
+  });
+  return {
+    speakerNames: dialogues.speakers,
+    serpentVoice: dialogues.serpentVoice,
+    dialogues: dialogues.dialogues.map((d) => ({
+      id: d.id,
+      trigger: d.trigger,
+      priority: d.priority ?? 0,
+      once: d.once ?? true,
+      conditions: d.conditions ?? {},
+      lines: lines(d.lines),
+      setFlags: d.setFlags ?? [],
+      choices: (d.choices ?? []).map((c) => ({ text: c.text, setFlags: c.setFlags ?? [], reply: lines(c.reply) })),
+    })),
+    events: events.events.map((e) => ({
+      id: e.id,
+      title: e.title,
+      quest: e.quest ?? null,
+      text: e.text,
+      priority: e.priority ?? 0,
+      weight: e.weight ?? 1,
+      once: e.once ?? true,
+      conditions: e.conditions ?? {},
+      choices: e.choices.map((c) => ({
+        text: c.text,
+        needsHead: c.needsHead ?? null,
+        cost: { muck: c.cost?.muck ?? 0, moisture: c.cost?.moisture ?? 0, bones: c.cost?.bones ?? 0 },
+        chance: c.chance ?? null,
+        success: outcome((c.outcome ?? c.success)!),
+        failure: c.failure ? outcome(c.failure) : null,
+      })),
+    })),
+    biomeNames: Object.fromEntries(Object.entries(data.biomes.biomes).map(([id, b]) => [id, b.displayName])),
+    headClassNames: Object.fromEntries(Object.entries(data.heads.classes).map(([id, c]) => [id, c.displayName])),
   };
 }

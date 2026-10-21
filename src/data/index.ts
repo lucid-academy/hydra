@@ -9,9 +9,11 @@ import combosJson from './combos.json';
 import biomesJson from './biomes.json';
 import shrinesJson from './shrines.json';
 import worldJson from './world.json';
+import dialoguesJson from './dialogues.json';
+import eventsJson from './events.json';
 import manifestJson from '../assets/manifest.json';
-import { balanceSchema, biomesSchema, combosSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, textSchema, worldSchema } from './schemas';
-import type { AssetManifest, Balance, BiomesData, CombosData, ShrinesData, EnemiesData, GameText, HeadsData, Palette, WorldData } from './schemas';
+import { balanceSchema, biomesSchema, combosSchema, dialoguesSchema, eventsSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, textSchema, worldSchema } from './schemas';
+import type { AssetManifest, Balance, StoryConditionsData, BiomesData, CombosData, DialoguesData, EventsData, ShrinesData, EnemiesData, GameText, HeadsData, Palette, WorldData } from './schemas';
 import { DataError, validateData } from './validate';
 
 export interface GameData {
@@ -25,6 +27,8 @@ export interface GameData {
   biomes: BiomesData;
   shrines: ShrinesData;
   world: WorldData;
+  dialogues: DialoguesData;
+  events: EventsData;
 }
 
 export function loadGameData(): GameData {
@@ -39,13 +43,17 @@ export function loadGameData(): GameData {
     biomes: validateData('src/data/biomes.json', biomesSchema, biomesJson),
     shrines: validateData('src/data/shrines.json', shrinesSchema, shrinesJson),
     world: validateData('src/data/world.json', worldSchema, worldJson),
+    dialogues: validateData('src/data/dialogues.json', dialoguesSchema, dialoguesJson),
+    events: validateData('src/data/events.json', eventsSchema, eventsJson),
   };
   checkCrossReferences(data);
   return data;
 }
 
 /** Names that one data file borrows from another must exist there. */
-export function checkCrossReferences(data: Pick<GameData, 'heads' | 'combos'> & Partial<Pick<GameData, 'balance' | 'enemies' | 'biomes' | 'manifest' | 'world'>>): void {
+export function checkCrossReferences(
+  data: Pick<GameData, 'heads' | 'combos'> & Partial<Pick<GameData, 'balance' | 'enemies' | 'biomes' | 'manifest' | 'world' | 'dialogues' | 'events'>>,
+): void {
   const statuses = Object.keys(data.combos.statuses);
   const problems: string[] = [];
   for (const [id, cls] of Object.entries(data.heads.classes)) {
@@ -104,7 +112,54 @@ export function checkCrossReferences(data: Pick<GameData, 'heads' | 'combos'> & 
     const missing = keys.filter((key) => !(key in data.manifest!.images));
     if (missing.length > 0) problems.push(`  - src/assets/manifest.json: world.json needs these images (use "file": null for a placeholder): ${missing.join(', ')}`);
   }
+  if (data.dialogues && data.events && data.biomes && data.enemies && data.world) problems.push(...storyProblems(data as GameData));
   if (problems.length > 0) throw new DataError(`Data files don't match each other:\n${problems.join('\n')}`);
+}
+
+/** Dialogues and events (dialogues.json, events.json) must name heads, biomes, groups, conditions and dialogues that exist. */
+function storyProblems(data: GameData): string[] {
+  const problems: string[] = [];
+  const where = (file: string, path: string, message: string) => problems.push(`  - src/data/${file}, ${path}: ${message}`);
+  const classes = Object.keys(data.heads.classes);
+  const biomes = Object.keys(data.biomes.biomes);
+  const enemyTypes = Object.keys(data.enemies.types);
+  const groups = data.enemies.encounterGroups.map((g) => g.id);
+  const dialogueIds = data.dialogues.dialogues.map((d) => d.id);
+  const known = (list: readonly string[]) => `known: ${list.join(', ')}`;
+  const checkConditions = (file: string, path: string, c: StoryConditionsData | undefined) => {
+    for (const id of c?.biomes ?? []) if (!biomes.includes(id)) where(file, `${path}.biomes`, `unknown biome "${id}"; ${known(biomes)}`);
+    for (const id of c?.headClasses ?? []) if (!classes.includes(id)) where(file, `${path}.headClasses`, `unknown head class "${id}"; ${known(classes)}`);
+    for (const id of c?.newEnemyTypes ?? []) if (!enemyTypes.includes(id)) where(file, `${path}.newEnemyTypes`, `unknown enemy type "${id}"; ${known(enemyTypes)}`);
+  };
+  const checkSpeaker = (path: string, speaker: string) => {
+    const role = speaker.replace(/^head:/, '');
+    if (speaker.startsWith('head:') && !['any', 'other', 'new', ...classes].includes(role)) where('dialogues.json', path, `unknown speaker "${speaker}"; heads are head:any, head:other, head:new or head:<class> (${known(classes)})`);
+  };
+  data.dialogues.dialogues.forEach((d, i) => {
+    const path = `dialogues.${i} (${d.id})`;
+    if (dialogueIds.indexOf(d.id) !== i) where('dialogues.json', path, `the id "${d.id}" is used twice`);
+    checkConditions('dialogues.json', `${path}.conditions`, d.conditions);
+    d.lines.forEach((l, j) => checkSpeaker(`${path}.lines.${j}`, l.speaker));
+    (d.choices ?? []).forEach((c, j) => (c.reply ?? []).forEach((l, k) => checkSpeaker(`${path}.choices.${j}.reply.${k}`, l.speaker)));
+  });
+  const eventIds = data.events.events.map((e) => e.id);
+  data.events.events.forEach((e, i) => {
+    const path = `events.${i} (${e.id})`;
+    if (eventIds.indexOf(e.id) !== i) where('events.json', path, `the id "${e.id}" is used twice`);
+    checkConditions('events.json', `${path}.conditions`, e.conditions);
+    e.choices.forEach((c, j) => {
+      if (c.needsHead && !classes.includes(c.needsHead)) where('events.json', `${path}.choices.${j}.needsHead`, `unknown head class "${c.needsHead}"; ${known(classes)}`);
+      for (const [name, o] of [['outcome', c.outcome], ['success', c.success], ['failure', c.failure]] as const) {
+        if (!o) continue;
+        const at = `${path}.choices.${j}.${name}`;
+        if (o.battle && !groups.includes(o.battle)) where('events.json', `${at}.battle`, `unknown enemy group "${o.battle}"; ${known(groups)}`);
+        if (o.dialogue && !dialogueIds.includes(o.dialogue)) where('events.json', `${at}.dialogue`, `unknown dialogue "${o.dialogue}" (dialogues.json)`);
+        if (o.condition && !data.world.conditions[o.condition.id]) where('events.json', `${at}.condition`, `unknown condition "${o.condition.id}"; ${known(Object.keys(data.world.conditions))}`);
+        if (o.newHead && !classes.includes(o.newHead)) where('events.json', `${at}.newHead`, `unknown head class "${o.newHead}"; ${known(classes)}`);
+      }
+    });
+  });
+  return problems;
 }
 
 /** The rings (balance.json) and the world's places and thresholds (world.json) must use biomes, kinds and head classes that exist. */

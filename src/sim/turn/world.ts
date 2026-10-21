@@ -5,6 +5,7 @@ import { hexDistance, hexEquals, hexKey, hexNeighbors } from '../hex';
 import type { Hex } from '../hex';
 import { hexesSeenFrom, updateVisibility } from '../map';
 import type { HexMap, Loot, MapObject, Tile } from '../map';
+import { Rng } from '../rng';
 import type { HeardEcho, PlaceAction, RunEvent, RunRules, RunState } from './types';
 
 type ThresholdTile = Tile & { object: Extract<MapObject, { kind: 'threshold' }> };
@@ -86,6 +87,25 @@ export function arriveAt(state: RunState, step: Hex, rules: RunRules, events: Ru
     return { stop: true, discovered };
   }
   return { stop: false, discovered };
+}
+
+/**
+ * New heads (a random hatchling class unless `classId` says which, and a random name), as many as fit under the head
+ * limit. Returns their ids.
+ */
+export function growHeads(state: RunState, rules: RunRules, count: number, classId: string | null = null): string[] {
+  const rng = Rng.fromState(state.rngState);
+  const ids: string[] = [];
+  for (let i = 0; i < count && state.hydra.heads.length < rules.maxHeads; i++) {
+    const cls = classId === null ? rng.pick(rules.hatchlingClasses) : { classId, maxHp: rules.headMaxHp[classId] ?? 1 };
+    const taken = new Set(state.hydra.heads.map((h) => h.name));
+    const free = rules.headNames.filter((name) => !taken.has(name));
+    const head = { id: `h${state.nextId++}`, name: rng.pick(free.length > 0 ? free : rules.headNames), classId: cls.classId, level: 1, hp: cls.maxHp, maxHp: cls.maxHp };
+    state.hydra.heads.push(head);
+    ids.push(head.id);
+  }
+  state.rngState = rng.getState();
+  return ids;
 }
 
 // ---------------------------------------------------------------- hints
