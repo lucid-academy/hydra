@@ -1,6 +1,6 @@
 # Handoff: stan prac nad Hydrą
 
-Stan na 2026-10-06 (etap „Wygląd mapy” w toku). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
+Stan na 2026-10-21 (etap „Wygląd mapy” zakończony, następny M5 czeka na plan i OK Piotra). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
 
 - Gra: https://lucid-academy.github.io/hydra/
 - Repo: https://github.com/lucid-academy/hydra (na serwerze `/root/Hydra`)
@@ -13,7 +13,7 @@ Stan na 2026-10-06 (etap „Wygląd mapy” w toku). Ten plik streszcza dotychcz
 - **M2c** (świat do odkrywania) jest wdrożony 2026-10-04 i czeka na playtest Piotra. Playtest M2b nie przyszedł; M2c zmienił mapę na tyle, że lepiej grać od razu w M2c.
 - 2026-10-03 Piotr zmienił sposób pracy: grafika będzie z GPT, animacje najpierw w kodzie. Zasady są już w `CLAUDE.md`. Plan grafiki (sekcja 3.2) Piotr zatwierdził tego samego dnia i potok jest zbudowany. Wieczorem przyszła cała pierwsza partia (21 obrazków) i jest w grze; **czeka na uwagi Piotra**.
 - Następne etapy: M5, M6, M2a, M3, M4, M7 (kolejność Piotra z 2026-10-04, `GAME_DESIGN.md` §15). Każdy zaczyna się od planu i OK Piotra. Projekt 9 głów (M2a) jest zatwierdzony (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13).
-- **Wygląd mapy (HD), od 2026-10-05:** Piotr wybrał na karcie przejście na HD pixel art (`GAME_DESIGN.md` §13, §15). Mapa i bitwa w HD są pod `?hd=1` do porównania z obecnymi (opis w sekcji 3.2, „Wygląd mapy w HD”). Mapę Piotr ocenił 2026-10-06: „wygląda naprawdę lepiej”. Bitwa w HD wdrożona 2026-10-06, **czeka na jego uwagi**. Napisy w HD krojem „Księga” (wybór Piotra z 2026-10-06, `GAME_DESIGN.md` §13) wdrożone tego samego dnia. Na koniec HD zostaje jedynym trybem.
+- **Wygląd mapy (HD), od 2026-10-05:** Piotr wybrał na karcie przejście na HD pixel art (`GAME_DESIGN.md` §13, §15). Mapa, bitwa i napisy w HD (opis w sekcji 3.2, „Wygląd mapy w HD”). Mapę Piotr ocenił 2026-10-06: „wygląda naprawdę lepiej”. Od 2026-10-21 HD jest jedynym trybem (etap zakończony); uwagi Piotra do bitwy i napisów wciąż mile widziane.
 - **Zmiana kierunku, 2026-10-04:** Hydra to teraz fabularny roguelite z naciskiem na odkrywanie świata, mini questy i kilka zakończeń; bitwy rzadsze, ale ważne (`GAME_DESIGN.md` §1, §2, §4, §15).
 
 ## 2. Co zrobione
@@ -111,7 +111,8 @@ Ruch w HD kosztuje do ok. 0,1 s malowania na serwerze testowym (zmierzone, zanim
 - Trzy kroje na licencji OFL w `public/fonts/`: pliki TTF z Google Fonts bez zmian (razem ok. 0,65 MB), licencje obok, źródła w `CREDITS.md`. IM Fell English SC na tytuły, nazwy i okrzyki w bitwie, Alegreya (z kursywą) na dłuższe teksty, Alegreya Sans na resztę.
 - Role krojów są w `src/ui/fonts.ts` (`FONT.title`, `story`, `text`, `callout`): sceny wybierają rolę, nie krój. `BootScene` uruchamia pierwszą scenę dopiero po wczytaniu krojów, bo napis w Phaserze zostaje przy kroju, z którym powstał. Jeśli plik się nie wczyta, gra pisze krojami przeglądarki.
 - Alegreya Sans ma wąskie spacje i cyfry nautyczne (różnej wysokości), więc napisy na kartach głów i przycisk „All heads” są o punkt większe. Panel kapliczki układa napisy na środku nad przyciskami, które stoją tam gdzie dotąd (test dymny klika w ich miejsce).
-- Tryb klasyczny (bez `?hd=1`) pisze jak dotąd krojami przeglądarki.
+
+**HD jedynym trybem, 2026-10-21** (commit 95f6773): Piotr wrócił po dwóch tygodniach („kontynuuj”), uwag do bitwy i napisów nie przysłał, więc etap domknięty zgodnie z kartą. Usunięte: tryb klasyczny 640×360, parametr `?hd=1`, kafle mapy i brzeg mgły, znaczniki heksów w bitwie, kroje przeglądarki. `public/images/` ma teraz obrazki 2× (dawne `public/images-hd/`), `npm run art` robi tylko je. Klucze `map_ground_…`, `map_rock_…`, `map_mark`, `map_fog_edge`, `battle_hex_mark`, `battle_hex_fill`, `battle_shadow` zostały w manifeście, ale gra ich nie rysuje (kafle bitwy zostają jako zapas dla gruntu bez tekstury). Smoke test czeka na scenę do 45 s, bo plansza na telefonie (3 piksele urządzenia na piksel) w programowym WebGL maluje się długo.
 
 Plan:
 
@@ -177,7 +178,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 ## 4. Otwarte pytania
 
 **Czekają na Piotra:**
-0. Etap „Wygląd mapy”: uwagi do bitwy i napisów w HD (`?hd=1`, `?scene=battle&hd=1`). Krój Piotr wybrał na karcie 2026-10-06: „Księga” (z tym zgoda na OFL dla czcionek; wpisane w `GAME_DESIGN.md` §13 i `CLAUDE.md`, wdrożone).
+0. Uwagi do bitwy i napisów w HD (`?scene=battle`). Plan M5 (przedstawiony 2026-10-21) czeka na OK.
 1. Wrażenia z playtestu M2b: mapa, kapliczki, leże, nowe biomy.
 2. Nowa tekstura soli do Salt Mines (Piotr wybrał nowy obrazek, prompt już przyciemniony). Malowane portrety głów już są (sekcja 3.2).
 3. Okładka gry przyszła w projekcie Hydra 2026-10-04; kopia jest w plikach projektu (`hydra-grafika/wzory/okladka.png`). Do repo nie trafia, bo palety na razie nie ma (decyzja z 2026-10-06).
@@ -202,7 +203,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 
 ## 5. Znane problemy i braki
 
-- HD (`?hd=1`) zmienia mapę, bitwę i napisy (krój „Księga”); HUD, panele, karty głów i ekran tytułowy mają poza tym ten sam układ i kolory co dotąd. Klasyczna mapa, bitwa i napisy zostają bez zmian do końca etapu. Malowanie przy ruchu na telefonie niezmierzone.
+- HD zmieniło mapę, bitwę i napisy (krój „Księga”); HUD, panele, karty głów i ekran tytułowy mają poza tym ten sam układ i kolory co dotąd. Ekran tytułowy wciąż zastępczy. Malowanie przy ruchu na telefonie niezmierzone.
 - Grafika z GPT jest na terenie i obiektach mapy, na hydrze (tułów, głowa Bitera, hydra na mapie), na Man-at-Arms i oddziale pierwszego stopnia. Zastępcze, rysowane w kodzie: Headhunter, Torchbearer, oddziały drugiego i trzeciego stopnia, przejście na powierzchnię, ekran tytułowy. Stara szara głowa (barwiona) zostaje dla Acid Spittera i Mist Breathera do czasu ich obrazków, więc na brązowym tułowiu wyglądają obco.
 - M2c: modyfikatory i „świat dnia” tylko z URL (świat dnia odłożony decyzją z 2026-10-04). Prąd Undertow nie jest narysowany na wodzie. Old Crypts bez własnego miejsca. Zewnętrzny brzeg świata przy płaskich bokach mapy idzie po jej sześciokącie. Wydajność na telefonie niezmierzona (1261 heksów rysowanych naraz). Ok. 1% światów losuje się drugi raz, bo w pierwszym pierścieniu zabrakło kapliczki.
 - Nie ma zapisu gry: odświeżenie strony zaczyna run od nowa. `CLAUDE.md` wymaga zapisu w localStorage z numerem wersji formatu, w planie jest w M6.
@@ -218,7 +219,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 
 ## 6. Następne kroki
 
-0. Etap „Wygląd mapy”: poprawki bitwy i napisów w HD według uwag Piotra, potem HD jedynym trybem (bez klasycznej ścieżki i obrazków 1×).
+0. M5 (eventy, mini questy, dialogi) według planu z 2026-10-21, po OK Piotra.
 1. Poczekać na odpowiedzi Piotra (sekcja 4).
 2. Dalej z `docs/ANIMATIONS.md` (stan „do zrobienia”): oddech i drgnięcie tułowia, ścięcie głowy. Kolejne grafiki: reszta Zakonu po uwagach do próby (Zakon jak rycerze z okładki, z herbem złotego płomienia zamiast lwa; wzór dla GPT: `hydra-grafika/wzory/zakon-z-okladki.png` w plikach projektu), przejście na powierzchnię, tło tytułu.
 3. Głowy i tułów w stylu okładki (sekcja 3.2, „Próba hydry i Zakonu w grze”): próba jest w grze od 2026-10-06, Piotr napisał „ok”. Prompty na pozostałe osiem głów, Headhuntera, Torchbearera i dwa większe oddziały są w `docs/ART_PROMPTS.md` od 2026-10-06, a ich wzory (portrety, pixelowy tułów, Biter, Man-at-Arms, oddział) w plikach projektu, `hydra-grafika/wzory/`; w manifeście są już miejsca na głowy. Przy imporcie: rozmiar głowy w manifeście z obrazka, `JAW_OVERLAP_BY_CLASS` z linii pyska, `TORCH_FLAME` z płomienia Torchbearera. Palety na razie nie ma (decyzja z 2026-10-06, sekcja 3.2).

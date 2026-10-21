@@ -64,8 +64,9 @@ async function waitForMap(page) {
   await page.waitForTimeout(100);
 }
 
+/** Scenes get 45 s: software WebGL on a phone-sized canvas (3 device pixels per pixel) can take a while to paint a board. */
 async function waitForScene(page, scene, timesBefore = 0) {
-  await page.waitForFunction(([s, n]) => (window.__hydra?.readyScenes.filter((x) => x === s).length ?? 0) > n, [scene, timesBefore], { timeout: 15_000 });
+  await page.waitForFunction(([s, n]) => (window.__hydra?.readyScenes.filter((x) => x === s).length ?? 0) > n, [scene, timesBefore], { timeout: 45_000 });
   await page.waitForTimeout(400); // let it draw
 }
 
