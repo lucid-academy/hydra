@@ -1,6 +1,6 @@
 # Grafiki koncepcyjne
 
-Malowane portrety do dialogów (`GAME_DESIGN.md` §13). Gra ich jeszcze nie używa, a `npm run art` ich nie czyta: wejdą do gry w M5, z własną regułą importu.
+Malowane portrety do dialogów (`GAME_DESIGN.md` §13). `npm run art` ich nie czyta. Od M5 gra używa ich kopii z `public/portraits/` (klucze `dialogue_<id>` w manifeście, opis w `docs/ASSETS.md`); nowy portret kopiuje się tam bez zmian.
 
 ## portraits/
 
