@@ -1,6 +1,6 @@
 // Loads every image listed in the manifest (or draws its placeholder), cuts hex tiles out of terrain textures,
-// then starts the first scene. In HD the images come from public/images-hd/, with twice the pixels, and the fonts
-// from public/fonts/; the first scene waits for the fonts, because a text keeps the font it was made with.
+// then starts the first scene. The images have twice the pixels of the 640×360 layout (HD, GAME_DESIGN.md §13) and the
+// fonts come from public/fonts/; the first scene waits for the fonts, because a text keeps the font it was made with.
 
 import * as Phaser from 'phaser';
 import { placeholderFor } from '../assets/placeholders';
@@ -9,7 +9,7 @@ import { buildTerrainTiles } from '../assets/terrainTiles';
 import { loadFonts } from '../ui/fonts';
 import { getContext } from './context';
 import { SceneKey, startableScenes } from './sceneKeys';
-import { HD_DENSITY, hdFile, useDensity } from './view';
+import { HD_DENSITY, useDensity } from './view';
 
 export class BootScene extends Phaser.Scene {
   private fontsReady: Promise<void> = Promise.resolve();
@@ -19,23 +19,19 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    const { data, params } = getContext(this);
-    this.fontsReady = loadFonts(params.hd);
-    const density = params.hd ? HD_DENSITY : 1;
+    const { data } = getContext(this);
+    this.fontsReady = loadFonts();
     for (const [key, entry] of Object.entries(data.manifest.images)) {
       if (entry.file === null) continue;
-      const file = params.hd ? hdFile(entry.file) : entry.file;
-      // An animation: its frames side by side in one file, each width × height.
-      if (entry.frames !== undefined) this.load.spritesheet(key, file, { frameWidth: entry.width * density, frameHeight: entry.height * density });
-      else this.load.image(key, file);
+      // An animation: its frames side by side in one file, each width × height (in units, so twice that in pixels).
+      if (entry.frames !== undefined) this.load.spritesheet(key, entry.file, { frameWidth: entry.width * HD_DENSITY, frameHeight: entry.height * HD_DENSITY });
+      else this.load.image(key, entry.file);
     }
   }
 
   create(): void {
     const { data, params } = getContext(this);
-    if (params.hd) {
-      for (const [key, entry] of Object.entries(data.manifest.images)) if (entry.file !== null) useDensity(this.textures.get(key), HD_DENSITY);
-    }
+    for (const [key, entry] of Object.entries(data.manifest.images)) if (entry.file !== null) useDensity(this.textures.get(key), HD_DENSITY);
     for (const [key, entry] of Object.entries(data.manifest.images)) {
       if (entry.file !== null || isTerrainTextureKey(key)) continue;
       const draw = placeholderFor(key);

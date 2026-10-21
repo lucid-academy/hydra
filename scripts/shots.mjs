@@ -49,7 +49,7 @@ async function moveFarthest(page) {
 const SHOTS = [
   { name: 'title', query: '?seed=123', viewport: DESKTOP, scene: 'title' },
   { name: 'title-debug', query: '?seed=123&debug=1', viewport: DESKTOP, scene: 'title' },
-  { name: 'title-phone-landscape', query: '?seed=123', viewport: { width: 844, height: 390 }, scene: 'title' },
+  { name: 'title-phone-landscape', query: '?seed=123', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'title' },
   { name: 'map-start', query: '?seed=123&scene=map&debug=1', viewport: DESKTOP, scene: 'map' },
   { name: 'map-after-moves', query: '?seed=123&scene=map&debug=1', viewport: DESKTOP, scene: 'map', act: async (page) => {
     await moveFarthest(page);
@@ -85,11 +85,11 @@ const SHOTS = [
     await page.waitForFunction(() => window.__hydra.battleSummary().combos.length > 0, null, { timeout: 90_000 });
     await page.waitForTimeout(250);
   } },
-  { name: 'battle-phone-landscape', query: '?seed=123&scene=battle&group=patrol', viewport: { width: 844, height: 390 }, scene: 'battle', act: async (page) => {
+  { name: 'battle-phone-landscape', query: '?seed=123&scene=battle&group=patrol', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'battle', act: async (page) => {
     await page.keyboard.press('Space');
     await page.waitForTimeout(12_000);
   } },
-  { name: 'map-phone-landscape', query: '?seed=123&scene=map', viewport: { width: 844, height: 390 }, scene: 'map' },
+  { name: 'map-phone-landscape', query: '?seed=123&scene=map', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map' },
   // M2c: whole worlds at a glance (map revealed and zoomed out), with and without run modifiers.
   { name: 'world-123', query: '?seed=123&scene=map&reveal=1&zoom=0.45', viewport: DESKTOP, scene: 'map' },
   { name: 'world-7', query: '?seed=7&scene=map&reveal=1&zoom=0.45', viewport: DESKTOP, scene: 'map' },
@@ -104,28 +104,8 @@ const SHOTS = [
     await tapGame(page, panel.actions[0]); // drink
     await page.waitForTimeout(400);
   } },
-  { name: 'map-place-phone', query: '?seed=138&scene=map&near=lostSurvey', viewport: { width: 844, height: 390 }, scene: 'map', act: async (page) => stepOntoPlace(page, 'lostSurvey') },
+  { name: 'map-place-phone', query: '?seed=138&scene=map&near=lostSurvey', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map', act: async (page) => stepOntoPlace(page, 'lostSurvey') },
   { name: 'map-landmark', query: '?seed=123&scene=map&near=sunkenOak', viewport: DESKTOP, scene: 'map' },
-  // The stage "Wygląd mapy": the same screens in HD (?hd=1), on a desktop and on a phone with 2 device pixels per pixel.
-  { name: 'hd-map-start', query: '?seed=123&scene=map&hd=1', viewport: DESKTOP, scene: 'map' },
-  { name: 'hd-map-after-moves', query: '?seed=123&scene=map&hd=1', viewport: DESKTOP, scene: 'map', act: async (page) => {
-    await moveFarthest(page);
-    await moveFarthest(page);
-  } },
-  { name: 'hd-map-phone-landscape', query: '?seed=123&scene=map&hd=1', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map' },
-  { name: 'hd-map-landmark', query: '?seed=123&scene=map&near=sunkenOak&hd=1', viewport: DESKTOP, scene: 'map' },
-  { name: 'hd-world-123', query: '?seed=123&scene=map&reveal=1&zoom=0.45&hd=1', viewport: DESKTOP, scene: 'map' },
-  { name: 'hd-battle-start', query: '?seed=123&scene=battle&group=burningDetail&hd=1', viewport: DESKTOP, scene: 'battle', act: async (page) => {
-    await page.keyboard.press('1');
-  } },
-  { name: 'hd-battle-fight', query: '?seed=123&scene=battle&group=burningDetail&hd=1', viewport: DESKTOP, scene: 'battle', act: async (page) => {
-    await page.keyboard.press('Space');
-    await page.waitForTimeout(12_000);
-  } },
-  { name: 'hd-battle-phone-landscape', query: '?seed=123&scene=battle&group=patrol&hd=1', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'battle', act: async (page) => {
-    await page.keyboard.press('Space');
-    await page.waitForTimeout(8_000);
-  } },
 ];
 
 const OUT_DIR = 'docs/screens';
