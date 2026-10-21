@@ -493,6 +493,8 @@ export const textSchema = z
       bones: z.string().min(1),
       rested: z.string().min(1),
       outOfReach: z.string().min(1),
+      noWayThere: z.string().min(1),
+      journeyWaits: z.string().min(1),
       // {name}: the landmark's name.
       landmarkSighted: z.string().min(1),
       richDeposit: z.string().min(1),

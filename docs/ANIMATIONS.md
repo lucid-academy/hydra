@@ -61,7 +61,7 @@ Torchbearer przy przypalaniu kikuta: na razie zwykły atak. Osobna animacja, je�
 
 | Animacja | Jak | Klatki | Rozmiar | fps | Zaczepienie | Kierunki | Stan |
 |---|---|---|---|---|---|---|---|
-| Hydra idzie po mapie (map_hydra) | kod: przesuw o heks co 130 ms, kamera jedzie za nią | – | 26×28 | – | stopy (dół środka) | w prawo (odbicie w lewo: później) | jest |
+| Hydra idzie po mapie (map_hydra) | kod: przesuw o heks co 130 ms, przy każdym kroku przechył 5° (na zmianę w lewo i w prawo) i rozciągnięcie w górę o 7% (`SLITHER` w MapScene), kamera jedzie za nią; niesiona prądem tylko się kołysze | – | 26×28 | – | stopy (dół środka) | bez odbicia (obrazek prawie symetryczny) | jest |
 | Światła (leże, kapliczki, źródła, grzyby, pochodnie) | kod: map_glow barwione i dodawane do obrazu | – | 64×64 | – | środek | – | jest |
 | Migotanie świateł | kod: lekkie, wolne pulsowanie jasności | – | | | | | później |
 | Zmarszczki na wodzie | kod: przesuwanie kilku jaśniejszych pikseli po heksach wody | – | | | | | później |

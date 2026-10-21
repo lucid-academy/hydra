@@ -14,6 +14,8 @@
     "bones": "Bones",
     "rested": "The hydra sleeps in its lair. Wounds close. Burnt stumps itch, and sprout.",
     "outOfReach": "Too far to reach this turn.",
+    "noWayThere": "There is no known way there.",
+    "journeyWaits": "No movement left. End the turn to travel on.",
     "landmarkSighted": "In the distance: {name}.",
     "richDeposit": "A rich deposit.",
     "silenced": "The Silent Bell hums. The Order heard nothing.",

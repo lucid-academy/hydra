@@ -13,12 +13,19 @@ async function tapGame(page, point) {
   await page.mouse.click(canvas.x + point.x * scale, canvas.y + point.y * scale);
 }
 
+/** Sends the hydra to a hex in reach with the mouse: the first click plans the way, the second sets off. */
+async function goTo(page, point) {
+  await tapGame(page, point);
+  await page.waitForTimeout(150);
+  await tapGame(page, point);
+}
+
 /** Steps onto the reachable place with this id (it is next to the hydra with ?near=), and waits for its panel. */
 async function stepOntoPlace(page, id) {
   const points = await page.evaluate(() => window.__hydra.reachableOnScreen());
   const target = points.find((p) => p.id === id);
   if (!target) throw new Error(`No ${id} next to the hydra`);
-  await tapGame(page, target);
+  await goTo(page, target);
   await page.waitForFunction(() => window.__hydra.placePanel() !== null, null, { timeout: 5_000 });
   await page.waitForTimeout(300);
 }
@@ -38,9 +45,7 @@ async function moveFarthest(page) {
   const points = await page.evaluate(() => window.__hydra.reachableOnScreen());
   if (points.length === 0) throw new Error('No reachable hex to tap');
   const target = points.reduce((a, b) => (b.cost > a.cost ? b : a));
-  const canvas = (await page.locator('canvas').boundingBox()) ?? { x: 0, y: 0, width: 640, height: 360 };
-  const scale = canvas.width / 640;
-  await page.mouse.click(canvas.x + target.x * scale, canvas.y + target.y * scale);
+  await goTo(page, target);
   // Walking and the view following, however long the drawing takes.
   await page.waitForFunction(() => !window.__hydra.mapBusy?.(), null, { timeout: 15_000 });
   await page.waitForTimeout(300);
@@ -60,9 +65,7 @@ const SHOTS = [
     const points = await page.evaluate(() => window.__hydra.reachableOnScreen());
     const shrine = points.find((p) => p.object === 'shrine');
     if (!shrine) throw new Error('No shrine next to the hydra');
-    const canvas = (await page.locator('canvas').boundingBox()) ?? { x: 0, y: 0, width: 640, height: 360 };
-    const scale = canvas.width / 640;
-    await page.mouse.click(canvas.x + shrine.x * scale, canvas.y + shrine.y * scale);
+    await goTo(page, shrine);
     await page.waitForTimeout(900);
   } },
   { name: 'battle-start', query: '?seed=123&scene=battle&group=burningDetail', viewport: DESKTOP, scene: 'battle', act: async (page) => {
@@ -105,6 +108,11 @@ const SHOTS = [
     await page.waitForTimeout(400);
   } },
   { name: 'map-place-phone', query: '?seed=138&scene=map&near=lostSurvey', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map', act: async (page) => stepOntoPlace(page, 'lostSurvey') },
+  // A travel plan, as in Heroes: one click on a hex several turns away shows the way and how many turns it takes.
+  { name: 'map-journey', query: '?seed=123&scene=map&reveal=1', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await tapGame(page, { x: 450, y: 238 });
+    await page.waitForTimeout(300);
+  } },
   { name: 'map-landmark', query: '?seed=123&scene=map&near=sunkenOak', viewport: DESKTOP, scene: 'map' },
 ];
 
@@ -118,7 +126,9 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
 
 const errors = [];
 try {
-  for (const shot of SHOTS) {
+  // `npm run shots -- map world` takes only the shots whose names start with one of these words.
+  const only = process.argv.slice(2);
+  for (const shot of SHOTS.filter((s) => only.length === 0 || only.some((word) => s.name.startsWith(word)))) {
     const page = await browser.newPage({ viewport: shot.viewport, deviceScaleFactor: shot.dpr ?? 1 });
     page.on('console', (msg) => {
       if (msg.type() === 'error') errors.push(`[${shot.name}] ${msg.text()}`);

@@ -35,6 +35,11 @@ const DRAG_THRESHOLD = 6;
 const STEP_DURATION_MS = 130;
 /** A current carries the hydra faster than it walks. */
 const CARRIED_STEP_MS = 80;
+/**
+ * The hydra slithers from hex to hex: each step it sways to one side and back (degrees, the other side next step) and
+ * stretches up a little (share of its height). Carried by a current, it only rocks a little.
+ */
+const SLITHER = { sway: 5, stretch: 0.07, carriedSway: 2 } as const;
 /** Below this page zoom (small screens, e.g. phones) the map camera zooms in 2×, so hexes are big enough for fingers. */
 const SMALL_SCREEN_ZOOM = 2;
 /** Hexes seen before but out of sight now are drawn this much darker. */
@@ -75,6 +80,21 @@ const REACH_LINE = { rounding: 3, glowWidth: 4, glowAlpha: 0.2, width: 1.25, alp
 const PATH_DOTS = { spacing: 6, radius: 1.1, start: 8, ringWidth: 20, ringHeight: 12, alpha: 0.9 } as const;
 /** Shadows under things standing on the ground, this share of their width (screen units, within min and max). */
 const CONTACT_SHADOW = { share: 0.6, min: 8, max: 40 } as const;
+/**
+ * A travel plan (as in Heroes): dots to the hex picked, bright as far as the hydra gets this turn and faint after,
+ * a bigger dot where each turn ends, and how many turns the journey takes by the ring at its end.
+ */
+const JOURNEY = { laterAlpha: 0.4, turnEndRadius: 2.2 } as const;
+/**
+ * Places stand on a wider, fainter patch of shadow too (this share of their width, this dark), so they sit in the
+ * ground rather than on it.
+ */
+const PLACE_FOOTING = { share: 1.15, alpha: 0.55, max: 60 } as const;
+/**
+ * Things standing in sight are lit a little less than full white, a touch cool, so bright art (salt, bone, stone)
+ * sits in the dark of the underground like the ground does. The hydra keeps its own colours.
+ */
+const AMBIENT_TINT = 0xd4d6de;
 /** Decorations that lie flat, with no shadow. */
 const FLAT_DECORATIONS: readonly DecorationKind[] = ['puddle'];
 /**
@@ -90,16 +110,16 @@ const LIGHTS = {
 
 /** Lights over places: colour, size, brightness, and how high above the feet. */
 const PLACE_GLOWS: Readonly<Record<string, { tint: string; scale: number; alpha: number; height: number }>> = {
-  drownedChapel: { tint: '#7fd0e0', scale: 0.9, alpha: 0.4, height: 40 },
-  ossuaryCathedral: { tint: '#e0b060', scale: 0.9, alpha: 0.45, height: 34 },
-  saltSaint: { tint: '#f0d8d0', scale: 0.8, alpha: 0.35, height: 40 },
-  motherCap: { tint: '#c65bd6', scale: 1.4, alpha: 0.55, height: 30 },
+  drownedChapel: { tint: '#7fd0e0', scale: 0.7, alpha: 0.4, height: 29 },
+  ossuaryCathedral: { tint: '#e0b060', scale: 0.7, alpha: 0.45, height: 24 },
+  saltSaint: { tint: '#f0d8d0', scale: 0.6, alpha: 0.35, height: 29 },
+  motherCap: { tint: '#c65bd6', scale: 1, alpha: 0.55, height: 22 },
   undertow: { tint: '#7fd0e0', scale: 0.6, alpha: 0.4, height: 6 },
   brineLake: { tint: '#e0f0f0', scale: 0.7, alpha: 0.3, height: 6 },
   ninefoldCamp: { tint: '#e0782c', scale: 0.6, alpha: 0.55, height: 10 },
   myceliumWhisper: { tint: '#c65bd6', scale: 0.7, alpha: 0.5, height: 6 },
-  silentBell: { tint: '#7fe0d6', scale: 0.6, alpha: 0.3, height: 26 },
-  hushedStair: { tint: '#7fe0d6', scale: 0.8, alpha: 0.45, height: 20 },
+  silentBell: { tint: '#7fe0d6', scale: 0.5, alpha: 0.3, height: 21 },
+  hushedStair: { tint: '#7fe0d6', scale: 0.65, alpha: 0.45, height: 16 },
 };
 
 /** Decorations come in clumps around an anchor hex (a ring of mushrooms, a heap of bones), not sprinkled evenly. */
@@ -119,7 +139,8 @@ interface HexView {
   objectGlows: Glow[];
   /** Soft shadows under the props and the object. */
   shadows: Phaser.GameObjects.Image[];
-  objectShadow: Phaser.GameObjects.Image | null;
+  /** The object's shadow, and for a place the wider patch it stands on. */
+  objectShadows: Phaser.GameObjects.Image[];
   /** An encounter out of sight that the mycelium tells about. */
   whispered: boolean;
 }
@@ -133,6 +154,10 @@ export class MapScene extends Phaser.Scene {
   private reach!: { glow: Phaser.GameObjects.Graphics; line: Phaser.GameObjects.Graphics; over: Phaser.GameObjects.Graphics };
   /** The way to the hex under the mouse. */
   private path!: Phaser.GameObjects.Graphics;
+  /** The travel plan: the hex picked with a first click (the second one sets off), its dots and the turns it takes. */
+  private journey: Hex | null = null;
+  private journeyDots!: Phaser.GameObjects.Graphics;
+  private journeyTurns!: Phaser.GameObjects.Text;
   private tokenShadow!: Phaser.GameObjects.Image;
   private views = new Map<string, HexView>();
   private token!: Phaser.GameObjects.Image;
@@ -214,6 +239,13 @@ export class MapScene extends Phaser.Scene {
       over: this.add.graphics().setDepth(DEPTH.reachOver),
     };
     this.path = this.add.graphics().setDepth(DEPTH.mark);
+    this.journey = null;
+    this.journeyDots = this.add.graphics().setDepth(DEPTH.mark);
+    this.journeyTurns = this.add
+      .text(0, 0, '', { fontFamily: FONT.title, fontSize: '10px', color: getContext(this).data.palette.underground.bioluminescence })
+      .setOrigin(0, 1)
+      .setDepth(DEPTH.hint)
+      .setVisible(false);
     for (const tile of this.run.state.map.tiles.values()) {
       const { x, y } = hexToPixel(LAYOUT, tile.hex);
       const view: HexView = {
@@ -225,7 +257,7 @@ export class MapScene extends Phaser.Scene {
         object: null,
         objectGlows: [],
         shadows: [],
-        objectShadow: null,
+        objectShadows: [],
         whispered: false,
       };
       if (tile.terrain !== 'rock' && !tile.object) this.decorate(view, x, y, clumps.get(hexKey(tile.hex)));
@@ -330,10 +362,9 @@ export class MapScene extends Phaser.Scene {
     const key = this.objectKey(object);
     if (key === view.objectKey) return;
     view.object?.destroy();
-    view.objectShadow?.destroy();
+    for (const shadow of view.objectShadows.splice(0)) shadow.destroy();
     for (const glow of view.objectGlows.splice(0)) glow.image.destroy();
     view.object = null;
-    view.objectShadow = null;
     view.objectKey = key;
     if (!object || !key) return;
 
@@ -347,7 +378,11 @@ export class MapScene extends Phaser.Scene {
     const feet = object.kind === 'lair' ? y + 9 : object.kind === 'threshold' ? y + MAP_GATE_FEET_BELOW_HEX_CENTER : y + MAP_FEET_BELOW_HEX_CENTER;
     view.object = this.add.image(x, feet, key).setOrigin(0.5, 1).setDepth(this.standingDepth(feet));
     // A closed threshold fills its hex, so it has no shadow of its own.
-    if (object.kind !== 'threshold') view.objectShadow = this.contactShadow(x, feet, view.object.width);
+    if (object.kind !== 'threshold') view.objectShadows.push(this.contactShadow(x, feet, view.object.width));
+    if (object.kind === 'place') {
+      const width = Math.min(view.object.width * PLACE_FOOTING.share, PLACE_FOOTING.max);
+      view.objectShadows.push(this.add.image(x, feet - 1, SHADOW_TEXTURE).setScale(width / SHADOW_TEXTURE_WIDTH).setAlpha(PLACE_FOOTING.alpha).setDepth(DEPTH.shadow));
+    }
     const light = (tint: string, scale: number, alpha: number, height: number) => view.objectGlows.push(this.glow(x, feet - height, tint, scale, alpha, feet));
     if (object.kind === 'lair') {
       // The pool glows on the ground round it, under the hydra sitting in it, so the hydra keeps its own colours.
@@ -405,7 +440,7 @@ export class MapScene extends Phaser.Scene {
     for (const [key, view] of this.views) {
       const state = visibility.get(key);
       const known = state !== undefined;
-      const tint = state === 'remembered' ? REMEMBERED_TINT : 0xffffff;
+      const tint = state === 'remembered' ? REMEMBERED_TINT : AMBIENT_TINT;
       view.groundKey = this.groundKey(view.tile);
       this.syncObject(view);
       for (const image of view.props) image.setVisible(known).setTint(tint);
@@ -424,12 +459,13 @@ export class MapScene extends Phaser.Scene {
           .setTint(ghost ? WHISPERED_TINT : spent ? SPENT_TINT : tint)
           .setAlpha(ghost ? WHISPERED_ALPHA : 1);
       }
-      view.objectShadow?.setVisible(known);
+      for (const shadow of view.objectShadows) shadow.setVisible(known);
       for (const glow of view.objectGlows) glow.image.setVisible(known && !spent).setAlpha(state === 'remembered' ? glow.alpha * 0.4 : glow.alpha);
     }
     const reachable = this.run.state.pendingBattle ? [] : [...this.run.reachable().keys()];
     this.path.clear();
     this.drawReach(reachable);
+    this.drawJourney();
     this.drawLights();
     this.seeThroughTallPlaces();
     this.refreshHints();
@@ -487,11 +523,44 @@ export class MapScene extends Phaser.Scene {
     const reachable = this.run.reachable();
     const target = this.pointedHex(pointer, reachable);
     const way = target && reachable.get(hexKey(target));
-    if (!way) return;
-    const points = [this.run.state.hydra.position, ...way.path].map((h) => hexToPixel(LAYOUT, h));
+    // The planned journey shows its own way.
+    if (!way || (this.journey && hexEquals(target, this.journey))) return;
+    this.dotsAlong(path, way.path, () => PATH_DOTS.alpha);
+  }
+
+  /** The travel plan, drawn again for where the hydra is now; dropped when there is no way there any more. */
+  private drawJourney(): void {
+    const dots = this.journeyDots;
+    dots.clear();
+    this.journeyTurns.setVisible(false);
+    if (!this.journey || this.animating) return;
+    const journey = this.run.plan(this.journey);
+    if (!journey) {
+      this.journey = null;
+      return;
+    }
+    const { turns, path } = journey;
+    this.dotsAlong(dots, path, (step) => (turns[step] === 0 ? PATH_DOTS.alpha : JOURNEY.laterAlpha));
     const colour = color(getContext(this).data.palette.underground.bioluminescence);
-    path.fillStyle(colour, PATH_DOTS.alpha);
-    // Dots at even steps along the whole way, the first a little away from the hydra, none inside the ring.
+    for (let i = 0; i < path.length - 1; i++) {
+      if (turns[i] === turns[i + 1]) continue;
+      const end = hexToPixel(LAYOUT, path[i]!);
+      dots.fillStyle(colour, turns[i] === 0 ? PATH_DOTS.alpha : JOURNEY.laterAlpha).fillCircle(end.x, end.y, JOURNEY.turnEndRadius);
+    }
+    const days = turns[turns.length - 1]! + 1;
+    if (days > 1) {
+      const last = hexToPixel(LAYOUT, path[path.length - 1]!);
+      this.journeyTurns.setText(String(days)).setPosition(last.x + PATH_DOTS.ringWidth / 2, last.y).setVisible(true);
+    }
+  }
+
+  /**
+   * Dots at even steps along a way from the hydra (the first a little away from it, none inside the ring at the end),
+   * each as bright as `alphaOf` says for the step of the way it lies on, and a ring around the last hex.
+   */
+  private dotsAlong(g: Phaser.GameObjects.Graphics, way: readonly Hex[], alphaOf: (step: number) => number): void {
+    const points = [this.run.state.hydra.position, ...way].map((h) => hexToPixel(LAYOUT, h));
+    const colour = color(getContext(this).data.palette.underground.bioluminescence);
     let along = PATH_DOTS.start;
     let walked = 0;
     const end = points.slice(1).reduce((sum, p, i) => sum + Phaser.Math.Distance.BetweenPoints(points[i]!, p), 0) - PATH_DOTS.ringWidth / 2;
@@ -499,15 +568,16 @@ export class MapScene extends Phaser.Scene {
       const from = points[i - 1]!;
       const to = points[i]!;
       const length = Phaser.Math.Distance.BetweenPoints(from, to);
+      g.fillStyle(colour, alphaOf(i - 1));
       for (; along <= walked + length && along < end; along += PATH_DOTS.spacing) {
         const t = (along - walked) / length;
-        path.fillCircle(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t, PATH_DOTS.radius);
+        g.fillCircle(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t, PATH_DOTS.radius);
       }
       walked += length;
     }
     const last = points[points.length - 1]!;
-    path.lineStyle(REACH_LINE.width, colour, PATH_DOTS.alpha);
-    path.strokeEllipse(last.x, last.y, PATH_DOTS.ringWidth, PATH_DOTS.ringHeight);
+    g.lineStyle(REACH_LINE.width, colour, alphaOf(way.length - 1));
+    g.strokeEllipse(last.x, last.y, PATH_DOTS.ringWidth, PATH_DOTS.ringHeight);
   }
 
   /** Draws the light again: the hydra's, every glow in sight or remembered, and the encounters the mycelium tells about. */
@@ -611,10 +681,21 @@ export class MapScene extends Phaser.Scene {
 
   /** Walks (or floats, carried by a current) the hydra along the path it took, then shows the new state. */
   private animate(events: RunEvent[]): void {
-    const steps: Array<{ x: number; y: number; duration: number }> = [];
+    const steps: Array<{ x: number; y: number; duration: number; onUpdate: (tween: Phaser.Tweens.Tween) => void }> = [];
+    const step = (h: Hex, duration: number, sway: number, stretch: number): void => {
+      const side = steps.length % 2 === 0 ? 1 : -1;
+      steps.push({
+        ...this.tokenPosition(h),
+        duration,
+        onUpdate: (tween) => {
+          const swing = Math.sin(tween.progress * Math.PI);
+          this.token.setAngle(side * sway * swing).setScale(1 - (stretch / 2) * swing, 1 + stretch * swing);
+        },
+      });
+    };
     for (const event of events) {
-      if (event.type === 'moved') steps.push(...event.path.map((h) => ({ ...this.tokenPosition(h), duration: STEP_DURATION_MS })));
-      if (event.type === 'carried') steps.push(...event.path.map((h) => ({ ...this.tokenPosition(h), duration: CARRIED_STEP_MS })));
+      if (event.type === 'moved') for (const h of event.path) step(h, STEP_DURATION_MS, SLITHER.sway, SLITHER.stretch);
+      if (event.type === 'carried') for (const h of event.path) step(h, CARRIED_STEP_MS, SLITHER.carriedSway, 0);
     }
     const revealed = events.find((e) => e.type === 'thresholdRevealed');
     if (steps.length === 0) {
@@ -627,6 +708,8 @@ export class MapScene extends Phaser.Scene {
     this.reach.line.setVisible(false);
     this.reach.over.setVisible(false);
     this.path.clear();
+    this.journeyDots.clear();
+    this.journeyTurns.setVisible(false);
     this.tweens.chain({
       targets: this.token,
       tweens: steps,
@@ -637,6 +720,8 @@ export class MapScene extends Phaser.Scene {
       },
       onComplete: () => {
         this.animating = false;
+        this.token.setAngle(0).setScale(1);
+        if (this.journey && hexEquals(this.journey, this.run.state.hydra.position)) this.journey = null;
         if (this.run.state.pendingBattle) {
           this.run.animating = false;
           this.startBattle();
@@ -758,11 +843,58 @@ export class MapScene extends Phaser.Scene {
       if (!press || press.dragging || this.animating) return;
       const reachable = this.run.reachable();
       const target = this.pointedHex(pointer, reachable);
-      if (!target) return;
-      if (reachable.has(hexKey(target))) this.run.moveTo(target);
-      else this.run.inspect(target);
+      if (target && !reachable.has(hexKey(target))) {
+        this.run.inspect(target);
+        return;
+      }
+      // A tap on a hex in reach goes there at once. A mouse plans first, as in Heroes: the first click shows the way,
+      // a second click on the same hex sets off. A tap or a click further away plans a journey of several turns.
+      if (target && pointer.wasTouch) {
+        this.journey = null;
+        this.run.moveTo(target);
+        return;
+      }
+      const aimed = target ?? this.knownGround(pointer);
+      if (!aimed) return;
+      if (this.journey && hexEquals(aimed, this.journey)) this.travel(this.journey);
+      else this.planJourney(aimed);
     });
     this.input.on(Phaser.Input.Events.GAME_OUT, () => this.path.clear());
+  }
+
+  /** Plans a journey to a hex and shows it, or says there is no way there. */
+  private planJourney(target: Hex): void {
+    if (!this.run.plan(target)) {
+      this.run.notice('noWayThere');
+      return;
+    }
+    this.journey = target;
+    this.path.clear();
+    this.drawJourney();
+  }
+
+  /** Goes as far along the planned journey as this turn allows; the rest waits for the next turns. */
+  private travel(target: Hex): void {
+    const journey = this.run.plan(target);
+    const today = journey ? journey.turns.filter((t) => t === 0).length : 0;
+    if (!journey || today === 0) {
+      if (!journey) this.journey = null;
+      this.run.notice(journey ? 'journeyWaits' : 'noWayThere');
+      this.drawJourney();
+      return;
+    }
+    this.run.moveTo(journey.path[today - 1]!);
+  }
+
+  /** A known hex the hydra could walk on, under the pointer or just in front (as in pointedHex), for a journey. */
+  private knownGround(pointer: Phaser.Input.Pointer): Hex | undefined {
+    const { map, visibility, hydra } = this.run.state;
+    const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const tapped = pixelToHex(LAYOUT, world.x, world.y);
+    return [tapped, hex(tapped.q, tapped.r + 1), hex(tapped.q - 1, tapped.r + 1)].find((h) => {
+      const tile = map.tiles.get(hexKey(h));
+      return tile && visibility.has(hexKey(h)) && this.run.rules.terrain[tile.terrain].moveCost !== null && !hexEquals(h, hydra.position);
+    });
   }
 
   /** The hex a press at the pointer is meant for: one the hydra can go to or open, under the pointer or just in front. */

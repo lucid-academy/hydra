@@ -8,7 +8,7 @@ import type { Hex } from '../hex';
 import { generateUnderground, hexesSeenFrom, updateVisibility } from '../map';
 import type { MapObject } from '../map';
 import { Rng } from '../rng';
-import type { BlessingEffects, Reachable, RunEvent, RunRules, RunState } from './types';
+import type { BlessingEffects, Journey, Reachable, RunEvent, RunRules, RunState } from './types';
 import { arriveAt, battleSilenced, lookAround, movementForTurn, raiseAlert, tickConditions, tileAt } from './world';
 
 export interface RunOptions {
@@ -76,14 +76,47 @@ function stopsTheHydra(object: MapObject | null): boolean {
  * Only known (explored) hexes can be crossed. Encounters, unused shrines and places not yet visited can be entered but not crossed.
  */
 export function reachableHexes(state: RunState, rules: RunRules): Map<string, Reachable> {
+  if (isWaiting(state)) return new Map();
+  return cheapestPaths(state, rules, state.hydra.movementLeft);
+}
+
+/**
+ * A journey of several turns to a known hex (a travel plan, as in Heroes): the cheapest way there by the same rules as
+ * a move, without the limit of this turn's movement, and the turn each step is taken in (0 = this turn). Later turns are
+ * counted with the hydra's usual movement; a step that costs more than the turn has left waits for the next turn.
+ * Null when the hex can't be reached at all.
+ */
+export function plannedJourney(state: RunState, target: Hex, rules: RunRules): Journey | null {
+  if (isWaiting(state) || hexEquals(target, state.hydra.position)) return null;
+  const route = cheapestPaths(state, rules, Infinity).get(hexKey(target));
+  if (!route) return null;
+  const turns: number[] = [];
+  let turn = 0;
+  let left = state.hydra.movementLeft;
+  for (const step of route.path) {
+    const cost = rules.terrain[tileAt(state, step)!.terrain].moveCost!;
+    while (cost > left) {
+      // A step dearer than a whole turn (a slow hydra in salt) is still taken, with a fresh turn's movement.
+      if (left === state.hydra.movementPerTurn) break;
+      turn++;
+      left = state.hydra.movementPerTurn;
+    }
+    left -= cost;
+    turns.push(turn);
+  }
+  return { ...route, turns };
+}
+
+/** The cheapest paths from the hydra to every known hex it can get to for at most `limit` movement. */
+function cheapestPaths(state: RunState, rules: RunRules, limit: number): Map<string, Reachable> {
   const start = state.hydra.position;
   const best = new Map<string, Reachable>([[hexKey(start), { cost: 0, path: [] }]]);
-  if (isWaiting(state)) return new Map();
   const frontier: Hex[] = [start];
   while (frontier.length > 0) {
-    // A simple "take the cheapest" is enough here and easier to read than a priority queue.
-    frontier.sort((a, b) => best.get(hexKey(a))!.cost - best.get(hexKey(b))!.cost);
-    const current = frontier.shift()!;
+    // Take the cheapest hex left (the first of equals): simpler to read than a priority queue, and quick enough here.
+    let pick = 0;
+    for (let i = 1; i < frontier.length; i++) if (best.get(hexKey(frontier[i]!))!.cost < best.get(hexKey(frontier[pick]!))!.cost) pick = i;
+    const current = frontier.splice(pick, 1)[0]!;
     const here = best.get(hexKey(current))!;
     const tile = state.map.tiles.get(hexKey(current))!;
     if (!hexEquals(current, start) && stopsTheHydra(tile.object)) continue;
@@ -94,7 +127,7 @@ export function reachableHexes(state: RunState, rules: RunRules): Map<string, Re
       const stepCost = rules.terrain[nextTile.terrain].moveCost;
       if (stepCost === null) continue;
       const cost = here.cost + stepCost;
-      if (cost > state.hydra.movementLeft) continue;
+      if (cost > limit) continue;
       const known = best.get(key);
       if (known && known.cost <= cost) continue;
       best.set(key, { cost, path: [...here.path, next] });

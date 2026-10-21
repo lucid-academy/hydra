@@ -114,6 +114,12 @@ Ruch w HD kosztuje do ok. 0,1 s malowania na serwerze testowym (zmierzone, zanim
 
 **HD jedynym trybem, 2026-10-21** (commit 95f6773): Piotr wrócił po dwóch tygodniach („kontynuuj”), uwag do bitwy i napisów nie przysłał, więc etap domknięty zgodnie z kartą. Usunięte: tryb klasyczny 640×360, parametr `?hd=1`, kafle mapy i brzeg mgły, znaczniki heksów w bitwie, kroje przeglądarki. `public/images/` ma teraz obrazki 2× (dawne `public/images-hd/`), `npm run art` robi tylko je. Klucze `map_ground_…`, `map_rock_…`, `map_mark`, `map_fog_edge`, `battle_hex_mark`, `battle_hex_fill`, `battle_shadow` zostały w manifeście, ale gra ich nie rysuje (kafle bitwy zostają jako zapas dla gruntu bez tekstury). Smoke test czeka na scenę do 45 s, bo plansza na telefonie (3 piksele urządzenia na piksel) w programowym WebGL maluje się długo.
 
+**Mapa po powrocie Piotra, 2026-10-21** (prośba z wątku „Następny etap gry”: lokacje za duże i słabo wtopione, hydra ma się ruszać, sterowanie jak w Heroes):
+- Punkty orientacyjne zmniejszone do ok. 0,72× (wysokość 46 zamiast 64), miejsca biomów do ok. 0,8×; nowe rozmiary w manifeście i `docs/ASSETS.md`, obrazki zrobione na nowo z tych samych plików w `art/raw/`. Poświaty miejsc (`PLACE_GLOWS`) przesunięte i zmniejszone razem z nimi.
+- Miejsca stoją na szerszej, słabej plamie cienia (`PLACE_FOOTING`), a wszystko, co stoi w zasięgu wzroku, ma lekko przygaszone, chłodne światło (`AMBIENT_TINT`); hydra zostaje w swoich kolorach.
+- Hydra przy każdym kroku kołysze się na boki i lekko rozciąga (`SLITHER`).
+- Mysz jak w Heroes: pierwszy klik pokazuje drogę (także na kilka tur: jasne kropki na tę turę, blade na następne, liczba tur przy pierścieniu), drugi klik na ten sam heks rusza, a hydra idzie tak daleko, jak pozwala tura; plan zostaje na następne tury. Dotyk bez zmian: tapnięcie w zasięgu od razu idzie, tapnięcie dalej planuje podróż. Logika w `plannedJourney` (`src/sim/turn/run.ts`, z testami). Test dymny na komputerze klika dwa razy, na telefonie gra dotykiem.
+
 Plan:
 
 1. **Kąt kamery:** widok 3/4 z góry, kamera ok. 45° nad ziemią, światło z lewej góry. Tak już są narysowane plansza bitwy i mapa (heksy spłaszczone do ok. 0,7 wysokości), więc nic do przebudowy. Portrety i ekran tytułowy to osobne ujęcia, na wprost.

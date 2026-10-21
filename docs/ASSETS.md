@@ -167,24 +167,24 @@ Places are the things worth finding in the world (`src/data/world.json`, `places
 
 | Key | Size | Biome | What |
 |---|---|---|---|
-| map_place_sunkenOak | 56×64 | Root Tangle | A whole oak that fell through the ceiling and landed upside down: its roots spread up like a crown, its branches dug into the floor, one green leaf out of spite. |
-| map_place_drownedChapel | 48×64 | Flooded Caves | The bell tower of a chapel of the Order standing out of black water: grey stone, a pointed spire, a golden bell in the arch. |
-| map_place_ossuaryCathedral | 56×64 | Old Crypts | A gothic cathedral front built of bone: a tall arch, a rose window ringed with skulls, a gable, a candle glowing inside the dark door. |
-| map_place_saltSaint | 40×64 | Salt Mines | A tall statue of a miner carved from white salt, holding his pick, standing on a plinth, licked to a shine. |
-| map_place_motherCap | 64×64 | Fungal Deeps | A giant mushroom whose cap is the ceiling of the cave: a wide purple cap, a pale stalk, gills glowing pink-white underneath. |
+| map_place_sunkenOak | 40×46 | Root Tangle | A whole oak that fell through the ceiling and landed upside down: its roots spread up like a crown, its branches dug into the floor, one green leaf out of spite. |
+| map_place_drownedChapel | 34×46 | Flooded Caves | The bell tower of a chapel of the Order standing out of black water: grey stone, a pointed spire, a golden bell in the arch. |
+| map_place_ossuaryCathedral | 40×46 | Old Crypts | A gothic cathedral front built of bone: a tall arch, a rose window ringed with skulls, a gable, a candle glowing inside the dark door. |
+| map_place_saltSaint | 28×46 | Salt Mines | A tall statue of a miner carved from white salt, holding his pick, standing on a plinth, licked to a shine. |
+| map_place_motherCap | 46×46 | Fungal Deeps | A giant mushroom whose cap is the ceiling of the cave: a wide purple cap, a pale stalk, gills glowing pink-white underneath. |
 
 **Locations** (1–2 per biome) and **rare places**:
 
 | Key | Size | What |
 |---|---|---|
-| map_place_undertow | 40×24 | Flooded Caves. A round pool of black water turning in a slow spiral, pale teal streaks on it. Lies low. |
-| map_place_gallowsRoots | 40×40 | Root Tangle. Roots grown down from the Order's gallows tree above, hanging from a beam of root, holding skulls and bones, filed neatly. |
-| map_place_brineLake | 44×26 | Salt Mines. A still lake of pale grey-green brine with a thick white salt rim. Lies low. |
-| map_place_ninefoldCamp | 44×40 | Salt Mines. A camp of the Ninefold (cultists who adore the hydra): a patched tent, a small fire, and a green banner with nine little heads on it. |
-| map_place_myceliumWhisper | 40×26 | Fungal Deeps. A web of glowing purple mycelium spreading over the floor from one bright point. Lies low. |
-| map_place_silentBell | 32×44 | Fungal Deeps. A big stone bell of the Hushed hanging in a stone frame, overgrown with purple fungus, a faint teal line of humming under it. |
-| map_place_lostSurvey | 36×26 | Rare, in a dead end. The bones of a survey party of the Order, still holding their instruments: a brass instrument on a tripod, scattered papers. |
-| map_place_hushedStair | 40×44 | Rare, ring 3. Stone stairs going down to a dark doorway with a door that has no handle on this side; faint teal lines humming on the door. |
+| map_place_undertow | 34×20 | Flooded Caves. A round pool of black water turning in a slow spiral, pale teal streaks on it. Lies low. |
+| map_place_gallowsRoots | 32×32 | Root Tangle. Roots grown down from the Order's gallows tree above, hanging from a beam of root, holding skulls and bones, filed neatly. |
+| map_place_brineLake | 38×22 | Salt Mines. A still lake of pale grey-green brine with a thick white salt rim. Lies low. |
+| map_place_ninefoldCamp | 36×32 | Salt Mines. A camp of the Ninefold (cultists who adore the hydra): a patched tent, a small fire, and a green banner with nine little heads on it. |
+| map_place_myceliumWhisper | 34×22 | Fungal Deeps. A web of glowing purple mycelium spreading over the floor from one bright point. Lies low. |
+| map_place_silentBell | 26×36 | Fungal Deeps. A big stone bell of the Hushed hanging in a stone frame, overgrown with purple fungus, a faint teal line of humming under it. |
+| map_place_lostSurvey | 30×22 | Rare, in a dead end. The bones of a survey party of the Order, still holding their instruments: a brass instrument on a tripod, scattered papers. |
+| map_place_hushedStair | 32×36 | Rare, ring 3. Stone stairs going down to a dark doorway with a door that has no handle on this side; faint teal lines humming on the door. |
 
 ## Map finds: map_remains, map_hoard, map_muck_rich, map_moisture_rich
 
