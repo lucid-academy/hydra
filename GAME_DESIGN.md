@@ -436,6 +436,8 @@ Na granicy pierścieni stoją 2–4 progi, co najmniej 1/5 obwodu od siebie. Zaw
 - Prezentacja: przyciemnione tło, duży portret (popiersie) po lewej albo prawej, plakietka z imieniem, tekst pojawiający się litera po literze, kliknięcie przewija dalej, czasem wybór.
 - Kto mówi: głowy (ich kłótnie to główny silnik komedii), Old Mother Toad (strażniczka leża i mentorka, pamięta wszystkie pokolenia, pomaga tłumaczyć głos Węża), jeńcy, Mistrzowie Zakonu (wejścia bossów), przodkowie przy zmianie pokolenia i Wielki Wąż, który mówi do głów przez sen (sekcja 1, „Świat").
 - Wyzwalacze: po bitwie (reakcja na to, co się stało: ścięcie, odrost, przypalenie), nowy biom, pierwszy wróg danego typu, zgaszona kapliczka, zmiana pokolenia, boss. Głos Węża przychodzi w podróży, w walce i w czasie odpoczynku.
+- **Głos Węża w walce** (decyzja Piotra z 2026-10-21): krótka kwestia bez pauzy, bitwa toczy się dalej. Pełny dialog z głosem Węża tylko na mapie (w podróży i przy odpoczynku).
+- **Old Mother Toad** (decyzja Piotra z 2026-10-21): mówi, gdy hydra odpoczywa w leżu.
 - Kluczowa zasada z Hadesa: kwestie mają warunki i priorytety, a flagi pilnują, żeby się nie powtarzały. Gracz ma czuć, że gra zauważyła, co zrobił.
 - Wszystkie kwestie w danych (JSON), nie w kodzie.
 
@@ -535,7 +537,6 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 
 - Ile kapliczek Płomienia trzeba zgasić, żeby zamek stał się celem (roboczo: wszystkie).
 - **Odrost (pomysł Piotra po playteście M1b):** nowe głowy są mniejsze i na początku zadają połowę obrażeń, żeby odrost nie dawał od razu siły. Głowy potem rosną, i dlatego z czasem hydra jest mocna. Do ustalenia: od czego rosną (doświadczenie z walk, błogosławieństwa, czas).
-- **Głos Węża w walce:** czy bitwa staje na czas komunikatu jak przy dialogu (§11), czy to krótka kwestia bez pauzy?
 - **Zakończenia:** które i jak się do nich dochodzi? Propozycja Claude: obudzić Węża (z Wakers), nastroić pieśń na nowo i zająć miejsce Hushed, pójść za grzybnią poza świat Węża, zgasić Wieczny Płomień.
 - **Wiedza o świecie po wymarciu rodu:** przepada razem z rodem (jak mutacje) czy zostaje na stałe (jak odblokowania konta)? Propozycja Claude: zostaje, bo Old Mother Toad pamięta wszystkie pokolenia, a tajemnica ma się składać przez całą grę.
 - **Pula głów:** które klasy są w puli od startu, a które trzeba odblokować (odblokowania konta, §12)? Propozycja Claude: sześć pierwszych od startu, a Strangler, Tender i Lantern do odblokowania. Sposób odblokowania do ustalenia.
