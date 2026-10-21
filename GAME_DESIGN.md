@@ -99,7 +99,7 @@ Trzy poziomy pętli:
 
 **Run, czyli jedno pokolenie:** hydra startuje w leżu na nowej, wygenerowanej mapie. Eksploruje, odkrywa kawałki tajemnicy Węża (lokacje, mini questy, głos Węża), walczy, zbiera, znosi jaja, buduje komnaty. Czujność Zakonu rośnie razem z tym, co hydra robi i zdobywa. Wyprawy atakują leże, a gaszenie kapliczek na powierzchni czujność obniża. Gdy czujność dojdzie do maksimum, Zakon ogłasza Great Burning: szturm na leże pod wodzą Mistrza Zakonu (boss). Przetrwanie otwiera kolejny akt: Zakon się wzmacnia (nowe typy wrogów), w podziemiach otwiera się głębsza warstwa, a Alert zaczyna od nowa. Run trwa, dopóki hydra żyje.
 
-**Ród:** po śmierci wybierasz jedno z ocalałych jaj. Nowa hydra zaczyna od aktu 1 na nowej mapie, ale dziedziczy mutacje i zaklęcia rodu (sekcja 12). Wiedza o świecie przechodzi na kolejne pokolenia, więc tajemnica Węża odsłania się po kawałku przez cały ród (co z nią po wymarciu rodu: §16).
+**Ród:** po śmierci wybierasz jedno z ocalałych jaj. Nowa hydra zaczyna od aktu 1 na nowej mapie, ale dziedziczy mutacje i zaklęcia rodu (sekcja 12). Wiedza o świecie przechodzi na kolejne pokolenia i zostaje także po końcu rodu, więc tajemnica Węża odsłania się po kawałku przez całą grę (§12).
 
 **Zakończenia:** gra ma kilka zakończeń związanych z Wężem. Zgaszenie Wiecznego Płomienia i przejęcie powierzchni (sekcja 5.7) to jedno z nich. Pozostałe: `TODO(design)` (propozycje w §16).
 
@@ -417,6 +417,7 @@ Na granicy pierścieni stoją 2–4 progi, co najmniej 1/5 obwodu od siebie. Zaw
   - Feast of Saint Cinder: Zakon świętuje, Alert rośnie wolniej.
   - Mycelium Bloom: wtrącenia Fungal Deeps w każdym pierścieniu, także w pierwszym.
   - Old Workings: stary szyb Zakonu przecina pierścienie 2 i 3 prostym korytarzem. Darmowy próg, ale wzdłuż szybu więcej spotkań z Zakonem.
+- **Modyfikatory to odblokowania konta** (decyzja Piotra z 2026-10-21, M6): każde pokolenie losuje jeden z modyfikatorów odblokowanych na koncie. Modyfikator odblokowuje proste wyzwanie z danych, np. dojdź do 3. pierścienia.
 - Walidator: test generuje co najmniej 1000 seedów i sprawdza reguły z tej sekcji: każdy pierścień osiągalny od leża bez kluczy, liczby progów i obiektów, żaden ślepy zaułek nie jest pusty, szerokość pierścieni, częstość rzadkich miejsc, brak kolizji obiektów i ten sam świat z tego samego seeda.
 
 ## 10. Eventy
@@ -438,22 +439,28 @@ Na granicy pierścieni stoją 2–4 progi, co najmniej 1/5 obwodu od siebie. Zaw
 - Wyzwalacze: po bitwie (reakcja na to, co się stało: ścięcie, odrost, przypalenie), nowy biom, pierwszy wróg danego typu, zgaszona kapliczka, zmiana pokolenia, boss. Głos Węża przychodzi w podróży, w walce i w czasie odpoczynku.
 - **Głos Węża w walce** (decyzja Piotra z 2026-10-21): krótka kwestia bez pauzy, bitwa toczy się dalej. Pełny dialog z głosem Węża tylko na mapie (w podróży i przy odpoczynku).
 - **Old Mother Toad** (decyzja Piotra z 2026-10-21): mówi, gdy hydra odpoczywa w leżu.
+- **Zmiana pokolenia** (decyzja Piotra z 2026-10-21, M6): Old Mother Toad przyjmuje dziedziczkę, czasem przodkini mówi przez sen (bez portretu, jak Wąż), a głowy komentują spadek. Epitafium w Księdze Rodów zależy od tego, kto zabił hydrę.
 - Kluczowa zasada z Hadesa: kwestie mają warunki i priorytety, a flagi pilnują, żeby się nie powtarzały. Gracz ma czuć, że gra zauważyła, co zrobił.
 - Wszystkie kwestie w danych (JSON), nie w kodzie.
 
 ## 12. Pokolenia i dziedzictwo
 
 - Po śmierci hydry: ekran pokolenia, wybór jednego z ocalałych jaj. Nowe pokolenie zaczyna od aktu 1 na nowej mapie.
+- **Do M3, czyli bez jaj** (decyzja Piotra z 2026-10-21): po śmierci zawsze wykluwa się jedna dziedziczka, więc ród nie może wymrzeć. Nowy ród gracz zaczyna z własnej woli (New Lineage na ekranie tytułowym). Ekran pokolenia pokazuje wpis do Księgi Rodów z epitafium, mutacje, które przechodzą, i imię dziedziczki. Mapa każdego pokolenia ma seed wyliczony z seeda rodu i numeru pokolenia, więc cały ród da się odtworzyć.
+- **Imiona** (decyzja Piotra z 2026-10-21): losowe z listy w danych, z numerem, gdy imię się w rodzie powtarza (Morwenna II). Ród nosi imię swojej pierwszej hydry.
 - Postęp w życiu hydry przechodzi na potomków na dwa sposoby:
   - **Mutations:** dziedziczne cechy. Hydra zdobywa je w trakcie życia (kapliczki, zjedzeni bossowie, zgaszone płomienie, dziwne eventy), a jaja dziedziczą część z nich. Każde jajo pokazuje, które mutacje niesie, np. *Thick-necked* (+20% HP głów), *Fireproof Scales* (przypalanie trwa dłużej), *Paranoid* (+1 zasięg wzroku, −1 głowa na start). Mutacje mogą mieć minusy.
+    - **Ile przechodzi** (decyzja Piotra z 2026-10-21): losowa połowa mutacji matki, zaokrąglona w górę. Od M3 każde jajo niesie inną połowę, więc wybór jaja jest wyborem mutacji.
+    - **Skąd w M6** (decyzja Piotra z 2026-10-21): z kilku eventów i z rzadkiej kapliczki Węża, która zamiast błogosławieństwa na to życie daje znamię na cały ród. Bossowie (M3) i płomienie (M4) dojdą później. W M6 tylko mutacje działające na mapie i w statystykach hydry; te, które działają w bitwie (np. *Fireproof Scales*), po M2a.
   - **Lineage Grimoire:** zaklęcia znalezione w trakcie życia można w leżu wpisać do księgi rodu. Potomek zaczyna z wybranymi zaklęciami z księgi. Liczba miejsc w księdze rośnie powoli.
 - **Hidden Egg, czyli zapis rodu:** gdy rodowi dobrze się wiedzie, gracz może w leżu poprosić Old Mother Toad, żeby ukryła jedno jajo w sekretnym miejscu. Jajo zapamiętuje dziedzictwo rodu z tej chwili (mutacje i księgę zaklęć). Naraz może istnieć tylko jedno ukryte jajo i nie da się go podmienić na nowsze, więc moment ukrycia to prawdziwa decyzja. Po wykorzystaniu można ukryć następne.
 - **Wymarcie rodu:** gdy hydra umiera, a nie ma żadnego jaja (bo nie zdążyła ich znieść albo wyprawa zniszczyła wszystkie), gracz dostaje wybór:
   - **End the Lineage:** ród się kończy i trafia do Księgi Rodów. Nowy ród zaczyna bez mutacji i zaklęć, odblokowania konta zostają.
   - **Miraculous Intervention:** dostępna tylko, gdy istnieje ukryte jajo. Old Mother Toad wyciąga je z kryjówki i ród trwa dalej z dziedzictwem zapisanym w jaju. Wszystko, co ród zdobył po ukryciu jaja, przepada.
 - Dwie warstwy postępu: **dziedzictwo rodu** (mutacje, księga zaklęć; przepada, gdy ród wymrze) i **odblokowania konta** (na stałe: nowe klasy głów, eventy, kapliczki, modyfikatory, zdobywane przez wyzwania jak w Tomb Guard).
-- **Wiedza o świecie** (odkryte tajemnice, postęp mini questów) przechodzi na kolejne pokolenia. Czy przetrwa wymarcie rodu: §16. (Decyzja Piotra z 2026-10-04.)
-- **Księga Rodów:** kronika pokoleń z epitafiami, np. *„Morwenna II. Slain by a tithe collector. He gave her a receipt."*
+- **Wiedza o świecie** (odkryte tajemnice, postęp mini questów) przechodzi na kolejne pokolenia (decyzja Piotra z 2026-10-04) i zostaje także po końcu rodu, jak odblokowania konta, bo Old Mother Toad pamięta wszystkie pokolenia. Mutacje przepadają z rodem. (Decyzja Piotra z 2026-10-21.)
+- **Flagi** (decyzja Piotra z 2026-10-21): flagi wiedzy (spotkany Wąż, tajemnice, postęp mini questów) zostają, flagi życia znikają ze śmiercią hydry. Lista flag z opisem i zasięgiem jest w danych. Kwestie jednorazowe padają raz na ród, nie raz na życie.
+- **Księga Rodów:** kronika pokoleń z epitafiami, np. *„Morwenna II. Slain by a tithe collector. He gave her a receipt."* Osobny ekran z ekranu tytułowego: wszystkie hydry rodu i wcześniejsze rody.
 
 ## 13. Styl wizualny
 
@@ -529,7 +536,7 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 
 **M5: eventy, mini questy i dialogi.** Wszystkie trzy systemy (dialogi z malowanymi portretami i głosem Węża) i pierwsza porcja treści.
 
-**M6: pokolenia.** Ekran pokolenia, mutacje, księga zaklęć rodu, ukryte jajo i wybór przy wymarciu rodu, odblokowania, Księga Rodów, zapis gry. Wiedza o świecie przechodzi na kolejne pokolenia. Ponieważ M6 idzie przed M3, zaczyna w prostej wersji, bez jaj (przyjdą z M3).
+**M6: pokolenia.** Ekran pokolenia, mutacje, księga zaklęć rodu, ukryte jajo i wybór przy wymarciu rodu, odblokowania, Księga Rodów, zapis gry. Wiedza o świecie przechodzi na kolejne pokolenia. Ponieważ M6 idzie przed M3, zaczyna w prostej wersji (plan zatwierdzony przez Piotra 2026-10-21, dokument Claude „Hydra M6: pokolenia”): bez jaj, ukrytego jaja i wyboru przy wymarciu rodu (przyjdą z M3), bez księgi zaklęć (z M2a albo po nim, gdy będą zaklęcia) i bez mutacji działających w bitwie (po M2a). Gra zapisuje się sama w przeglądarce na początku każdej tury i po bitwie; bitwa przerwana zamknięciem karty zaczyna się od nowa.
 
 **M7 i dalej: finał i szlif.** Szturm na zamek i zwycięstwo, dźwięk, podmiana grafiki, balans, pełne sterowanie dotykowe.
 
@@ -538,6 +545,5 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 - Ile kapliczek Płomienia trzeba zgasić, żeby zamek stał się celem (roboczo: wszystkie).
 - **Odrost (pomysł Piotra po playteście M1b):** nowe głowy są mniejsze i na początku zadają połowę obrażeń, żeby odrost nie dawał od razu siły. Głowy potem rosną, i dlatego z czasem hydra jest mocna. Do ustalenia: od czego rosną (doświadczenie z walk, błogosławieństwa, czas).
 - **Zakończenia:** które i jak się do nich dochodzi? Propozycja Claude: obudzić Węża (z Wakers), nastroić pieśń na nowo i zająć miejsce Hushed, pójść za grzybnią poza świat Węża, zgasić Wieczny Płomień.
-- **Wiedza o świecie po wymarciu rodu:** przepada razem z rodem (jak mutacje) czy zostaje na stałe (jak odblokowania konta)? Propozycja Claude: zostaje, bo Old Mother Toad pamięta wszystkie pokolenia, a tajemnica ma się składać przez całą grę.
 - **Pula głów:** które klasy są w puli od startu, a które trzeba odblokować (odblokowania konta, §12)? Propozycja Claude: sześć pierwszych od startu, a Strangler, Tender i Lantern do odblokowania. Sposób odblokowania do ustalenia.
 - **Świat dnia:** jeden seed dziennie, ten sam dla wszystkich graczy, jak w Spelunky. Czy go chcemy i kiedy? Propozycja Claude: później, np. po M5, bo łatwo go dodać.
