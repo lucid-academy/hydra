@@ -3,13 +3,38 @@
 //
 // The body covers seven hexes in the middle of the board. Humans walk from hex to hex, surround it and hit
 // whatever is next to them: a head if one is there, otherwise the body. Heads don't stand on hexes: they grow
-// out of the body and reach a number of hexes from it. A biting head goes out to its enemy and can be hit back there.
+// out of the body and reach a number of hexes from it. A biting head goes out to its enemy and can be hit back there,
+// and so does a head holding a human (Strangler).
 
 import { HEX_DIRECTIONS, hex, hexAdd, hexDistance, hexEquals, hexKey, hexNeighbors } from '../hex';
 import type { Hex } from '../hex';
 import { Rng } from '../rng';
 import { anchorHex, angleDifference, bodyDistance, bodyHexes, boardHexes, canBodyStandAt, distanceField, hexAngle, isOnBoard, rimHexes } from './board';
-import { applyStatus, canCauterize, createMistCloud, enemyArmor, enemyStepTicks, hurtEnemy, triggerCombos, updateEffects } from './effects';
+import {
+  afterMeal,
+  applyEffect,
+  applyStatus,
+  beaconFor,
+  breakHold,
+  canCauterize,
+  createMistCloud,
+  devourEnemy,
+  enemyArmor,
+  enemyCan,
+  enemyFlees,
+  enemyStepTicks,
+  healHead,
+  hurtEnemy,
+  random,
+  randomPick,
+  rememberHit,
+  takenHexes,
+  triggerCombos,
+  updateEffects,
+  wakeUp,
+} from './effects';
+import type { HitContext } from './effects';
+import { skillBlock, skillInSlot, useSkill } from './skills';
 import type { BattleCommand, BattleHead, BattleOutcome, BattleRules, BattleState, Enemy, HeadAttackRules, HeadRecord, Stump } from './types';
 
 /**
@@ -17,7 +42,7 @@ import type { BattleCommand, BattleHead, BattleOutcome, BattleRules, BattleState
  * nudged a little so that no neck ever points exactly between two hexes.
  */
 const FIRST_NECK_ANGLE = -Math.PI / 3 + 0.05;
-/** Angle between the two heads that grow from one stump. */
+/** Angle between the heads that grow from one stump. */
 const TWIN_SPREAD = 0.2;
 /** The body starts in the middle of the board. */
 const BOARD_MIDDLE = hex(0, 0);
@@ -31,18 +56,41 @@ export interface BattleSetup {
   enemies: readonly string[];
   /** First free number for ids of heads grown in this battle (so ids stay unique over the whole run). */
   firstFreeId: number;
+  /** Ultimate skills (key E) can be used. */
+  ultimatesUnlocked?: boolean;
+}
+
+/** The two skills a head takes into battle: its own choice if it is still valid, otherwise its class's first two. */
+export function battleSkills(record: HeadRecord, rules: BattleRules): string[] {
+  const own = rules.headClasses[record.classId]!.skills;
+  const chosen = (record.skills ?? []).filter((id) => own.includes(id));
+  const result = [...new Set(chosen)].slice(0, 2);
+  for (const id of own) if (result.length < 2 && !result.includes(id)) result.push(id);
+  return result;
+}
+
+function battleHead(record: HeadRecord, anchorAngle: number, twinGroup: number | null, rules: BattleRules): BattleHead {
+  return {
+    ...record,
+    skills: battleSkills(record, rules),
+    anchorAngle,
+    cooldown: 0,
+    skillCooldowns: {},
+    orderTargetId: null,
+    targetId: null,
+    twinGroup,
+    holdingId: null,
+    hurtWhileHolding: 0,
+    meals: 0,
+    buffs: [],
+    asleepUntilTick: 0,
+    pendingSkill: null,
+  };
 }
 
 export function createBattle(setup: BattleSetup, rules: BattleRules): BattleState {
   const rng = new Rng(setup.seed);
-  const heads: BattleHead[] = setup.heads.map((record, i) => ({
-    ...record,
-    anchorAngle: FIRST_NECK_ANGLE + (i / setup.heads.length) * Math.PI * 2,
-    cooldown: 0,
-    orderTargetId: null,
-    targetId: null,
-    twinGroup: null,
-  }));
+  const heads: BattleHead[] = setup.heads.map((record, i) => battleHead(record, FIRST_NECK_ANGLE + (i / setup.heads.length) * Math.PI * 2, null, rules));
 
   // The Order starts on the edge of the board, spread evenly around the hydra, with a little randomness.
   const freeRim = rimHexes(rules);
@@ -68,8 +116,19 @@ export function createBattle(setup: BattleSetup, rules: BattleRules): BattleStat
       statuses: [],
       armorBroken: false,
       torchOutUntilTick: 0,
+      recentHits: [],
+      comboCooldowns: {},
     };
   });
+
+  // The Spare's Bad Idea: once per battle, at a random moment (only heads present at the start).
+  let badIdea: BattleState['badIdea'] = null;
+  const spare = heads.find((h) => rules.headClasses[h.classId]!.badIdea !== null);
+  if (spare) {
+    const idea = rules.headClasses[spare.classId]!.badIdea!;
+    const atTick = rng.int(idea.earliestTick, idea.latestTick);
+    badIdea = { headId: spare.id, atTick, untilTick: atTick + idea.ticks, done: false, savedOrders: {} };
+  }
 
   return {
     tick: 0,
@@ -87,7 +146,13 @@ export function createBattle(setup: BattleSetup, rules: BattleRules): BattleStat
     stumps: [],
     enemies,
     clouds: [],
+    pools: [],
+    beacons: [],
     nextId: Math.max(setup.firstFreeId, setup.enemies.length + 1),
+    ultimatesUnlocked: setup.ultimatesUnlocked ?? false,
+    nextRegrowthHeads: null,
+    lastSkill: null,
+    badIdea,
     outcome: null,
     events: [],
   };
@@ -106,7 +171,25 @@ export function applyCommand(state: BattleState, command: BattleCommand, rules: 
     }
     case 'clearOrder': {
       const head = state.heads.find((h) => h.id === command.headId);
-      if (head) head.orderTargetId = null;
+      if (head) {
+        head.orderTargetId = null;
+        head.pendingSkill = null;
+      }
+      break;
+    }
+    case 'useSkill': {
+      const head = state.heads.find((h) => h.id === command.headId);
+      if (!head) break;
+      const skill = skillInSlot(state, head, command.slot, rules);
+      if (!skill || command.aim.kind !== skill.target) break;
+      // Carried out on the next tick (or later, when its target comes within reach), so orders given in pause wait for the game to run.
+      head.pendingSkill = { slot: command.slot, aim: command.aim };
+      break;
+    }
+    case 'chooseSkills': {
+      const head = state.heads.find((h) => h.id === command.headId);
+      if (!head || state.tick > 0) break;
+      head.skills = battleSkills({ ...head, skills: command.skills }, rules);
       break;
     }
   }
@@ -120,17 +203,16 @@ export function nearestBodySpot(to: Hex, rules: BattleRules): Hex {
 
 export function stepBattle(state: BattleState, rules: BattleRules): void {
   if (state.outcome) return;
-  const rng = Rng.fromState(state.rngState);
   state.tick += 1;
   state.events = [];
 
+  updateBadIdea(state, rules);
   moveBody(state, rules);
-  for (const head of state.heads) updateHead(state, head, rules);
+  for (const head of [...state.heads]) if (state.heads.includes(head)) updateHead(state, head, rules);
   updateEffects(state, rules);
   for (const enemy of [...state.enemies]) updateEnemy(state, enemy, rules);
-  regrowStumps(state, rules, rng, false);
+  regrowStumps(state, rules, false);
 
-  state.rngState = rng.getState();
   checkOutcome(state);
 }
 
@@ -145,7 +227,7 @@ function moveBody(state: BattleState, rules: BattleRules): void {
     body.moveTarget = null;
     return;
   }
-  const taken = new Set(state.enemies.map((e) => hexKey(e.hex)));
+  const taken = takenHexes(state, null);
   const closer = hexDistance(body.center, target) - 1;
   const next = HEX_DIRECTIONS.map((d) => hexAdd(body.center, d)).find(
     (c) => hexDistance(c, target) === closer && canBodyStandAt(c, rules) && bodyHexes(c).every((h) => !taken.has(hexKey(h))),
@@ -157,8 +239,12 @@ function moveBody(state: BattleState, rules: BattleRules): void {
   body.stepEndTick = state.tick + rules.bodyStepTicks;
 }
 
-/** The hex a head is at: its enemy's hex while it bites (melee), otherwise its own side of the body. */
+/** The hex a head is at: the human it holds, or its enemy's hex while it bites (melee), otherwise its own side of the body. */
 export function headHex(state: BattleState, head: BattleHead, rules: BattleRules): Hex {
+  if (head.holdingId !== null) {
+    const held = state.enemies.find((e) => e.id === head.holdingId);
+    if (held) return held.hex;
+  }
   if (rules.headClasses[head.classId]!.attack.melee && head.targetId !== null) {
     const target = state.enemies.find((e) => e.id === head.targetId);
     if (target) return target.hex;
@@ -171,9 +257,43 @@ export function canHeadReach(state: BattleState, head: BattleHead, enemy: Enemy,
   return bodyDistance(state.body.center, enemy.hex) <= rules.headClasses[head.classId]!.attack.range;
 }
 
+/** How fast the head attacks now: 1 = normal, 2 = twice as fast (Frenzy, Rally Cry, rage), 0.5 = half (grief). */
+export function headAttackSpeed(state: BattleState, head: BattleHead): number {
+  let speed = 1;
+  for (const buff of head.buffs) if (buff.kind === 'attackSpeed' && state.tick < buff.untilTick) speed *= buff.multiplier;
+  return speed;
+}
+
 function updateHead(state: BattleState, head: BattleHead, rules: BattleRules): void {
   const { attack } = rules.headClasses[head.classId]!;
-  if (head.cooldown > 0) head.cooldown -= 1;
+  for (const id of Object.keys(head.skillCooldowns)) head.skillCooldowns[id] = Math.max(0, head.skillCooldowns[id]! - 1);
+  endBuffs(state, head);
+  if (state.tick < head.asleepUntilTick) {
+    head.targetId = null;
+    return;
+  }
+  if (head.cooldown > 0) head.cooldown = Math.max(0, head.cooldown - headAttackSpeed(state, head));
+
+  if (head.pendingSkill) tryPendingSkill(state, head, rules);
+  if (!state.heads.includes(head)) return;
+  bottomlessHunger(state, head, rules);
+
+  // Tender: licks the most wounded head first (unless it was ordered at a human).
+  if (attack.healsHeads > 0 && head.orderTargetId === null) {
+    const wounded = minBy(
+      state.heads.filter((h) => h.hp < h.maxHp),
+      (h) => h.hp / h.maxHp,
+    );
+    if (wounded) {
+      head.targetId = null;
+      if (head.cooldown <= 0) {
+        head.cooldown = attack.cooldownTicks;
+        healHead(state, wounded, attack.healsHeads, rules);
+      }
+      return;
+    }
+  }
+
   const target = pickHeadTarget(state, head, rules);
   head.targetId = target?.id ?? null;
   if (target && head.cooldown <= 0) {
@@ -183,7 +303,51 @@ function updateHead(state: BattleState, head: BattleHead, rules: BattleRules): v
   }
 }
 
+function endBuffs(state: BattleState, head: BattleHead): void {
+  const ended = head.buffs.filter((b) => state.tick >= b.untilTick);
+  if (ended.length === 0) return;
+  head.buffs = head.buffs.filter((b) => !ended.includes(b));
+  for (const buff of ended) {
+    if (buff.kind === 'bottomless') head.asleepUntilTick = Math.max(head.asleepUntilTick, state.tick + buff.sleepTicks);
+  }
+}
+
+/** Glutton's Bottomless: eats every weak human in reach. */
+function bottomlessHunger(state: BattleState, head: BattleHead, rules: BattleRules): void {
+  const hunger = head.buffs.find((b) => b.kind === 'bottomless');
+  if (!hunger || hunger.kind !== 'bottomless') return;
+  const { devourHeal } = rules.headClasses[head.classId]!.attack;
+  for (const enemy of [...state.enemies]) {
+    if (canHeadReach(state, head, enemy, rules) && enemy.hp < enemy.maxHp * hunger.hpShare) devourEnemy(state, enemy, devourHeal, head, rules);
+  }
+}
+
+function tryPendingSkill(state: BattleState, head: BattleHead, rules: BattleRules): void {
+  const pending = head.pendingSkill!;
+  const skill = skillInSlot(state, head, pending.slot, rules);
+  if (!skill) {
+    head.pendingSkill = null;
+    return;
+  }
+  const block = skillBlock(state, head, skill, pending.aim, rules);
+  if (block === null) {
+    head.pendingSkill = null;
+    useSkill(state, head, skill, pending.aim, rules);
+    return;
+  }
+  // Waiting makes sense only for a target still to come into reach, or a skill still cooling down.
+  if (block !== 'outOfReach' && block !== 'cooldown' && block !== 'asleep') {
+    head.pendingSkill = null;
+    state.events.push({ type: 'skill', tick: state.tick, headId: head.id, skillId: skill.id, at: null, worked: false });
+  }
+}
+
 function pickHeadTarget(state: BattleState, head: BattleHead, rules: BattleRules): Enemy | null {
+  // A head holding a human keeps at it.
+  if (head.holdingId !== null) {
+    const held = state.enemies.find((e) => e.id === head.holdingId);
+    if (held) return held;
+  }
   if (head.orderTargetId !== null) {
     const ordered = state.enemies.find((e) => e.id === head.orderTargetId);
     if (!ordered) head.orderTargetId = null;
@@ -192,10 +356,13 @@ function pickHeadTarget(state: BattleState, head: BattleHead, rules: BattleRules
   }
   // By itself: of the enemies in reach, the one nearest to this head's side of the body (keeping the current one on a tie).
   // So heads left alone spread out over the enemies; ganging up on one (and setting off combos) takes an order.
+  // Heads leave kneeling (Entranced) humans alone unless ordered: hitting them would wake them up.
   const side = anchorHex(state.body.center, head.anchorAngle);
   const inReach = state.enemies.filter((e) => canHeadReach(state, head, e, rules));
-  const best = minBy(inReach, (e) => hexDistance(side, e.hex));
-  const current = inReach.find((e) => e.id === head.targetId);
+  const awake = inReach.filter((e) => !e.statuses.some((s) => rules.statuses[s.id]!.endsOnDamage));
+  const candidates = awake.length > 0 ? awake : inReach;
+  const best = minBy(candidates, (e) => hexDistance(side, e.hex));
+  const current = candidates.find((e) => e.id === head.targetId);
   if (current && best && hexDistance(side, current.hex) <= hexDistance(side, best.hex)) return current;
   return best;
 }
@@ -203,10 +370,54 @@ function pickHeadTarget(state: BattleState, head: BattleHead, rules: BattleRules
 /** A head's attack hits: damage, then combos with what is already on the target, then what this attack leaves behind. */
 function headAttackLands(state: BattleState, head: BattleHead, target: Enemy, attack: HeadAttackRules, rules: BattleRules): void {
   const at = target.hex;
-  hurtEnemy(state, target, Math.max(1, attack.damage - enemyArmor(target, rules)), 'head', head.id);
-  triggerCombos(state, 'headHitsEnemy', target, attack.tags, rules);
-  if (attack.appliesStatus !== null && state.enemies.includes(target)) applyStatus(state, target, attack.appliesStatus, rules);
-  if (attack.createsMistCloud) createMistCloud(state, at, rules);
+  const hit: HitContext = { head, tags: attack.tags, hitDamage: 0, power: 1, keepEntranced: false };
+  if (attack.damage > 0) hit.hitDamage = hurtEnemy(state, target, Math.max(1, attack.damage - enemyArmor(target, rules)), 'head', head.id, rules, false);
+  if (!state.enemies.includes(target)) {
+    // Killed by the bite: a Glutton eats what it killed.
+    if (attack.devourHeal > 0) afterMeal(state, target, attack.devourHeal, head, rules);
+    if (attack.createsMistCloud) createMistCloud(state, at, rules, undefined, undefined, head.id);
+    return;
+  }
+  triggerCombos(state, 'headHitsEnemy', target, hit, rules);
+  if (state.enemies.includes(target)) {
+    if (attack.appliesStatus !== null) applyStatus(state, target, attack.appliesStatus, rules, attack.statusTicks);
+    if (attack.randomEffects.length > 0 && random(state) < attack.randomEffectChance) {
+      const effect = randomPick(state, attack.randomEffects);
+      applyEffect(state, target, effect, hit, rules);
+      state.events.push({ type: 'mischief', tick: state.tick, headId: head.id, effect: effect.type === 'status' ? effect.status : effect.type, at });
+    }
+  }
+  if (attack.createsMistCloud) createMistCloud(state, at, rules, undefined, undefined, head.id);
+  if (!state.enemies.includes(target)) return;
+  rememberHit(state, target, head, attack.tags, rules);
+  if (hit.hitDamage > 0 && !hit.keepEntranced) wakeUp(state, target, rules);
+}
+
+// ---------------------------------------------------------------- the Spare's Bad Idea
+
+function updateBadIdea(state: BattleState, rules: BattleRules): void {
+  const idea = state.badIdea;
+  if (!idea || idea.done) return;
+  if (state.tick === idea.atTick) {
+    const spare = state.heads.find((h) => h.id === idea.headId);
+    if (!spare || state.enemies.length === 0) {
+      idea.done = true;
+      return;
+    }
+    // Everyone goes for one random human, wherever it is. The old orders come back afterwards.
+    const victim = randomPick(state, state.enemies);
+    for (const head of state.heads) {
+      idea.savedOrders[head.id] = head.orderTargetId;
+      head.orderTargetId = victim.id;
+    }
+    state.events.push({ type: 'badIdea', tick: state.tick, headId: spare.id, enemyId: victim.id });
+  } else if (state.tick >= idea.untilTick && state.tick > idea.atTick) {
+    for (const head of state.heads) {
+      if (head.id in idea.savedOrders) head.orderTargetId = idea.savedOrders[head.id] ?? null;
+    }
+    idea.done = true;
+  }
+  void rules;
 }
 
 // ---------------------------------------------------------------- enemies
@@ -216,20 +427,42 @@ function updateEnemy(state: BattleState, enemy: Enemy, rules: BattleRules): void
   const type = rules.enemyTypes[enemy.typeId]!;
   if (enemy.cooldown > 0) enemy.cooldown -= 1;
   if (state.tick < enemy.stepEndTick) return; // still on the way to its next hex
+  const canWalk = enemyCan(enemy, 'canWalk', rules);
 
-  if (type.behavior === 'torchbearer' && type.cauterizeTicks !== null && canCauterize(state, enemy, rules) && tendStump(state, enemy, type.cauterizeTicks, rules)) return;
-  enemy.cauterizingStumpId = null;
-
-  const target = pickEnemyTarget(state, enemy, rules);
-  if (target) {
-    if (enemy.cooldown <= 0) {
-      enemy.cooldown = type.attack.cooldownTicks;
-      if (target === 'body') damageBody(state, type.attack.damage, enemy.id);
-      else damageHead(state, target, type.attack.damage * type.bonusDamageVsHeads, enemy.id, rules);
+  // A false light draws it in, and it kneels there.
+  const beacon = beaconFor(state, enemy, rules);
+  if (beacon) {
+    enemy.cauterizingStumpId = null;
+    if (hexDistance(enemy.hex, beacon.at) <= 1) {
+      if (beacon.kneel) applyStatus(state, enemy, 'entranced', rules, rules.ticksPerSecond);
+      if (beacon.takesTorches && type.cauterizeTicks !== null) enemy.torchOutUntilTick = Number.MAX_SAFE_INTEGER;
+      return;
     }
+    if (canWalk) walk(state, enemy, freeHexes(state, enemy, rules).filter((h) => hexDistance(h, beacon.at) <= 1), rules);
     return;
   }
-  walk(state, enemy, attackSpots(state, enemy, rules), rules);
+
+  if (enemyFlees(enemy, rules)) {
+    enemy.cauterizingStumpId = null;
+    if (canWalk) fleeStep(state, enemy, rules);
+    return;
+  }
+
+  if (type.behavior === 'torchbearer' && type.cauterizeTicks !== null && canCauterize(state, enemy, rules) && tendStump(state, enemy, type.cauterizeTicks, canWalk, rules)) return;
+  enemy.cauterizingStumpId = null;
+
+  if (enemyCan(enemy, 'canAttack', rules)) {
+    const target = pickEnemyTarget(state, enemy, rules);
+    if (target) {
+      if (enemy.cooldown <= 0) {
+        enemy.cooldown = type.attack.cooldownTicks;
+        if (target === 'body') damageBody(state, type.attack.damage, enemy.id);
+        else damageHead(state, target, type.attack.damage * type.bonusDamageVsHeads, enemy.id, rules);
+      }
+      return;
+    }
+  }
+  if (canWalk) walk(state, enemy, attackSpots(state, enemy, rules), rules);
 }
 
 /**
@@ -239,7 +472,7 @@ function updateEnemy(state: BattleState, enemy: Enemy, rules: BattleRules): void
 function pickEnemyTarget(state: BattleState, enemy: Enemy, rules: BattleRules): BattleHead | 'body' | null {
   const type = rules.enemyTypes[enemy.typeId]!;
   const inReach = state.heads.filter((h) => hexDistance(enemy.hex, headHex(state, h, rules)) <= type.attack.range);
-  const biter = inReach.find((h) => h.targetId === enemy.id && rules.headClasses[h.classId]!.attack.melee);
+  const biter = inReach.find((h) => (h.targetId === enemy.id && rules.headClasses[h.classId]!.attack.melee) || h.holdingId === enemy.id);
   const head = biter ?? minBy(inReach, (h) => h.hp);
   if (head) return head;
   const bodyInReach = bodyDistance(state.body.center, enemy.hex) <= type.attack.range;
@@ -261,7 +494,7 @@ function attackSpots(state: BattleState, enemy: Enemy, rules: BattleRules): Hex[
 
 /** Board hexes this enemy could stand on: not under the body, not taken by another enemy (its own hex counts as free). */
 function freeHexes(state: BattleState, enemy: Enemy, rules: BattleRules): Hex[] {
-  const taken = new Set(state.enemies.filter((e) => e !== enemy).map((e) => hexKey(e.hex)));
+  const taken = takenHexes(state, enemy);
   return boardHexes(rules).filter((h) => bodyDistance(state.body.center, h) > 0 && !taken.has(hexKey(h)));
 }
 
@@ -272,7 +505,7 @@ function walk(state: BattleState, enemy: Enemy, goals: readonly Hex[], rules: Ba
   const field = distanceField(goals, (h) => isOnBoard(h, rules) && bodyDistance(center, h) > 0);
   const here = field.get(hexKey(enemy.hex));
   if (here === undefined || here === 0) return;
-  const taken = new Set(state.enemies.filter((e) => e !== enemy).map((e) => hexKey(e.hex)));
+  const taken = takenHexes(state, enemy);
   let next: Hex | null = null;
   let nextSteps = here;
   for (const neighbor of hexNeighbors(enemy.hex)) {
@@ -281,7 +514,20 @@ function walk(state: BattleState, enemy: Enemy, goals: readonly Hex[], rules: Ba
     next = neighbor;
     nextSteps = steps;
   }
-  if (!next) return;
+  if (next) stepTo(state, enemy, next, rules);
+}
+
+/** Terrified: one step further from the body, if there is a free hex further away. */
+function fleeStep(state: BattleState, enemy: Enemy, rules: BattleRules): void {
+  const center = state.body.center;
+  const taken = takenHexes(state, enemy);
+  const here = hexDistance(center, enemy.hex);
+  const away = hexNeighbors(enemy.hex).filter((n) => isOnBoard(n, rules) && !taken.has(hexKey(n)) && hexDistance(center, n) > here);
+  const next = minBy(away, (n) => angleDifference(hexAngle(center, n), hexAngle(center, enemy.hex)));
+  if (next) stepTo(state, enemy, next, rules);
+}
+
+function stepTo(state: BattleState, enemy: Enemy, next: Hex, rules: BattleRules): void {
   enemy.stepFrom = enemy.hex;
   enemy.hex = next;
   enemy.stepStartTick = state.tick;
@@ -289,15 +535,16 @@ function walk(state: BattleState, enemy: Enemy, goals: readonly Hex[], rules: Ba
 }
 
 /** Returns true if the Torchbearer spent this tick on a stump (walking to it or burning it). */
-function tendStump(state: BattleState, enemy: Enemy, cauterizeTicks: number, rules: BattleRules): boolean {
+function tendStump(state: BattleState, enemy: Enemy, cauterizeTicks: number, canWalk: boolean, rules: BattleRules): boolean {
   const center = state.body.center;
-  const open = state.stumps.filter((s) => !s.cauterized);
+  const open = state.stumps.filter((s) => !s.cauterized && state.tick >= (s.protectedUntilTick ?? 0));
   const stump = open.find((s) => s.id === enemy.cauterizingStumpId) ?? minBy(open, (s) => hexDistance(enemy.hex, anchorHex(center, s.anchorAngle)));
   if (!stump) return false;
 
   const spot = anchorHex(center, stump.anchorAngle);
   if (hexDistance(enemy.hex, spot) > 1) {
     enemy.cauterizingStumpId = null;
+    if (!canWalk) return false;
     const nextToStump = freeHexes(state, enemy, rules).filter((h) => hexDistance(h, spot) === 1);
     if (nextToStump.length === 0) return false; // no room at the stump: fight instead
     walk(state, enemy, nextToStump, rules);
@@ -316,8 +563,16 @@ function tendStump(state: BattleState, enemy: Enemy, cauterizeTicks: number, rul
 function damageHead(state: BattleState, head: BattleHead, damage: number, attackerId: number, rules: BattleRules): void {
   head.hp -= damage;
   state.events.push({ type: 'hit', tick: state.tick, attacker: 'enemy', attackerId, targetKind: 'head', targetId: head.id, damage, at: headHex(state, head, rules) });
+  if (head.holdingId !== null) {
+    head.hurtWhileHolding += damage;
+    const held = state.enemies.find((e) => e.id === head.holdingId);
+    const hold = held?.statuses.find((s) => s.sourceHeadId === head.id);
+    const breaksAt = hold ? rules.statuses[hold.id]!.breaksWhenHolderTakes : null;
+    if (breaksAt !== null && head.hurtWhileHolding >= breaksAt) breakHold(state, head, rules);
+  }
   if (head.hp > 0) return;
   // Severed: the head is gone, a stump stays where its neck was.
+  if (head.holdingId !== null) breakHold(state, head, rules);
   state.heads = state.heads.filter((h) => h !== head);
   const stump: Stump = {
     id: state.nextId++,
@@ -328,6 +583,19 @@ function damageHead(state: BattleState, head: BattleHead, damage: number, attack
   };
   state.stumps.push(stump);
   state.events.push({ type: 'severed', tick: state.tick, headId: head.id, name: head.name, stumpId: stump.id });
+  twinLoss(state, head, rules);
+}
+
+/** Heads from the same stump take the loss badly: each falls into a rage or into grief (random) for a while. */
+function twinLoss(state: BattleState, lost: BattleHead, rules: BattleRules): void {
+  if (lost.twinGroup === null) return;
+  for (const twin of state.heads) {
+    if (twin.twinGroup !== lost.twinGroup) continue;
+    const mood = random(state) < 0.5 ? 'rage' : 'grief';
+    const multiplier = mood === 'rage' ? rules.twinLoss.rageAttackSpeed : rules.twinLoss.griefAttackSpeed;
+    twin.buffs.push({ kind: 'attackSpeed', multiplier, untilTick: state.tick + rules.twinLoss.ticks, mood });
+    state.events.push({ type: 'mood', tick: state.tick, headId: twin.id, mood });
+  }
 }
 
 function damageBody(state: BattleState, damage: number, attackerId: number): void {
@@ -337,15 +605,18 @@ function damageBody(state: BattleState, damage: number, attackerId: number): voi
 
 // ---------------------------------------------------------------- regrowth & end
 
-/** Grows two heads from each due stump (or from every open stump when `all` is true). */
-function regrowStumps(state: BattleState, rules: BattleRules, rng: Rng, all: boolean): void {
+/** Grows two heads (three after Triplets) from each due stump (or from every open stump when `all` is true). */
+function regrowStumps(state: BattleState, rules: BattleRules, all: boolean): void {
   const due = state.stumps.filter((s) => !s.cauterized && (all || state.tick >= s.regrowAtTick));
   for (const stump of due) {
     state.stumps = state.stumps.filter((s) => s !== stump);
-    const count = Math.min(2, rules.maxHeads - state.heads.length);
+    const wanted = state.nextRegrowthHeads ?? 2;
+    state.nextRegrowthHeads = null;
+    const count = Math.max(0, Math.min(wanted, rules.maxHeads - state.heads.length));
     const headIds: string[] = [];
     for (let i = 0; i < count; i++) {
-      const head = hatchling(state, rules, rng, stump.anchorAngle + (i === 0 ? -TWIN_SPREAD : TWIN_SPREAD), stump.id);
+      const spread = count === 1 ? 0 : -TWIN_SPREAD + (2 * TWIN_SPREAD * i) / (count - 1);
+      const head = hatchling(state, rules, stump.anchorAngle + spread, stump.id);
       state.heads.push(head);
       headIds.push(head.id);
     }
@@ -354,24 +625,20 @@ function regrowStumps(state: BattleState, rules: BattleRules, rng: Rng, all: boo
   }
 }
 
-function hatchling(state: BattleState, rules: BattleRules, rng: Rng, anchorAngle: number, twinGroup: number): BattleHead {
-  const classId = rng.pick(rules.hatchlingClassPool);
+function hatchling(state: BattleState, rules: BattleRules, anchorAngle: number, twinGroup: number): BattleHead {
+  const classId = randomPick(state, rules.hatchlingClassPool);
   const cls = rules.headClasses[classId]!;
   const taken = new Set(state.heads.map((h) => h.name));
   const freeNames = rules.headNames.filter((name) => !taken.has(name));
-  return {
+  const record: HeadRecord = {
     id: `h${state.nextId++}`,
-    name: rng.pick(freeNames.length > 0 ? freeNames : rules.headNames),
+    name: randomPick(state, freeNames.length > 0 ? freeNames : rules.headNames),
     classId,
     level: 1,
     hp: cls.maxHp,
     maxHp: cls.maxHp,
-    anchorAngle,
-    cooldown: 0,
-    orderTargetId: null,
-    targetId: null,
-    twinGroup,
   };
+  return battleHead(record, anchorAngle, twinGroup, rules);
 }
 
 function checkOutcome(state: BattleState): void {
@@ -395,14 +662,12 @@ export interface BattleResult {
 /** What goes back to the map. Stumps still waiting to regrow do so right away. */
 export function battleResult(state: BattleState, rules: BattleRules): BattleResult {
   if (!state.outcome) throw new Error('battleResult() called before the battle ended');
-  const rng = Rng.fromState(state.rngState);
   const newScars = state.stumps.filter((s) => s.cauterized).length;
-  regrowStumps(state, rules, rng, true);
-  state.rngState = rng.getState();
+  regrowStumps(state, rules, true);
   return {
     outcome: state.outcome,
     bodyHp: Math.max(0, state.body.hp),
-    heads: state.heads.map(({ id, name, classId, level, hp, maxHp }) => ({ id, name, classId, level, hp, maxHp })),
+    heads: state.heads.map(({ id, name, classId, level, hp, maxHp, skills }) => ({ id, name, classId, level, hp, maxHp, skills: [...skills] })),
     newScars,
     nextId: state.nextId,
   };

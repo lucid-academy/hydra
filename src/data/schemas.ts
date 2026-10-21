@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { DECORATION_KINDS } from '../assets/mapArt';
 import { DEAD_END_CONTENTS, PATCH_FINDS } from '../sim/map';
+import { effectSchema, rummageFindSchema, skillSchema, statusesIn } from './battleSchemas';
 
 const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'expected a color like "#1a2b3c"');
 
@@ -161,16 +162,34 @@ export const headsSchema = section({
       color: hexColor,
       maxHp: z.number().positive(),
       attack: attackSchema.extend({
+        // The attack's name, shown on the head card.
+        name: z.string().min(1).optional(),
         // true = the head goes out to bite its target, and can be hit back there.
         melee: z.boolean().optional(),
         tags: z.array(z.string()),
-        // Status (from combos.json) put on the enemy this attack hits.
+        // Status (from combos.json) put on the enemy this attack hits, and for how long (leave out for the status's own duration).
         appliesStatus: z.string().min(1).optional(),
+        statusSeconds: z.number().positive().optional(),
         // The attack leaves a Mist cloud where it lands.
         createsMistCloud: z.boolean().optional(),
+        // Killing a human with this attack eats it and heals the body by this much (Glutton).
+        devourHeal: z.number().min(0).optional(),
+        // The head licks the most wounded head first and heals it by this much (Tender).
+        healsHeads: z.number().min(0).optional(),
+        // Chance that a hit also does one of randomEffects (The Spare).
+        randomEffectChance: z.number().min(0).max(1).optional(),
+        randomEffects: z.array(effectSchema).optional(),
       }),
+      // Three skill ids from "skills" below: a head takes two of them into battle (keys Q and W).
+      skills: z.array(z.string().min(1)).length(3),
+      // The ultimate skill (key E).
+      ultimate: z.string().min(1).optional(),
+      // Once per battle the head takes over for a while (The Spare's Bad Idea).
+      badIdea: section({ seconds: z.number().positive(), earliestSecond: z.number().min(0), latestSecond: z.number().min(0) }).optional(),
     }),
   ),
+  skills: z.record(z.string(), skillSchema),
+  rummage: z.array(rummageFindSchema),
   names: z.array(z.string().min(1)).min(9),
 }).superRefine((data, ctx) => {
   // Class names used in lists must exist in "classes".
@@ -181,6 +200,33 @@ export const headsSchema = section({
       }
     });
   }
+  for (const [classId, cls] of Object.entries(data.classes)) {
+    const used = [...cls.skills, ...(cls.ultimate ? [cls.ultimate] : [])];
+    used.forEach((skillId, i) => {
+      if (!(skillId in data.skills)) {
+        const path = i < cls.skills.length ? ['classes', classId, 'skills', i] : ['classes', classId, 'ultimate'];
+        ctx.addIssue({ code: 'custom', path, message: `unknown skill "${skillId}"; known: ${Object.keys(data.skills).join(', ')}` });
+      }
+    });
+    if (new Set(cls.skills).size !== cls.skills.length) ctx.addIssue({ code: 'custom', path: ['classes', classId, 'skills'], message: 'the same skill is listed twice' });
+    if (cls.badIdea && cls.badIdea.earliestSecond > cls.badIdea.latestSecond) {
+      ctx.addIssue({ code: 'custom', path: ['classes', classId, 'badIdea'], message: 'earliestSecond must not be after latestSecond' });
+    }
+  }
+  for (const [skillId, skill] of Object.entries(data.skills)) {
+    const aimed = skill.target === 'enemy' || skill.target === 'hex';
+    if (aimed && skill.range === undefined) ctx.addIssue({ code: 'custom', path: ['skills', skillId, 'range'], message: `a skill aimed at a${skill.target === 'enemy' ? 'n enemy' : ' hex'} needs a range` });
+    if (skill.hitMultiplier && skill.target !== 'enemy') ctx.addIssue({ code: 'custom', path: ['skills', skillId, 'hitMultiplier'], message: 'only skills aimed at an enemy can hit' });
+    const area = skill.area?.shape ?? 'single';
+    if ((area === 'single' || area === 'nearest') && skill.target !== 'enemy' && (skill.effects ?? []).length > 0) {
+      ctx.addIssue({ code: 'custom', path: ['skills', skillId, 'area'], message: `area "${area}" needs a skill aimed at an enemy` });
+    }
+  }
+  data.rummage.forEach((find, i) => {
+    if (find.type === 'healClass' && !(find.classId in data.classes)) {
+      ctx.addIssue({ code: 'custom', path: ['rummage', i, 'classId'], message: `unknown head class "${find.classId}"` });
+    }
+  });
 });
 
 export const ENEMY_BEHAVIORS = ['fighter', 'headhunter', 'torchbearer'] as const;
@@ -198,6 +244,8 @@ export const enemiesSchema = section({
       bonusDamageVsHeads: z.number().positive().optional(),
       cauterizeSeconds: z.number().positive().optional(),
       behavior: z.enum(ENEMY_BEHAVIORS),
+      // Statuses (combos.json) that never take hold on this type, e.g. knights and "terrified".
+      immuneTo: z.array(z.string().min(1)).optional(),
     }),
   ),
   encounterGroups: z
@@ -280,19 +328,7 @@ export const shrinesSchema = section({
   });
 });
 
-export const COMBO_TRIGGERS = ['headHitsEnemy', 'enemyInMist'] as const;
-
-const comboEffectSchema = z.discriminatedUnion('type', [
-  // Extra damage that ignores armor.
-  section({ type: z.literal('damage'), amount: z.number().positive() }),
-  // The enemy's armor is gone for the rest of the battle.
-  section({ type: z.literal('breakArmor') }),
-  section({ type: z.literal('removeStatus'), status: z.string().min(1) }),
-  // The Mist cloud the enemy stands in hurts everyone inside it for a while.
-  section({ type: z.literal('acidifyMist'), damagePerSecond: z.number().positive(), seconds: z.number().positive() }),
-  // The enemy can't cauterize stumps for a while.
-  section({ type: z.literal('putOutTorch'), seconds: z.number().positive() }),
-]);
+export const COMBO_TRIGGERS = ['headHitsEnemy', 'enemyInMist', 'enemyDevoured', 'beaconLit'] as const;
 
 export const combosSchema = section({
   statuses: z.record(
@@ -306,6 +342,19 @@ export const combosSchema = section({
       damagePerSecond: z.number().min(0),
       // 1 = normal speed, 0.5 = half speed.
       speedMultiplier: z.number().positive(),
+      // false = the enemy can't (leave out for true).
+      canWalk: z.boolean().optional(),
+      canAttack: z.boolean().optional(),
+      // Cauterizing stumps, praying.
+      canChannel: z.boolean().optional(),
+      // The enemy runs away from the body.
+      flees: z.boolean().optional(),
+      // 1.25 = the enemy takes 25% more damage.
+      damageTakenMultiplier: z.number().positive().optional(),
+      // Any damage ends the status.
+      endsOnDamage: z.boolean().optional(),
+      // For holds: the hold breaks when the holding head takes this much damage.
+      breaksWhenHolderTakes: z.number().positive().optional(),
     }),
   ),
   mistCloud: section({
@@ -314,22 +363,48 @@ export const combosSchema = section({
     durationSeconds: z.number().positive(),
     appliesStatus: z.string().min(1).optional(),
   }),
+  // How long a head's hit is remembered on a human, for combos that need several heads.
+  hitMemorySeconds: z.number().positive(),
+  twinLoss: section({ seconds: z.number().positive(), rageAttackSpeed: z.number().positive(), griefAttackSpeed: z.number().positive() }),
+  spareMischief: section({ classId: z.string().min(1), chance: share, effects: z.array(effectSchema) }),
   combos: z.array(
     section({
       id: z.string().min(1),
       displayName: z.string().min(1),
-      // What sets the combo off: a head's attack landing, or an enemy standing in a Mist cloud.
+      // What sets the combo off: a head's attack landing, an enemy standing in a Mist cloud, a head eating someone, or a Beacon being lit.
       when: z.enum(COMBO_TRIGGERS),
       // All listed conditions must hold. Leave one out to not care about it.
       conditions: section({
         attackTag: z.string().min(1).optional(),
+        // The class of the head that hit.
+        headClass: z.string().min(1).optional(),
         enemyHasStatus: z.string().min(1).optional(),
         enemyInMist: z.boolean().optional(),
         enemyCarriesFire: z.boolean().optional(),
         // false = only while the enemy's armor is still whole (so an armor-breaking combo lands once per enemy).
         enemyArmorBroken: z.boolean().optional(),
+        // The enemy has less than this share of its HP left (0.5 = under half).
+        enemyHpBelow: z.number().positive().max(1).optional(),
+        // Other heads that hit the same enemy shortly before: how many, how shortly, and which ones count.
+        otherHeads: section({
+          count: z.number().int().min(1),
+          withinSeconds: z.number().positive(),
+          sameClass: z.boolean().optional(),
+          sameStump: z.boolean().optional(),
+          oppositeSide: z.boolean().optional(),
+          tag: z.string().min(1).optional(),
+        }).optional(),
+        // beaconLit only.
+        beaconInMist: z.boolean().optional(),
+        terrifiedOnBoard: z.boolean().optional(),
       }),
-      effects: z.array(comboEffectSchema).min(1),
+      effects: z.array(effectSchema).optional(),
+      // beaconLit only: how the beacon changes.
+      beacon: section({ extraRadius: z.number().int().min(0).optional(), takesTorches: z.boolean().optional(), callsTerrified: z.boolean().optional() }).optional(),
+      // The same combo can't go off on the same human again for this long.
+      cooldownSeconds: z.number().positive().optional(),
+      // What the heads say when it goes off, in order. speaker: a head class id, "any" (any head) or "enemy" (the human).
+      lines: z.array(section({ speaker: z.string().min(1), text: z.string().min(1) })).optional(),
     }),
   ),
 }).superRefine((data, ctx) => {
@@ -338,17 +413,20 @@ export const combosSchema = section({
     if (id !== undefined && !known.includes(id)) ctx.addIssue({ code: 'custom', path, message: `unknown status "${id}"; known: ${known.join(', ')}` });
   };
   check(data.mistCloud.appliesStatus, ['mistCloud', 'appliesStatus']);
+  statusesIn(data.spareMischief.effects).forEach((id) => check(id, ['spareMischief', 'effects']));
   const ids = new Set<string>();
   data.combos.forEach((combo, c) => {
     if (ids.has(combo.id)) ctx.addIssue({ code: 'custom', path: ['combos', c, 'id'], message: `combo id "${combo.id}" is used twice` });
     ids.add(combo.id);
     check(combo.conditions.enemyHasStatus, ['combos', c, 'conditions', 'enemyHasStatus']);
-    if (combo.when === 'enemyInMist' && combo.conditions.attackTag !== undefined) {
-      ctx.addIssue({ code: 'custom', path: ['combos', c, 'conditions', 'attackTag'], message: 'attackTag only works with "when": "headHitsEnemy"' });
+    if (combo.when !== 'headHitsEnemy' && (combo.conditions.attackTag !== undefined || combo.conditions.otherHeads !== undefined)) {
+      ctx.addIssue({ code: 'custom', path: ['combos', c, 'conditions'], message: 'attackTag and otherHeads only work with "when": "headHitsEnemy"' });
     }
-    combo.effects.forEach((effect, e) => {
-      if (effect.type === 'removeStatus') check(effect.status, ['combos', c, 'effects', e, 'status']);
-    });
+    if ((combo.when === 'beaconLit') !== (combo.beacon !== undefined)) {
+      ctx.addIssue({ code: 'custom', path: ['combos', c, 'beacon'], message: '"beacon" goes with "when": "beaconLit", and only there' });
+    }
+    if (combo.when !== 'beaconLit' && (combo.effects ?? []).length === 0) ctx.addIssue({ code: 'custom', path: ['combos', c, 'effects'], message: 'needs at least one effect' });
+    statusesIn(combo.effects).forEach((id) => check(id, ['combos', c, 'effects']));
   });
 });
 

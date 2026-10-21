@@ -355,7 +355,8 @@ describe('severing, regrowth and cauterizing', () => {
 
   it('never grows past the head limit', () => {
     const r = { ...rules, maxHeads: 3 };
-    const s = createBattle({ seed: 3, heads: heads('biter', 'biter', 'biter'), bodyHp: 150, bodyMaxHp: 150, enemies: ['manAtArms'], firstFreeId: 10 }, r);
+    // Mist Breathers: three Biters at one enemy would knock it over (Pincer) before it cuts the first head off.
+    const s = createBattle({ seed: 3, heads: heads('mistBreather', 'mistBreather', 'mistBreather'), bodyHp: 150, bodyMaxHp: 150, enemies: ['manAtArms'], firstFreeId: 10 }, r);
     s.heads[0]!.hp = 1;
     const e = s.enemies[0]!;
     place(e, hex(2, 0));
@@ -485,7 +486,8 @@ describe('statuses, mist clouds and combos', () => {
       stepBattle(s, rules);
       for (const e of s.events) if (e.type === 'combo') seen.push(e.comboId);
     }
-    expect(seen).toEqual(['smother']);
+    // Smothered once; the two new heads from the stump may then set off Twin Bond on it, which is fine.
+    expect(seen.filter((id) => id === 'smother')).toEqual(['smother']);
     expect(s.stumps).toHaveLength(0);
     expect(s.heads).toHaveLength(2);
   });

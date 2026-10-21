@@ -74,8 +74,8 @@ describe('combos.json', () => {
 
   it('catches a head attack with a status that combos.json does not know', () => {
     const heads = structuredClone(data.heads);
-    heads.classes.acidSpitter!.attack.appliesStatus = 'melted';
-    expect(() => checkCrossReferences({ heads, combos: data.combos })).toThrow(/heads\.json[\s\S]*unknown status "melted"/);
+    heads.classes.acidSpitter!.attack.appliesStatus = 'molten';
+    expect(() => checkCrossReferences({ heads, combos: data.combos })).toThrow(/heads\.json[\s\S]*unknown status "molten"/);
   });
 
   it('catches a combo waiting for an attack tag no head has', () => {

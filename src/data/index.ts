@@ -15,6 +15,7 @@ import mutationsJson from './mutations.json';
 import lineageJson from './lineage.json';
 import flagsJson from './flags.json';
 import manifestJson from '../assets/manifest.json';
+import { battleProblems } from './battleChecks';
 import { balanceSchema, biomesSchema, combosSchema, dialoguesSchema, eventsSchema, flagsSchema, lineageSchema, mutationsSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, textSchema, worldSchema } from './schemas';
 import type {
   AssetManifest,
@@ -89,11 +90,12 @@ export function checkCrossReferences(
       problems.push(`  - src/data/heads.json, classes.${id}.attack.appliesStatus: unknown status "${status}"; known (from combos.json): ${statuses.join(', ')}`);
     }
   }
-  const tags = new Set(Object.values(data.heads.classes).flatMap((cls) => cls.attack.tags));
+  problems.push(...battleProblems(data.heads, data.combos, data.enemies));
+  const tags = new Set([...Object.values(data.heads.classes).flatMap((cls) => cls.attack.tags), ...Object.values(data.heads.skills).flatMap((s) => s.tags ?? [])]);
   data.combos.combos.forEach((combo, c) => {
     const tag = combo.conditions.attackTag;
     if (tag !== undefined && !tags.has(tag)) {
-      problems.push(`  - src/data/combos.json, combos.${c}.conditions.attackTag: no head attack has the tag "${tag}"; known (from heads.json): ${[...tags].join(', ')}`);
+      problems.push(`  - src/data/combos.json, combos.${c}.conditions.attackTag: no head attack or skill has the tag "${tag}"; known (from heads.json): ${[...tags].join(', ')}`);
     }
   });
   if (data.balance && data.enemies) {
