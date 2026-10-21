@@ -1,1 +1,468 @@
-{"speakers":{"toad":"Old Mother Toad","serpent":"The Serpent"},"serpentVoice":{"minTurnsBetween":4,"chancePerTurn":0.35,"battleChance":0.4},"dialogues":[]}
+{
+  "//": "TODO(design): first batch of dialogues, written by Claude for M5 (GAME_DESIGN.md §1, §11, §14); change them freely. trigger: when the dialogue can come up: afterBattle, newBiome (first step into a biome), enemyAhead (an encounter is about to start), restInLair (end of a turn in the lair: Old Mother Toad), serpentOnTheWay (end of a turn away from the lair, now and then), serpentInBattle (one short line over the battle, only the first line is used), eventOnly (only when an event's choice asks for it by id). Of the dialogues that fit, the one with the highest priority comes up (ties: random). once: said at most once per run (default true). conditions (all must hold; leave one out to not care): rings, biomes (where the hydra stands, or the new biome), flags, notFlags, minAlert, maxAlert, minTurn, headClasses, minHeads, maxHeads, won, severedAtLeast, grownAtLeast, cauterizedAtLeast (in the battle just fought, or heads grown at rest), newEnemyTypes (met for the first time). speaker: toad, serpent, head:any (any head), head:other (a different head), head:new (a head that just grew), head:<class id> (a head of that class, e.g. head:biter). If the heads can't be found, the dialogue is skipped. In a text {any}, {other}, {new} are those heads' names and {biome} the biome's name. setFlags: flags set when said; a choice can set its own and has a reply.",
+
+  "speakers": { "toad": "Old Mother Toad", "serpent": "The Great Serpent" },
+
+  "serpentVoice": {
+    "//": "How often the Serpent speaks on the way: at most once every minTurnsBetween turns, then with chancePerTurn at the end of each turn. battleChance: chance of a short line at the start of a battle.",
+    "minTurnsBetween": 4,
+    "chancePerTurn": 0.35,
+    "battleChance": 0.4
+  },
+
+  "dialogues": [
+    {
+      "id": "afterFirstWin",
+      "trigger": "afterBattle",
+      "priority": 10,
+      "conditions": { "won": true },
+      "lines": [
+        { "speaker": "head:biter", "text": "I bit him. You're welcome." },
+        { "speaker": "head:acidSpitter", "text": "You bit him after I had dissolved most of him." },
+        { "speaker": "head:biter", "text": "Most of him is not him." },
+        { "speaker": "head:acidSpitter", "text": "That is exactly what most of him is." }
+      ]
+    },
+    {
+      "id": "afterCauterized",
+      "trigger": "afterBattle",
+      "priority": 8,
+      "conditions": { "cauterizedAtLeast": 1 },
+      "lines": [
+        { "speaker": "head:any", "text": "They burned the stump. They brought a torch to a neck." },
+        { "speaker": "head:other", "text": "It's only a scar. It heals if we rest in the lair." },
+        { "speaker": "head:any", "text": "It is not about healing. It is about manners." }
+      ]
+    },
+    {
+      "id": "afterFirstRegrowth",
+      "trigger": "afterBattle",
+      "priority": 7,
+      "conditions": { "grownAtLeast": 1 },
+      "lines": [
+        { "speaker": "head:new", "text": "Where are we?" },
+        { "speaker": "head:any", "text": "Underground. Fighting the Order. Try to keep up." },
+        { "speaker": "head:new", "text": "Who are you?" },
+        { "speaker": "head:any", "text": "Ask the one who used to be there. Oh. Right." }
+      ]
+    },
+    {
+      "id": "afterRegrowthCount",
+      "trigger": "afterBattle",
+      "priority": 5,
+      "conditions": { "grownAtLeast": 2 },
+      "lines": [
+        { "speaker": "head:any", "text": "We lost one and got two. I am trying to feel bad about it." },
+        { "speaker": "head:new", "text": "Hello! I'm one of the two." },
+        { "speaker": "head:any", "text": "It's getting easier." }
+      ]
+    },
+    {
+      "id": "afterMistPoem",
+      "trigger": "afterBattle",
+      "conditions": { "won": true },
+      "lines": [
+        { "speaker": "head:mistBreather", "text": "Was there... a fight? I was... composing." },
+        { "speaker": "head:biter", "text": "You breathed on a man until he fell over." },
+        { "speaker": "head:mistBreather", "text": "Then it was... a poem." }
+      ]
+    },
+    {
+      "id": "afterArmourCount",
+      "trigger": "afterBattle",
+      "conditions": { "won": true },
+      "lines": [
+        { "speaker": "head:acidSpitter", "text": "Fourteen plates of armour so far this run. I have been keeping count." },
+        { "speaker": "head:any", "text": "Nobody asked." },
+        { "speaker": "head:acidSpitter", "text": "Science does not wait to be asked." }
+      ]
+    },
+    {
+      "id": "afterTaste",
+      "trigger": "afterBattle",
+      "conditions": { "won": true },
+      "lines": [
+        { "speaker": "head:biter", "text": "The Order tastes of candle wax and paperwork." },
+        { "speaker": "head:acidSpitter", "text": "That is the paperwork. They keep it inside their armour." },
+        { "speaker": "head:biter", "text": "Why?" },
+        { "speaker": "head:acidSpitter", "text": "In case they are eaten. So the Order knows who was." }
+      ]
+    },
+    {
+      "id": "afterHighAlert",
+      "trigger": "afterBattle",
+      "priority": 3,
+      "conditions": { "won": true, "minAlert": 40 },
+      "lines": [
+        { "speaker": "head:any", "text": "They keep coming. Have they no other swamps to burn?" },
+        { "speaker": "head:other", "text": "I think we are the only swamp. I think that is the problem." }
+      ]
+    },
+
+    {
+      "id": "biomeFloodedCaves",
+      "trigger": "newBiome",
+      "priority": 5,
+      "conditions": { "biomes": ["floodedCaves"] },
+      "lines": [
+        { "speaker": "head:mistBreather", "text": "Water above... water below... I feel... understood." },
+        { "speaker": "head:biter", "text": "I feel wet." }
+      ]
+    },
+    {
+      "id": "biomeRootTangle",
+      "trigger": "newBiome",
+      "priority": 5,
+      "conditions": { "biomes": ["rootTangle"] },
+      "lines": [
+        { "speaker": "head:any", "text": "The roots are moving." },
+        { "speaker": "head:other", "text": "Roots do not move." },
+        { "speaker": "head:any", "text": "Then they are being very still at us." }
+      ]
+    },
+    {
+      "id": "biomeOldCrypts",
+      "trigger": "newBiome",
+      "priority": 5,
+      "conditions": { "biomes": ["oldCrypts"] },
+      "lines": [
+        { "speaker": "head:acidSpitter", "text": "Human graves. They bury their dead in rows, with the names written on." },
+        { "speaker": "head:biter", "text": "Labelled. Like a larder." },
+        { "speaker": "head:acidSpitter", "text": "That is not the point." },
+        { "speaker": "head:biter", "text": "It is a little bit the point." }
+      ]
+    },
+    {
+      "id": "biomeSaltMines",
+      "trigger": "newBiome",
+      "priority": 5,
+      "conditions": { "biomes": ["saltMines"] },
+      "lines": [
+        { "speaker": "head:any", "text": "Salt. Everything here wants to dry us out." },
+        { "speaker": "head:mistBreather", "text": "I will not... be cured... like a ham." }
+      ]
+    },
+    {
+      "id": "biomeFungalDeeps",
+      "trigger": "newBiome",
+      "priority": 5,
+      "conditions": { "biomes": ["fungalDeeps"] },
+      "setFlags": ["heardMycelium"],
+      "lines": [
+        { "speaker": "head:any", "text": "Strange. Just now, we all agreed on something." },
+        { "speaker": "head:other", "text": "I agreed first." },
+        { "speaker": "head:any", "text": "And it's gone." }
+      ]
+    },
+    {
+      "id": "biomeAny",
+      "trigger": "newBiome",
+      "lines": [
+        { "speaker": "head:any", "text": "{biome}. Nobody told us about {biome}." },
+        { "speaker": "head:other", "text": "Nobody tells us anything. We are a hydra." }
+      ]
+    },
+
+    {
+      "id": "firstManAtArms",
+      "trigger": "enemyAhead",
+      "priority": 5,
+      "conditions": { "newEnemyTypes": ["manAtArms"] },
+      "lines": [
+        { "speaker": "head:biter", "text": "Men in tin. My favourite." },
+        { "speaker": "head:acidSpitter", "text": "That is steel, not tin. It dissolves just the same. Slower. With more screaming." }
+      ]
+    },
+    {
+      "id": "firstHeadhunter",
+      "trigger": "enemyAhead",
+      "priority": 6,
+      "conditions": { "newEnemyTypes": ["headhunter"] },
+      "lines": [
+        { "speaker": "head:any", "text": "That one has an axe and is looking at our necks." },
+        { "speaker": "head:other", "text": "Which necks?" },
+        { "speaker": "head:any", "text": "All of them. He is making a list." }
+      ]
+    },
+    {
+      "id": "firstTorchbearer",
+      "trigger": "enemyAhead",
+      "priority": 7,
+      "conditions": { "newEnemyTypes": ["torchbearer"] },
+      "lines": [
+        { "speaker": "head:any", "text": "Fire. Why is it always fire?" },
+        { "speaker": "head:acidSpitter", "text": "They are the Order of the Eternal Flame. It is in the name." },
+        { "speaker": "head:mistBreather", "text": "I will put it out... gently... like a candle... like a man." }
+      ]
+    },
+    {
+      "id": "aheadHighAlert",
+      "trigger": "enemyAhead",
+      "priority": 2,
+      "conditions": { "minAlert": 50 },
+      "lines": [
+        { "speaker": "head:any", "text": "More of them. They have started sending the ones who volunteer." },
+        { "speaker": "head:other", "text": "The ones who volunteer are the worst. They have read about us." }
+      ]
+    },
+
+    {
+      "id": "toadWelcome",
+      "trigger": "restInLair",
+      "priority": 10,
+      "lines": [
+        { "speaker": "toad", "text": "Back in the swamp. Good. Lie still while I count your heads." },
+        { "speaker": "toad", "text": "I have buried eleven of you. You are not my favourite." },
+        { "speaker": "head:any", "text": "Which one was your favourite?" },
+        { "speaker": "toad", "text": "The quiet one. It died." }
+      ]
+    },
+    {
+      "id": "toadMask",
+      "trigger": "restInLair",
+      "priority": 9,
+      "conditions": { "flags": ["hushedMaskTaken"] },
+      "lines": [
+        { "speaker": "toad", "text": "Where did you find that." },
+        { "speaker": "toad", "text": "It's theirs. The Hushed. I've only ever seen drawings of these." },
+        { "speaker": "head:any", "text": "Is it valuable?" },
+        { "speaker": "toad", "text": "It's a face that never needed a mouth. Put it somewhere I can't see it." }
+      ]
+    },
+    {
+      "id": "toadSerpent",
+      "trigger": "restInLair",
+      "priority": 8,
+      "conditions": { "flags": ["heardSerpent"] },
+      "lines": [
+        { "speaker": "toad", "text": "You've been hearing things. Don't look at each other, I can tell." },
+        { "speaker": "toad", "text": "It's him. The Serpent. He talks in his sleep, and you lot are the only ones near enough to hear." },
+        { "speaker": "head:any", "text": "Why doesn't he talk to you?" },
+        { "speaker": "toad", "text": "He used to." }
+      ],
+      "choices": [
+        {
+          "text": "Tell her what he said.",
+          "setFlags": ["toadTold"],
+          "reply": [
+            { "speaker": "toad", "text": "Hm. He always did like a riddle. He never cared much for the answers." }
+          ]
+        },
+        {
+          "text": "Say nothing.",
+          "reply": [
+            { "speaker": "toad", "text": "Keep it, then. It's yours now. It used to be mine." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "toadMachine",
+      "trigger": "restInLair",
+      "priority": 8,
+      "conditions": { "flags": ["hushedMachineWoke"] },
+      "lines": [
+        { "speaker": "toad", "text": "Something turned over in its sleep today. I felt it in my knees." },
+        { "speaker": "toad", "text": "Whatever you did, do it carefully. Or not at all. Mostly not at all." }
+      ]
+    },
+    {
+      "id": "toadNewHeads",
+      "trigger": "restInLair",
+      "priority": 7,
+      "conditions": { "grownAtLeast": 1 },
+      "lines": [
+        { "speaker": "toad", "text": "Two new heads where the scar was. Let me look at you." },
+        { "speaker": "head:new", "text": "Hello. Are you our mother?" },
+        { "speaker": "toad", "text": "Nobody is your mother, dear. I'm just old." }
+      ]
+    },
+    {
+      "id": "toadHushed",
+      "trigger": "restInLair",
+      "priority": 6,
+      "conditions": { "flags": ["hushedCarving"] },
+      "lines": [
+        { "speaker": "toad", "text": "Those carvings you saw. The Hushed made them." },
+        { "speaker": "head:any", "text": "Who were the Hushed?" },
+        { "speaker": "toad", "text": "Very quiet people. That is most of what anyone knows about them." },
+        { "speaker": "toad", "text": "They kept his song in tune. Then they stopped. Nobody heard them leave. That was rather the point of them." }
+      ]
+    },
+    {
+      "id": "toadAncestor",
+      "trigger": "restInLair",
+      "priority": 6,
+      "conditions": { "flags": ["foundAncestor"] },
+      "lines": [
+        { "speaker": "toad", "text": "That skull you found. I knew her." },
+        { "speaker": "head:any", "text": "Was she your favourite?" },
+        { "speaker": "toad", "text": "No. But she was close." }
+      ]
+    },
+    {
+      "id": "toadDiscordant",
+      "trigger": "restInLair",
+      "priority": 5,
+      "conditions": { "flags": ["metDiscordant"] },
+      "lines": [
+        { "speaker": "toad", "text": "So you've met one of the Discordant. They hear him too. Bits of him. Bits are worse than nothing." },
+        { "speaker": "head:any", "text": "Are we Discordant?" },
+        { "speaker": "toad", "text": "Not yet." }
+      ]
+    },
+    {
+      "id": "toadSurvey",
+      "trigger": "restInLair",
+      "priority": 5,
+      "conditions": { "flags": ["surveyStamped"] },
+      "lines": [
+        { "speaker": "toad", "text": "Surveyed, are we? Officially?" },
+        { "speaker": "head:any", "text": "In red wax." },
+        { "speaker": "toad", "text": "Then you're safe. Right up until someone reads it." }
+      ]
+    },
+    {
+      "id": "toadMycelium",
+      "trigger": "restInLair",
+      "priority": 4,
+      "conditions": { "flags": ["heardMycelium"] },
+      "lines": [
+        { "speaker": "toad", "text": "You smell of the Deeps. Don't eat the glowing ones. Don't listen to them either." },
+        { "speaker": "toad", "text": "The Mycelium talks to everything at once. Not everything it talks to comes back." }
+      ]
+    },
+    {
+      "id": "toadOrder",
+      "trigger": "restInLair",
+      "priority": 3,
+      "conditions": { "minAlert": 30 },
+      "lines": [
+        { "speaker": "toad", "text": "The Order is talking about you up in the castle. I can smell their candles from here." },
+        { "speaker": "toad", "text": "They have a form for a swamp like ours. It has a box marked 'burned'." }
+      ]
+    },
+    {
+      "id": "toadSleep",
+      "trigger": "restInLair",
+      "conditions": { "minTurn": 6 },
+      "lines": [
+        { "speaker": "toad", "text": "Sleep, all of you. One at a time is fine. You never manage it together." }
+      ]
+    },
+
+    {
+      "id": "serpentFirst",
+      "trigger": "serpentOnTheWay",
+      "priority": 10,
+      "setFlags": ["heardSerpent"],
+      "lines": [
+        { "speaker": "serpent", "text": "...coiled... around the warm heart... still coiled... still..." },
+        { "speaker": "head:biter", "text": "Did someone say heart? Is there food?" },
+        { "speaker": "head:mistBreather", "text": "It was... a lullaby." },
+        { "speaker": "head:acidSpitter", "text": "It was a voice inside my head, which is a medical concern." }
+      ]
+    },
+    {
+      "id": "serpentDrum",
+      "trigger": "serpentOnTheWay",
+      "conditions": { "flags": ["heardSerpent"] },
+      "lines": [
+        { "speaker": "serpent", "text": "Who keeps the time now? The drum is cold. The hands are gone." },
+        { "speaker": "head:any", "text": "What drum?" },
+        { "speaker": "head:other", "text": "What hands? None of us has hands." }
+      ]
+    },
+    {
+      "id": "serpentThroat",
+      "trigger": "serpentOnTheWay",
+      "conditions": { "flags": ["heardSerpent"] },
+      "lines": [
+        { "speaker": "serpent", "text": "Many mouths. One throat. Remember the throat." },
+        { "speaker": "head:biter", "text": "He means we should eat more." },
+        { "speaker": "head:acidSpitter", "text": "He means we share a body and ought to act like it." },
+        { "speaker": "head:mistBreather", "text": "He means... throat." }
+      ]
+    },
+    {
+      "id": "serpentFires",
+      "trigger": "serpentOnTheWay",
+      "conditions": { "flags": ["heardSerpent"] },
+      "lines": [
+        { "speaker": "serpent", "text": "Little fires on the skin of the world. They itch." },
+        { "speaker": "head:any", "text": "The Order. He means the Order." },
+        { "speaker": "head:other", "text": "Or a rash. Sometimes a rash is just a rash." }
+      ]
+    },
+    {
+      "id": "serpentHush",
+      "trigger": "serpentOnTheWay",
+      "conditions": { "flags": ["heardSerpent"] },
+      "lines": [
+        { "speaker": "serpent", "text": "They sang me to sleep, and then they stopped singing. Why did they stop?" },
+        { "speaker": "head:any", "text": "Who stopped?" },
+        { "speaker": "serpent", "text": "...hush..." },
+        { "speaker": "head:other", "text": "I think that was the answer." }
+      ]
+    },
+    {
+      "id": "serpentNotYet",
+      "trigger": "serpentOnTheWay",
+      "conditions": { "flags": ["heardSerpent"], "minTurn": 12 },
+      "lines": [
+        { "speaker": "serpent", "text": "Not yet. Do not wake me yet. Some who call my name want me awake." },
+        { "speaker": "head:any", "text": "Someone wants him awake?" },
+        { "speaker": "head:other", "text": "I want me awake. It rarely works." }
+      ]
+    },
+    {
+      "id": "serpentDeeps",
+      "trigger": "serpentOnTheWay",
+      "priority": 2,
+      "conditions": { "flags": ["heardSerpent"], "biomes": ["fungalDeeps"] },
+      "lines": [
+        { "speaker": "serpent", "text": "...too many songs here... the small white roots sing them all at once..." },
+        { "speaker": "head:mistBreather", "text": "Shh... I can hear... the colours." },
+        { "speaker": "head:acidSpitter", "text": "You can hear the spores. Breathe less." }
+      ]
+    },
+    {
+      "id": "serpentCloser",
+      "trigger": "serpentOnTheWay",
+      "priority": 1,
+      "conditions": { "flags": ["heardSerpent"], "rings": [3] },
+      "lines": [
+        { "speaker": "serpent", "text": "Closer. Warmer. Do you feel the coil turn?" },
+        { "speaker": "head:any", "text": "I feel something turn. I think it's the floor." }
+      ]
+    },
+
+    { "id": "battleFires", "trigger": "serpentInBattle", "once": false, "lines": [{ "speaker": "serpent", "text": "Bite... the little fires..." }] },
+    { "id": "battleThroat", "trigger": "serpentInBattle", "once": false, "lines": [{ "speaker": "serpent", "text": "Many mouths... one throat..." }] },
+    { "id": "battleSmall", "trigger": "serpentInBattle", "once": false, "lines": [{ "speaker": "serpent", "text": "The fire is small. You are not." }] },
+    { "id": "battleHold", "trigger": "serpentInBattle", "once": false, "lines": [{ "speaker": "serpent", "text": "Hold... hold the song..." }] },
+
+    {
+      "id": "machineStirs",
+      "trigger": "eventOnly",
+      "setFlags": ["heardSerpent"],
+      "lines": [
+        { "speaker": "serpent", "text": "...who is there... who keeps the time... is it morning..." },
+        { "speaker": "head:any", "text": "It's never morning down here." },
+        { "speaker": "head:other", "text": "Don't tell him that. Let him sleep." }
+      ]
+    },
+    {
+      "id": "lastNoteHeard",
+      "trigger": "eventOnly",
+      "setFlags": ["heardSerpent"],
+      "lines": [
+        { "speaker": "serpent", "text": "You heard it. Now you know what was lost. Keep it, little many-mouths. Keep it in tune." },
+        { "speaker": "head:any", "text": "Keep what?" },
+        { "speaker": "head:other", "text": "I think we're supposed to hum." },
+        { "speaker": "head:any", "text": "Together?" },
+        { "speaker": "head:other", "text": "That does seem to be the hard part." }
+      ]
+    }
+  ]
+}

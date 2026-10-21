@@ -86,10 +86,17 @@ function castDialogue(state: RunState, rules: RunRules, d: DialogueRules, facts:
   const cast = new Map<string, (typeof heads)[number]>();
   const newHeads = heads.filter((h) => (facts.newHeadIds ?? []).includes(h.id));
   const all = [...d.lines, ...d.choices.flatMap((c) => c.reply)];
+  const taken = () => new Set([...cast.values()].map((h) => h.id));
+  // Heads of a class first, so head:any never turns out to be the same head as head:biter.
+  const classRoles = [...new Set(all.map((l) => l.speaker.replace(/^head:/, '')))].filter((r) => r !== 'toad' && r !== 'serpent' && !['new', 'any', 'other'].includes(r));
+  for (const role of classRoles) {
+    const pool = heads.filter((h) => h.classId === role && !taken().has(h.id));
+    if (pool.length === 0) return null;
+    cast.set(role, rng.pick(pool));
+  }
   for (const role of ['new', 'any', 'other']) {
     if (!all.some((l) => l.speaker === `head:${role}` || l.text.includes(`{${role}}`))) continue;
-    const taken = new Set([...cast.values()].map((h) => h.id));
-    const pool = (role === 'new' ? newHeads : heads).filter((h) => !taken.has(h.id));
+    const pool = (role === 'new' ? newHeads : heads).filter((h) => !taken().has(h.id));
     if (pool.length === 0) return null;
     cast.set(role, rng.pick(pool));
   }
@@ -98,22 +105,12 @@ function castDialogue(state: RunState, rules: RunRules, d: DialogueRules, facts:
     text
       .replace(/\{(any|other|new)\}/g, (_, role: string) => cast.get(role)!.name)
       .replace(/\{biome\}/g, story.biomeNames[facts.biome ?? tileAt(state, state.hydra.position)?.biome ?? ''] ?? '');
-  const line = (l: DialogueLineRules): ShownLine | null => {
+  const line = (l: DialogueLineRules): ShownLine => {
     if (l.speaker === 'toad' || l.speaker === 'serpent') return { speaker: l.speaker, name: story.speakerNames[l.speaker] ?? l.speaker, classId: null, text: fill(l.text) };
-    const role = l.speaker.replace(/^head:/, '');
-    let head = cast.get(role);
-    if (!head) {
-      const ofClass = heads.filter((h) => h.classId === role);
-      if (ofClass.length === 0) return null;
-      head = rng.pick(ofClass);
-      cast.set(role, head);
-    }
+    const head = cast.get(l.speaker.replace(/^head:/, ''))!;
     return { speaker: 'head', name: head.name, classId: head.classId, text: fill(l.text) };
   };
-  const lines = d.lines.map(line);
-  const choices = d.choices.map((c) => ({ text: fill(c.text), reply: c.reply.map(line) }));
-  if (lines.includes(null) || choices.some((c) => c.reply.includes(null))) return null;
-  return { id: d.id, lines: lines as ShownLine[], choices: choices as ShownDialogue['choices'] };
+  return { id: d.id, lines: d.lines.map(line), choices: d.choices.map((c) => ({ text: fill(c.text), reply: c.reply.map(line) })) };
 }
 
 /** Says a dialogue: it is queued for the screen, counts as seen, and sets its flags. */
