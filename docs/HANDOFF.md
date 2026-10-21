@@ -206,8 +206,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 - ile kapliczek Płomienia trzeba zgasić;
 - nowe głowy słabsze i rosnące (od czego rosną?);
 - pula głów: które klasy od startu, a które do odblokowania;
-- zakończenia gry;
-- wiedza o świecie po wymarciu rodu: przepada czy zostaje.
+- zakończenia gry.
 
 **Z `GAME_DESIGN.md` §1, „Świat” (`TODO(design)`):** odpowiedzi na tajemnice Hushed, jednostki i eventy The Discordant, czy Cinderkin walczą w bitwach.
 
