@@ -5,7 +5,7 @@
 // Exits with an error on any browser console error, or when a step doesn't happen in time.
 //
 // Usage: npm run smoke            (desktop window)
-//        npm run smoke -- phone   (phone held sideways, 3 device pixels per pixel)
+//        npm run smoke -- phone   (phone held sideways, 3 device pixels per pixel, played by touch)
 
 import { chromium } from '@playwright/test';
 import { preview } from 'vite';
@@ -40,7 +40,7 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
 const errors = [];
 
 async function openPage(query) {
-  const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: PHONE ? 3 : 1 });
+  const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: PHONE ? 3 : 1, hasTouch: PHONE });
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text());
   });
@@ -49,11 +49,21 @@ async function openPage(query) {
   return page;
 }
 
-/** Taps a point given in game pixels (640×360), wherever the canvas sits in the window. */
+/** Taps a point given in game pixels (640×360), wherever the canvas sits in the window: by touch on a phone, else a click. */
 async function tap(page, point) {
   const canvas = await page.locator('canvas').boundingBox();
   const scale = canvas.width / GAME_WIDTH;
-  await page.mouse.click(canvas.x + point.x * scale, canvas.y + point.y * scale);
+  const at = { x: canvas.x + point.x * scale, y: canvas.y + point.y * scale };
+  if (PHONE) await page.touchscreen.tap(at.x, at.y);
+  else await page.mouse.click(at.x, at.y);
+}
+
+/** Sends the hydra to a hex in reach: a touch goes at once; a mouse plans with the first click and sets off with the second. */
+async function goTo(page, point) {
+  await tap(page, point);
+  if (PHONE) return;
+  await page.waitForTimeout(150);
+  await tap(page, point);
 }
 
 const timesReady = (page, scene) => page.evaluate((s) => window.__hydra.readyScenes.filter((x) => x === s).length, scene);
@@ -90,7 +100,7 @@ async function mapStep(page, step) {
   const target =
     points.find((p) => p.encounter) ??
     (mostNew > 0 ? points.find((p) => p.unexploredNear === mostNew) : points[(step * 7) % points.length]);
-  await tap(page, target);
+  await goTo(page, target);
   await waitForMap(page);
 }
 

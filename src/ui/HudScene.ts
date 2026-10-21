@@ -109,7 +109,7 @@ export class HudScene extends Phaser.Scene {
 
     const onChanged = (): void => this.refresh();
     const onEvents = (events: RunEvent[]): void => this.announce(events);
-    const onNotice = (id: 'outOfReach'): void => this.toast(text.hud[id], '#c8c0b0');
+    const onNotice = (id: 'outOfReach' | 'noWayThere' | 'journeyWaits'): void => this.toast(text.hud[id], '#c8c0b0');
     this.run.on('changed', onChanged);
     this.run.on('settled', onChanged);
     this.run.on('events', onEvents);

@@ -191,3 +191,8 @@ export interface Reachable {
   /** Steps from the hydra's position (excluded) to the target (included). */
   path: Hex[];
 }
+
+/** A travel plan: the way to a hex further than one turn, and the turn each step is taken in (0 = this turn). */
+export interface Journey extends Reachable {
+  turns: number[];
+}

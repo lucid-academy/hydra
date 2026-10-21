@@ -19,11 +19,12 @@ import {
   leavePlace,
   moveHydra,
   pendingBattleSetup,
+  plannedJourney,
   reachableHexes,
   refuseBlessing,
   workThreshold,
 } from '../sim/turn';
-import type { Reachable, RunEvent, RunRules, RunState } from '../sim/turn';
+import type { Journey, Reachable, RunEvent, RunRules, RunState } from '../sim/turn';
 import { getContext } from './context';
 
 const REGISTRY_KEY = 'run';
@@ -50,6 +51,16 @@ export class RunController extends Phaser.Events.EventEmitter {
 
   reachable(): Map<string, Reachable> {
     return reachableHexes(this.state, this.rules);
+  }
+
+  /** A travel plan to a known hex, maybe several turns away (null if there is no way there). */
+  plan(target: Hex): Journey | null {
+    return plannedJourney(this.state, target, this.rules);
+  }
+
+  /** Tells the screen something it should show briefly. */
+  notice(id: 'outOfReach' | 'noWayThere' | 'journeyWaits'): void {
+    this.emit('notice', id);
   }
 
   moveTo(target: Hex): void {

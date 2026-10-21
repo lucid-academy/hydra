@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { hex, hexDistance, hexKey, hexesInRange } from '../src/sim/hex';
 import { hexesSeenFrom, updateVisibility } from '../src/sim/map';
-import { acceptBlessing, createRun, endTurn, finishBattle, moveHydra, pendingBattleSetup, reachableHexes, refuseBlessing } from '../src/sim/turn';
+import { acceptBlessing, createRun, endTurn, finishBattle, moveHydra, pendingBattleSetup, plannedJourney, reachableHexes, refuseBlessing } from '../src/sim/turn';
 import type { BattleResult } from '../src/sim/battle';
 import type { RunState } from '../src/sim/turn';
 import { flatMap, rules, runOn, terrain, testRules } from './runHelpers';
@@ -23,6 +23,36 @@ describe('visibility', () => {
     expect(updateVisibility(vis, new Set(['b', 'c']))).toBe(1);
     expect(vis.get('a')).toBe('remembered');
     expect(vis.get('b')).toBe('visible');
+  });
+});
+
+describe('travel plans', () => {
+  it('plans a journey of several turns, splitting it where a turn runs out', () => {
+    // A straight road east: 9 hexes of mud, movement 3, so turns of 3 steps.
+    const state = runOn(flatMap(10), 3);
+    const journey = plannedJourney(state, hex(9, 0), testRules)!;
+    expect(journey.path).toHaveLength(9);
+    expect(journey.turns).toEqual([0, 0, 0, 1, 1, 1, 2, 2, 2]);
+  });
+
+  it('waits for the next turn rather than starting a step it cannot pay for', () => {
+    const state = runOn(flatMap(4, (tiles) => {
+      tiles.get('2,0')!.terrain = 'salt';
+      for (const key of ['1,-1', '2,-1', '0,1', '1,1']) tiles.get(key)!.terrain = 'rock';
+    }), 3);
+    const journey = plannedJourney(state, hex(2, 0), testRules)!;
+    expect(journey.path.map(hexKey)).toEqual(['1,0', '2,0']);
+    expect(journey.turns).toEqual([0, 1]);
+  });
+
+  it('agrees with this turn\'s reach on the first turn, and is null for unknown or walled-off hexes', () => {
+    const state = runOn(flatMap(6), 4);
+    const journey = plannedJourney(state, hex(6, 0), testRules)!;
+    const reach = reachableHexes(state, testRules);
+    journey.path.forEach((h, i) => expect(reach.has(hexKey(h))).toBe(journey.turns[i] === 0));
+    state.visibility.delete('6,0');
+    expect(plannedJourney(state, hex(6, 0), testRules)).toBeNull();
+    expect(plannedJourney(state, state.hydra.position, testRules)).toBeNull();
   });
 });
 
