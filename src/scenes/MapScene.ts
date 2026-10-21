@@ -109,8 +109,10 @@ const LIGHTS = {
 } as const;
 
 /** Lights over places: colour, size, brightness, and how high above the feet. */
-/** The Serpent's teal on an event's standing stone. */
+/** The Serpent's teal on an event's standing stone (and on a door of the Hushed). */
 const EVENT_GLOW = '#5fd8c8';
+/** A fresh Cinder Bore glows on every hex that still burns, flickering (one flicker lasts `flickerMs`, give or take). */
+const HEAT = { tint: '#ff7a2a', scale: 0.55, alpha: 0.75, flickerMs: 520 };
 const PLACE_GLOWS: Readonly<Record<string, { tint: string; scale: number; alpha: number; height: number }>> = {
   drownedChapel: { tint: '#7fd0e0', scale: 0.7, alpha: 0.4, height: 29 },
   ossuaryCathedral: { tint: '#e0b060', scale: 0.7, alpha: 0.45, height: 24 },
@@ -175,6 +177,8 @@ export class MapScene extends Phaser.Scene {
   /** Draught wisps and echo marks on the map, by hex key. */
   private draughts = new Map<string, Phaser.GameObjects.Image>();
   private echoes = new Map<string, Phaser.GameObjects.Image>();
+  /** Glows over hexes of a Cinder Bore that still burn, by hex key. */
+  private heat = new Map<string, Glow>();
 
   constructor() {
     super(SceneKey.Map);
@@ -183,7 +187,9 @@ export class MapScene extends Phaser.Scene {
   create(): void {
     const firstTime = !getRun(this);
     this.run = getRun(this) ?? startNewRun(this);
-    const { near, reveal, say, event } = getContext(this).params;
+    const { near, reveal, say, event, flags, conditions } = getContext(this).params;
+    if (firstTime && flags.length > 0) this.run.flagsForTest(flags);
+    if (firstTime && conditions.length > 0) this.run.conditionsForTest(conditions);
     if (firstTime && near) this.run.placeNear(near);
     if (firstTime && reveal) this.run.revealAll();
     if (firstTime && event) this.run.eventForTest(event);
@@ -191,6 +197,7 @@ export class MapScene extends Phaser.Scene {
     this.views = new Map();
     this.draughts = new Map();
     this.echoes = new Map();
+    this.heat = new Map();
     this.animating = false;
     this.run.animating = false;
     this.press = null;
@@ -404,6 +411,7 @@ export class MapScene extends Phaser.Scene {
     if (object.kind === 'passage') light('#d0e4dc', 0.8, 0.35, 8);
     if (object.kind === 'encounter' && object.tier >= 3) view.objectGlows.push(this.glow(x + 12, feet - 18, palette.order.orange, 0.6, 0.6, feet));
     if (object.kind === 'threshold' && object.thresholdId === 'smoulderingSeam') light(palette.order.orange, 0.6, 0.5, 8);
+    if (object.kind === 'threshold' && object.thresholdId === 'sealedDoor') light(EVENT_GLOW, 0.45, 0.3, 14);
     if (object.kind === 'place') {
       const glow = PLACE_GLOWS[object.placeId];
       if (glow) light(glow.tint, glow.scale, glow.alpha, glow.height);
@@ -476,9 +484,9 @@ export class MapScene extends Phaser.Scene {
     this.path.clear();
     this.drawReach(reachable);
     this.drawJourney();
+    this.refreshHints();
     this.drawLights();
     this.seeThroughTallPlaces();
-    this.refreshHints();
     this.announceNewBiomes();
     this.continueStory();
   }
@@ -620,6 +628,9 @@ export class MapScene extends Phaser.Scene {
       }
       if (view.whispered && view.object) lights.push({ x: view.object.x, y: view.object.y, color: WHISPERED_TINT, ...LIGHTS.whispered });
     }
+    for (const glow of this.heat.values()) {
+      lights.push({ x: glow.image.x, y: glow.groundY, radius: glow.radius * LIGHTS.glowReach, color: glow.color, strength: glow.alpha * LIGHTS.glowStrength });
+    }
     this.light.draw(lights);
   }
 
@@ -659,6 +670,26 @@ export class MapScene extends Phaser.Scene {
       this.tweens.killTweensOf(mark);
       mark.destroy();
       this.echoes.delete(key);
+    }
+
+    const hotKeys = new Set<string>();
+    for (const [key, lastTurn] of Object.entries(state.hotUntil)) {
+      if (lastTurn < state.turn || !state.visibility.has(key)) continue;
+      hotKeys.add(key);
+      if (this.heat.has(key)) continue;
+      const h = state.map.tiles.get(key)!.hex;
+      const { x, y } = hexToPixel(LAYOUT, h);
+      const glow = this.glow(x, y - 2, HEAT.tint, HEAT.scale, HEAT.alpha, y);
+      glow.image.setAlpha(HEAT.alpha);
+      const flicker = HEAT.flickerMs + (Math.abs(h.q * 7 + h.r * 3) % 5) * 60;
+      this.tweens.add({ targets: glow.image, alpha: { from: HEAT.alpha * 0.55, to: HEAT.alpha }, duration: flicker, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      this.heat.set(key, glow);
+    }
+    for (const [key, glow] of this.heat) {
+      if (hotKeys.has(key)) continue;
+      this.tweens.killTweensOf(glow.image);
+      glow.image.destroy();
+      this.heat.delete(key);
     }
   }
 
@@ -727,7 +758,8 @@ export class MapScene extends Phaser.Scene {
       if (event.type === 'moved') for (const h of event.path) step(h, STEP_DURATION_MS, SLITHER.sway, SLITHER.stretch);
       if (event.type === 'carried') for (const h of event.path) step(h, CARRIED_STEP_MS, SLITHER.carriedSway, 0);
     }
-    const revealed = events.find((e) => e.type === 'thresholdRevealed');
+    // Something far off opened: the camera goes to show it.
+    const revealed = events.find((e) => e.type === 'thresholdRevealed' || e.type === 'tunnelBored') as { at: Hex } | undefined;
     if (steps.length === 0) {
       if (revealed) this.panTo(revealed.at);
       return;

@@ -1,6 +1,6 @@
 # Handoff: stan prac nad Hydrą
 
-Stan na 2026-10-21 (etap „Wygląd mapy” zakończony, M5 zbudowany i wdrożony, czeka na playtest Piotra). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
+Stan na 2026-10-21 (M5 zbudowany i wdrożony razem z Sealed Door i Cinder Bore, czeka na playtest Piotra; M6 zatwierdzony i w budowie; M2a buduje osobny wątek). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
 
 - Gra: https://lucid-academy.github.io/hydra/
 - Repo: https://github.com/lucid-academy/hydra (na serwerze `/root/Hydra`)
@@ -11,6 +11,8 @@ Stan na 2026-10-21 (etap „Wygląd mapy” zakończony, M5 zbudowany i wdrożon
 
 - Zrobione: **M0, M1, M1b, M2b, M2c, Wygląd mapy (HD), M5** (sekcja 15 w `GAME_DESIGN.md`).
 - **M5** (eventy, mini questy, dialogi) wdrożony 2026-10-21 i czeka na playtest Piotra (opis w sekcji 2).
+- **M6** (pokolenia): plan zatwierdzony przez Piotra 2026-10-21 na karcie „Buduj z propozycjami” (dokument Claude „Hydra M6: pokolenia”, https://claude.ai/artifact/FAibVmNwcvBZQBJjLif4LV), w budowie.
+- **M2a** (głowy i balans bitwy) od 2026-10-21 buduje równolegle osobny wątek projektu Hydra. Ma na wyłączność pliki bitwy: `src/sim/battle/`, `BattleScene.ts`, `src/ui/HeadCards.ts`, `heads.json`, `combos.json`, `enemies.json`, `battleRules.ts`, grafiki `battle_*`, `tests/battle*`. Wspólne pliki (`text.json`, `schemas.ts`, `manifest.json`, dokumenty) oba wątki tylko uzupełniają we własnych częściach.
 - **M2c** (świat do odkrywania) jest wdrożony 2026-10-04 i czeka na playtest Piotra. Playtest M2b nie przyszedł; M2c zmienił mapę na tyle, że lepiej grać od razu w M2c.
 - 2026-10-03 Piotr zmienił sposób pracy: grafika będzie z GPT, animacje najpierw w kodzie. Zasady są już w `CLAUDE.md`. Plan grafiki (sekcja 3.2) Piotr zatwierdził tego samego dnia i potok jest zbudowany. Wieczorem przyszła cała pierwsza partia (21 obrazków) i jest w grze; **czeka na uwagi Piotra**.
 - Następne etapy: M6, M2a, M3, M4, M7 (kolejność Piotra z 2026-10-04, `GAME_DESIGN.md` §15). Każdy zaczyna się od planu i OK Piotra. Projekt 9 głów (M2a) jest zatwierdzony (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13).
@@ -55,6 +57,7 @@ Stan na 2026-10-21 (etap „Wygląd mapy” zakończony, M5 zbudowany i wdrożon
 - Ekran dialogu `src/ui/DialogueScene.ts` (Hades): przyciemniona gra, malowane portrety z `public/portraits/` (kopie z `art/concept/portraits/`, klucze `dialogue_<klasa>` i `dialogue_oldMotherToad`, gładkie skalowanie), Ropucha po prawej, głowy naprzeciw siebie, tekst pisany literami, tapnięcie, odpowiedzi do wyboru. Wąż bez portretu, kursywą, na środku. Mapa pokazuje kolejkę dialogów przed bitwą i po każdym ruchu.
 - Panel eventu to panel miejsca: wybory z wymaganą głową, kosztem i „(risky)”, wynik ze skutkami i Continue.
 - Do testów: `?say=<id dialogu>` (na mapie pokazuje dialog; z `?scene=battle` kwestię Węża) i `?event=<id eventu>` (event obok hydry). Smoke czyta dialogi i wybiera w eventach.
+- **Sealed Door i Cinder Bore** (§9.3, dobudowane 2026-10-21). Sealed Door stoi w każdym świecie na granicy pierścieni 2 i 3 (`oneOnBorder` i `chance` w `world.json`); nie da się go kopać ani otworzyć głową, otwiera go tylko flaga z ostatniego kroku „The Silent Song” (`hushedSongHeard` albo `hushedMaskTaken`), potem mówi Wąż. Cinder Bore: event „The Cinderkin” (pierścienie 2 i 3) za ciepło (stan Warm z Warm Crack) albo 15 Muck wytapia tunel przez najcieńszą skałę w promieniu 10 heksów do sąsiedniego pierścienia (`bore` w `world.json`); przez 3 tury tunel parzy (8 HP Body za wejście na heks, nigdy do śmierci) i świeci na pomarańczowo. Do testów `?flags=` i `?conditions=` (`README.md`).
 
 **Narzędzia.** `npm run smoke` gra sama jak gracz: mapa, bitwy, przegrana, kapliczki; z `-- phone` na ekranie telefonu. `npm run balance` rozgrywa setki automatycznych bitew, wynik w `docs/BALANCE.md`. `npm run shots` robi zrzuty do `docs/screens/`. `npm run art` wstawia do gry obrazki z `art/raw/` (opis w `docs/ASSETS.md`). Parametry URL są w `README.md`.
 
@@ -229,12 +232,12 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
   - Alert tylko rośnie: bez progów, patroli, posłańców i wypraw (M3);
   - nie ma odwrotu z bitwy;
   - umiejętności Q/W/E, doświadczenie, specjalizacje, przypadłości, klasy Screamer, Glutton, The Spare, Strangler, Tender i Lantern oraz combosy poza trzema pierwszymi przyjdą z M2a;
-- M5: Sealed Door i Cinder Bore (`GAME_DESIGN.md` §9.3) jeszcze nie zbudowane; postęp mini questów nie przechodzi na kolejne pokolenia (to M6, razem z zapisem); głos Węża przy odpoczynku jest tylko w kwestiach Ropuchy; maska Hushed nic jeszcze nie daje (`TODO(design)`); kamień eventu i portrety jeńców, Mistrzów Zakonu i przodków czekają na grafikę; kwestie znają tylko trzy klasy głów, które są w grze.
+- M5: postęp mini questów nie przechodzi na kolejne pokolenia (to M6, razem z zapisem); głos Węża przy odpoczynku jest tylko w kwestiach Ropuchy; maska Hushed nic jeszcze nie daje (`TODO(design)`); kamień eventu i portrety jeńców, Mistrzów Zakonu i przodków czekają na grafikę; kwestie znają tylko trzy klasy głów, które są w grze.
 - Balans (`docs/BALANCE.md`): najsilniejsza grupa (Pyre Procession) pokonuje hydrę bez rozkazów w 63% bitew, a przy sensownych rozkazach w 6%. Wszystkie liczby są robocze.
 
 ## 6. Następne kroki
 
-0. Uwagi Piotra z playtestu M5, potem plan M6 (pokolenia) i OK Piotra.
+0. M6 (pokolenia) w budowie według zatwierdzonego planu. Uwagi Piotra z playtestu M5.
 1. Poczekać na odpowiedzi Piotra (sekcja 4).
 2. Dalej z `docs/ANIMATIONS.md` (stan „do zrobienia”): oddech i drgnięcie tułowia, ścięcie głowy. Kolejne grafiki: reszta Zakonu po uwagach do próby (Zakon jak rycerze z okładki, z herbem złotego płomienia zamiast lwa; wzór dla GPT: `hydra-grafika/wzory/zakon-z-okladki.png` w plikach projektu), przejście na powierzchnię, tło tytułu.
 3. Głowy i tułów w stylu okładki (sekcja 3.2, „Próba hydry i Zakonu w grze”): próba jest w grze od 2026-10-06, Piotr napisał „ok”. Prompty na pozostałe osiem głów, Headhuntera, Torchbearera i dwa większe oddziały są w `docs/ART_PROMPTS.md` od 2026-10-06, a ich wzory (portrety, pixelowy tułów, Biter, Man-at-Arms, oddział) w plikach projektu, `hydra-grafika/wzory/`; w manifeście są już miejsca na głowy. Przy imporcie: rozmiar głowy w manifeście z obrazka, `JAW_OVERLAP_BY_CLASS` z linii pyska, `TORCH_FLAME` z płomienia Torchbearera. Palety na razie nie ma (decyzja z 2026-10-06, sekcja 3.2).

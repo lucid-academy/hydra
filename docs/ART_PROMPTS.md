@@ -1130,6 +1130,19 @@ Subject: a cave tunnel blocked by a wall of black coal that has been smouldering
 Size: in the game it is only 30 by 30 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
 ```
 
+### `map_threshold_sealedDoor.png`: Sealed Door, zamknięte drzwi Hushed
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, standing on the bottom edge of the picture. The game draws the cave floor under it, so draw no floor, no ground and no shadow: its lowest pixels are where it touches the ground.
+Subject: a round door of grey-purple stone (#5d5866, lit edge #8a8496) set flush into the rock across a cave tunnel, with no handle, no hinge and no keyhole. Carved in its middle is a long, calm face with closed eyes and no mouth at all. Two or three thin teal lines (#7fe0d6) glow faintly in arcs on the stone around the face, like rings of sound. It should look patient, as if it is waiting for something. The game adds a faint teal light.
+Size: in the game it is only 30 by 32 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
+```
+
 ## Mapa: progi otwarte
 
 To, co zostaje po otwarciu progu. Leżą płasko na podłodze (poza Old Workings, które stoi jak framuga), więc mają być niskie i spokojne, jak plama na ziemi.
@@ -1209,6 +1222,32 @@ Background: one flat, solid magenta #FF00FF everywhere around the subject, with 
 
 Request: one game sprite on the flat magenta background, of something lying flat on the cave floor, seen from the game's angle (so round things look like wide ovals). The game draws the floor itself: draw only the thing, no floor tile, no hexagon, no shadow around it.
 Subject: a patch of black glass where the rock melted long ago, smooth and shiny with one pale highlight, a few tiny orange specks still glowing in it (it was made by swarms of tiny fire insects). An irregular oval.
+Size: in the game it is only 30 by 22 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
+```
+
+### `map_threshold_sealedDoor_open.png`: Sealed Door po otwarciu
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, of something lying flat on the cave floor, seen from the game's angle (so round things look like wide ovals). The game draws the floor itself: draw only the thing, no floor tile, no hexagon, no shadow around it.
+Subject: a round door of grey-purple stone (#5d5866) lying flat on the cave floor where it fell, with a long carved face on it, eyes closed and no mouth, looking up; a crack runs across the stone, and the thin carved arcs around the face have gone dark grey.
+Size: in the game it is only 30 by 22 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
+```
+
+### `map_threshold_cinderBore_open.png`: Cinder Bore, świeży tunel Cinderkin
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, of something lying flat on the cave floor, seen from the game's angle (so round things look like wide ovals). The game draws the floor itself: draw only the thing, no floor tile, no hexagon, no shadow around it.
+Subject: the floor of a tunnel melted fresh through the rock by swarms of tiny fire insects: black glass, still soft, with bright runnels of molten rock (orange #e0702a, yellow #ffcf5c) running across it and a few tiny glowing specks. An irregular oval. The game adds a flickering orange light while it is hot.
 Size: in the game it is only 30 by 22 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
 ```
 

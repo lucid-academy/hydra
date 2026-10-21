@@ -2,7 +2,7 @@
   "//": "TODO(design): working texts and numbers written by Claude (M2c); change them freely. What lies in the underground besides terrain: thresholds between rings, places (landmarks, biome locations, rare places), remains, hoards, echoes, conditions and run modifiers. Numbers of how many and where are in balance.json undergroundGenerator.",
 
   "thresholds": {
-    "//": "Ways through the rock bands between rings (GAME_DESIGN.md §9.3). hidden: looks like rock until the hydra stands next to it, and a draught gives it away (hint). dig: opened by digging, one dig per turn, it takes `turns` digs (a range: each threshold gets its own). open: opened with one action by a head of class `headClass` (heads.json). alwaysOpen: open from the start. rareChance: the threshold is a rare place, in a world with this chance (0–1).",
+    "//": "Ways through the rock bands between rings (GAME_DESIGN.md §9.3). hidden: looks like rock until the hydra stands next to it, and a draught gives it away (hint). dig: opened by digging, one dig per turn, it takes `turns` digs (a range: each threshold gets its own). open: opened with one action by a head of class `headClass` (heads.json). sealed: a step of a mini quest; opened by any one of its `ways`, each needing a story flag (missing: what the panel says while the flag isn't set); opening it sets `setFlags` and says `dialogue` (dialogues.json). bore: melted open by the Cinderkin when an event's outcome says \"bore\": true (within: hexes from the hydra it looks for the thinnest rock; longest: hexes of rock at most; hotTurns: turns it burns, this one included; burn: body HP lost for each hot hex stepped on). alwaysOpen: open from the start. rareChance: the threshold is a rare place, in a world with this chance (0–1). oneOnBorder: one more threshold of this kind on that border (1 = between rings 1 and 2), in a world with `chance` (0–1).",
     "draughtCrack": {
       "name": "Draught Crack",
       "text": "A crack in the rock, and air moving through it. Just wide enough, if all the heads breathe in at once. They do not agree on when.",
@@ -39,6 +39,25 @@
       "name": "Old Workings",
       "text": "An old shaft of the Order, cut dead straight through the rock with no regard for anyone's feelings.",
       "alwaysOpen": true
+    },
+    "sealedDoor": {
+      "name": "Sealed Door",
+      "text": "A round door of grey stone, set flush into the rock. No handle, no hinge, no keyhole. In the middle, a long face with no mouth. Put an ear to it and the stone hums, very faintly, like someone waiting for the rest of a tune.",
+      "sealed": {
+        "ways": [
+          { "flag": "hushedSongHeard", "label": "Hum the note.", "missing": "Which note?" },
+          { "flag": "hushedMaskTaken", "label": "Show it a face.", "missing": "Every face you have has a mouth." }
+        ],
+        "setFlags": ["hushedDoorOpened"],
+        "dialogue": "sealedDoorOpens"
+      },
+      "oneOnBorder": 2,
+      "chance": 1
+    },
+    "cinderBore": {
+      "name": "Cinder Bore",
+      "text": "A fresh tunnel, melted through the rock by the Cinderkin. The walls are still running.",
+      "bore": { "within": 10, "longest": 8, "hotTurns": 3, "burn": 8 }
     }
   },
 
@@ -219,6 +238,7 @@
   "conditions": {
     "//": "Conditions on the hydra that last a few turns. movement: change of movement points per turn. revealsEncounters: every encounter on the map is shown.",
     "salted": { "name": "Salted", "text": "Salt dries the hide stiff. One move fewer each turn.", "movement": -1 },
+    "warmed": { "name": "Warm", "text": "Warm through, for once. Things that eat heat can smell it." },
     "myceliumWhisper": { "name": "Mycelium Whisper", "text": "The mycelium tells you where the Order is.", "revealsEncounters": true }
   },
 

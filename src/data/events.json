@@ -1,5 +1,5 @@
 {
-  "//": "TODO(design): first batch of events, written by Claude for M5 (GAME_DESIGN.md §10, §14); texts and numbers are working values, change them freely. An event happens when the hydra steps on an event site on the map (balance.json undergroundGenerator.rings[].eventSites). Of the events that fit (conditions, as in dialogues.json), those with the highest priority are drawn by weight. once: happens at most once per run (default true). quest: the mini quest the event is a step of (steps are chained by flags: a step sets a flag, the next step needs it). A choice can need a head (needsHead: class id), cost resources (cost), and either have one outcome, or be a gamble: chance (0–1) of success, otherwise failure. An outcome has a text and may: give or take muck, moisture, bones; change the alert; heal or hurt the body (bodyHp) and every head (headsHp, never below 1); put a condition on the hydra (condition, world.json); show the map around (reveal: hexes); start a battle (battle: an encounter group, enemies.json); set flags (setFlags); start a dialogue (dialogue: an id from dialogues.json); grow a head (newHead: class id).",
+  "//": "TODO(design): first batch of events, written by Claude for M5 (GAME_DESIGN.md §10, §14); texts and numbers are working values, change them freely. An event happens when the hydra steps on an event site on the map (balance.json undergroundGenerator.rings[].eventSites). Of the events that fit (conditions, as in dialogues.json), those with the highest priority are drawn by weight. once: happens at most once per run (default true). quest: the mini quest the event is a step of (steps are chained by flags: a step sets a flag, the next step needs it). A choice can need a head (needsHead: class id) or a condition on the hydra (needsCondition: world.json conditions, e.g. warmed), cost resources (cost), and either have one outcome, or be a gamble: chance (0–1) of success, otherwise failure. An outcome has a text and may: give or take muck, moisture, bones; change the alert; heal or hurt the body (bodyHp) and every head (headsHp, never below 1); put a condition on the hydra (condition, world.json); show the map around (reveal: hexes); start a battle (battle: an encounter group, enemies.json); set flags (setFlags); start a dialogue (dialogue: an id from dialogues.json); grow a head (newHead: class id); have the Cinderkin melt a tunnel through the rock nearby (bore: true; how, in world.json thresholds.cinderBore).",
 
   "events": [
     {
@@ -80,9 +80,22 @@
       "title": "A Warm Crack",
       "text": "The rock here is warm to the touch, and humming. Something inside is eating the heat, a little at a time, with many small mouths.",
       "choices": [
-        { "text": "Press the body against it.", "outcome": { "text": "Warm, for the first time in a long time. The humming moves closer. You leave before it gets ideas.", "bodyHp": 25 } },
+        { "text": "Press the body against it.", "outcome": { "text": "Warm, for the first time in a long time. The humming moves closer. You leave before it gets ideas, and take the warmth with you.", "bodyHp": 25, "condition": { "id": "warmed", "turns": 6 } } },
         { "text": "Breathe mist into it.", "needsHead": "mistBreather", "outcome": { "text": "The humming stops. Then it starts again, further off, offended. The cooled rock cracks open onto a lookout.", "reveal": 5 } },
         { "text": "Leave it humming.", "outcome": { "text": "Some doors are best left humming." } }
+      ]
+    },
+    {
+      "id": "cinderSwarm",
+      "title": "The Cinderkin",
+      "weight": 2,
+      "conditions": { "rings": [2, 3] },
+      "text": "A swarm seeps out of a crack: insects of hot rock, each the size of a grain of rice and twice as hot. They circle you once, tasting the air, and settle on the wall to wait. They eat heat. They do not seem to mind where it comes from.",
+      "choices": [
+        { "text": "Let them taste your warmth.", "needsCondition": "warmed", "outcome": { "text": "They find the warmth in your hide, and follow it into the rock like water into sand. Somewhere nearby, the rock begins to glow.", "bore": true, "setFlags": ["cinderkinMet"], "dialogue": "cinderkinBore" } },
+        { "text": "Heap up Muck for them.", "cost": { "muck": 15 }, "outcome": { "text": "None of the heads can light a fire. You are a swamp. The Cinderkin light it themselves, eat it, and go looking for seconds. Somewhere nearby, the rock begins to glow.", "bore": true, "setFlags": ["cinderkinMet"], "dialogue": "cinderkinBore" } },
+        { "text": "Bite one.", "needsHead": "biter", "outcome": { "text": "Hot. Very hot. The Biter announces that it meant to do that. The swarm leaves, offended.", "bodyHp": -5, "setFlags": ["cinderkinMet"] } },
+        { "text": "Leave them to it.", "outcome": { "text": "A thousand tiny glowing eyes watch you go, then go back to watching the rock." } }
       ]
     },
     {

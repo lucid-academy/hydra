@@ -10,7 +10,7 @@ import type { MapObject } from '../map';
 import { Rng } from '../rng';
 import { eventArrived, meetEnemies, newStory, serpentOnTheWay, storyMoment } from './story';
 import type { BlessingEffects, Journey, Reachable, RunEvent, RunRules, RunState } from './types';
-import { arriveAt, battleSilenced, growHeads, lookAround, movementForTurn, raiseAlert, tickConditions, tileAt } from './world';
+import { arriveAt, battleSilenced, coolTunnels, growHeads, lookAround, movementForTurn, raiseAlert, tickConditions, tileAt } from './world';
 
 export interface RunOptions {
   /** Run modifiers (ids from world.json runModifiers) that shape this run's world. */
@@ -58,6 +58,7 @@ export function createRun(seed: number, rules: RunRules, options: RunOptions = {
     over: false,
     story: newStory(seed, map.tiles.get(hexKey(map.lair))!.biome),
     pendingEvent: null,
+    hotUntil: {},
   };
   // Seeing the lair's surroundings at the start doesn't count as exploring.
   lookAround(state, rules, []);
@@ -355,6 +356,7 @@ export function endTurn(state: RunState, rules: RunRules): RunEvent[] {
   const events: RunEvent[] = [];
   state.turn += 1;
   tickConditions(state, events);
+  coolTunnels(state, events);
   hydra.movementLeft = movementForTurn(state, rules);
   hydra.bodyHp = Math.min(hydra.bodyMaxHp, hydra.bodyHp + hydra.regeneration);
   for (const head of hydra.heads) head.hp = Math.min(head.maxHp, head.hp + rules.healing.headHpPerTurn);

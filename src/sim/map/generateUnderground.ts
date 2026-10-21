@@ -49,10 +49,13 @@ function tryGenerate(rng: Rng, grid: HexGrid, s: UndergroundGeneratorSettings, t
     s.places.filter((p) => p.type === 'rare' && rng.chance(p.chance)).map((p) => p.id),
   ).slice(0, s.maxRarePlaces);
 
+  // Extra thresholds (the Sealed Door) are rolled with them.
+  const extras = s.extraThresholds.filter((t) => t.border < rings && rng.chance(t.chance)).map((t) => ({ kind: t.kind, border: t.border }));
+
   const shape = makeShape(rng, grid, s);
   if (!shape) return 'shape: no room for the rings';
   if (ringWidths(grid, shape.zone, rings).some((w, k) => k > 0 && w < s.minRingWidth)) return 'shape: a ring too narrow';
-  const caves = carveCaves(rng, grid, shape, s, { cinderScar: rare.includes(CINDER_SCAR), oldWorkings: s.modifiers.includes('oldWorkings') });
+  const caves = carveCaves(rng, grid, shape, s, { cinderScar: rare.includes(CINDER_SCAR), extras, oldWorkings: s.modifiers.includes('oldWorkings') });
   if (typeof caves === 'string') return caves;
   const painted = paintBiomes(rng, grid, shape, caves, s);
   if (typeof painted === 'string') return painted;

@@ -407,13 +407,35 @@ const thresholdSchema = section({
   dig: section({ label: z.string().min(1), turns: intRange(1), progress: z.string().min(1) }).optional(),
   // Opened at once by a head of this class (heads.json).
   open: section({ headClass: z.string().min(1), label: z.string().min(1) }).optional(),
+  // Opened by a step of a mini quest: any one of `ways`, each needing a story flag (set by events or dialogues).
+  // `missing`: what the panel says while the flag isn't set. Opening it sets `setFlags` and says `dialogue` (dialogues.json).
+  sealed: section({
+    ways: z.array(section({ flag: z.string().min(1), label: z.string().min(1), missing: z.string().min(1) })).min(1),
+    setFlags: z.array(z.string().min(1)).optional(),
+    dialogue: z.string().min(1).optional(),
+  }).optional(),
+  // Melted open by the Cinderkin when an event's outcome says "bore": true (one such threshold at most).
+  bore: section({
+    // Through one of the thinnest spots of a rock band no farther than this from the hydra (hexes),
+    within: z.number().int().min(1),
+    // at most this many hexes of rock long.
+    longest: z.number().int().min(1),
+    // It burns for this many turns (the one it is made in included), and every hot hex stepped on costs `burn` body HP.
+    hotTurns: z.number().int().min(1),
+    burn: z.number().int().min(0),
+  }).optional(),
   alwaysOpen: z.boolean().optional(),
   // A rare place: a world has it with this chance (0–1).
   rareChance: share.optional(),
+  // An extra threshold, on top of a border's own: one on this border (1 = between rings 1 and 2) in a world, with `chance` (0–1).
+  oneOnBorder: z.number().int().min(1).optional(),
+  chance: share.optional(),
 }).superRefine((t, ctx) => {
-  const ways = [t.hidden === true, t.dig !== undefined, t.open !== undefined, t.alwaysOpen === true].filter(Boolean).length;
-  if (ways !== 1) ctx.addIssue({ code: 'custom', path: [], message: 'a threshold needs exactly one of: "hidden": true, "dig", "open", "alwaysOpen": true' });
+  const ways = [t.hidden === true, t.dig !== undefined, t.open !== undefined, t.sealed !== undefined, t.bore !== undefined, t.alwaysOpen === true].filter(Boolean).length;
+  if (ways !== 1) ctx.addIssue({ code: 'custom', path: [], message: 'a threshold needs exactly one of: "hidden": true, "dig", "open", "sealed", "bore", "alwaysOpen": true' });
   if (t.hidden && t.hint === undefined) ctx.addIssue({ code: 'custom', path: ['hint'], message: 'a hidden threshold needs a hint (what gives it away)' });
+  if (t.oneOnBorder !== undefined && !(t.dig || t.open || t.sealed)) ctx.addIssue({ code: 'custom', path: ['oneOnBorder'], message: 'only a threshold that is dug or opened ("dig", "open", "sealed") can be added to a border' });
+  if (t.chance !== undefined && t.oneOnBorder === undefined) ctx.addIssue({ code: 'custom', path: ['chance'], message: '"chance" goes with "oneOnBorder"' });
 });
 
 const named = { name: z.string().min(1), text: z.string().min(1) };
@@ -443,6 +465,8 @@ export const worldSchema = section({
     if (!t) ctx.addIssue({ code: 'custom', path: ['thresholds'], message: `needs the threshold "${id}" (the generator places it)` });
     else if (t[way] !== true) ctx.addIssue({ code: 'custom', path: ['thresholds', id], message: `must have "${way}": true` });
   }
+  const bored = Object.keys(world.thresholds).filter((id) => world.thresholds[id]!.bore !== undefined);
+  if (bored.length > 1) ctx.addIssue({ code: 'custom', path: ['thresholds'], message: `only one threshold can have "bore" (now: ${bored.join(', ')})` });
   if (!world.remains.lines['any']) ctx.addIssue({ code: 'custom', path: ['remains', 'lines'], message: 'needs the pool "any"' });
   for (const [id, place] of Object.entries(world.places)) {
     for (const [a, action] of (place.actions ?? []).entries()) {
@@ -504,6 +528,23 @@ export const textSchema = z
       thresholdOpened: z.string().min(1),
       // {name}: the condition's name.
       conditionEnded: z.string().min(1),
+      // {direction}: one of `directions`.
+      tunnelBored: z.string().min(1),
+      boreFailed: z.string().min(1),
+      // {n}: body HP lost, e.g. "-8".
+      burned: z.string().min(1),
+      tunnelCooled: z.string().min(1),
+      // Which way something lies from the hydra, as on the screen (north is up).
+      directions: section({
+        north: z.string().min(1),
+        northEast: z.string().min(1),
+        east: z.string().min(1),
+        southEast: z.string().min(1),
+        south: z.string().min(1),
+        southWest: z.string().min(1),
+        west: z.string().min(1),
+        northWest: z.string().min(1),
+      }),
     }),
     place: section({
       kinds: section({ landmark: z.string().min(1), location: z.string().min(1), rare: z.string().min(1), threshold: z.string().min(1) }),
@@ -513,6 +554,8 @@ export const textSchema = z
       why: section({
         // {class}: the head class's name.
         needsHead: z.string().min(1),
+        // {condition}: the condition's name (world.json conditions).
+        needsCondition: z.string().min(1),
         noMovement: z.string().min(1),
         // {turn}: the turn when it can be done again.
         notYet: z.string().min(1),
@@ -619,6 +662,7 @@ const eventOutcomeSchema = section({
   setFlags: flagList.optional(),
   dialogue: z.string().min(1).optional(),
   newHead: z.string().min(1).optional(),
+  bore: z.boolean().optional(),
 });
 const costSchema = section({ muck: z.number().int().min(0).optional(), moisture: z.number().int().min(0).optional(), bones: z.number().int().min(0).optional() });
 
@@ -638,6 +682,7 @@ export const eventsSchema = section({
           section({
             text: z.string().min(1),
             needsHead: z.string().min(1).optional(),
+            needsCondition: z.string().min(1).optional(),
             cost: costSchema.optional(),
             outcome: eventOutcomeSchema.optional(),
             chance: share.optional(),

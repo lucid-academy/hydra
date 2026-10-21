@@ -21,11 +21,13 @@ import {
   inspect,
   leavePlace,
   moveHydra,
+  openSealed,
   pendingBattleSetup,
   plannedJourney,
   reachableHexes,
   refuseBlessing,
   serpentInBattle,
+  startCondition,
   storyDialogue,
   workThreshold,
 } from '../sim/turn';
@@ -87,6 +89,11 @@ export class RunController extends Phaser.Events.EventEmitter {
 
   workThreshold(): void {
     this.publish(workThreshold(this.state, this.rules));
+  }
+
+  /** Opens the sealed threshold whose panel is open, its way number `way`. */
+  openSealed(way: number): void {
+    this.publish(openSealed(this.state, this.rules, way));
   }
 
   leavePlace(): void {
@@ -205,6 +212,19 @@ export class RunController extends Phaser.Events.EventEmitter {
     const d = this.rules.story.dialogues.find((x) => x.id === id && x.trigger === 'serpentInBattle');
     const line = d?.lines[0];
     return line ? { speaker: 'serpent', name: this.rules.story.speakerNames.serpent ?? '', classId: null, text: line.text } : null;
+  }
+
+  /** For `?flags=`: story flags set from the start, as if earlier steps of a quest were done. Testing only. */
+  flagsForTest(flags: readonly string[]): void {
+    for (const flag of flags) if (!this.state.story.flags.includes(flag)) this.state.story.flags.push(flag);
+  }
+
+  /** For `?conditions=`: conditions on the hydra from the start, for a few turns. Testing only. */
+  conditionsForTest(ids: readonly string[]): void {
+    for (const id of ids) {
+      if (!this.rules.conditions[id]) console.warn(`?conditions=${id} is not a condition in world.json`);
+      else startCondition(this.state, id, 5, this.rules, []);
+    }
   }
 
   /** For `?reveal=1`: every hex becomes known (seen before), to look at the whole map. Testing only. */

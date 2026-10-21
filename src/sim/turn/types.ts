@@ -28,6 +28,25 @@ export interface ThresholdRules {
   dug: boolean;
   /** Opened at once by a head of this class. */
   headClass: string | null;
+  /**
+   * Opened by a step of a mini quest (the Sealed Door): any one of `ways`, each needing a story flag. Opening it
+   * sets `setFlags` and says `dialogue` (an id from dialogues.json). Null: not sealed.
+   */
+  sealed: { ways: ReadonlyArray<{ flag: string }>; setFlags: readonly string[]; dialogue: string | null } | null;
+}
+
+/**
+ * The Cinderkin melt a tunnel when an event's outcome says `bore` (GAME_DESIGN.md §9.3): through one of the thinnest
+ * spots of a rock band near the hydra, no farther than `within` hexes, at most `longest` hexes of rock long. The tunnel
+ * burns for `hotTurns` turns (the one it is made in included): every hot hex the hydra steps on costs `burn` body HP.
+ * Its middle is a threshold of kind `thresholdId`.
+ */
+export interface BoreRules {
+  thresholdId: string;
+  within: number;
+  longest: number;
+  hotTurns: number;
+  burn: number;
 }
 
 /** Something the hydra can do at a place (world.json places). */
@@ -140,12 +159,16 @@ export interface EventOutcome {
   dialogue: string | null;
   /** A new head of this class grows. */
   newHead: string | null;
+  /** The Cinderkin melt a tunnel through the rock nearby (RunRules.bore). */
+  bore: boolean;
 }
 
 export interface EventChoiceRules {
   text: string;
   /** Needs a head of this class. */
   needsHead: string | null;
+  /** Needs this condition on the hydra (world.json conditions), e.g. Warm. */
+  needsCondition: string | null;
   /** Paid when chosen; can't be chosen without it. */
   cost: { muck: number; moisture: number; bones: number };
   /** A gamble: `success` with this chance, else `failure`. Null: always `success`. */
@@ -233,6 +256,8 @@ export interface RunRules {
   /** What each blessing (by id) does. */
   blessings: Readonly<Record<string, BlessingEffects>>;
   thresholds: Readonly<Record<string, ThresholdRules>>;
+  /** How the Cinderkin melt a tunnel (null: no threshold in world.json can be bored). */
+  bore: BoreRules | null;
   places: Readonly<Record<string, PlaceRules>>;
   conditions: Readonly<Record<string, ConditionRules>>;
   story: StoryRules;
@@ -301,6 +326,8 @@ export interface RunState {
   story: StoryState;
   /** The event the hydra stands at, until its panel is closed; `result` once a choice is made. */
   pendingEvent: { at: Hex; eventId: string; result: { text: string; choice: number; success: boolean } | null } | null;
+  /** Hexes of a fresh Cinder Bore that still burn: hex key → the last turn they burn. */
+  hotUntil: Record<string, number>;
 }
 
 export type RunEvent =
@@ -325,6 +352,12 @@ export type RunEvent =
   | { type: 'thresholdDug'; at: Hex; thresholdId: string; dug: number; needed: number }
   | { type: 'thresholdOpened'; at: Hex; thresholdId: string }
   | { type: 'thresholdRevealed'; at: Hex; thresholdId: string }
+  /** The Cinderkin melted a tunnel: `path` from one ring to the other, its threshold at `at`. */
+  | { type: 'tunnelBored'; at: Hex; path: Hex[] }
+  /** The Cinderkin found no rock thin enough nearby, and wandered off. */
+  | { type: 'boreFailed' }
+  | { type: 'burned'; at: Hex; amount: number }
+  | { type: 'tunnelCooled' }
   | { type: 'conditionStarted'; id: string; turns: number }
   | { type: 'conditionEnded'; id: string }
   | { type: 'rested'; healedScars: number; newHeadIds: string[] }

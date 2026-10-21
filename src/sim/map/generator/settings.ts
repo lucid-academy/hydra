@@ -99,6 +99,11 @@ export interface UndergroundGeneratorSettings {
   deadEndPocket: Range;
   /** Thresholds of one border lie at least this share of the circle apart. */
   thresholdSpacing: number;
+  /**
+   * Thresholds added on top of a border's own (the Sealed Door): one of `kind` on border `border` (1 = between rings
+   * 1 and 2) in a world, with this chance. Closed until opened; never needed to get anywhere.
+   */
+  extraThresholds: ReadonlyArray<{ kind: string; border: number; chance: number }>;
   /** Thresholds that are dug through, and how many turns of digging each takes (a range: each one gets its own). */
   digTurns: Readonly<Record<string, Range>>;
   encounterSpacing: number;

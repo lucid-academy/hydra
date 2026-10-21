@@ -112,7 +112,8 @@ function problemsOf(map: HexMap, s: UndergroundGeneratorSettings): string[] {
   for (let border = 1; border < rings; border++) {
     const rule = s.rings[border - 1]!.thresholds!;
     const here = thresholds.filter((t) => t.object.border === border);
-    const regular = here.filter((t) => t.object.thresholdId !== CINDER_SCAR && t.object.thresholdId !== OLD_WORKINGS);
+    const extraKinds = s.extraThresholds.map((e) => e.kind);
+    const regular = here.filter((t) => t.object.thresholdId !== CINDER_SCAR && t.object.thresholdId !== OLD_WORKINGS && !extraKinds.includes(t.object.thresholdId));
     check(regular.length >= rule.count[0] && regular.length <= rule.count[1], `border ${border} has ${regular.length} thresholds`);
     check(regular.filter((t) => t.object.thresholdId === DRAUGHT_CRACK).length === 1, `border ${border} has no single Draught Crack`);
     for (const a of regular) {
@@ -137,6 +138,12 @@ function problemsOf(map: HexMap, s: UndergroundGeneratorSettings): string[] {
   check(scars.every((t) => t.object.border > 1 && t.object.state === 'open'), 'a Cinder Scar on the first border, or shut');
   const shafts = thresholds.filter((t) => t.object.thresholdId === OLD_WORKINGS);
   check(shafts.length === (s.modifiers.includes('oldWorkings') ? 1 : 0), 'Old Workings do not match the modifier');
+  // Extra thresholds (the Sealed Door): at most one of each, on its own border, closed rock until opened.
+  for (const extra of s.extraThresholds) {
+    const placed = thresholds.filter((t) => t.object.thresholdId === extra.kind);
+    check(placed.length <= 1, `${placed.length} of ${extra.kind}`);
+    check(placed.every((t) => t.object.border === extra.border && t.object.state === 'closed' && t.terrain === 'rock'), `${extra.kind} out of place or open`);
+  }
 
   // Dead ends and one-way chambers are never empty.
   for (const d of map.layout.deadEnds) check(map.tiles.get(hexKey(d.content))?.object != null, `an empty dead end at ${hexKey(d.content)}`);
@@ -235,12 +242,17 @@ describe('generateUnderground', () => {
 
   it(`keeps the rules of GAME_DESIGN.md §9 on ${SEEDS} seeds`, { timeout: 180_000 }, () => {
     const rareCounts = new Map<string, number>();
+    const extraCounts = new Map<string, number>();
     const failures: string[] = [];
     let attempts = 0;
     for (let seed = 0; seed < SEEDS; seed++) {
       const { map, rejected } = generateUndergroundWithReport(seed, settings, rules.terrain);
       attempts += rejected.length + 1;
       for (const id of map.layout.rarePlaces) rareCounts.set(id, (rareCounts.get(id) ?? 0) + 1);
+      for (const t of map.tiles.values()) {
+        const object = t.object;
+        if (object?.kind === 'threshold' && settings.extraThresholds.some((e) => e.kind === object.thresholdId)) extraCounts.set(object.thresholdId, (extraCounts.get(object.thresholdId) ?? 0) + 1);
+      }
       const problems = problemsOf(map, settings);
       if (problems.length > 0) failures.push(`seed ${seed}: ${problems.join('; ')}`);
     }
@@ -249,6 +261,12 @@ describe('generateUnderground', () => {
     for (const place of settings.places.filter((p) => p.type === 'rare')) {
       const share = (rareCounts.get(place.id) ?? 0) / SEEDS;
       expect(Math.abs(share - place.chance), `${place.id}: ${share}`).toBeLessThan(RARE_TOLERANCE);
+    }
+    // Extra thresholds come up as often as their chance says, but for the few worlds where one doesn't fit.
+    for (const extra of settings.extraThresholds) {
+      const share = (extraCounts.get(extra.kind) ?? 0) / SEEDS;
+      expect(share, extra.kind).toBeGreaterThan(extra.chance * 0.95 - RARE_TOLERANCE);
+      expect(share, extra.kind).toBeLessThan(extra.chance + RARE_TOLERANCE);
     }
     expect(attempts / SEEDS).toBeLessThan(3);
   });
