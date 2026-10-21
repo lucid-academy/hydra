@@ -1,19 +1,13 @@
-// Scenes are laid out on the 640×360 screen (SCREEN in scaling.ts). In the classic view the canvas has exactly that
-// many pixels; in HD (?hd=1) it has the window's real pixels, art has twice the pixels, and cameras zoom the layout up
-// to fill the canvas. These helpers keep scenes working the same in both.
+// Scenes are laid out on the 640×360 screen (SCREEN in scaling.ts). The canvas has the window's real pixels (HD,
+// GAME_DESIGN.md §13), art has twice the pixels of the layout, and cameras zoom the layout up to fill the canvas.
 
 import * as Phaser from 'phaser';
 import { SCREEN } from '../scaling';
 
-/** Art for HD has this many pixels per screen unit (public/images-hd/, made by `npm run art`). */
+/** Art has this many pixels per screen unit (public/images/, made by `npm run art`). */
 export const HD_DENSITY = 2;
 
-/** Where the HD version of an image file is: images/x.png → images-hd/x.png. */
-export function hdFile(file: string): string {
-  return file.replace(/^images\//, 'images-hd/');
-}
-
-/** Canvas pixels per screen unit: 1 in the classic view, more in HD. */
+/** Canvas pixels per screen unit. */
 export function viewScale(scene: Phaser.Scene): number {
   const { width, height } = scene.scale.gameSize;
   return Math.min(width / SCREEN.width, height / SCREEN.height);
@@ -64,7 +58,7 @@ export function useDensity(texture: Phaser.Textures.Texture, density: number): v
 }
 
 /**
- * In HD every text is drawn at the canvas's resolution, so it stays sharp when cameras zoom the screen up, and smooth
+ * Every text is drawn at the canvas's resolution, so it stays sharp when cameras zoom the screen up, and smooth
  * (letters are not pixel art). Phaser draws text into its own small canvas, one pixel per unit unless told otherwise.
  */
 export function sharpenText(): void {

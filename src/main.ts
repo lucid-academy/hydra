@@ -26,17 +26,16 @@ function start(): void {
   // seed is shown in the debug overlay so any run can be replayed with ?seed=.
   const seed = params.seed ?? Math.floor(Math.random() * 1_000_000);
   // HD (GAME_DESIGN.md §13): the canvas has the window's real pixels and pixel art is drawn sharp at any zoom
-  // (smoothPixelArt: square texels with clean edges between them). Classic: 640×360 pixels, scaled by CSS.
-  const { hd } = params;
-  const fit = (): ReturnType<typeof fitCanvas> => fitCanvas(window.innerWidth, window.innerHeight, window.devicePixelRatio, hd);
+  // (smoothPixelArt: square texels with clean edges between them).
+  const fit = (): ReturnType<typeof fitCanvas> => fitCanvas(window.innerWidth, window.innerHeight, window.devicePixelRatio);
   const first = fit();
 
   const game = new Phaser.Game({
-    type: hd ? Phaser.WEBGL : Phaser.AUTO,
+    type: Phaser.WEBGL,
     parent: 'game',
     width: first.width,
     height: first.height,
-    ...(hd ? { render: { smoothPixelArt: true } } : { pixelArt: true }),
+    render: { smoothPixelArt: true },
     backgroundColor: data.palette.underground.black,
     scale: {
       mode: Phaser.Scale.NONE,
@@ -47,16 +46,14 @@ function start(): void {
     scene: [BootScene, TitleScene, MapScene, HudScene, BattleScene, DebugOverlayScene],
   });
   setContext(game, { data, seed, params });
-  if (hd) sharpenText();
+  sharpenText();
 
   const rescale = (): void => {
     const { width, height, zoom } = fit();
-    if (hd) {
-      // Phaser leaves the CSS size alone at zoom 1, so it is set here, before Phaser measures the canvas.
-      game.canvas.style.width = `${width * zoom}px`;
-      game.canvas.style.height = `${height * zoom}px`;
-      game.canvas.style.imageRendering = 'auto';
-    }
+    // Phaser leaves the CSS size alone at zoom 1, so it is set here, before Phaser measures the canvas.
+    game.canvas.style.width = `${width * zoom}px`;
+    game.canvas.style.height = `${height * zoom}px`;
+    game.canvas.style.imageRendering = 'auto';
     game.scale.setZoom(zoom);
     if (game.scale.width !== width || game.scale.height !== height) game.scale.resize(width, height);
   };

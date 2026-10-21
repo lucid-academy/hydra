@@ -4,7 +4,7 @@
 // Controls: tap a head (or its card, or 1–9) to select it, then tap an enemy to make it attack.
 // Several heads at once: Ctrl or Shift + tap on heads or cards (Shift + 1–9), or "All heads" (key A).
 // With no head selected, tap a free hex to move the body there (right-click always moves it).
-// In HD (GAME_DESIGN.md §13) the board is one painted surface with a faint grid, reach is one line round the area,
+// The board is one painted surface (GAME_DESIGN.md §13) with a faint grid, reach is one line round the area,
 // things stand on soft shadows, and torches light the board around them.
 
 import * as Phaser from 'phaser';
@@ -81,24 +81,24 @@ const NECK_LAYERS = [
 ] as const;
 
 // Depths: board, then things on it sorted by how low on the screen they stand, then necks and heads, then UI.
-// In HD the light lies over everything on the board and under the bars and the UI, and the glow of torches over it.
+// The light lies over everything on the board and under the bars and the UI, and the glow of torches over it.
 const DEPTH = { tile: 0, grid: 0.5, mark: 1, shadow: 2, standing: 10, mist: 40, necks: 50, jaws: 50.5, heads: 51, light: 55, glow: 56, overlay: 60, text: 70, ui: 100 } as const;
 
-/** HD: the board's picture, and the faint line along the sides of its hexes (width in screen units). */
+/** The board's picture, and the faint line along the sides of its hexes (width in screen units). */
 const BOARD_TEXTURE = 'battle_board';
 const GRID = { width: 0.5, alpha: 0.16 } as const;
-/** HD: the lines round where the selected heads reach and round single hexes (as on the map, MapScene). */
+/** The lines round where the selected heads reach and round single hexes (as on the map, MapScene). */
 const MARK_LINE = { rounding: 3, glowWidth: 4, glowAlpha: 0.2, width: 1.25 } as const;
 /**
- * HD: soft shadows under soldiers and under the body (screen units). The body's is an oval round the foot of the mound,
+ * Soft shadows under soldiers and under the body (screen units). The body's is an oval round the foot of the mound,
  * its middle this far below the middle of the footprint, so it shows at the sides and in front.
  */
 const SHADOW = { soldier: 24, body: { width: 176, height: 100, below: 12 } } as const;
-/** HD: a cloud of Mist is soft patches this wide, one on each hex it covers, and soft puffs this big over them (screen units). */
+/** A cloud of Mist is soft patches this wide, one on each hex it covers, and soft puffs this big over them (screen units). */
 const MIST_PATCH = 70;
 const MIST_PUFF = { width: 34, height: 16 } as const;
 /**
- * HD light: a soft light over the middle of the board (darker towards the edges); a burning torch lights this far
+ * Light: a soft light over the middle of the board (darker towards the edges); a burning torch lights this far
  * around its flame, flickering, and glows warm round the flame (glow this wide, this bright); an acid cloud glows a little.
  * Torchlight is the Order's orange: the pale yellow of fire turns green on the teal ground.
  */
@@ -134,8 +134,8 @@ interface HeadView {
 interface EnemyView {
   sprite: Phaser.GameObjects.Image;
   shadow: Phaser.GameObjects.Image;
-  /** HD: the warm glow round a burning torch (hidden while the soldier has none, or it is out). */
-  glow: Phaser.GameObjects.Image | null;
+  /** The warm glow round a burning torch (hidden while the soldier has none, or it is out). */
+  glow: Phaser.GameObjects.Image;
   lungeUntil: number;
   lungeTo: Point;
   phase: number;
@@ -159,12 +159,10 @@ export class BattleScene extends Phaser.Scene {
   /** Ids of combos that fired in this battle, in order (for the smoke test). */
   private combosSeen: string[] = [];
 
-  private hd = false;
-  private marks = new Map<string, Phaser.GameObjects.Image>();
-  /** HD: the line round where the selected heads reach (and rings on single hexes), its glow, and what they show. */
-  private reach: { glow: Phaser.GameObjects.Graphics; line: Phaser.GameObjects.Graphics; shown: string } | null = null;
-  private light: MapLight | null = null;
-  private bodyShadow: Phaser.GameObjects.Image | null = null;
+  /** The line round where the selected heads reach (and rings on single hexes), its glow, and what they show. */
+  private reach!: { glow: Phaser.GameObjects.Graphics; line: Phaser.GameObjects.Graphics; shown: string };
+  private light!: MapLight;
+  private bodyShadow!: Phaser.GameObjects.Image;
   private mistTiles = new Map<string, Phaser.GameObjects.Image>();
   private mistPuffs = new Map<number, Phaser.GameObjects.Image[]>();
   private bodySprite!: Phaser.GameObjects.Image;
@@ -215,17 +213,12 @@ export class BattleScene extends Phaser.Scene {
     this.selected = new Set();
     this.finished = false;
     this.slowdownLeft = 0;
-    this.marks = new Map();
     this.mistTiles = new Map();
     this.mistPuffs = new Map();
     this.heads = new Map();
     this.enemies = new Map();
     this.stumpSprites = new Map();
-    this.hd = params.hd;
-    this.reach = null;
-    this.light = null;
-    this.bodyShadow = null;
-    if (this.hd) makeSoftTextures(this);
+    makeSoftTextures(this);
 
     fitScreenCamera(this);
     this.cameras.main.setBackgroundColor(color(data.palette.underground.black));
@@ -237,15 +230,13 @@ export class BattleScene extends Phaser.Scene {
 
     this.bodySprite = this.add.image(0, 0, 'battle_body');
     this.bodySprite.setOrigin(BODY_FOOT.x / this.bodySprite.width, BODY_FOOT.y / this.bodySprite.height);
-    if (this.hd) {
-      this.bodyShadow = this.softShadow(SHADOW.body.width, SHADOW.body.height);
-      this.light = new MapLight(this, { x: 0, y: 0, width: SCREEN.width, height: SCREEN.height }, DEPTH.light, 'battle_light');
-      this.reach = {
-        glow: this.add.graphics().setDepth(DEPTH.mark).setBlendMode(Phaser.BlendModes.ADD),
-        line: this.add.graphics().setDepth(DEPTH.mark),
-        shown: '',
-      };
-    }
+    this.bodyShadow = this.softShadow(SHADOW.body.width, SHADOW.body.height);
+    this.light = new MapLight(this, { x: 0, y: 0, width: SCREEN.width, height: SCREEN.height }, DEPTH.light, 'battle_light');
+    this.reach = {
+      glow: this.add.graphics().setDepth(DEPTH.mark).setBlendMode(Phaser.BlendModes.ADD),
+      line: this.add.graphics().setDepth(DEPTH.mark),
+      shown: '',
+    };
     this.necks = this.add.graphics().setDepth(DEPTH.necks);
     this.overlay = this.add.graphics().setDepth(DEPTH.overlay);
 
@@ -274,12 +265,12 @@ export class BattleScene extends Phaser.Scene {
   // ------------------------------------------------------------ board
 
   /**
-   * Tiles row by row from the top: each row hides the walls of the row behind it, so only the front edge shows its walls.
-   * Tiles cut from a terrain texture come in variants, so each hex gets its own; otherwise all hexes share one image.
+   * The board painted as one picture with a faint grid. A terrain with no texture file yet gets tiles instead, row by
+   * row from the top: each row hides the walls of the row behind it, so only the front edge shows its walls.
    */
   private createBoard(biome: string, terrain: string): void {
     const rules = this.run.battleRules;
-    const painted = this.hd && this.paintBoardPicture(biome, terrain);
+    const painted = this.paintBoardPicture(biome, terrain);
     const cut = battleTileKey(biome, terrain, true);
     const tileKey = this.textures.exists(variantKey(cut, 0)) ? cut : battleTileKey(biome, terrain, false);
     const originY = TILE.faceHeight / 2 / (TILE.faceHeight + TILE.wallHeight);
@@ -289,14 +280,9 @@ export class BattleScene extends Phaser.Scene {
         const variant = tileVariant(this.textures, tileKey, Math.imul(h.q + 64, 73856093) ^ Math.imul(h.r + 64, 19349663));
         this.add.image(p.x, p.y, variant).setOrigin(0.5, originY).setDepth(DEPTH.tile + p.y / 10000);
       }
-      if (this.hd) {
-        // Mist as soft patches that run into each other; marks are lines (drawMarks).
-        const patch = this.add.image(p.x, p.y, LIGHT_TEXTURE).setScale(MIST_PATCH / LIGHT_TEXTURE_SIZE).setDepth(DEPTH.mark).setVisible(false);
-        this.mistTiles.set(hexKey(h), patch);
-      } else {
-        this.marks.set(hexKey(h), this.add.image(p.x, p.y, 'battle_hex_mark').setDepth(DEPTH.mark).setVisible(false));
-        this.mistTiles.set(hexKey(h), this.add.image(p.x, p.y, 'battle_hex_fill').setDepth(DEPTH.mark).setVisible(false));
-      }
+      // Mist as soft patches that run into each other; marks are lines (drawMarks).
+      const patch = this.add.image(p.x, p.y, LIGHT_TEXTURE).setScale(MIST_PATCH / LIGHT_TEXTURE_SIZE).setDepth(DEPTH.mark).setVisible(false);
+      this.mistTiles.set(hexKey(h), patch);
     }
     if (painted) this.drawGrid();
     // A few glowing spores in the dark around the board.
@@ -307,7 +293,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   /**
-   * HD: the whole board as one picture painted from the terrain's texture, without seams between hexes (false when
+   * The whole board as one picture painted from the terrain's texture, without seams between hexes (false when
    * the terrain has no texture file yet: then the board is made of tiles).
    */
   private paintBoardPicture(biome: string, terrain: string): boolean {
@@ -344,7 +330,7 @@ export class BattleScene extends Phaser.Scene {
     return (getContext(this).data.manifest.images[key]?.file ?? null) !== null;
   }
 
-  /** HD: a faint line along every side of the board's hexes, so the fields still read on the seamless board. */
+  /** A faint line along every side of the board's hexes, so the fields still read on the seamless board. */
   private drawGrid(): void {
     const { palette } = getContext(this).data;
     const grid = this.add.graphics().setDepth(DEPTH.grid);
@@ -352,7 +338,7 @@ export class BattleScene extends Phaser.Scene {
     for (const [a, b] of hexEdges(boardHexes(this.run.battleRules), LAYOUT)) grid.lineBetween(a.x, a.y, b.x, b.y);
   }
 
-  /** HD: a soft dark oval to stand on, this wide and (unless it is the usual half as tall) this tall (screen units). */
+  /** A soft dark oval to stand on, this wide and (unless it is the usual half as tall) this tall (screen units). */
   private softShadow(width: number, height = width / 2): Phaser.GameObjects.Image {
     return this.add
       .image(0, 0, SHADOW_TEXTURE)
@@ -667,18 +653,14 @@ export class BattleScene extends Phaser.Scene {
       const key = `battle_enemy_${enemy.typeId}`;
       const feet = this.hexFeet(enemy.hex);
       const sprite = this.add.image(feet.x, feet.y, this.textures.exists(key) ? key : 'battle_enemy_manAtArms').setOrigin(0.5, 1);
-      const shadow = this.hd
-        ? this.softShadow(SHADOW.soldier).setPosition(feet.x, feet.y)
-        : this.add.image(feet.x, feet.y, 'battle_shadow').setTint(0x000000).setAlpha(0.45).setDepth(DEPTH.shadow);
-      const glow = this.hd
-        ? this.add
-            .image(feet.x, feet.y, LIGHT_TEXTURE)
-            .setScale(BATTLE_LIGHTS.torch.glowSize / LIGHT_TEXTURE_SIZE)
-            .setTint(color(getContext(this).data.palette.order.orange))
-            .setBlendMode(Phaser.BlendModes.ADD)
-            .setDepth(DEPTH.glow)
-            .setVisible(false)
-        : null;
+      const shadow = this.softShadow(SHADOW.soldier).setPosition(feet.x, feet.y);
+      const glow = this.add
+        .image(feet.x, feet.y, LIGHT_TEXTURE)
+        .setScale(BATTLE_LIGHTS.torch.glowSize / LIGHT_TEXTURE_SIZE)
+        .setTint(color(getContext(this).data.palette.order.orange))
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(DEPTH.glow)
+        .setVisible(false);
       this.enemies.set(enemy.id, { sprite, shadow, glow, lungeUntil: 0, lungeTo: feet, phase: enemy.id * 2.3, feet });
     }
 
@@ -704,8 +686,8 @@ export class BattleScene extends Phaser.Scene {
         .filter((h) => hexDistance(h, cloud.center) <= cloud.radius)
         .map((h) => {
           const p = this.hexCenter(h);
-          // HD: soft puffs like the soft patches under them, unless there is a drawn puff.
-          const puff = this.hd && !this.hasArt('battle_mist_puff')
+          // Soft puffs like the soft patches under them, unless there is a drawn puff.
+          const puff = !this.hasArt('battle_mist_puff')
             ? this.add.image(p.x, p.y - 10, LIGHT_TEXTURE).setScale(MIST_PUFF.width / LIGHT_TEXTURE_SIZE, MIST_PUFF.height / LIGHT_TEXTURE_SIZE)
             : this.add.image(p.x, p.y - 10, 'battle_mist_puff');
           return puff.setDepth(DEPTH.mist).setAlpha(0).setData('x0', p.x);
@@ -719,7 +701,7 @@ export class BattleScene extends Phaser.Scene {
     const now = this.time.now;
     const body = this.bodyCenter();
     this.bodySprite.setPosition(Math.round(body.x), Math.round(body.y)).setDepth(DEPTH.standing + body.y / 1000);
-    this.bodyShadow?.setPosition(body.x, body.y + SHADOW.body.below);
+    this.bodyShadow.setPosition(body.x, body.y + SHADOW.body.below);
 
     for (const enemy of this.battle.enemies) this.drawEnemy(enemy, body, now);
     this.drawMist(now);
@@ -732,7 +714,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.drawMarks();
     this.drawOverlay(body);
-    if (this.light) this.drawLights(now);
+    this.drawLights(now);
     const { text } = getContext(this).data;
     this.bodyHpText.setText(`${text.battle.body} ${Math.max(0, Math.ceil(this.battle.body.hp))}/${this.battle.body.maxHp}`);
     this.cards.update(
@@ -890,42 +872,11 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  /** Hex outlines: how far the selected heads reach, which enemies they can take, where the body is going. */
-  private drawMarks(): void {
-    if (this.reach) {
-      this.drawMarkLines();
-      return;
-    }
-    const rules = this.run.battleRules;
-    for (const mark of this.marks.values()) mark.setVisible(false);
-    const show = (h: Hex, tint: number, alpha: number): void => {
-      this.marks.get(hexKey(h))?.setVisible(true).setTint(tint).setAlpha(alpha);
-    };
-    const center = this.battle.body.center;
-    const picked = this.battle.heads.filter((h) => this.selected.has(h.id));
-    if (picked.length > 0 && !this.finished) {
-      const rangeOf = (h: BattleHead) => rules.headClasses[h.classId]!.attack.range;
-      const reach = Math.max(...picked.map(rangeOf));
-      for (const h of boardHexes(rules)) {
-        const d = bodyDistance(center, h);
-        if (d >= 1 && d <= reach) show(h, 0xc6e04a, 0.45);
-      }
-      // Orange: enemies at least one of them can reach. Red: enemies they were ordered to attack.
-      const ordered = new Set(picked.map((h) => h.orderTargetId));
-      for (const enemy of this.battle.enemies) {
-        const inReach = picked.some((h) => bodyDistance(center, enemy.hex) <= rangeOf(h));
-        if (ordered.has(enemy.id)) show(enemy.hex, 0xff5030, 0.95);
-        else if (inReach) show(enemy.hex, 0xffa030, 0.95);
-      }
-    }
-    if (this.battle.body.moveTarget && !this.finished) show(this.battle.body.moveTarget, 0xe8f0e0, 0.7);
-  }
-
   /**
-   * HD: the same marks as lines: one round where the selected heads reach, and a ring round each enemy they can take
-   * (orange) or were sent at (red), and round where the body is going. Drawn again only when one of them changes.
+   * Hex outlines: one line round where the selected heads reach, and a ring round each enemy they can take (orange) or
+   * were sent at (red), and round where the body is going. Drawn again only when one of them changes.
    */
-  private drawMarkLines(): void {
+  private drawMarks(): void {
     const rules = this.run.battleRules;
     const center = this.battle.body.center;
     const picked = this.finished ? [] : this.battle.heads.filter((h) => this.selected.has(h.id));
@@ -942,7 +893,7 @@ export class BattleScene extends Phaser.Scene {
     if (target) rings.push({ hex: target, tint: 0xe8f0e0 });
     const reach = picked.length > 0 ? Math.max(...picked.map(rangeOf)) : 0;
     const shown = `${hexKey(center)}|${reach}|${rings.map((r) => `${hexKey(r.hex)}:${r.tint}`).join(',')}`;
-    const view = this.reach!;
+    const view = this.reach;
     if (shown === view.shown) return;
     view.shown = shown;
     view.glow.clear();
@@ -961,7 +912,7 @@ export class BattleScene extends Phaser.Scene {
     for (const ring of rings) stroke(hexOutlines([ring.hex], LAYOUT)[0]!, ring.tint, 0.95);
   }
 
-  /** HD: torches light the board warm around them, acid clouds glow a little, and the board darkens towards its edges. */
+  /** Torches light the board warm around them, acid clouds glow a little, and the board darkens towards its edges. */
   private drawLights(now: number): void {
     const { palette } = getContext(this).data;
     const rules = this.run.battleRules;
@@ -971,11 +922,11 @@ export class BattleScene extends Phaser.Scene {
       const view = this.enemies.get(enemy.id);
       if (!view) continue;
       const burning = canCauterize(this.battle, enemy, rules);
-      view.glow?.setVisible(burning);
+      view.glow.setVisible(burning);
       if (!burning) continue;
       const flicker = 1 - torch.flicker * (0.5 + 0.5 * Math.sin(now / 90 + view.phase) * Math.sin(now / 37 + view.phase * 2));
       const flame = { x: view.sprite.x + (view.sprite.flipX ? -TORCH_FLAME.x : TORCH_FLAME.x), y: view.sprite.y - TORCH_FLAME.y };
-      view.glow?.setPosition(flame.x, flame.y).setAlpha(torch.glowAlpha * flicker);
+      view.glow.setPosition(flame.x, flame.y).setAlpha(torch.glowAlpha * flicker);
       lights.push({ ...flame, radius: torch.radius, color: color(palette.order.orange), strength: torch.strength * flicker });
     }
     for (const cloud of this.battle.clouds) {
@@ -983,7 +934,7 @@ export class BattleScene extends Phaser.Scene {
       const c = this.hexCenter(cloud.center);
       lights.push({ x: c.x, y: c.y, radius: (cloud.radius + 1) * TILE.width, color: color(palette.underground.bioluminescence), strength: BATTLE_LIGHTS.acid });
     }
-    this.light!.draw(lights);
+    this.light.draw(lights);
   }
 
   /** HP bars, status marks, the selection ring, the order line, stump timers. */
@@ -1043,7 +994,7 @@ export class BattleScene extends Phaser.Scene {
 
   private fallDown(view: EnemyView): void {
     view.shadow.destroy();
-    view.glow?.destroy();
+    view.glow.destroy();
     this.tweens.add({ targets: view.sprite, alpha: 0, y: view.sprite.y + 4, duration: 500, onComplete: () => view.sprite.destroy() });
   }
 
@@ -1161,7 +1112,7 @@ export class BattleScene extends Phaser.Scene {
 
 /**
  * The point a lower jaw turns around: the top of its back end (its leftmost drawn column), in screen units from the
- * image's corner. HD images have more pixels per unit (useDensity), so their pixels are counted and then divided.
+ * image's corner. Images have more pixels per unit (useDensity), so their pixels are counted and then divided.
  */
 function jawHinge(textures: Phaser.Textures.TextureManager, key: string): Point {
   const frame = textures.getFrame(key);

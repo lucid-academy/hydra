@@ -1,15 +1,14 @@
 // Strategic map: the underground seen from a slant (like the battle board), drawn from the run state.
-// Ground tiles in each biome's look, rock raised into blocks, decorations in clumps, and things standing on their hexes:
+// The ground painted as one surface in each biome's look (mapGround.ts, GAME_DESIGN.md §13), rock raised into blocks,
+// under soft darkness and light (mapLight.ts), decorations in clumps, and things standing on their hexes:
 // the lair, encounters, shrines, places, thresholds and finds. Hints float over known hexes: draughts near hidden
 // thresholds, and echoes at the edge of the known map. Drag to look around; tap a highlighted hex to move there,
 // a closed threshold to go and deal with it, and the place the hydra stands on to open its panel.
-// In HD (GAME_DESIGN.md §13) the ground is painted as one surface instead of tiles (mapGround.ts), under soft
-// darkness and light (mapLight.ts), with shadows under things and one line around where the hydra can go.
+// Things cast soft shadows, and one line goes around where the hydra can go.
 
 import * as Phaser from 'phaser';
-import { GLOWING_DECORATIONS, MAP_COLUMN_WIDTH, MAP_FEET_BELOW_HEX_CENTER, MAP_GATE_FEET_BELOW_HEX_CENTER, MAP_ROCK_LIFT, MAP_ROW_HEIGHT, MAP_TILE } from '../assets/mapArt';
+import { GLOWING_DECORATIONS, MAP_COLUMN_WIDTH, MAP_FEET_BELOW_HEX_CENTER, MAP_GATE_FEET_BELOW_HEX_CENTER, MAP_ROW_HEIGHT } from '../assets/mapArt';
 import type { DecorationKind } from '../assets/mapArt';
-import { tileVariant } from '../assets/terrainTiles';
 import { hex, hexDistance, hexEquals, hexKey, hexNeighbors, hexToPixel, pixelToHex } from '../sim/hex';
 import type { Hex, HexLayout } from '../sim/hex';
 import type { MapObject, Tile } from '../sim/map';
@@ -55,8 +54,8 @@ const SEE_THROUGH = { minHeight: 40, alpha: 0.55, inset: 0.25 } as const;
 const STANDING_OPEN_THRESHOLDS: readonly string[] = ['oldWorkings'];
 
 // Ground lies flat at the bottom; everything that stands up is sorted by how low on the screen it stands.
-// In HD a faint copy of the reach line lies over all of it, and the light over that, under the glows.
-const DEPTH = { ground: 0, shadow: 1, darkness: 2, decal: 4, mark: 5, standing: 10, reachOver: 20, light: 29, glow: 30, fogEdge: 35, hint: 40 } as const;
+// A faint copy of the reach line lies over all of it, and the light over that, under the glows.
+const DEPTH = { ground: 0, shadow: 1, darkness: 2, decal: 4, mark: 5, standing: 10, reachOver: 20, light: 29, glow: 30, hint: 40 } as const;
 /**
  * The hydra is sorted as if its feet were this much further forward, so it stands over everything on its own hex
  * (the rim of its lair's pool is 6 px in front of its feet) but still behind the next row (MAP_ROW_HEIGHT further).
@@ -64,22 +63,22 @@ const DEPTH = { ground: 0, shadow: 1, darkness: 2, decal: 4, mark: 5, standing: 
 const TOKEN_IN_FRONT = 7;
 
 /**
- * HD: the line around everywhere the hydra can go. Corners rounded this many times; a soft glow under a thin line
+ * The line around everywhere the hydra can go. Corners rounded this many times; a soft glow under a thin line
  * (widths in screen units). The line lies on the ground, so rock in front of it hides it; a faint copy over everything
  * standing keeps its shape visible there.
  */
 const REACH_LINE = { rounding: 3, glowWidth: 4, glowAlpha: 0.2, width: 1.25, alpha: 0.9, overWidth: 1, overAlpha: 0.3 } as const;
 /**
- * HD, with a mouse: the way to the hex under the pointer, as dots this far apart (starting this far from the hydra),
+ * With a mouse: the way to the hex under the pointer, as dots this far apart (starting this far from the hydra),
  * and a ring this big around the hex at its end (screen units).
  */
 const PATH_DOTS = { spacing: 6, radius: 1.1, start: 8, ringWidth: 20, ringHeight: 12, alpha: 0.9 } as const;
-/** HD: shadows under things standing on the ground, this share of their width (screen units, within min and max). */
+/** Shadows under things standing on the ground, this share of their width (screen units, within min and max). */
 const CONTACT_SHADOW = { share: 0.6, min: 8, max: 40 } as const;
 /** Decorations that lie flat, with no shadow. */
 const FLAT_DECORATIONS: readonly DecorationKind[] = ['puddle'];
 /**
- * HD light: the hydra's own (reach and colour), how far the light of a glow reaches (times the glow's size) and how
+ * Light: the hydra's own (reach and colour), how far the light of a glow reaches (times the glow's size) and how
  * strong it is (times the glow's brightness), and the faint light the mycelium gives encounters it tells about.
  */
 const LIGHTS = {
@@ -113,34 +112,28 @@ type Glow = { image: Phaser.GameObjects.Image; alpha: number; groundY: number; r
 interface HexView {
   tile: Tile;
   groundKey: string;
-  /** The hex's ground tile (classic); in HD the ground is painted as one surface (MapGround). */
-  ground: Phaser.GameObjects.Image | null;
   props: Phaser.GameObjects.Image[];
   propGlows: Glow[];
   objectKey: string | null;
   object: Phaser.GameObjects.Image | null;
   objectGlows: Glow[];
-  /** Soft shadows under the props and the object (HD). */
+  /** Soft shadows under the props and the object. */
   shadows: Phaser.GameObjects.Image[];
   objectShadow: Phaser.GameObjects.Image | null;
   /** An encounter out of sight that the mycelium tells about. */
   whispered: boolean;
-  mark: Phaser.GameObjects.Image | null;
-  /** Darkness over a known hex next to the unknown (classic). */
-  fogEdge: Phaser.GameObjects.Image | null;
 }
 
 export class MapScene extends Phaser.Scene {
   private run!: RunController;
-  /** HD (GAME_DESIGN.md §13): the ground is painted as one surface, with light and soft darkness. */
-  private hd = false;
-  private ground: MapGround | null = null;
-  private light: MapLight | null = null;
-  /** HD: the line around everywhere the hydra can go, a soft glow and a thin line over it. */
-  private reach: { glow: Phaser.GameObjects.Graphics; line: Phaser.GameObjects.Graphics; over: Phaser.GameObjects.Graphics } | null = null;
-  /** HD: the way to the hex under the mouse. */
-  private path: Phaser.GameObjects.Graphics | null = null;
-  private tokenShadow: Phaser.GameObjects.Image | null = null;
+  /** The ground, painted as one surface with soft darkness (GAME_DESIGN.md §13), and the light over it. */
+  private ground!: MapGround;
+  private light!: MapLight;
+  /** The line around everywhere the hydra can go, a soft glow and a thin line over it. */
+  private reach!: { glow: Phaser.GameObjects.Graphics; line: Phaser.GameObjects.Graphics; over: Phaser.GameObjects.Graphics };
+  /** The way to the hex under the mouse. */
+  private path!: Phaser.GameObjects.Graphics;
+  private tokenShadow!: Phaser.GameObjects.Image;
   private views = new Map<string, HexView>();
   private token!: Phaser.GameObjects.Image;
   private animating = false;
@@ -172,18 +165,12 @@ export class MapScene extends Phaser.Scene {
     this.press = null;
     this.biomeNames = [];
     this.showingBiomeName = false;
-    this.hd = getContext(this).params.hd;
-    this.ground = null;
-    this.light = null;
-    this.reach = null;
-    this.path = null;
-    this.tokenShadow = null;
     this.cameras.main.setBackgroundColor(color(getContext(this).data.palette.underground.black));
 
-    if (this.hd) makeSoftTextures(this);
+    makeSoftTextures(this);
     this.drawMap();
     this.token = this.add.image(0, 0, 'map_hydra').setOrigin(0.5, 1);
-    if (this.hd) this.tokenShadow = this.contactShadow(0, 0, this.token.width);
+    this.tokenShadow = this.contactShadow(0, 0, this.token.width);
     this.placeToken(this.run.state.hydra.position);
     this.setUpCamera();
     this.setUpInput();
@@ -200,8 +187,8 @@ export class MapScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.run.off('changed', onChanged);
       this.run.off('events', onEvents);
-      this.ground?.destroy();
-      this.light?.destroy();
+      this.ground.destroy();
+      this.light.destroy();
     });
 
     this.refresh();
@@ -214,33 +201,24 @@ export class MapScene extends Phaser.Scene {
 
   private drawMap(): void {
     const clumps = this.planClumps();
-    if (this.hd) {
-      const { data, seed } = getContext(this);
-      this.ground = new MapGround(this, this.run.state.map, data, LAYOUT, seed, {
-        ground: DEPTH.ground,
-        darkness: DEPTH.darkness,
-        standing: (y) => this.standingDepth(y),
-      });
-      this.light = new MapLight(this, this.ground.area, DEPTH.light);
-      this.reach = {
-        glow: this.add.graphics().setDepth(DEPTH.mark).setBlendMode(Phaser.BlendModes.ADD),
-        line: this.add.graphics().setDepth(DEPTH.mark),
-        over: this.add.graphics().setDepth(DEPTH.reachOver),
-      };
-      this.path = this.add.graphics().setDepth(DEPTH.mark);
-    }
+    const { data, seed } = getContext(this);
+    this.ground = new MapGround(this, this.run.state.map, data, LAYOUT, seed, {
+      ground: DEPTH.ground,
+      darkness: DEPTH.darkness,
+      standing: (y) => this.standingDepth(y),
+    });
+    this.light = new MapLight(this, this.ground.area, DEPTH.light);
+    this.reach = {
+      glow: this.add.graphics().setDepth(DEPTH.mark).setBlendMode(Phaser.BlendModes.ADD),
+      line: this.add.graphics().setDepth(DEPTH.mark),
+      over: this.add.graphics().setDepth(DEPTH.reachOver),
+    };
+    this.path = this.add.graphics().setDepth(DEPTH.mark);
     for (const tile of this.run.state.map.tiles.values()) {
       const { x, y } = hexToPixel(LAYOUT, tile.hex);
-      let fogEdge: Phaser.GameObjects.Image | null = null;
-      if (!this.hd) {
-        fogEdge = this.add.image(x, y, 'map_fog_edge').setDepth(DEPTH.fogEdge).setVisible(false);
-        fogEdge.setOrigin(0.5, MAP_TILE.faceHeight / 2 / fogEdge.height);
-      }
-      const groundKey = this.groundKey(tile);
       const view: HexView = {
         tile,
-        groundKey,
-        ground: this.hd ? null : this.makeGround(tile, groundKey),
+        groundKey: this.groundKey(tile),
         props: [],
         propGlows: [],
         objectKey: null,
@@ -249,8 +227,6 @@ export class MapScene extends Phaser.Scene {
         shadows: [],
         objectShadow: null,
         whispered: false,
-        mark: null,
-        fogEdge,
       };
       if (tile.terrain !== 'rock' && !tile.object) this.decorate(view, x, y, clumps.get(hexKey(tile.hex)));
       this.views.set(hexKey(tile.hex), view);
@@ -268,17 +244,6 @@ export class MapScene extends Phaser.Scene {
     const object = tile.object;
     const terrain = object?.kind === 'threshold' && object.state === 'closed' ? object.floor : tile.terrain;
     return terrain === 'rock' ? `map_rock_${tile.biome}` : `map_ground_${tile.biome}_${terrain}`;
-  }
-
-  private makeGround(tile: Tile, key: string): Phaser.GameObjects.Image {
-    const { x, y } = hexToPixel(LAYOUT, tile.hex);
-    const rock = key.startsWith('map_rock_');
-    const ground = this.add.image(x, y, tileVariant(this.textures, key, this.hexSeed(tile.hex)));
-    // The image's anchor is the middle of the hex face (for rock: of the hex it stands on, below the raised top).
-    const faceMiddle = MAP_TILE.faceHeight / 2 + (rock ? MAP_ROCK_LIFT : 0);
-    ground.setOrigin(0.5, faceMiddle / ground.height);
-    ground.setDepth(rock ? this.standingDepth(y + MAP_TILE.faceHeight / 2) : DEPTH.ground + y / 10000);
-    return ground;
   }
 
   /**
@@ -336,7 +301,7 @@ export class MapScene extends Phaser.Scene {
       const py = y + rng.int(-4, 5);
       const prop = this.add.image(px, py, `map_deco_${kind}`).setOrigin(0.5, 1).setDepth(this.standingDepth(py));
       view.props.push(prop);
-      if (this.hd && !FLAT_DECORATIONS.includes(kind)) view.shadows.push(this.contactShadow(px, py, prop.width));
+      if (!FLAT_DECORATIONS.includes(kind)) view.shadows.push(this.contactShadow(px, py, prop.width));
       if (GLOWING_DECORATIONS.includes(kind)) view.propGlows.push(this.glow(px, py - 9, biome.colors.glow, 0.55, 0.5, py));
     }
   }
@@ -382,7 +347,7 @@ export class MapScene extends Phaser.Scene {
     const feet = object.kind === 'lair' ? y + 9 : object.kind === 'threshold' ? y + MAP_GATE_FEET_BELOW_HEX_CENTER : y + MAP_FEET_BELOW_HEX_CENTER;
     view.object = this.add.image(x, feet, key).setOrigin(0.5, 1).setDepth(this.standingDepth(feet));
     // A closed threshold fills its hex, so it has no shadow of its own.
-    if (this.hd && object.kind !== 'threshold') view.objectShadow = this.contactShadow(x, feet, view.object.width);
+    if (object.kind !== 'threshold') view.objectShadow = this.contactShadow(x, feet, view.object.width);
     const light = (tint: string, scale: number, alpha: number, height: number) => view.objectGlows.push(this.glow(x, feet - height, tint, scale, alpha, feet));
     if (object.kind === 'lair') {
       // The pool glows on the ground round it, under the hydra sitting in it, so the hydra keeps its own colours.
@@ -402,19 +367,18 @@ export class MapScene extends Phaser.Scene {
 
   /** A light at (x, y), over something whose feet are at `groundY`. */
   private glow(x: number, y: number, tint: string, scale: number, alpha: number, groundY: number): Glow {
+    // A smooth light, as big as the pixel-art glow (map_glow) the sizes were set for.
     const glowSize = this.textures.getFrame('map_glow').width;
-    // HD: a smooth light instead of the pixel-art one, the same size.
-    const [key, size] = this.hd ? [LIGHT_TEXTURE, LIGHT_TEXTURE_SIZE] : ['map_glow', glowSize];
     const image = this.add
-      .image(x, y, key)
+      .image(x, y, LIGHT_TEXTURE)
       .setTint(color(tint))
-      .setScale((scale * glowSize) / size)
+      .setScale((scale * glowSize) / LIGHT_TEXTURE_SIZE)
       .setBlendMode(Phaser.BlendModes.ADD)
       .setDepth(DEPTH.glow);
     return { image, alpha, groundY, radius: (scale * glowSize) / 2, color: color(tint) };
   }
 
-  /** HD: a soft shadow on the ground under something standing at (x, feetY), as wide as it is (within limits). */
+  /** A soft shadow on the ground under something standing at (x, feetY), as wide as it is (within limits). */
   private contactShadow(x: number, feetY: number, width: number): Phaser.GameObjects.Image {
     const shadowWidth = Phaser.Math.Clamp(width * CONTACT_SHADOW.share, CONTACT_SHADOW.min, CONTACT_SHADOW.max);
     return this.add
@@ -435,22 +399,16 @@ export class MapScene extends Phaser.Scene {
 
   /** Brings every hex in line with the run state: what is known, what changed, where the hydra can go, and the hints. */
   private refresh(): void {
-    const { map, visibility } = this.run.state;
+    const { visibility } = this.run.state;
     const whispered = encountersRevealed(this.run.state, this.run.rules);
-    this.ground?.update(visibility);
+    this.ground.update(visibility);
     for (const [key, view] of this.views) {
       const state = visibility.get(key);
       const known = state !== undefined;
       const tint = state === 'remembered' ? REMEMBERED_TINT : 0xffffff;
-      const groundKey = this.groundKey(view.tile);
-      if (groundKey !== view.groundKey && view.ground) {
-        // A hidden threshold found, a closed one opened: the hex is ground now.
-        view.ground.destroy();
-        view.ground = this.makeGround(view.tile, groundKey);
-      }
-      view.groundKey = groundKey;
+      view.groundKey = this.groundKey(view.tile);
       this.syncObject(view);
-      for (const image of view.ground ? [view.ground, ...view.props] : view.props) image.setVisible(known).setTint(tint);
+      for (const image of view.props) image.setVisible(known).setTint(tint);
       for (const shadow of view.shadows) shadow.setVisible(known);
       for (const glow of view.propGlows) glow.image.setVisible(known).setAlpha(state === 'remembered' ? glow.alpha * 0.4 : glow.alpha);
 
@@ -468,27 +426,17 @@ export class MapScene extends Phaser.Scene {
       }
       view.objectShadow?.setVisible(known);
       for (const glow of view.objectGlows) glow.image.setVisible(known && !spent).setAlpha(state === 'remembered' ? glow.alpha * 0.4 : glow.alpha);
-      // Known hexes at the edge of the unknown fade into the dark.
-      const edge = known && hexNeighbors(view.tile.hex).some((n) => map.tiles.has(hexKey(n)) && !visibility.has(hexKey(n)));
-      view.fogEdge?.setVisible(edge).setAlpha(0.55);
-      view.mark?.setVisible(false);
     }
     const reachable = this.run.state.pendingBattle ? [] : [...this.run.reachable().keys()];
-    this.path?.clear();
-    if (this.reach) this.drawReach(reachable);
-    else {
-      for (const key of reachable) {
-        const view = this.views.get(key);
-        if (view) this.markOf(view).setVisible(true).setAlpha(0.75);
-      }
-    }
+    this.path.clear();
+    this.drawReach(reachable);
     this.drawLights();
     this.seeThroughTallPlaces();
     this.refreshHints();
     this.announceNewBiomes();
   }
 
-  /** Tall landmarks (and in HD, rock) turn see-through where they would hide the hydra or something it needs to see. */
+  /** Tall landmarks and rock turn see-through where they would hide the hydra or something it needs to see. */
   private seeThroughTallPlaces(): void {
     const behind: Phaser.GameObjects.Image[] = [this.token];
     const tall: Phaser.GameObjects.Image[] = [];
@@ -498,7 +446,7 @@ export class MapScene extends Phaser.Scene {
       if (object.kind === 'place' && view.object.height >= SEE_THROUGH.minHeight) tall.push(view.object);
       else if (object.kind === 'encounter' || object.kind === 'shrine' || (object.kind === 'threshold' && object.state === 'closed')) behind.push(view.object);
     }
-    this.ground?.seeThrough(
+    this.ground.seeThrough(
       behind.map((image) => ({ bounds: image.getBounds(), depth: image.depth })),
       SEE_THROUGH.alpha,
     );
@@ -510,9 +458,9 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
-  /** HD: one line around everywhere the hydra can go (and the hex it stands on), with rounded corners; none when it can't move. */
+  /** One line around everywhere the hydra can go (and the hex it stands on), with rounded corners; none when it can't move. */
   private drawReach(keys: readonly string[]): void {
-    const { glow, line, over } = this.reach!;
+    const { glow, line, over } = this.reach;
     glow.clear().setVisible(true);
     line.clear().setVisible(true);
     over.clear().setVisible(true);
@@ -531,9 +479,9 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
-  /** HD, with a mouse: dots along the way the hydra would walk to the hex under the pointer, and a ring around it. */
+  /** With a mouse: dots along the way the hydra would walk to the hex under the pointer, and a ring around it. */
   private showPath(pointer: Phaser.Input.Pointer): void {
-    const path = this.path!;
+    const path = this.path;
     path.clear();
     if (this.animating || this.run.state.pendingBattle) return;
     const reachable = this.run.reachable();
@@ -562,9 +510,8 @@ export class MapScene extends Phaser.Scene {
     path.strokeEllipse(last.x, last.y, PATH_DOTS.ringWidth, PATH_DOTS.ringHeight);
   }
 
-  /** HD: draws the light again: the hydra's, every glow in sight or remembered, and the encounters the mycelium tells about. */
+  /** Draws the light again: the hydra's, every glow in sight or remembered, and the encounters the mycelium tells about. */
   private drawLights(): void {
-    if (!this.light) return;
     const lights: Light[] = [{ x: this.token.x, y: this.token.y, ...LIGHTS.hydra }];
     for (const view of this.views.values()) {
       for (const glow of [...view.propGlows, ...view.objectGlows]) {
@@ -574,15 +521,6 @@ export class MapScene extends Phaser.Scene {
       if (view.whispered && view.object) lights.push({ x: view.object.x, y: view.object.y, color: WHISPERED_TINT, ...LIGHTS.whispered });
     }
     this.light.draw(lights);
-  }
-
-  /** The outline showing the hydra can go to a hex; made when first needed (a threshold can open into a new way). */
-  private markOf(view: HexView): Phaser.GameObjects.Image {
-    if (!view.mark) {
-      const { x, y } = hexToPixel(LAYOUT, view.tile.hex);
-      view.mark = this.add.image(x, y, 'map_mark').setDepth(DEPTH.mark).setTint(color(getContext(this).data.palette.underground.bioluminescence));
-    }
-    return view.mark;
   }
 
   /** Draughts drift over hexes next to hidden thresholds; echoes pulse where they were heard, until their source is seen. */
@@ -685,17 +623,16 @@ export class MapScene extends Phaser.Scene {
     }
     this.animating = true;
     this.run.animating = true;
-    for (const view of this.views.values()) view.mark?.setVisible(false);
-    this.reach?.glow.setVisible(false);
-    this.reach?.line.setVisible(false);
-    this.reach?.over.setVisible(false);
-    this.path?.clear();
+    this.reach.glow.setVisible(false);
+    this.reach.line.setVisible(false);
+    this.reach.over.setVisible(false);
+    this.path.clear();
     this.tweens.chain({
       targets: this.token,
       tweens: steps,
       onUpdate: () => {
         this.token.setDepth(this.tokenDepth(this.token.y));
-        this.tokenShadow?.setPosition(this.token.x, this.token.y - 1);
+        this.tokenShadow.setPosition(this.token.x, this.token.y - 1);
         this.drawLights();
       },
       onComplete: () => {
@@ -728,7 +665,7 @@ export class MapScene extends Phaser.Scene {
   private placeToken(h: Hex): void {
     const { x, y } = this.tokenPosition(h);
     this.token.setPosition(x, y).setDepth(this.tokenDepth(y));
-    this.tokenShadow?.setPosition(x, y - 1);
+    this.tokenShadow.setPosition(x, y - 1);
   }
 
   // ------------------------------------------------------------ camera
@@ -754,7 +691,7 @@ export class MapScene extends Phaser.Scene {
   private fitCameraZoom(): void {
     const cam = this.cameras.main;
     const zoom = getContext(this).params.zoom ?? (pageScale(this) < SMALL_SCREEN_ZOOM ? 2 : 1);
-    // In HD the camera also zooms the 640×360 screen up to the canvas's resolution.
+    // The camera also zooms the 640×360 screen up to the canvas's resolution.
     cam.setZoom(zoom * viewScale(this));
     const { x, y } = hexToPixel(LAYOUT, this.run.state.hydra.position);
     cam.centerOn(x, y);
@@ -802,7 +739,7 @@ export class MapScene extends Phaser.Scene {
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       // A mouse moving over the map (no button held) shows the way to the hex under it.
-      if (this.path && !pointer.isDown && !pointer.wasTouch) this.showPath(pointer);
+      if (!pointer.isDown && !pointer.wasTouch) this.showPath(pointer);
       if (!this.press || !pointer.isDown) return;
       if (!this.press.dragging && Phaser.Math.Distance.Between(this.press.x, this.press.y, pointer.x, pointer.y) > DRAG_THRESHOLD * viewScale(this)) {
         this.press.dragging = true;
@@ -825,7 +762,7 @@ export class MapScene extends Phaser.Scene {
       if (reachable.has(hexKey(target))) this.run.moveTo(target);
       else this.run.inspect(target);
     });
-    this.input.on(Phaser.Input.Events.GAME_OUT, () => this.path?.clear());
+    this.input.on(Phaser.Input.Events.GAME_OUT, () => this.path.clear());
   }
 
   /** The hex a press at the pointer is meant for: one the hydra can go to or open, under the pointer or just in front. */
