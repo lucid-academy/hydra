@@ -62,7 +62,7 @@ export class Minimap {
       const fill = tile.terrain === 'rock' ? colors.rock : tile.terrain === 'water' ? colors.water : colors.ground;
       dot(tile.hex, color(fill), state === 'visible' ? 1 : 0.6);
     }
-    // Things worth finding again: the lair, shrines, passages, places, thresholds, the Order's people, echoes.
+    // Things worth finding again: the lair, shrines, passages, places, thresholds, the Order's people, event sites, echoes.
     const { palette } = this.data;
     for (const key of visibility.keys()) {
       const tile = map.tiles.get(key);
@@ -74,6 +74,7 @@ export class Minimap {
       else if (object.kind === 'place') dot(tile.hex, color(palette.order.gold), 1, 2);
       else if (object.kind === 'threshold' && object.state !== 'hidden') dot(tile.hex, object.state === 'open' ? 0xe8e0d0 : color(palette.order.orange), 1, 2);
       else if (object.kind === 'encounter') dot(tile.hex, color(palette.order.bannerRed), 1, 2);
+      else if (object.kind === 'event' && !object.done) dot(tile.hex, 0x5fd8c8, 1, 2);
     }
     for (const echo of echoes) if (!visibility.has(hexKey(echo.source))) dot(echo.mark, 0xa8c8d8, 0.9, 1);
     dot(hydra.position, 0xffffff, 1, 3);

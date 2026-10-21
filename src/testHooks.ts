@@ -37,7 +37,9 @@ declare global {
       /** The map is still showing a move (the hydra walking, the view following it): taps now may land elsewhere. */
       mapBusy?: () => boolean;
       /** The open place or threshold panel: where its buttons are (game pixels), or null when none is open. */
-      placePanel?: () => { leave: { x: number; y: number }; actions: Array<{ id: string; x: number; y: number; enabled: boolean }> } | null;
+      placePanel?: () => { leave: { x: number; y: number } | null; actions: Array<{ id: string; x: number; y: number; enabled: boolean }> } | null;
+      /** The dialogue on screen: its id, the line shown, and where its answers are (game pixels); null when none. */
+      dialogue?: () => { id: string; line: number; typing: boolean; choices: Array<{ x: number; y: number }> } | null;
       /** Short summary of the current battle; positions in game pixels (640×360). */
       battleSummary?: () => {
         tick: number;
@@ -66,6 +68,13 @@ declare global {
         atShrine: boolean;
         /** A place's or threshold's panel is open. */
         atPlace: boolean;
+        /** An event's panel is open. */
+        atEvent: boolean;
+        /** A dialogue is on screen. */
+        talking: boolean;
+        /** Story flags set, and dialogues and events seen so far. */
+        flags: string[];
+        storySeen: string[];
         blessings: number;
         explored: number;
         /** Ids of the conditions on the hydra. */
@@ -109,4 +118,8 @@ export function exposeBattleSummary(summary: NonNullable<Window['__hydra']>['bat
 
 export function exposePlacePanel(probe: NonNullable<Window['__hydra']>['placePanel']): void {
   hooks().placePanel = probe;
+}
+
+export function exposeDialogue(probe: NonNullable<Window['__hydra']>['dialogue']): void {
+  hooks().dialogue = probe;
 }

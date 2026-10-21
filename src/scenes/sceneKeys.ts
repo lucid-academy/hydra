@@ -4,6 +4,7 @@ export const SceneKey = {
   Map: 'map',
   Battle: 'battle',
   Hud: 'hud',
+  Dialogue: 'dialogue',
   DebugOverlay: 'debug-overlay',
 } as const;
 

@@ -1,6 +1,8 @@
 // Smoke test of the whole game loop, clicked through like a player would (mouse only, no shortcuts into the code):
 //   title → map → walk to an encounter → battle with orders → victory → back on the map (twice; a battle lost
 //   on the way goes through Game Over and a new hydra), then a battle that is surely lost → Game Over → a new hydra.
+//   Dialogues on the way are read to the end (picking the first answer), events get their first choice that can be
+//   picked.
 // Opens the built game (dist/) in a headless browser. Run `npm run build` first.
 // Exits with an error on any browser console error, or when a step doesn't happen in time.
 //
@@ -30,6 +32,8 @@ const ALL_HEADS_BUTTON = { x: 600, y: 8 };
 /** Map hexes under the top bar, the minimap or the End Turn button can't be tapped. */
 const MAP_TAP_AREA = { left: 10, right: 630, top: 24, bottom: 320 };
 const MINIMAP = { right: 104, top: 266 };
+/** Anywhere on the dialogue screen's dimmed part: a tap shows the whole line, or the next one. */
+const DIALOGUE_TAP = { x: 320, y: 120 };
 
 const log = (...parts) => console.log(`[${LABEL}]`, ...parts);
 
@@ -143,8 +147,38 @@ try {
 
   let won = 0;
   let fought = 0;
+  const dialoguesRead = new Set();
+  let events = 0;
   for (let step = 0; step < MAX_MAP_STEPS && won < BATTLES_TO_WIN; step++) {
-    const { inBattle, atShrine, atPlace, blessings } = await page.evaluate(() => window.__hydra.runSummary());
+    const { inBattle, atShrine, atPlace, atEvent, talking, blessings } = await page.evaluate(() => window.__hydra.runSummary());
+    if (talking) {
+      // A dialogue: tap through it, picking the first answer when it asks.
+      await page.waitForTimeout(250);
+      const dialogue = await page.evaluate(() => window.__hydra.dialogue?.() ?? null);
+      if (!dialogue) continue; // still opening or closing
+      if (!dialoguesRead.has(dialogue.id)) log(`dialogue: ${dialogue.id}`);
+      dialoguesRead.add(dialogue.id);
+      await tap(page, dialogue.choices[0] ?? DIALOGUE_TAP);
+      continue;
+    }
+    if (atEvent) {
+      // An event: the first choice that can be picked, then Continue.
+      await page.waitForTimeout(300);
+      const panel = await page.evaluate(() => window.__hydra.placePanel());
+      if (!panel) throw new Error('An event panel should be open');
+      if (panel.leave) {
+        await tap(page, panel.leave);
+        await page.waitForTimeout(300);
+        if ((await page.evaluate(() => window.__hydra.runSummary())).atEvent) throw new Error('Continue did not close the event panel');
+        continue;
+      }
+      const choice = panel.actions.find((a) => a.enabled);
+      if (!choice) throw new Error('An event has no choice that can be picked');
+      await tap(page, choice);
+      events++;
+      log(`event: picked ${choice.id}`);
+      continue;
+    }
     if (atPlace) {
       // A place or a threshold: read it, and walk on.
       await page.waitForTimeout(300);
@@ -187,6 +221,8 @@ try {
     log('lost a battle: Game Over → a new hydra');
   }
   if (won < BATTLES_TO_WIN) throw new Error(`Found only ${won} of ${BATTLES_TO_WIN} battles in ${MAX_MAP_STEPS} map steps`);
+  if (dialoguesRead.size === 0) throw new Error('No dialogue came up on the way (one should after a battle won)');
+  log(`read ${dialoguesRead.size} dialogues, chose in ${events} events`);
   log('map after two battles:', JSON.stringify(await page.evaluate(() => window.__hydra.runSummary())));
   await page.close();
 

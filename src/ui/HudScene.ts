@@ -13,7 +13,8 @@ import { hexKey } from '../sim/hex';
 import { FONT } from './fonts';
 import type { Hex } from '../sim/hex';
 import type { Loot } from '../sim/map';
-import { canDoPlaceAction, canWorkThreshold, pendingPlaceTile, pendingThreshold } from '../sim/turn';
+import { canChooseEventOption, canDoPlaceAction, canWorkThreshold, pendingEventRules, pendingPlaceTile, pendingThreshold } from '../sim/turn';
+import type { EventOutcome } from '../sim/turn';
 import type { RunEvent } from '../sim/turn';
 import { Button } from './Button';
 import { onKeyDown } from './keys';
@@ -26,6 +27,8 @@ import { exposePlacePanel } from '../testHooks';
 const BAR_HEIGHT = 16;
 /** Action id of the one thing to do at a threshold (dig, or open it with a head). */
 const WORK_THRESHOLD = '__work';
+/** Action ids of an event's choices: this and the choice's index. */
+const EVENT_CHOICE = '__event:';
 const ALERT_BAR_WIDTH = 100;
 /** Where each resource counter starts in the top bar. */
 const RESOURCE_X = { muck: 228, moisture: 296, bones: 390 } as const;
@@ -89,6 +92,7 @@ export class HudScene extends Phaser.Scene {
       () => this.run.endTurn(),
     );
     onKeyDown(this, (event) => {
+      if (this.run.talking) return;
       if (event.key === 'Enter') this.run.endTurn();
       if (event.key === 'Escape' && this.placePanel.visible) this.run.leavePlace();
     });
@@ -99,8 +103,12 @@ export class HudScene extends Phaser.Scene {
     this.placePanel = new PlacePanel(
       this,
       getContext(this).data,
-      (id) => (id === WORK_THRESHOLD ? this.run.workThreshold() : this.run.doPlaceAction(id)),
-      () => this.run.leavePlace(),
+      (id) => {
+        if (id === WORK_THRESHOLD) this.run.workThreshold();
+        else if (id.startsWith(EVENT_CHOICE)) this.run.chooseEventOption(Number(id.slice(EVENT_CHOICE.length)));
+        else this.run.doPlaceAction(id);
+      },
+      () => (this.run.state.pendingEvent ? this.run.closeEvent() : this.run.leavePlace()),
     );
     this.gameOverPanel = this.createGameOverPanel();
     this.toasts = [];
@@ -213,6 +221,27 @@ export class HudScene extends Phaser.Scene {
     }
   }
 
+  /** What an event's outcome did besides its words: "+12 Muck. Alert +4." (empty for nothing). */
+  private effectsText(o: EventOutcome): string {
+    const { text, heads, world } = getContext(this).data;
+    const effects = text.event.effects;
+    const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
+    const fill = (template: string, values: Record<string, string>) => template.replace(/\{(\w+)\}/g, (all, name: string) => values[name] ?? all);
+    const names = { muck: text.hud.muck, moisture: text.hud.moisture, bones: text.hud.bones } as const;
+    const loot = (['muck', 'moisture', 'bones'] as const).filter((k) => o.loot[k] !== 0).map((k) => `${signed(o.loot[k])} ${names[k]}`);
+    const parts = [
+      loot.join(', '),
+      o.alert !== 0 ? fill(effects.alert, { n: signed(o.alert) }) : '',
+      o.bodyHp !== 0 ? fill(effects.bodyHp, { n: signed(o.bodyHp) }) : '',
+      o.headsHp !== 0 ? fill(effects.headsHp, { n: signed(o.headsHp) }) : '',
+      o.condition ? (world.conditions[o.condition.id]?.name ?? o.condition.id) : '',
+      o.newHead ? fill(effects.newHead, { name: heads.classes[o.newHead]?.displayName ?? o.newHead }) : '',
+      o.reveal > 0 ? effects.reveal : '',
+      o.battle ? effects.battle : '',
+    ].filter((part) => part);
+    return parts.map((part) => (/[.!?]$/.test(part) ? part : `${part}.`)).join(' ');
+  }
+
   /** "+5 Muck, +3 Bones" (empty for no loot). */
   private lootText(loot: Loot): string {
     const { text } = getContext(this).data;
@@ -304,22 +333,53 @@ export class HudScene extends Phaser.Scene {
     const shrine = pendingShrine && !this.run.animating ? map.tiles.get(hexKey(pendingShrine))?.object : null;
     this.shrinePanel.show(shrine?.kind === 'shrine' ? shrine.blessingId : null);
     if (!pendingPlace || (this.placeResult && this.placeResult.at !== hexKey(pendingPlace))) this.placeResult = null;
-    this.placePanel.show(this.run.animating ? null : this.placeView());
+    this.placePanel.show(this.run.animating || this.run.talking ? null : this.placeView());
     const share = (alert - balance.alert.min) / (balance.alert.max - balance.alert.min);
     this.alertFill.setSize(Math.round((ALERT_BAR_WIDTH - 2) * share), 6);
     this.alertValue.setText(String(Math.floor(alert)));
-    this.endTurnButton.setEnabled(pendingBattle === null && pendingShrine === null && pendingPlace === null && !over);
+    this.endTurnButton.setEnabled(pendingBattle === null && pendingShrine === null && pendingPlace === null && this.run.state.pendingEvent === null && !this.run.talking && !over);
     this.gameOverPanel.setVisible(over);
     this.minimap.redraw();
   }
 
-  /** What the place panel shows for the place or threshold the hydra is at, or null when there is none. */
+  /** What the place panel shows for the place, threshold or event the hydra is at, or null when there is none. */
   private placeView(): PlacePanelView | null {
     const { text, world, heads } = getContext(this).data;
     const { state, rules } = this.run;
     const className = (classId: string) => heads.classes[classId]?.displayName ?? classId;
     const fill = (template: string, values: Record<string, string | number>) => template.replace(/\{(\w+)\}/g, (all, name: string) => String(values[name] ?? all));
     const why = (reason: string, values: Record<string, string | number> = {}) => fill(text.place.why[reason as keyof typeof text.place.why] ?? reason, values);
+
+    const event = pendingEventRules(state, rules);
+    if (event && state.pendingEvent) {
+      const { result } = state.pendingEvent;
+      const { event: words } = text;
+      const priced = (cost: Loot) => this.lootText(cost).replace(/\+/g, '');
+      const outcome = result ? (result.success ? event.choices[result.choice]!.success : event.choices[result.choice]!.failure!) : null;
+      return {
+        kind: event.quest ? fill(words.questKind, { quest: event.quest }) : words.kind,
+        name: event.title,
+        text: event.text,
+        status: null,
+        result: outcome ? [outcome.text, this.effectsText(outcome)].filter((part) => part).join(' ') : null,
+        leave: result ? words.continueButton : null,
+        actions: result
+          ? []
+          : event.choices.map((choice, i) => {
+              const check = canChooseEventOption(state, rules, i);
+              const cost = priced(choice.cost);
+              const label = [choice.needsHead ? `[${className(choice.needsHead)}]` : '', choice.text, cost ? fill(words.cost, { cost }) : '', choice.chance !== null ? words.gamble : '']
+                .filter((part) => part)
+                .join(' ');
+              return {
+                id: `${EVENT_CHOICE}${i}`,
+                label,
+                enabled: check.can,
+                why: check.can ? null : check.why === 'cost' ? words.cantAfford : why(check.why, { class: className(choice.needsHead ?? '') }),
+              };
+            }),
+      };
+    }
 
     const place = pendingPlaceTile(state);
     if (place) {
@@ -332,6 +392,7 @@ export class HudScene extends Phaser.Scene {
         text: data.text,
         status: null,
         result: this.placeResult?.text ?? null,
+        leave: text.place.leaveButton,
         actions: (rules.places[placeId]?.actions ?? []).map((action) => {
           const label = data.actions?.find((a) => a.id === action.id)?.label ?? action.id;
           const check = canDoPlaceAction(state, action);
@@ -361,6 +422,7 @@ export class HudScene extends Phaser.Scene {
         text: data.text,
         status: data.dig && dug > 0 ? fill(text.place.digProgress, { dug, needed: digsNeeded }) : null,
         result: null,
+        leave: text.place.leaveButton,
         actions: label
           ? [{ id: WORK_THRESHOLD, label, enabled: check.can, why: check.can ? null : why(check.why, { class: className(headClass ?? '') }) }]
           : [],

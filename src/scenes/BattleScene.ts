@@ -26,6 +26,7 @@ import { applyCommand, battleResult, bodyDistance, boardHexes, canCauterize, cre
 import type { BattleEvent, BattleHead, BattleState, Enemy, Walker } from '../sim/battle';
 import { hexDistance, hexKey, hexToPixel, pixelToHex } from '../sim/hex';
 import type { Hex, HexLayout } from '../sim/hex';
+import type { ShownLine } from '../sim/turn';
 import { exposeBattleSummary, markReady } from '../testHooks';
 import { Button } from '../ui/Button';
 import { HeadCards } from '../ui/HeadCards';
@@ -42,6 +43,8 @@ import { fitScreenCamera, useDensity } from './view';
 
 /** Top bar above the board, panel with head cards below it. */
 const ARENA_TOP = 16;
+/** The Serpent's line over the battle (real time, so it reads the same at any battle speed). */
+const SERPENT_LINE = { color: '#7fe0d6', inMs: 500, stayMs: 3200, outMs: 900 } as const;
 const PANEL_TOP = 316;
 /** Screen position of the board's middle hex, where the body starts. */
 const LAYOUT: HexLayout = { columnWidth: HEX_COLUMN_WIDTH, rowHeight: HEX_ROW_HEIGHT, originX: 320, originY: 170 };
@@ -149,6 +152,8 @@ export class BattleScene extends Phaser.Scene {
   private paused = true;
   /** False until the player starts the battle for the first time; the how-to-play hint shows until then. */
   private started = false;
+  /** What the Serpent says when the fight begins (GAME_DESIGN.md §11: one short line, the battle goes on), or null. */
+  private serpentLine: ShownLine | null = null;
   private speedIndex = 0;
   private accumulator = 0;
   /** Heads picked by the player; an order goes to all of them. */
@@ -204,6 +209,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.battle = createBattle(setup, run.battleRules);
+    this.serpentLine = (params.say ? run.serpentLineForTest(params.say) : null) ?? run.serpentLine();
     this.combosSeen = [];
     // Every battle starts paused: time to look around and give the first orders.
     this.paused = true;
@@ -469,8 +475,40 @@ export class BattleScene extends Phaser.Scene {
   private togglePause(): void {
     if (this.finished) return;
     this.paused = !this.paused;
-    if (!this.paused) this.started = true;
+    if (!this.paused && !this.started) {
+      this.started = true;
+      this.sayTheSerpent();
+    }
     this.updateButtons();
+  }
+
+  /** The Serpent's line over the battle as it begins: it fades in, stays a moment and fades away. */
+  private sayTheSerpent(): void {
+    const line = this.serpentLine;
+    if (!line) return;
+    this.serpentLine = null;
+    const words = this.add
+      .text(SCREEN.width / 2, ARENA_TOP + 30, line.text, {
+        fontFamily: FONT.story,
+        fontStyle: 'italic',
+        fontSize: '13px',
+        color: SERPENT_LINE.color,
+        stroke: '#05090a',
+        strokeThickness: 4,
+        align: 'center',
+        wordWrap: { width: 420 },
+      })
+      .setOrigin(0.5)
+      .setDepth(DEPTH.text)
+      .setAlpha(0);
+    this.tweens.chain({
+      targets: words,
+      tweens: [
+        { alpha: 1, duration: SERPENT_LINE.inMs },
+        { alpha: 0, delay: SERPENT_LINE.stayMs, duration: SERPENT_LINE.outMs },
+      ],
+      onComplete: () => words.destroy(),
+    });
   }
 
   /** A plain tap picks one head (or lets go of it); with `add` (Ctrl, Shift) the head joins the picked ones or leaves them. */

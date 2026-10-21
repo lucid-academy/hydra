@@ -32,6 +32,8 @@ export class BootScene extends Phaser.Scene {
   create(): void {
     const { data, params } = getContext(this);
     for (const [key, entry] of Object.entries(data.manifest.images)) if (entry.file !== null) useDensity(this.textures.get(key), HD_DENSITY);
+    // Painted dialogue portraits are not pixel art: they are scaled smoothly (GAME_DESIGN.md §13).
+    for (const key of Object.keys(data.manifest.images)) if (key.startsWith('dialogue_')) this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
     for (const [key, entry] of Object.entries(data.manifest.images)) {
       if (entry.file !== null || isTerrainTextureKey(key)) continue;
       const draw = placeholderFor(key);

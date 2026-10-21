@@ -38,6 +38,27 @@
       "done": "Already done."
     }
   },
+  "event": {
+    "//": "The panel of an event on the map (events.json). {quest}: the mini quest's name. {n}: an amount. {cost}: what a choice costs. {name}: a condition's or head class's name.",
+    "kind": "Something in the dark",
+    "questKind": "{quest}",
+    "continueButton": "Continue",
+    "cost": "({cost})",
+    "gamble": "(risky)",
+    "cantAfford": "Not enough to pay.",
+    "effects": {
+      "alert": "Alert {n}",
+      "bodyHp": "Body {n}",
+      "headsHp": "Heads {n} each",
+      "reveal": "The way ahead is clearer.",
+      "battle": "The Order attacks.",
+      "newHead": "A new {name} head grows."
+    }
+  },
+  "dialogue": {
+    "//": "The dialogue screen. tapToContinue: the small hint in the corner.",
+    "tapToContinue": "Tap to continue"
+  },
   "battle": {
     "paused": "PAUSED",
     "pauseButton": "Pause",

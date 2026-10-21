@@ -109,6 +109,8 @@ const LIGHTS = {
 } as const;
 
 /** Lights over places: colour, size, brightness, and how high above the feet. */
+/** The Serpent's teal on an event's standing stone. */
+const EVENT_GLOW = '#5fd8c8';
 const PLACE_GLOWS: Readonly<Record<string, { tint: string; scale: number; alpha: number; height: number }>> = {
   drownedChapel: { tint: '#7fd0e0', scale: 0.7, alpha: 0.4, height: 29 },
   ossuaryCathedral: { tint: '#e0b060', scale: 0.7, alpha: 0.45, height: 24 },
@@ -168,6 +170,8 @@ export class MapScene extends Phaser.Scene {
   /** Biome names waiting to be shown, one after another (two at once would overlap). */
   private biomeNames: string[] = [];
   private showingBiomeName = false;
+  /** The battle is about to start: the map takes no more taps. */
+  private leaving = false;
   /** Draught wisps and echo marks on the map, by hex key. */
   private draughts = new Map<string, Phaser.GameObjects.Image>();
   private echoes = new Map<string, Phaser.GameObjects.Image>();
@@ -179,9 +183,11 @@ export class MapScene extends Phaser.Scene {
   create(): void {
     const firstTime = !getRun(this);
     this.run = getRun(this) ?? startNewRun(this);
-    const { near, reveal } = getContext(this).params;
+    const { near, reveal, say, event } = getContext(this).params;
     if (firstTime && near) this.run.placeNear(near);
     if (firstTime && reveal) this.run.revealAll();
+    if (firstTime && event) this.run.eventForTest(event);
+    if (firstTime && say) this.run.sayForTest(say);
     this.views = new Map();
     this.draughts = new Map();
     this.echoes = new Map();
@@ -190,6 +196,7 @@ export class MapScene extends Phaser.Scene {
     this.press = null;
     this.biomeNames = [];
     this.showingBiomeName = false;
+    this.leaving = false;
     this.cameras.main.setBackgroundColor(color(getContext(this).data.palette.underground.black));
 
     makeSoftTextures(this);
@@ -351,6 +358,8 @@ export class MapScene extends Phaser.Scene {
         return object.state === 'hidden' ? null : object.state === 'closed' ? `map_threshold_${object.thresholdId}` : `map_threshold_${object.thresholdId}_open`;
       case 'place':
         return `map_place_${object.placeId}`;
+      case 'event':
+        return object.done ? null : 'map_event';
       default:
         return `map_${object.kind}`;
     }
@@ -390,6 +399,7 @@ export class MapScene extends Phaser.Scene {
       view.objectGlows.at(-1)?.image.setDepth(this.standingDepth(feet) + 0.0002);
     }
     if (object.kind === 'shrine' && !object.used) light('#7fe0d6', 0.9, 0.55, 40);
+    if (object.kind === 'event') light(EVENT_GLOW, 0.4, 0.35, 12);
     if (object.kind === 'moisture') light('#7fd0e0', object.rich ? 0.7 : 0.5, 0.45, 6);
     if (object.kind === 'passage') light('#d0e4dc', 0.8, 0.35, 8);
     if (object.kind === 'encounter' && object.tier >= 3) view.objectGlows.push(this.glow(x + 12, feet - 18, palette.order.orange, 0.6, 0.6, feet));
@@ -470,6 +480,26 @@ export class MapScene extends Phaser.Scene {
     this.seeThroughTallPlaces();
     this.refreshHints();
     this.announceNewBiomes();
+    this.continueStory();
+  }
+
+  /**
+   * What waits after a move or a panel: dialogues first (each in turn on the dialogue screen), then the battle the
+   * hydra walked into. An open event's panel goes before both.
+   */
+  private continueStory(): void {
+    const { run } = this;
+    if (this.animating || run.talking || this.leaving || run.state.pendingEvent || run.state.over) return;
+    if (run.nextDialogue()) {
+      run.talking = true;
+      this.path.clear();
+      this.scene.launch(SceneKey.Dialogue);
+      return;
+    }
+    if (run.state.pendingBattle) {
+      this.leaving = true;
+      this.startBattle();
+    }
   }
 
   /** Tall landmarks and rock turn see-through where they would hide the hydra or something it needs to see. */
@@ -519,7 +549,7 @@ export class MapScene extends Phaser.Scene {
   private showPath(pointer: Phaser.Input.Pointer): void {
     const path = this.path;
     path.clear();
-    if (this.animating || this.run.state.pendingBattle) return;
+    if (this.animating || this.run.talking || this.run.state.pendingBattle) return;
     const reachable = this.run.reachable();
     const target = this.pointedHex(pointer, reachable);
     const way = target && reachable.get(hexKey(target));
@@ -722,13 +752,9 @@ export class MapScene extends Phaser.Scene {
         this.animating = false;
         this.token.setAngle(0).setScale(1);
         if (this.journey && hexEquals(this.journey, this.run.state.hydra.position)) this.journey = null;
-        if (this.run.state.pendingBattle) {
-          this.run.animating = false;
-          this.startBattle();
-          return;
-        }
+        if (!this.run.state.pendingBattle) this.panTo(revealed?.at ?? this.run.state.hydra.position);
+        this.run.animating = false;
         this.refresh();
-        this.panTo(revealed?.at ?? this.run.state.hydra.position);
         this.run.settle();
       },
     });
@@ -840,7 +866,7 @@ export class MapScene extends Phaser.Scene {
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       const press = this.press;
       this.press = null;
-      if (!press || press.dragging || this.animating) return;
+      if (!press || press.dragging || this.animating || this.run.talking || this.leaving) return;
       const reachable = this.run.reachable();
       const target = this.pointedHex(pointer, reachable);
       if (target && !reachable.has(hexKey(target))) {
@@ -947,7 +973,7 @@ export class MapScene extends Phaser.Scene {
     });
     exposeMapBusy(() => this.animating || this.run.animating || this.cameras.main.panEffect.isRunning);
     exposeRunSummary(() => {
-      const { turn, resources, alert, pendingBattle, pendingShrine, pendingPlace, visibility, hydra, echoes, draughtsFelt } = this.run.state;
+      const { turn, resources, alert, pendingBattle, pendingShrine, pendingPlace, pendingEvent, visibility, hydra, echoes, draughtsFelt, story } = this.run.state;
       return {
         turn,
         muck: resources.muck,
@@ -957,6 +983,10 @@ export class MapScene extends Phaser.Scene {
         inBattle: pendingBattle !== null,
         atShrine: pendingShrine !== null,
         atPlace: pendingPlace !== null,
+        atEvent: pendingEvent !== null,
+        talking: this.run.talking,
+        flags: [...story.flags],
+        storySeen: [...story.seen],
         blessings: hydra.blessings.length,
         explored: visibility.size,
         conditions: hydra.conditions.map((c) => c.id),
