@@ -129,6 +129,7 @@
     {
       "id": "corrodeAndCrush",
       "displayName": "Corrode & Crush",
+      "description": "A bite on a Corroded human. Heavy damage, and its armor breaks for good.",
       "when": "headHitsEnemy",
       "conditions": { "attackTag": "bite", "enemyHasStatus": "corroded", "enemyArmorBroken": false },
       "effects": [
@@ -140,6 +141,7 @@
     {
       "id": "acidFog",
       "displayName": "Acid Fog",
+      "description": "Acid spat into a Mist cloud. The cloud burns everyone in it for a while.",
       "when": "headHitsEnemy",
       "conditions": { "attackTag": "acid", "enemyInMist": true },
       "effects": [
@@ -149,6 +151,7 @@
     {
       "id": "smother",
       "displayName": "Smother",
+      "description": "A Torchbearer in a Mist cloud. The torch goes out for a few seconds.",
       "when": "enemyInMist",
       "conditions": { "enemyCarriesFire": true },
       "effects": [
@@ -158,6 +161,7 @@
     {
       "id": "panicFeast",
       "displayName": "Panic Feast",
+      "description": "The Glutton on a Terrified human with little HP left. Eaten at once.",
       "//": "Glutton on a Terrified human with low HP: eaten at once.",
       "when": "headHitsEnemy",
       "conditions": { "attackTag": "devour", "enemyHasStatus": "terrified", "enemyHpBelow": 0.35 },
@@ -166,6 +170,7 @@
     {
       "id": "echoScream",
       "displayName": "Echo Scream",
+      "description": "Two Screamers scream within a second. A stun twice as wide.",
       "//": "Two Screamers scream within 1 s of each other: a stun twice as wide.",
       "when": "headHitsEnemy",
       "conditions": { "attackTag": "scream", "headClass": "screamer", "otherHeads": { "count": 1, "withinSeconds": 1, "sameClass": true, "tag": "scream" } },
@@ -179,6 +184,7 @@
     {
       "id": "pincer",
       "displayName": "Pincer",
+      "description": "Two Biters bite one human from opposite sides. It falls over.",
       "//": "Two Biters bite the same human from opposite sides of the body: it falls over.",
       "when": "headHitsEnemy",
       "conditions": { "attackTag": "bite", "headClass": "biter", "otherHeads": { "count": 1, "withinSeconds": 1.5, "sameClass": true, "oppositeSide": true, "tag": "bite" } },
@@ -188,6 +194,7 @@
     {
       "id": "twinBond",
       "displayName": "Twin Bond",
+      "description": "Two heads from one stump hit the same human. Extra damage.",
       "//": "Two heads from the same stump hit the same human: extra damage. When one dies, the other rages or grieves (twinLoss above).",
       "when": "headHitsEnemy",
       "conditions": { "otherHeads": { "count": 1, "withinSeconds": 1.5, "sameStump": true } },
@@ -197,6 +204,7 @@
     {
       "id": "tripletBond",
       "displayName": "Triplet Bond",
+      "description": "Three heads from one stump hit the same human. More extra damage.",
       "when": "headHitsEnemy",
       "conditions": { "otherHeads": { "count": 2, "withinSeconds": 1.5, "sameStump": true } },
       "effects": [{ "type": "damage", "ofHit": 1 }],
@@ -209,6 +217,7 @@
     {
       "id": "holdStill",
       "displayName": "Hold Still",
+      "description": "A bite on a Seized human. Double damage, and the grip lasts longer.",
       "when": "headHitsEnemy",
       "conditions": { "attackTag": "bite", "enemyHasStatus": "seized" },
       "effects": [{ "type": "damage", "ofHit": 1 }, { "type": "extendStatus", "status": "seized", "seconds": 1 }],
@@ -221,6 +230,7 @@
     {
       "id": "roomService",
       "displayName": "Room Service",
+      "description": "The Glutton on a Seized human under half HP. Eaten at once.",
       "when": "headHitsEnemy",
       "conditions": { "attackTag": "devour", "enemyHasStatus": "seized", "enemyHpBelow": 0.5 },
       "effects": [{ "type": "devour" }]
@@ -228,6 +238,7 @@
     {
       "id": "wrungOut",
       "displayName": "Wrung Out",
+      "description": "Coil on a Soaked human. Extra damage, and Stunned when let go.",
       "when": "headHitsEnemy",
       "conditions": { "attackTag": "coil", "enemyHasStatus": "soaked" },
       "effects": [{ "type": "damage", "amount": 12 }, { "type": "afterStatus", "status": "seized", "then": "stunned", "seconds": 2 }]
@@ -235,6 +246,7 @@
     {
       "id": "voicesInTheFog",
       "displayName": "Voices in the Fog",
+      "description": "A scream into a Mist cloud. Everyone inside is Terrified.",
       "//": "TODO(design): knights in the cloud are Stunned 1 s instead, once there are knights.",
       "when": "headHitsEnemy",
       "conditions": { "attackTag": "scream", "enemyInMist": true },
@@ -244,6 +256,7 @@
     {
       "id": "brittle",
       "displayName": "Brittle",
+      "description": "Sonic Crack on a Corroded human. Its armor shatters and the shards hurt those nearby.",
       "when": "headHitsEnemy",
       "conditions": { "attackTag": "sonic", "enemyHasStatus": "corroded", "enemyArmorBroken": false },
       "effects": [{ "type": "breakArmor" }, { "type": "splash", "amount": 8, "radius": 1 }]
@@ -251,10 +264,11 @@
     {
       "id": "pickled",
       "displayName": "Pickled",
+      "description": "The Glutton eats a Corroded human. The body heals twice as much.",
       "//": "The Glutton eats a Corroded human: the body heals twice as much (the extra healBody is the same as the Glutton's devourHeal).",
       "when": "enemyDevoured",
       "conditions": { "enemyHasStatus": "corroded" },
-      "effects": [{ "type": "healBody", "amount": 15 }],
+      "effects": [{ "type": "healBody", "amount": 8 }],
       "lines": [
         { "speaker": "glutton", "text": "Marinated. Thank you." },
         { "speaker": "acidSpitter", "text": "It's called corrosion." }
@@ -263,6 +277,7 @@
     {
       "id": "slobber",
       "displayName": "Slobber",
+      "description": "A lick on a Soaked human. It slips: Stunned.",
       "when": "headHitsEnemy",
       "conditions": { "attackTag": "lick", "enemyHasStatus": "soaked" },
       "effects": [{ "type": "status", "status": "stunned", "seconds": 2 }],
@@ -271,6 +286,7 @@
     {
       "id": "rudeAwakening",
       "displayName": "Rude Awakening",
+      "description": "A scream at an Entranced human. Stunned for long.",
       "when": "headHitsEnemy",
       "conditions": { "attackTag": "scream", "enemyHasStatus": "entranced" },
       "effects": [{ "type": "status", "status": "stunned", "seconds": 3 }]
@@ -278,6 +294,7 @@
     {
       "id": "anointing",
       "displayName": "Anointing",
+      "description": "Acid on an Entranced human. Taken for holy oil: the trance goes on, and Corroded lasts twice as long.",
       "//": "The Order takes the acid for holy oil: the trance goes on, and Corroded lasts twice as long.",
       "when": "headHitsEnemy",
       "conditions": { "attackTag": "acid", "enemyHasStatus": "entranced" },
@@ -290,6 +307,7 @@
     {
       "id": "marshLight",
       "displayName": "Marsh Light",
+      "description": "A Beacon lit in a Mist cloud. It draws from further away and takes the torches of those who come.",
       "//": "A Beacon lit in a Mist cloud draws from 2 hexes further, and a Torchbearer who comes to it loses the torch.",
       "when": "beaconLit",
       "conditions": { "beaconInMist": true },
@@ -298,6 +316,7 @@
     {
       "id": "sanctuary",
       "displayName": "Sanctuary",
+      "description": "A Beacon lit while someone is Terrified. The Terrified run to the light and kneel.",
       "//": "A Beacon lit while someone is Terrified: the Terrified run to the light, wherever they are, and kneel.",
       "when": "beaconLit",
       "conditions": { "terrifiedOnBoard": true },

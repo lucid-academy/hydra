@@ -99,6 +99,12 @@
     "badIdea": "{name} has an idea.",
     "eaten": "Eaten.",
     "skillFizzled": "Nothing happens.",
+    "codexButton": "Codex",
+    "codexTitle": "Combos",
+    "codexCount": "{n} of {total} found",
+    "codexUnknown": "???",
+    "codexClose": "Close",
+    "codexNew": "New in the codex!",
     "rummage": {
       "snails": "A handful of snails.",
       "rottenEgg": "A rotten egg.",

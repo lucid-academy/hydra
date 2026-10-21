@@ -46,6 +46,8 @@ import { exposeBattleSummary, markReady } from '../testHooks';
 import { Button } from '../ui/Button';
 import { HeadCards } from '../ui/HeadCards';
 import { SkillBar } from '../ui/SkillBar';
+import { CodexPanel } from '../ui/CodexPanel';
+import { discoverCombo, discoveredCombos } from '../ui/codexStore';
 import { FONT } from '../ui/fonts';
 import { onKeyDown, wantsToAdd } from '../ui/keys';
 import { color, getContext } from './context';
@@ -207,6 +209,7 @@ export class BattleScene extends Phaser.Scene {
   private pausedFrame!: Phaser.GameObjects.Graphics;
   private hintText!: Phaser.GameObjects.Text;
   private skillBar!: SkillBar;
+  private codex!: CodexPanel;
   /** The skill the player is aiming (picked with Q / W / E), or null. */
   private aiming: { headId: string; slot: number } | null = null;
   private pauseButton!: Button;
@@ -503,7 +506,9 @@ export class BattleScene extends Phaser.Scene {
       { ...buttonStyle, width: 74, height: 13, fontSize: '10px' },
       () => this.selectAllHeads(),
     );
-    for (const b of [this.pauseButton, this.speedButton, allHeads]) b.setDepth(DEPTH.ui + 2);
+    this.codex = new CodexPanel(this);
+    const codexButton = new Button(this, width - 120, ARENA_TOP / 2, text.battle.codexButton, { ...buttonStyle, width: 74, height: 13, fontSize: '10px' }, () => this.openCodex());
+    for (const b of [this.pauseButton, this.speedButton, allHeads, codexButton]) b.setDepth(DEPTH.ui + 2);
     this.skillBar = new SkillBar(
       this,
       SKILL_BAR.x,
@@ -512,6 +517,17 @@ export class BattleScene extends Phaser.Scene {
       (slot) => this.swapSkill(slot),
     );
     this.updateButtons();
+  }
+
+  /** The codex of combos; the battle pauses while it is open. */
+  private openCodex(): void {
+    if (this.finished || this.codex.isOpen) return;
+    const { combos, text } = getContext(this).data;
+    if (!this.paused) this.togglePause();
+    const found = discoveredCombos();
+    const entries = combos.combos.map((c) => ({ name: c.displayName, description: c.description, found: found.has(c.id) }));
+    const t = text.battle;
+    this.codex.open(entries, { title: t.codexTitle, count: t.codexCount, unknown: t.codexUnknown, close: t.codexClose }, { x: SCREEN.width / 2, y: (ARENA_TOP + PANEL_TOP) / 2 }, () => {});
   }
 
   /** The one picked head, or null when none or several are picked. */
@@ -631,6 +647,7 @@ export class BattleScene extends Phaser.Scene {
 
   private togglePause(): void {
     if (this.finished) return;
+    if (this.codex?.isOpen) this.codex.close();
     this.paused = !this.paused;
     if (!this.paused && !this.started) {
       this.started = true;
@@ -1289,6 +1306,7 @@ export class BattleScene extends Phaser.Scene {
           this.slowdownLeft = COMBO_SLOWDOWN_MS;
           this.combosSeen.push(event.comboId);
           this.sayComboLines(event);
+          if (discoverCombo(event.comboId)) this.floatText({ x: at.x, y: at.y - 64 }, text.battle.codexNew, '#f2ead0', '9px');
           break;
         }
         case 'skill': {

@@ -371,6 +371,8 @@ export const combosSchema = section({
     section({
       id: z.string().min(1),
       displayName: z.string().min(1),
+      // How to set it off and what it does, in one or two short sentences (shown in the codex once discovered).
+      description: z.string().min(1),
       // What sets the combo off: a head's attack landing, an enemy standing in a Mist cloud, a head eating someone, or a Beacon being lit.
       when: z.enum(COMBO_TRIGGERS),
       // All listed conditions must hold. Leave one out to not care about it.
@@ -708,6 +710,13 @@ export const textSchema = z
       badIdea: z.string().min(1),
       eaten: z.string().min(1),
       skillFizzled: z.string().min(1),
+      // The combo codex: {n} combos found of {total}.
+      codexButton: z.string().min(1),
+      codexTitle: z.string().min(1),
+      codexCount: z.string().min(1),
+      codexUnknown: z.string().min(1),
+      codexClose: z.string().min(1),
+      codexNew: z.string().min(1),
       // What The Spare finds with Rummage, by the find's id in heads.json.
       rummage: z.record(z.string(), z.string().min(1)),
     }),
