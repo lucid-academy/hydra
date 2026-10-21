@@ -72,7 +72,7 @@ Zasady:
 
 ## Grafika
 
-- Pixel art w HD (decyzja Piotra z 2026-10-05, `GAME_DESIGN.md` §13): obraz w rozdzielczości ekranu, pixel art ostry przy każdym zoomie (`render.smoothPixelArt` w Phaserze 4), grafiki w podwójnej gęstości. Układ ekranu i rozmiary w manifeście liczą się w jednostkach dawnego 640×360, a plik grafiki ma dwa razy więcej pikseli. Do końca etapu „Wygląd mapy” HD działa pod `?hd=1`, a domyślnie gra jest jeszcze w 640×360 ze skalowaniem całkowitym.
+- Pixel art w HD (decyzja Piotra z 2026-10-05, `GAME_DESIGN.md` §13): obraz w rozdzielczości ekranu, pixel art ostry przy każdym zoomie (`render.smoothPixelArt` w Phaserze 4), grafiki w podwójnej gęstości. Układ ekranu i rozmiary w manifeście liczą się w jednostkach dawnego 640×360, a plik grafiki ma dwa razy więcej pikseli. Od 2026-10-21 HD jest jedynym trybem.
 - Każda grafika przez klucz w manifeście (`src/assets/manifest.json`). Podmiana grafiki to podmiana pliku, bez zmian w kodzie.
 - Na start grafika zastępcza generowana w kodzie (kształty w paletach z dokumentu projektu) albo paczki **wyłącznie na licencji CC0** (np. Kenney). Każde źródło wpisz do `CREDITS.md`.
 - Wyjątek: czcionki mogą być na licencji OFL (decyzja Piotra z 2026-10-06). Plik licencji leży obok pliku czcionki w `public/fonts/`, a źródło w `CREDITS.md`. Plików czcionek nie przycinaj ani nie przerabiaj.
@@ -99,7 +99,7 @@ Zasady:
 
 - `npm run typecheck`, `npm test` i `npm run build` muszą przejść przed każdym wdrożeniem.
 - `npm run shots`: Playwright otwiera zbudowaną grę w przeglądarce bez okna i robi zrzuty kluczowych ekranów do `docs/screens/`. Obejrzyj je, zanim napiszesz, że coś działa.
-- Parametry URL do testów i debugowania: `?seed=123`, `?scene=battle`, `?debug=1` (nakładka z informacjami: seed, tura, tiki, stan widoczności), `?hd=1` (gra w HD, do końca etapu „Wygląd mapy”).
+- Parametry URL do testów i debugowania: `?seed=123`, `?scene=battle`, `?debug=1` (nakładka z informacjami: seed, tura, tiki, stan widoczności).
 - Generator map: test przechodzi przez co najmniej 1000 seedów i sprawdza reguły z sekcji 9 dokumentu projektu.
 - Pracujemy na małym serwerze VPS. Nie zostawiaj uruchomionych serwerów deweloperskich ani przeglądarek, zamykaj procesy po użyciu. Jeśli Playwright nie mieści się w pamięci, powiedz o tym i zaproponuj robienie zrzutów w GitHub Actions.
 
