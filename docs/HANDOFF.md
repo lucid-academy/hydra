@@ -1,6 +1,6 @@
 # Handoff: stan prac nad Hydrą
 
-Stan na 2026-10-21 (etap „Wygląd mapy” zakończony, następny M5 czeka na plan i OK Piotra). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
+Stan na 2026-10-21 (etap „Wygląd mapy” zakończony, M5 zbudowany i wdrożony, czeka na playtest Piotra). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
 
 - Gra: https://lucid-academy.github.io/hydra/
 - Repo: https://github.com/lucid-academy/hydra (na serwerze `/root/Hydra`)
@@ -9,10 +9,11 @@ Stan na 2026-10-21 (etap „Wygląd mapy” zakończony, następny M5 czeka na p
 
 ## 1. Etap
 
-- Zrobione: **M0, M1, M1b, M2b, M2c** (sekcja 15 w `GAME_DESIGN.md`).
+- Zrobione: **M0, M1, M1b, M2b, M2c, Wygląd mapy (HD), M5** (sekcja 15 w `GAME_DESIGN.md`).
+- **M5** (eventy, mini questy, dialogi) wdrożony 2026-10-21 i czeka na playtest Piotra (opis w sekcji 2).
 - **M2c** (świat do odkrywania) jest wdrożony 2026-10-04 i czeka na playtest Piotra. Playtest M2b nie przyszedł; M2c zmienił mapę na tyle, że lepiej grać od razu w M2c.
 - 2026-10-03 Piotr zmienił sposób pracy: grafika będzie z GPT, animacje najpierw w kodzie. Zasady są już w `CLAUDE.md`. Plan grafiki (sekcja 3.2) Piotr zatwierdził tego samego dnia i potok jest zbudowany. Wieczorem przyszła cała pierwsza partia (21 obrazków) i jest w grze; **czeka na uwagi Piotra**.
-- Następne etapy: M5, M6, M2a, M3, M4, M7 (kolejność Piotra z 2026-10-04, `GAME_DESIGN.md` §15). Każdy zaczyna się od planu i OK Piotra. Projekt 9 głów (M2a) jest zatwierdzony (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13).
+- Następne etapy: M6, M2a, M3, M4, M7 (kolejność Piotra z 2026-10-04, `GAME_DESIGN.md` §15). Każdy zaczyna się od planu i OK Piotra. Projekt 9 głów (M2a) jest zatwierdzony (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13).
 - **Wygląd mapy (HD), od 2026-10-05:** Piotr wybrał na karcie przejście na HD pixel art (`GAME_DESIGN.md` §13, §15). Mapa, bitwa i napisy w HD (opis w sekcji 3.2, „Wygląd mapy w HD”). Mapę Piotr ocenił 2026-10-06: „wygląda naprawdę lepiej”. Od 2026-10-21 HD jest jedynym trybem (etap zakończony); uwagi Piotra do bitwy i napisów wciąż mile widziane.
 - **Zmiana kierunku, 2026-10-04:** Hydra to teraz fabularny roguelite z naciskiem na odkrywanie świata, mini questy i kilka zakończeń; bitwy rzadsze, ale ważne (`GAME_DESIGN.md` §1, §2, §4, §15).
 
@@ -46,6 +47,14 @@ Stan na 2026-10-21 (etap „Wygląd mapy” zakończony, następny M5 czeka na p
 - Modyfikatory runu na razie tylko z URL: `?modifiers=wetYear,myceliumBloom,oldWorkings`. Cały świat: `?reveal=1&zoom=0.45`.
 - Walidator: 1000 seedów i każdy modyfikator; świat, który łamie regułę, losuje się od nowa (średnio 1,2 próby, 12 ms na świat).
 - Grafika zastępcza w kodzie (`src/assets/worldPlaceholders.ts`), specyfikacja w `docs/ASSETS.md`, 28 promptów w `docs/ART_PROMPTS.md`. Wysoki punkt orientacyjny prześwituje, gdy zasłania hydrę, próg, spotkanie albo kapliczkę.
+
+**M5 (2026-10-21): eventy, mini questy, dialogi** (plan zatwierdzony przez Piotra 2026-10-21; decyzje B i C w `GAME_DESIGN.md` §11).
+- Silnik w `src/sim/turn/story.ts`: flagi, warunki (pierścień, biom, flagi, Alert, tura, klasy i liczba głów, co się stało w bitwie, nowi wrogowie), priorytety i `once`, osobny strumień losowania (`story.rngState`). Kwestie mają wyzwalacze: `afterBattle`, `newBiome`, `enemyAhead` (przed bitwą, m.in. pierwszy wróg danego typu), `restInLair` (Old Mother Toad), `serpentOnTheWay` (koniec tury poza leżem, najwyżej co `minTurnsBetween` tur), `serpentInBattle` (jedna kwestia nad bitwą, bez pauzy), `eventOnly`. Mówcy: `toad`, `serpent`, `head:any`, `head:other`, `head:new`, `head:<klasa>`; głowy klas obsadzane najpierw, więc `head:any` nigdy nie jest tą samą głową.
+- Treść (Claude, po angielsku, `TODO(design)`): `src/data/dialogues.json` (45 dialogów) i `src/data/events.json` (20 eventów: 12 zwykłych, dwa mini questy po 3 kroki, „The Silent Song” o Hushed i „The Subterranean Survey” o mierniczych Zakonu, oraz zapasowy „A Still Pool”, gdy nic innego nie pasuje). Kroki questu łączą flagi, następny krok ma priorytet 5, trzeci wymaga pierścienia 2 albo 3.
+- Miejsca eventów: generator kładzie je w komorach (3, 3 i 2 na pierścień, `eventSites` w `balance.json`), co najmniej 4 kroki od leża i 5 od siebie; który event, losuje się dopiero przy wejściu. Na mapie stoją jako kamień ze spiralą Węża (zastępczy `map_event`), na minimapie turkusowa kropka. Ścieżka je omija, wejście zatrzymuje hydrę.
+- Ekran dialogu `src/ui/DialogueScene.ts` (Hades): przyciemniona gra, malowane portrety z `public/portraits/` (kopie z `art/concept/portraits/`, klucze `dialogue_<klasa>` i `dialogue_oldMotherToad`, gładkie skalowanie), Ropucha po prawej, głowy naprzeciw siebie, tekst pisany literami, tapnięcie, odpowiedzi do wyboru. Wąż bez portretu, kursywą, na środku. Mapa pokazuje kolejkę dialogów przed bitwą i po każdym ruchu.
+- Panel eventu to panel miejsca: wybory z wymaganą głową, kosztem i „(risky)”, wynik ze skutkami i Continue.
+- Do testów: `?say=<id dialogu>` (na mapie pokazuje dialog; z `?scene=battle` kwestię Węża) i `?event=<id eventu>` (event obok hydry). Smoke czyta dialogi i wybiera w eventach.
 
 **Narzędzia.** `npm run smoke` gra sama jak gracz: mapa, bitwy, przegrana, kapliczki; z `-- phone` na ekranie telefonu. `npm run balance` rozgrywa setki automatycznych bitew, wynik w `docs/BALANCE.md`. `npm run shots` robi zrzuty do `docs/screens/`. `npm run art` wstawia do gry obrazki z `art/raw/` (opis w `docs/ASSETS.md`). Parametry URL są w `README.md`.
 
@@ -184,7 +193,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 ## 4. Otwarte pytania
 
 **Czekają na Piotra:**
-0. Uwagi do bitwy i napisów w HD (`?scene=battle`). Plan M5 (przedstawiony 2026-10-21) czeka na OK.
+0. Playtest M5: dialogi, eventy, mini questy. Uwagi do bitwy i napisów w HD (`?scene=battle`).
 1. Wrażenia z playtestu M2b: mapa, kapliczki, leże, nowe biomy.
 2. Nowa tekstura soli do Salt Mines (Piotr wybrał nowy obrazek, prompt już przyciemniony). Malowane portrety głów już są (sekcja 3.2).
 3. Okładka gry przyszła w projekcie Hydra 2026-10-04; kopia jest w plikach projektu (`hydra-grafika/wzory/okladka.png`). Do repo nie trafia, bo palety na razie nie ma (decyzja z 2026-10-06).
@@ -193,7 +202,6 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 **Z `GAME_DESIGN.md` §16 (decyduje Piotr):**
 - ile kapliczek Płomienia trzeba zgasić;
 - nowe głowy słabsze i rosnące (od czego rosną?);
-- głos Węża w walce: pauza czy krótka kwestia;
 - pula głów: które klasy od startu, a które do odblokowania;
 - zakończenia gry;
 - wiedza o świecie po wymarciu rodu: przepada czy zostaje.
@@ -221,14 +229,15 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
   - Alert tylko rośnie: bez progów, patroli, posłańców i wypraw (M3);
   - nie ma odwrotu z bitwy;
   - umiejętności Q/W/E, doświadczenie, specjalizacje, przypadłości, klasy Screamer, Glutton, The Spare, Strangler, Tender i Lantern oraz combosy poza trzema pierwszymi przyjdą z M2a;
+- M5: Sealed Door i Cinder Bore (`GAME_DESIGN.md` §9.3) jeszcze nie zbudowane; postęp mini questów nie przechodzi na kolejne pokolenia (to M6, razem z zapisem); głos Węża przy odpoczynku jest tylko w kwestiach Ropuchy; maska Hushed nic jeszcze nie daje (`TODO(design)`); kamień eventu i portrety jeńców, Mistrzów Zakonu i przodków czekają na grafikę; kwestie znają tylko trzy klasy głów, które są w grze.
 - Balans (`docs/BALANCE.md`): najsilniejsza grupa (Pyre Procession) pokonuje hydrę bez rozkazów w 63% bitew, a przy sensownych rozkazach w 6%. Wszystkie liczby są robocze.
 
 ## 6. Następne kroki
 
-0. M5 (eventy, mini questy, dialogi) według planu z 2026-10-21, po OK Piotra.
+0. Uwagi Piotra z playtestu M5, potem plan M6 (pokolenia) i OK Piotra.
 1. Poczekać na odpowiedzi Piotra (sekcja 4).
 2. Dalej z `docs/ANIMATIONS.md` (stan „do zrobienia”): oddech i drgnięcie tułowia, ścięcie głowy. Kolejne grafiki: reszta Zakonu po uwagach do próby (Zakon jak rycerze z okładki, z herbem złotego płomienia zamiast lwa; wzór dla GPT: `hydra-grafika/wzory/zakon-z-okladki.png` w plikach projektu), przejście na powierzchnię, tło tytułu.
 3. Głowy i tułów w stylu okładki (sekcja 3.2, „Próba hydry i Zakonu w grze”): próba jest w grze od 2026-10-06, Piotr napisał „ok”. Prompty na pozostałe osiem głów, Headhuntera, Torchbearera i dwa większe oddziały są w `docs/ART_PROMPTS.md` od 2026-10-06, a ich wzory (portrety, pixelowy tułów, Biter, Man-at-Arms, oddział) w plikach projektu, `hydra-grafika/wzory/`; w manifeście są już miejsca na głowy. Przy imporcie: rozmiar głowy w manifeście z obrazka, `JAW_OVERLAP_BY_CLASS` z linii pyska, `TORCH_FLAME` z płomienia Torchbearera. Palety na razie nie ma (decyzja z 2026-10-06, sekcja 3.2).
 4. Gdy Piotr napisze, że wrzucił grafiki: `git pull`, `npm run art`, obejrzeć wynik w grze, wdrożyć, pokazać.
 5. Zatwierdzone decyzje od razu wpisywać do `GAME_DESIGN.md`, a budować w swoim etapie.
-6. Po playteście M2c: poprawki według uwag Piotra, potem plan M5 (dialogi) i dalej kolejność z `GAME_DESIGN.md` §15.
+6. Kolejność etapów z `GAME_DESIGN.md` §15: M6, M2a, M3, M4, M7.

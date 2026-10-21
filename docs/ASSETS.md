@@ -306,6 +306,18 @@ A new enemy type needs an image with the key `battle_enemy_<type id from enemies
 
 The Order looks like the soldiers on the game's cover (plate armour, red tabards and capes, red banners), with a gold flame as its emblem instead of the cover's lion. Prompts: `docs/ART_PROMPTS.md`, section "Zakon i hydra na mapie, Zakon w bitwie: próba".
 
+## dialogue_<class>, dialogue_oldMotherToad
+
+| | |
+|---|---|
+| Size | as painted (now about 330–445 px; the manifest gives half of that, in screen units) |
+| Frames | 1 |
+| Anchor | bottom-left (heads), bottom-right (Toad) |
+| Background | transparent |
+| Used in | the dialogue screen (M5) |
+
+Painted dialogue portraits (GAME_DESIGN.md §13), one per head class (`dialogue_biter`, `dialogue_acidSpitter`, ...) and `dialogue_oldMotherToad`. Files in `public/portraits/<id>.png`, copied as they are from `art/concept/portraits/` (not through `npm run art`: they are not pixel art and are scaled smoothly). A head is shown 196 units tall, Old Mother Toad 250 units wide, standing on the text box. Everyone looks right in the painting; on the right side of the screen the game mirrors the portrait. A bigger painting just needs new width and height in the manifest (half its pixels). New speakers (prisoners, Masters of the Order, ancestors) get a key of their own.
+
 ## portrait_oldMotherToad
 
 | | |
@@ -314,11 +326,11 @@ The Order looks like the soldiers on the game's cover (plate armour, red tabards
 | Frames | 1 |
 | Anchor | top-left |
 | Background | transparent |
-| Used in | dialogues (from M5); not shown in the game yet |
+| Used in | nothing: the dialogue screen uses the painted `dialogue_oldMotherToad` |
 
 Old Mother Toad, guardian of the lair and mentor: a bust (head and shoulders), seen from the front and turned a little to the side. Portraits are a separate shot and don't follow the game camera.
 
-Since 2026-10-04 dialogue portraits are painted (GAME_DESIGN.md §13). This pixel portrait stays until M5, when a painted one with its own spec replaces it.
+Since 2026-10-04 dialogue portraits are painted (GAME_DESIGN.md §13); since M5 the painted one is in the game. This pixel portrait is kept, unused, until Piotr decides about it.
 
 ## battle_stump, battle_scar
 
@@ -346,3 +358,15 @@ Helpers that can stay code placeholders:
 - **battle_hex_fill** (42×36): the same hex filled white, tinted pale for Mist over a hex.
 
 In HD the game draws soft shadows, lines and soft Mist patches in code instead, so these three are only for the classic game.
+
+## map_event
+
+| | |
+|---|---|
+| Size | 16×24 units (32×48 px) |
+| Frames | 1 |
+| Anchor | bottom middle, on the hex's ground |
+| Background | transparent (magenta `#FF00FF` in the GPT image) |
+| Used in | the map: an event site (M5); it disappears once the event is done |
+
+A lone standing stone, leaning a little, with a coiled serpent spiral carved into its face and glowing faintly teal, moss and a few pale mushrooms at its foot. It must say "something happens here" without saying what. Placeholder drawn in code until the art arrives; the game adds a faint teal light at the spiral.

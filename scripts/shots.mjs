@@ -20,13 +20,23 @@ async function goTo(page, point) {
   await tapGame(page, point);
 }
 
+/** Waits for a panel to open, reading through any dialogue that comes first (e.g. on entering a new biome). */
+async function waitForPanel(page) {
+  for (let i = 0; i < 60; i++) {
+    if (await page.evaluate(() => window.__hydra.placePanel() !== null)) break;
+    if (await page.evaluate(() => window.__hydra.dialogue?.() != null)) await tapGame(page, { x: 320, y: 120 });
+    await page.waitForTimeout(200);
+  }
+  await page.waitForFunction(() => window.__hydra.placePanel() !== null, null, { timeout: 5_000 });
+}
+
 /** Steps onto the reachable place with this id (it is next to the hydra with ?near=), and waits for its panel. */
 async function stepOntoPlace(page, id) {
   const points = await page.evaluate(() => window.__hydra.reachableOnScreen());
   const target = points.find((p) => p.id === id);
   if (!target) throw new Error(`No ${id} next to the hydra`);
   await goTo(page, target);
-  await page.waitForFunction(() => window.__hydra.placePanel() !== null, null, { timeout: 5_000 });
+  await waitForPanel(page);
   await page.waitForTimeout(300);
 }
 
@@ -69,7 +79,7 @@ async function stepOntoEvent(page) {
   const target = points.find((p) => p.object === 'event');
   if (!target) throw new Error('No event site next to the hydra');
   await goTo(page, target);
-  await page.waitForFunction(() => window.__hydra.placePanel() !== null, null, { timeout: 5_000 });
+  await waitForPanel(page);
   await page.waitForTimeout(300);
 }
 
