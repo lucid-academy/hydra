@@ -1,5 +1,5 @@
 {
-  "//": "TODO(design): all numbers are working values. Times in seconds, distances in hexes.",
+  "//": "TODO(design): all numbers are working values. Times in seconds, distances in hexes. Status flags: canWalk / canAttack / canChannel (cauterizing, praying) false = the human can't; flees = runs away from the body; damageTakenMultiplier 1.25 = takes 25% more; endsOnDamage = any hit ends it; breaksWhenHolderTakes = for holds, the hold breaks when the holding head takes that much damage.",
   "statuses": {
     "corroded": {
       "//": "Put on by the Acid Spitter: eats armor and hurts a little every second.",
@@ -18,6 +18,87 @@
       "armorChange": 0,
       "damagePerSecond": 0,
       "speedMultiplier": 0.7
+    },
+    "terrified": {
+      "//": "Put on by the Screamer: runs away from the hydra, doesn't fight, stops burning stumps.",
+      "displayName": "Terrified",
+      "color": "#e3d6b4",
+      "durationSeconds": 3,
+      "armorChange": 0,
+      "damagePerSecond": 0,
+      "speedMultiplier": 1,
+      "canAttack": false,
+      "canChannel": false,
+      "flees": true
+    },
+    "stunned": {
+      "//": "Does nothing at all.",
+      "displayName": "Stunned",
+      "color": "#f0e070",
+      "durationSeconds": 1.5,
+      "armorChange": 0,
+      "damagePerSecond": 0,
+      "speedMultiplier": 1,
+      "canWalk": false,
+      "canAttack": false,
+      "canChannel": false
+    },
+    "seized": {
+      "//": "Wrapped in the Strangler's neck (GAME_DESIGN.md 6.5): doesn't walk, attack or channel; the other heads hit it 25% harder. The grip breaks when the Strangler takes 8 damage.",
+      "displayName": "Seized",
+      "color": "#7d68b0",
+      "durationSeconds": 3,
+      "armorChange": 0,
+      "damagePerSecond": 0,
+      "speedMultiplier": 1,
+      "canWalk": false,
+      "canAttack": false,
+      "canChannel": false,
+      "damageTakenMultiplier": 1.25,
+      "breaksWhenHolderTakes": 8
+    },
+    "entranced": {
+      "//": "Staring into the Lantern's light (GAME_DESIGN.md 6.5): doesn't attack or channel. Any damage wakes it up. Heads leave Entranced humans alone unless ordered.",
+      "displayName": "Entranced",
+      "color": "#8cc8f0",
+      "durationSeconds": 3,
+      "armorChange": 0,
+      "damagePerSecond": 0,
+      "speedMultiplier": 1,
+      "canWalk": false,
+      "canAttack": false,
+      "canChannel": false,
+      "endsOnDamage": true
+    },
+    "pinned": {
+      "//": "TODO(design): not one of the six statuses in GAME_DESIGN.md 3. Biter's Lockjaw: the human keeps fighting but can't walk away.",
+      "displayName": "Pinned",
+      "color": "#5f9a4a",
+      "durationSeconds": 3,
+      "armorChange": 0,
+      "damagePerSecond": 0,
+      "speedMultiplier": 1,
+      "canWalk": false
+    },
+    "charmed": {
+      "//": "TODO(design): not one of the six statuses in GAME_DESIGN.md 3. The Spare's Be Adorable: stops fighting (and burning), but not because of fear.",
+      "displayName": "Charmed",
+      "color": "#d28fa4",
+      "durationSeconds": 2,
+      "armorChange": 0,
+      "damagePerSecond": 0,
+      "speedMultiplier": 1,
+      "canAttack": false,
+      "canChannel": false
+    },
+    "melted": {
+      "//": "TODO(design): not one of the six statuses in GAME_DESIGN.md 3. Acid Spitter's Melt: no armor at all for a while.",
+      "displayName": "Melted",
+      "color": "#d6e85a",
+      "durationSeconds": 8,
+      "armorChange": -99,
+      "damagePerSecond": 0,
+      "speedMultiplier": 1
     }
   },
   "mistCloud": {
@@ -25,6 +106,24 @@
     "radius": 1,
     "durationSeconds": 6,
     "appliesStatus": "soaked"
+  },
+  "hitMemorySeconds": 2,
+  "twinLoss": {
+    "//": "When a head dies, each head from the same stump falls into a rage (attacks faster) or into grief (slower), at random, for a while. Tender's Mend ends grief.",
+    "seconds": 8,
+    "rageAttackSpeed": 1.5,
+    "griefAttackSpeed": 0.5
+  },
+  "spareMischief": {
+    "//": "When a combo goes off while The Spare is alive, with this chance it adds one of these on the combo's target.",
+    "classId": "spare",
+    "chance": 0.25,
+    "effects": [
+      { "type": "status", "status": "stunned", "seconds": 1 },
+      { "type": "status", "status": "terrified", "seconds": 2 },
+      { "type": "damage", "amount": 5 },
+      { "type": "status", "status": "soaked" }
+    ]
   },
   "combos": [
     {
@@ -55,6 +154,154 @@
       "effects": [
         { "type": "putOutTorch", "seconds": 5 }
       ]
+    },
+    {
+      "id": "panicFeast",
+      "displayName": "Panic Feast",
+      "//": "Glutton on a Terrified human with low HP: eaten at once.",
+      "when": "headHitsEnemy",
+      "conditions": { "attackTag": "devour", "enemyHasStatus": "terrified", "enemyHpBelow": 0.35 },
+      "effects": [{ "type": "devour" }]
+    },
+    {
+      "id": "echoScream",
+      "displayName": "Echo Scream",
+      "//": "Two Screamers scream within 1 s of each other: a stun twice as wide.",
+      "when": "headHitsEnemy",
+      "conditions": { "attackTag": "scream", "headClass": "screamer", "otherHeads": { "count": 1, "withinSeconds": 1, "sameClass": true, "tag": "scream" } },
+      "effects": [{ "type": "statusAround", "status": "stunned", "radius": 2, "seconds": 1.5 }],
+      "cooldownSeconds": 3,
+      "lines": [
+        { "speaker": "screamer", "text": "I WAS LOUDER." },
+        { "speaker": "screamer", "text": "YOU WERE NOT." }
+      ]
+    },
+    {
+      "id": "pincer",
+      "displayName": "Pincer",
+      "//": "Two Biters bite the same human from opposite sides of the body: it falls over.",
+      "when": "headHitsEnemy",
+      "conditions": { "attackTag": "bite", "headClass": "biter", "otherHeads": { "count": 1, "withinSeconds": 1.5, "sameClass": true, "oppositeSide": true, "tag": "bite" } },
+      "effects": [{ "type": "status", "status": "stunned", "seconds": 2 }],
+      "cooldownSeconds": 4
+    },
+    {
+      "id": "twinBond",
+      "displayName": "Twin Bond",
+      "//": "Two heads from the same stump hit the same human: extra damage. When one dies, the other rages or grieves (twinLoss above).",
+      "when": "headHitsEnemy",
+      "conditions": { "otherHeads": { "count": 1, "withinSeconds": 1.5, "sameStump": true } },
+      "effects": [{ "type": "damage", "ofHit": 0.5 }],
+      "cooldownSeconds": 2
+    },
+    {
+      "id": "tripletBond",
+      "displayName": "Triplet Bond",
+      "when": "headHitsEnemy",
+      "conditions": { "otherHeads": { "count": 2, "withinSeconds": 1.5, "sameStump": true } },
+      "effects": [{ "type": "damage", "ofHit": 1 }],
+      "cooldownSeconds": 2,
+      "lines": [
+        { "speaker": "any", "text": "That was my idea." },
+        { "speaker": "any", "text": "It was not." }
+      ]
+    },
+    {
+      "id": "holdStill",
+      "displayName": "Hold Still",
+      "when": "headHitsEnemy",
+      "conditions": { "attackTag": "bite", "enemyHasStatus": "seized" },
+      "effects": [{ "type": "damage", "ofHit": 1 }, { "type": "extendStatus", "status": "seized", "seconds": 1 }],
+      "cooldownSeconds": 1,
+      "lines": [
+        { "speaker": "strangler", "text": "I've got him." },
+        { "speaker": "biter", "text": "I know. I can see him." }
+      ]
+    },
+    {
+      "id": "roomService",
+      "displayName": "Room Service",
+      "when": "headHitsEnemy",
+      "conditions": { "attackTag": "devour", "enemyHasStatus": "seized", "enemyHpBelow": 0.5 },
+      "effects": [{ "type": "devour" }]
+    },
+    {
+      "id": "wrungOut",
+      "displayName": "Wrung Out",
+      "when": "headHitsEnemy",
+      "conditions": { "attackTag": "coil", "enemyHasStatus": "soaked" },
+      "effects": [{ "type": "damage", "amount": 12 }, { "type": "afterStatus", "status": "seized", "then": "stunned", "seconds": 2 }]
+    },
+    {
+      "id": "voicesInTheFog",
+      "displayName": "Voices in the Fog",
+      "//": "TODO(design): knights in the cloud are Stunned 1 s instead, once there are knights.",
+      "when": "headHitsEnemy",
+      "conditions": { "attackTag": "scream", "enemyInMist": true },
+      "effects": [{ "type": "statusInCloud", "status": "terrified", "seconds": 3 }],
+      "cooldownSeconds": 3
+    },
+    {
+      "id": "brittle",
+      "displayName": "Brittle",
+      "when": "headHitsEnemy",
+      "conditions": { "attackTag": "sonic", "enemyHasStatus": "corroded", "enemyArmorBroken": false },
+      "effects": [{ "type": "breakArmor" }, { "type": "splash", "amount": 8, "radius": 1 }]
+    },
+    {
+      "id": "pickled",
+      "displayName": "Pickled",
+      "//": "The Glutton eats a Corroded human: the body heals twice as much (the extra healBody is the same as the Glutton's devourHeal).",
+      "when": "enemyDevoured",
+      "conditions": { "enemyHasStatus": "corroded" },
+      "effects": [{ "type": "healBody", "amount": 15 }],
+      "lines": [
+        { "speaker": "glutton", "text": "Marinated. Thank you." },
+        { "speaker": "acidSpitter", "text": "It's called corrosion." }
+      ]
+    },
+    {
+      "id": "slobber",
+      "displayName": "Slobber",
+      "when": "headHitsEnemy",
+      "conditions": { "attackTag": "lick", "enemyHasStatus": "soaked" },
+      "effects": [{ "type": "status", "status": "stunned", "seconds": 2 }],
+      "cooldownSeconds": 4
+    },
+    {
+      "id": "rudeAwakening",
+      "displayName": "Rude Awakening",
+      "when": "headHitsEnemy",
+      "conditions": { "attackTag": "scream", "enemyHasStatus": "entranced" },
+      "effects": [{ "type": "status", "status": "stunned", "seconds": 3 }]
+    },
+    {
+      "id": "anointing",
+      "displayName": "Anointing",
+      "//": "The Order takes the acid for holy oil: the trance goes on, and Corroded lasts twice as long.",
+      "when": "headHitsEnemy",
+      "conditions": { "attackTag": "acid", "enemyHasStatus": "entranced" },
+      "effects": [{ "type": "keepEntranced" }, { "type": "status", "status": "corroded", "seconds": 12 }],
+      "cooldownSeconds": 4,
+      "lines": [
+        { "speaker": "enemy", "text": "Holy oil! I am anointed!" }
+      ]
+    },
+    {
+      "id": "marshLight",
+      "displayName": "Marsh Light",
+      "//": "A Beacon lit in a Mist cloud draws from 2 hexes further, and a Torchbearer who comes to it loses the torch.",
+      "when": "beaconLit",
+      "conditions": { "beaconInMist": true },
+      "beacon": { "extraRadius": 2, "takesTorches": true }
+    },
+    {
+      "id": "sanctuary",
+      "displayName": "Sanctuary",
+      "//": "A Beacon lit while someone is Terrified: the Terrified run to the light, wherever they are, and kneel.",
+      "when": "beaconLit",
+      "conditions": { "terrifiedOnBoard": true },
+      "beacon": { "callsTerrified": true }
     }
   ]
 }

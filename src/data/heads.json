@@ -1,5 +1,5 @@
 {
-  "//": "TODO(design): all numbers are working values. Times in seconds. Attack range in hexes from the body (1 = only enemies standing next to it). melee: the head goes out to bite, and can be hit back there.",
+  "//": "TODO(design): all numbers are working values. Times in seconds. Attack range in hexes from the body (1 = only enemies standing next to it). melee: the head goes out to bite, and can be hit back there. Skills: each class has three (a head takes two into battle, keys Q and W) and an ultimate (key E, only once the hydra has unlocked ultimates). Skill effects and statuses are described in combos.json.",
   "maxHeads": 9,
   "regrowSeconds": 8,
   "startingHeads": ["biter", "acidSpitter", "mistBreather"],
@@ -9,21 +9,326 @@
       "displayName": "Biter",
       "color": "#5f9a4a",
       "maxHp": 40,
-      "attack": { "damage": 10, "cooldownSeconds": 2, "range": 2, "melee": true, "tags": ["bite"] }
+      "attack": { "name": "Bite", "damage": 10, "cooldownSeconds": 2, "range": 2, "melee": true, "tags": ["bite"] },
+      "skills": ["crunch", "lockjaw", "thrash"],
+      "ultimate": "frenzy"
     },
     "acidSpitter": {
       "displayName": "Acid Spitter",
       "color": "#b7d13a",
       "maxHp": 30,
-      "attack": { "damage": 4, "cooldownSeconds": 2.4, "range": 5, "tags": ["acid"], "appliesStatus": "corroded" }
+      "attack": { "name": "Spit", "damage": 4, "cooldownSeconds": 2.4, "range": 5, "tags": ["acid"], "appliesStatus": "corroded" },
+      "skills": ["acidPool", "melt", "spray"],
+      "ultimate": "acidRain"
     },
     "mistBreather": {
       "displayName": "Mist Breather",
       "color": "#8fb3a8",
       "maxHp": 32,
-      "attack": { "damage": 2, "cooldownSeconds": 3, "range": 3, "tags": ["mist"], "createsMistCloud": true }
+      "attack": { "name": "Breath", "damage": 2, "cooldownSeconds": 3, "range": 3, "tags": ["mist"], "createsMistCloud": true },
+      "skills": ["fogBank", "douse", "drift"],
+      "ultimate": "greatFog"
+    },
+    "screamer": {
+      "displayName": "Screamer",
+      "color": "#e3d6b4",
+      "maxHp": 30,
+      "attack": { "name": "Screech", "damage": 2, "cooldownSeconds": 3, "range": 3, "tags": ["scream"], "appliesStatus": "terrified", "statusSeconds": 1.5 },
+      "skills": ["howl", "sonicCrack", "rallyCry"],
+      "ultimate": "bansheeWail"
+    },
+    "glutton": {
+      "displayName": "Glutton",
+      "color": "#b5614a",
+      "maxHp": 46,
+      "//": "devourHeal: HP the body gets back when the Glutton eats a human (a human it bit to death, or one it gulped whole).",
+      "attack": { "name": "Gnaw", "damage": 8, "cooldownSeconds": 2.4, "range": 2, "melee": true, "tags": ["devour"], "devourHeal": 15 },
+      "skills": ["gulp", "eatFire", "regurgitate"],
+      "ultimate": "bottomless"
+    },
+    "spare": {
+      "displayName": "The Spare",
+      "color": "#d28fa4",
+      "maxHp": 20,
+      "//": "Nibble usually does next to nothing; randomEffectChance: how often it does something anyway. badIdea: once per battle, at a random moment between earliestSecond and latestSecond, it takes over for `seconds` and sends every head at one random human.",
+      "attack": {
+        "name": "Nibble",
+        "damage": 1,
+        "cooldownSeconds": 2,
+        "range": 1,
+        "melee": true,
+        "tags": ["nibble"],
+        "randomEffectChance": 0.2,
+        "randomEffects": [
+          { "//": "Surprised.", "type": "status", "status": "stunned", "seconds": 1 },
+          { "type": "status", "status": "soaked" }
+        ]
+      },
+      "skills": ["copycat", "beAdorable", "rummage"],
+      "ultimate": "multiheadeverse",
+      "badIdea": { "seconds": 2, "earliestSecond": 8, "latestSecond": 45 }
+    },
+    "strangler": {
+      "displayName": "Strangler",
+      "color": "#7d68b0",
+      "maxHp": 34,
+      "attack": { "name": "Lash", "damage": 5, "cooldownSeconds": 2.6, "range": 4, "tags": ["lash"] },
+      "skills": ["coil", "yank", "toss"],
+      "ultimate": "greatSqueeze"
+    },
+    "tender": {
+      "displayName": "Tender",
+      "color": "#3fb8a6",
+      "maxHp": 22,
+      "//": "healsHeads: Lick heals the most wounded head by this much, unless nobody is wounded or the Tender is ordered at a human.",
+      "attack": { "name": "Lick", "damage": 1, "cooldownSeconds": 2.5, "range": 2, "tags": ["lick"], "healsHeads": 4 },
+      "skills": ["mend", "kissItBetter", "hurryUp"],
+      "ultimate": "triplets"
+    },
+    "lantern": {
+      "displayName": "Lantern",
+      "color": "#8cc8f0",
+      "maxHp": 28,
+      "attack": { "name": "Flash", "damage": 1, "cooldownSeconds": 3, "range": 3, "tags": ["light"], "appliesStatus": "entranced", "statusSeconds": 1 },
+      "skills": ["beacon", "miracle", "flare"],
+      "ultimate": "procession"
     }
   },
+  "skills": {
+    "crunch": {
+      "displayName": "Crunch",
+      "description": "One bite for 2.5x damage.",
+      "target": "enemy", "range": 2, "cooldownSeconds": 8, "tags": ["bite"], "hitMultiplier": 2.5
+    },
+    "lockjaw": {
+      "displayName": "Lockjaw",
+      "description": "Bites and holds on: the target can't walk for 3 s.",
+      "target": "enemy", "range": 2, "cooldownSeconds": 10, "tags": ["bite"], "hitMultiplier": 1,
+      "effects": [{ "type": "status", "status": "pinned", "seconds": 3 }]
+    },
+    "thrash": {
+      "displayName": "Thrash",
+      "description": "Shakes the target and throws it 2 hexes. If it hits someone, both are Stunned.",
+      "target": "enemy", "range": 2, "cooldownSeconds": 10, "tags": ["bite"], "hitMultiplier": 1,
+      "effects": [{ "type": "knockback", "hexes": 2, "collisionStatus": "stunned", "collisionSeconds": 1 }]
+    },
+    "frenzy": {
+      "displayName": "Frenzy",
+      "description": "Bites three times as fast for 6 s. Every kill heals 10 HP.",
+      "target": "none", "cooldownSeconds": 60,
+      "specials": [{ "type": "selfAttackSpeed", "multiplier": 3, "seconds": 6 }, { "type": "healOnKill", "amount": 10, "seconds": 6 }]
+    },
+
+    "acidPool": {
+      "displayName": "Acid Pool",
+      "description": "A pool of acid on a hex and the six around it for 6 s. Anyone in it is Corroded.",
+      "target": "hex", "range": 5, "cooldownSeconds": 12, "tags": ["acid"], "area": { "shape": "none" },
+      "specials": [{ "type": "pool", "radius": 1, "seconds": 6, "status": "corroded" }]
+    },
+    "melt": {
+      "displayName": "Melt",
+      "description": "Strips all the target's armor for 8 s. Its torch goes out.",
+      "target": "enemy", "range": 5, "cooldownSeconds": 12, "tags": ["acid"],
+      "effects": [{ "type": "status", "status": "melted", "seconds": 8 }, { "type": "putOutTorch", "seconds": 8 }]
+    },
+    "spray": {
+      "displayName": "Spray",
+      "description": "A fan of spit: up to 3 humans are Corroded.",
+      "target": "enemy", "range": 5, "cooldownSeconds": 9, "tags": ["acid"], "area": { "shape": "nearest", "count": 3, "radius": 2 },
+      "effects": [{ "type": "status", "status": "corroded" }]
+    },
+    "acidRain": {
+      "displayName": "Acid Rain",
+      "description": "Acid falls on the whole board: every human is Corroded, and Mist turns to Acid Fog.",
+      "target": "none", "cooldownSeconds": 60, "tags": ["acid"], "area": { "shape": "all" },
+      "effects": [{ "type": "status", "status": "corroded", "seconds": 6 }, { "type": "acidifyMist", "damagePerSecond": 3, "seconds": 6 }]
+    },
+
+    "fogBank": {
+      "displayName": "Fog Bank",
+      "description": "A big Mist cloud (2 hexes around) for 10 s.",
+      "target": "hex", "range": 3, "cooldownSeconds": 14, "tags": ["mist"], "area": { "shape": "none" },
+      "specials": [{ "type": "mistCloud", "radius": 2, "seconds": 10 }]
+    },
+    "douse": {
+      "displayName": "Douse",
+      "description": "Puts out a torch for 10 s.",
+      "//": "TODO(design): the hex under it becomes water for 10 s, once the battle board has terrain.",
+      "target": "enemy", "range": 3, "cooldownSeconds": 10, "tags": ["mist"],
+      "effects": [{ "type": "putOutTorch", "seconds": 10 }]
+    },
+    "drift": {
+      "displayName": "Drift",
+      "description": "Moves all of this head's clouds 2 hexes towards the chosen hex.",
+      "target": "hex", "range": 8, "cooldownSeconds": 8, "area": { "shape": "none" },
+      "specials": [{ "type": "driftClouds", "hexes": 2 }]
+    },
+    "greatFog": {
+      "displayName": "Great Fog",
+      "description": "Mist over the whole board for 10 s.",
+      "target": "none", "cooldownSeconds": 60, "tags": ["mist"], "area": { "shape": "none" },
+      "specials": [{ "type": "mistCloud", "radius": 0, "seconds": 10, "wholeBoard": true }]
+    },
+
+    "howl": {
+      "displayName": "Howl",
+      "description": "Fear 2 hexes around the target: Terrified for 3 s.",
+      "target": "enemy", "range": 3, "cooldownSeconds": 10, "tags": ["scream"], "area": { "shape": "around", "radius": 2 },
+      "effects": [{ "type": "status", "status": "terrified", "seconds": 3 }]
+    },
+    "sonicCrack": {
+      "displayName": "Sonic Crack",
+      "description": "A wave in a wedge: Stunned for 2 s.",
+      "target": "hex", "range": 3, "cooldownSeconds": 12, "tags": ["scream", "sonic"], "area": { "shape": "cone", "degrees": 70 },
+      "effects": [{ "type": "status", "status": "stunned", "seconds": 2 }]
+    },
+    "rallyCry": {
+      "displayName": "Rally Cry",
+      "description": "The other heads attack 25% faster for 5 s.",
+      "target": "none", "cooldownSeconds": 15, "area": { "shape": "none" },
+      "specials": [{ "type": "headsAttackSpeed", "multiplier": 1.25, "seconds": 5 }]
+    },
+    "bansheeWail": {
+      "displayName": "Banshee Wail",
+      "description": "The whole board is Terrified for 4 s. Every burning stops.",
+      "target": "none", "cooldownSeconds": 60, "tags": ["scream"], "area": { "shape": "all" },
+      "effects": [{ "type": "status", "status": "terrified", "seconds": 4 }]
+    },
+
+    "gulp": {
+      "displayName": "Gulp",
+      "description": "Swallows a human under 30% HP whole.",
+      "target": "enemy", "range": 2, "cooldownSeconds": 10, "tags": ["devour"], "targetHpBelow": 0.3,
+      "effects": [{ "type": "devour", "healMultiplier": 1 }]
+    },
+    "eatFire": {
+      "displayName": "Eat Fire",
+      "description": "Eats a torch. It goes out for good, and the Glutton gets heartburn.",
+      "target": "enemy", "range": 2, "cooldownSeconds": 12, "tags": ["devour"],
+      "effects": [{ "type": "putOutTorch", "seconds": 600 }],
+      "specials": [{ "type": "hurtSelf", "amount": 5 }]
+    },
+    "regurgitate": {
+      "displayName": "Regurgitate",
+      "description": "Spits out the armor of someone it ate: heavy damage and Stunned for 2 s. One charge per meal.",
+      "target": "enemy", "range": 4, "cooldownSeconds": 4, "hitMultiplier": 3, "usesMeal": true,
+      "effects": [{ "type": "status", "status": "stunned", "seconds": 2 }]
+    },
+    "bottomless": {
+      "displayName": "Bottomless",
+      "description": "For 8 s eats everyone in reach under 30% HP. Then sleeps for 4 s.",
+      "target": "none", "cooldownSeconds": 60, "area": { "shape": "none" },
+      "specials": [{ "type": "bottomless", "seconds": 8, "hpShare": 0.3, "sleepSeconds": 4 }]
+    },
+
+    "copycat": {
+      "displayName": "Copycat",
+      "description": "Repeats the last skill another head used, at half strength.",
+      "target": "none", "cooldownSeconds": 12, "area": { "shape": "none" },
+      "specials": [{ "type": "copycat", "power": 0.5 }]
+    },
+    "beAdorable": {
+      "displayName": "Be Adorable",
+      "description": "Humans within 2 hexes stop fighting for 2 s. Knights too: they were raised well.",
+      "target": "none", "cooldownSeconds": 15, "area": { "shape": "aroundBody", "radius": 2 },
+      "effects": [{ "type": "status", "status": "charmed", "seconds": 2 }]
+    },
+    "rummage": {
+      "displayName": "Rummage",
+      "description": "Pulls something out of the swamp.",
+      "target": "none", "cooldownSeconds": 12, "area": { "shape": "none" },
+      "specials": [{ "type": "rummage" }]
+    },
+    "multiheadeverse": {
+      "displayName": "Multiheadeverse",
+      "description": "Heads from another dimension appear by every human. Sometimes.",
+      "target": "none", "cooldownSeconds": 60, "area": { "shape": "none" },
+      "specials": [{ "type": "multiverse", "chance": 0.5, "damage": 25, "killBelowShare": 0.25 }]
+    },
+
+    "coil": {
+      "displayName": "Coil",
+      "description": "Wraps the neck around the target: Seized for 3 s.",
+      "target": "enemy", "range": 4, "cooldownSeconds": 10, "tags": ["coil"], "hitMultiplier": 0.5,
+      "effects": [{ "type": "status", "status": "seized", "seconds": 3 }]
+    },
+    "yank": {
+      "displayName": "Yank",
+      "description": "Pulls the target 3 hexes towards the body.",
+      "target": "enemy", "range": 4, "cooldownSeconds": 10, "tags": ["coil"],
+      "effects": [{ "type": "pull", "hexes": 3 }]
+    },
+    "toss": {
+      "displayName": "Toss",
+      "description": "Throws the held human up to 3 hexes. Into another human: both Stunned for 2 s.",
+      "target": "hex", "range": 8, "cooldownSeconds": 8, "needsHeld": true, "area": { "shape": "none" },
+      "specials": [{ "type": "toss", "hexes": 3, "collisionStatus": "stunned", "collisionSeconds": 2 }]
+    },
+    "greatSqueeze": {
+      "displayName": "Great Squeeze",
+      "description": "Grabs up to 3 humans for 5 s. Their armor breaks for good.",
+      "target": "none", "range": 4, "cooldownSeconds": 60, "tags": ["coil"], "area": { "shape": "none" },
+      "specials": [{ "type": "seizeMany", "count": 3, "seconds": 5, "breakArmor": true }]
+    },
+
+    "mend": {
+      "displayName": "Mend",
+      "description": "Heals a head by 40% of its HP and calms it down.",
+      "target": "head", "cooldownSeconds": 12, "area": { "shape": "none" },
+      "specials": [{ "type": "healHead", "share": 0.4, "cleanse": true }]
+    },
+    "kissItBetter": {
+      "displayName": "Kiss It Better",
+      "description": "A stump can't be burnt for 6 s, and the burning so far is undone.",
+      "target": "stump", "cooldownSeconds": 10, "area": { "shape": "none" },
+      "specials": [{ "type": "protectStump", "seconds": 6, "resetBurning": true }]
+    },
+    "hurryUp": {
+      "displayName": "Hurry Up",
+      "description": "A stump regrows twice as fast.",
+      "target": "stump", "cooldownSeconds": 14, "area": { "shape": "none" },
+      "specials": [{ "type": "hurryStump", "multiplier": 2 }]
+    },
+    "triplets": {
+      "displayName": "Triplets",
+      "description": "The next regrowth gives three heads instead of two.",
+      "target": "none", "cooldownSeconds": 90, "area": { "shape": "none" },
+      "specials": [{ "type": "moreHeadsNextRegrowth", "heads": 3 }]
+    },
+
+    "beacon": {
+      "displayName": "Beacon",
+      "description": "A light on a hex for 6 s. Humans within 3 hexes walk to it and kneel.",
+      "target": "hex", "range": 5, "cooldownSeconds": 14, "tags": ["light"], "area": { "shape": "none" },
+      "specials": [{ "type": "beacon", "radius": 3, "seconds": 6, "kneel": true }]
+    },
+    "miracle": {
+      "displayName": "Miracle",
+      "description": "One human is Entranced for 5 s. Stops a burning.",
+      "target": "enemy", "range": 3, "cooldownSeconds": 10, "tags": ["light"],
+      "effects": [{ "type": "status", "status": "entranced", "seconds": 5 }]
+    },
+    "flare": {
+      "displayName": "Flare",
+      "description": "A flash 2 hexes around the target: Entranced for 2 s.",
+      "//": "TODO(design): Crossbowmen miss every other shot for 4 s, once there are Crossbowmen.",
+      "target": "enemy", "range": 3, "cooldownSeconds": 12, "tags": ["light"], "area": { "shape": "around", "radius": 2 },
+      "effects": [{ "type": "status", "status": "entranced", "seconds": 2 }]
+    },
+    "procession": {
+      "displayName": "Procession",
+      "description": "Every human walks in single file, singing, to the chosen hex.",
+      "//": "TODO(design): knights and bosses don't follow (skipsTypes), once they exist.",
+      "target": "hex", "range": 8, "cooldownSeconds": 60, "tags": ["light"], "area": { "shape": "none" },
+      "specials": [{ "type": "beacon", "seconds": 8, "kneel": false }]
+    }
+  },
+  "rummage": [
+    { "id": "snails", "weight": 3, "type": "healHead", "amount": 10 },
+    { "id": "rottenEgg", "weight": 3, "type": "statusAroundNearest", "status": "stunned", "radius": 1, "seconds": 1.5 },
+    { "id": "fish", "weight": 2, "type": "healClass", "classId": "glutton", "amount": 15 },
+    { "id": "stone", "weight": 2, "type": "nothing" }
+  ],
   "names": [
     "Gerald", "Kevin", "Morwenna", "Bartholomew", "Agnes", "Mildred", "Oswin", "Ethel",
     "Humphrey", "Gristle", "Dorothea", "Percival", "Winifred", "Clement", "Hilda", "Ambrose",
