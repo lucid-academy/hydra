@@ -1,0 +1,22 @@
+{
+  "//": "Every story flag used in dialogues.json, events.json and world.json, with how long it is remembered (GAME_DESIGN.md §12). scope: life = forgotten when the hydra dies; lineage = her heiresses keep it, a new lineage starts without it; world = world knowledge (secrets found, the Serpent heard, progress of mini quests), kept by every generation and every new lineage, because Old Mother Toad remembers. about: what the flag means, for whoever writes the next line. A flag missing here is an error at startup, so a typo in a flag's name is caught. TODO(design): the scopes are Claude's first choice.",
+  "flags": {
+    "heardSerpent": { "scope": "world", "about": "The Great Serpent has spoken to the heads." },
+    "toadTold": { "scope": "world", "about": "Old Mother Toad has explained the Serpent's voice." },
+    "heardMycelium": { "scope": "world", "about": "The mycelium of the Fungal Deeps has been heard." },
+    "metDiscordant": { "scope": "world", "about": "The Discordant (the drummer) have been met." },
+    "foundAncestor": { "scope": "world", "about": "The skull of an older hydra has been found." },
+    "cinderkinMet": { "scope": "world", "about": "The Cinderkin have been met." },
+    "hushedCarving": { "scope": "world", "about": "\"The Silent Song\", step 1: the Hushed carving was studied." },
+    "hushedMachine": { "scope": "world", "about": "\"The Silent Song\", step 2: the cold machine of the Hushed was found." },
+    "hushedMachineWoke": { "scope": "world", "about": "\"The Silent Song\", step 2: the machine woke up." },
+    "hushedSongHeard": { "scope": "world", "about": "\"The Silent Song\", step 3: the last note was heard (opens the Sealed Door)." },
+    "hushedMaskTaken": { "scope": "world", "about": "\"The Silent Song\", step 3: the Hushed mask was taken (opens the Sealed Door)." },
+    "hushedDoorOpened": { "scope": "world", "about": "A Sealed Door of the Hushed has been opened." },
+    "surveyChain": { "scope": "world", "about": "\"The Subterranean Survey\", step 1: the survey chain was followed." },
+    "surveyDone": { "scope": "world", "about": "\"The Subterranean Survey\", step 2: the surveyors were dealt with." },
+    "surveyStamped": { "scope": "world", "about": "\"The Subterranean Survey\", step 3: the hydra is officially surveyed." },
+    "ninefoldFriend": { "scope": "lineage", "about": "The Ninefold Camp counts this lineage as a friend." },
+    "angeredOneCoil": { "scope": "lineage", "about": "This lineage has angered the One Coil." }
+  }
+}

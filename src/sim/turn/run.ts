@@ -8,30 +8,49 @@ import type { Hex } from '../hex';
 import { generateUnderground, hexesSeenFrom, updateVisibility } from '../map';
 import type { MapObject } from '../map';
 import { Rng } from '../rng';
+import { applyBirthMutations, gainMutation, headMaxHp, startingHeadCount } from './mutations';
 import { eventArrived, meetEnemies, newStory, serpentOnTheWay, storyMoment } from './story';
-import type { BlessingEffects, Journey, Reachable, RunEvent, RunRules, RunState } from './types';
+import type { BlessingEffects, Heritage, Journey, Reachable, RunEvent, RunRules, RunState } from './types';
 import { arriveAt, battleSilenced, coolTunnels, growHeads, lookAround, movementForTurn, raiseAlert, tickConditions, tileAt } from './world';
 
 export interface RunOptions {
   /** Run modifiers (ids from world.json runModifiers) that shape this run's world. */
   modifiers?: readonly string[];
+  /** What the hydra hatches with from her lineage (GAME_DESIGN.md §12): name, mutations, what is remembered. */
+  heritage?: Heritage;
 }
 
 export function createRun(seed: number, rules: RunRules, options: RunOptions = {}): RunState {
-  const map = generateUnderground(seed, { ...rules.generator, modifiers: [...(options.modifiers ?? [])] }, rules.terrain);
+  const heritage = options.heritage;
+  const map = generateUnderground(
+    seed,
+    { ...rules.generator, modifiers: [...(options.modifiers ?? [])], placesSeen: [...(heritage?.placesSeen ?? [])] },
+    rules.terrain,
+  );
   // A separate stream from the map's, so changing starting heads never changes the map.
   const rng = new Rng((seed ^ 0x5eed) >>> 0);
   const names = [...rules.headNames];
-  const heads = rules.startingHeads.map((h, i) => {
+  // Mutations she is born with may change how many heads she hatches with: one more of a random hatchling class, or
+  // one fewer, at random.
+  let lineup = [...rules.startingHeads];
+  const count = startingHeadCount(heritage?.mutations ?? [], rules);
+  while (lineup.length > count) lineup.splice(rng.int(0, lineup.length - 1), 1);
+  while (lineup.length < count) lineup.push(rng.pick(rules.hatchlingClasses));
+  const heads = lineup.map((h, i) => {
     const name = names.splice(rng.int(0, names.length - 1), 1)[0] ?? `Head ${i + 1}`;
     return { id: `h${i + 1}`, name, classId: h.classId, level: 1, hp: h.maxHp, maxHp: h.maxHp };
   });
 
   const state: RunState = {
     seed,
+    generation: heritage?.generation ?? 1,
+    lineageName: heritage?.lineageName ?? '',
     turn: 1,
     map,
     hydra: {
+      name: heritage?.name ?? '',
+      mutations: [],
+      inherited: [...(heritage?.mutations ?? [])],
       position: map.lair,
       movementLeft: rules.movementPointsPerTurn,
       movementPerTurn: rules.movementPointsPerTurn,
@@ -53,16 +72,48 @@ export function createRun(seed: number, rules: RunRules, options: RunOptions = {
     echoes: [],
     draughtsFelt: [],
     battlesFought: 0,
+    deepestRing: 0,
     nextId: heads.length + 1,
     rngState: rng.getState(),
     over: false,
+    deathCause: null,
     story: newStory(seed, map.tiles.get(hexKey(map.lair))!.biome),
     pendingEvent: null,
     hotUntil: {},
   };
+  if (heritage) {
+    state.story.flags.push(...heritage.flags);
+    state.story.seen.push(...heritage.seen);
+    state.story.enemyTypesMet.push(...heritage.enemyTypesMet);
+    applyBirthMutations(state, heritage.mutations, rules);
+  }
+  placeMark(state, rules);
   // Seeing the lair's surroundings at the start doesn't count as exploring.
   lookAround(state, rules, []);
+  // An heiress: Old Mother Toad greets her, and her mother may speak through her sleep.
+  if (heritage?.mother) {
+    const facts = { mother: heritage.mother.name, motherKilledBy: heritage.mother.killedBy, inherited: heritage.mutations };
+    storyMoment(state, rules, 'newGeneration', facts, []);
+    const voice = Rng.fromState(state.story.rngState);
+    const speaks = voice.chance(rules.story.ancestorVoiceChance);
+    state.story.rngState = voice.getState();
+    if (speaks) storyMoment(state, rules, 'ancestorInSleep', facts, []);
+  }
   return state;
+}
+
+/**
+ * A marking shrine (GAME_DESIGN.md §12): with some chance one shrine of the deeper rings offers a mutation the hydra
+ * doesn't carry instead of its blessing. Its own stream of random numbers, so the rest of the world stays the same.
+ */
+function placeMark(state: RunState, rules: RunRules): void {
+  const rng = new Rng((state.seed ^ 0x3a2c71) >>> 0);
+  if (!rng.chance(rules.marks.chance)) return;
+  const shrines = [...state.map.tiles.values()].filter((t) => t.object?.kind === 'shrine' && t.region === 'ring' && rules.marks.rings.includes(t.ring));
+  const marks = Object.keys(rules.mutations).filter((id) => !state.hydra.mutations.includes(id));
+  if (shrines.length === 0 || marks.length === 0) return;
+  const shrine = rng.pick(shrines).object as Extract<MapObject, { kind: 'shrine' }>;
+  shrine.mark = rng.pick(marks);
 }
 
 /** The hydra is busy: a battle, a shrine or a panel waits for an answer, or it is dead. Nothing else can happen until then. */
@@ -241,10 +292,20 @@ function pendingShrineObject(state: RunState): Extract<MapObject, { kind: 'shrin
   return object?.kind === 'shrine' ? object : null;
 }
 
-/** Takes the blessing of the shrine the hydra stands at: its effects apply now, and the shrine has nothing more to give. */
+/**
+ * Takes the blessing of the shrine the hydra stands at: its effects apply now, and the shrine has nothing more to give.
+ * A marking shrine gives its mark instead: a mutation, for her and her heiresses.
+ */
 export function acceptBlessing(state: RunState, rules: RunRules): RunEvent[] {
   const shrine = pendingShrineObject(state);
   if (!shrine) return [];
+  if (shrine.mark) {
+    const events: RunEvent[] = [{ type: 'markAccepted', mutationId: shrine.mark }];
+    gainMutation(state, shrine.mark, rules, events);
+    shrine.used = true;
+    state.pendingShrine = null;
+    return events;
+  }
   const effects = rules.blessings[shrine.blessingId];
   if (!effects) throw new Error(`Unknown blessing "${shrine.blessingId}"`);
   applyBlessing(state, effects, rules);
@@ -315,7 +376,13 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
   state.battlesFought += 1;
   state.nextId = result.nextId;
   const headsBefore = state.hydra.heads;
-  state.hydra.heads = result.heads.map((h) => ({ ...h }));
+  const known = new Set(headsBefore.map((h) => h.id));
+  // Heads grown in the battle have their class's HP: the hydra's mutations (Thick-necked) apply to them too.
+  state.hydra.heads = result.heads.map((h) => {
+    if (known.has(h.id)) return { ...h };
+    const maxHp = headMaxHp(state.hydra, rules, h.maxHp);
+    return { ...h, maxHp, hp: Math.max(1, Math.round((h.hp * maxHp) / h.maxHp)) };
+  });
   state.hydra.bodyHp = result.bodyHp;
   state.hydra.scars += result.newScars;
   const silenced = battleSilenced(state, pending.at, rules);
@@ -323,6 +390,7 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
 
   if (result.outcome === 'lost') {
     state.over = true;
+    state.deathCause = { at: pending.at, groupId: pending.groupId, enemyTypes: [...(rules.encounterGroupMembers[pending.groupId] ?? [])] };
     return [{ type: 'hydraDied' }];
   }
   const tile = tileAt(state, pending.at);

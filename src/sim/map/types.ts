@@ -25,8 +25,11 @@ export type MapObject =
   | { kind: 'muck'; amount: number; rich: boolean }
   /** A Moisture source; rich = a Rich Deposit at the end of a dead end. */
   | { kind: 'moisture'; amount: number; rich: boolean }
-  /** A shrine of the Great Serpent, offering one blessing (shrines.json) until it is accepted. */
-  | { kind: 'shrine'; blessingId: string; used: boolean }
+  /**
+   * A shrine of the Great Serpent, offering one blessing (shrines.json) until it is accepted. A marking shrine offers a
+   * mark instead: `mark`, a mutation (mutations.json) for the hydra and her heiresses.
+   */
+  | { kind: 'shrine'; blessingId: string; used: boolean; mark?: string }
   /** A way up to the surface (sealed until the surface exists). */
   | { kind: 'passage' }
   /**

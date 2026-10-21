@@ -189,7 +189,9 @@ export function placeContents(
   for (const p of s.places) if (p.type === 'location' && p.biome) locationsOf.set(p.biome, [...(locationsOf.get(p.biome) ?? []), p.id]);
   for (const [biome, pool] of locationsOf) {
     const count = Math.min(pool.length, between(rng, s.locationsPerBiome));
-    const chosen = shuffled(rng, pool).slice(0, count);
+    // Places the world remembers go last: a seen one is picked only when no unseen one is left.
+    const shuffledPool = shuffled(rng, pool);
+    const chosen = [...shuffledPool.filter((id) => !s.placesSeen.includes(id)), ...shuffledPool.filter((id) => s.placesSeen.includes(id))].slice(0, count);
     const targets = [
       ...shuffled(rng, chamberIndices.filter((c) => patch[c] && chamberBiome[c] === biome)),
       ...shuffled(rng, chamberIndices.filter((c) => !patch[c] && chamberBiome[c] === biome)),

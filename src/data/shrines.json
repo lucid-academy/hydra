@@ -1,5 +1,6 @@
 {
-  "//": "TODO(design): working texts and numbers written by Claude; change them freely. Each shrine of the Great Serpent offers one blessing, which the hydra can accept or refuse. effects change the whole hydra (movement: points per turn, sight: hexes, bodyMaxHp, regeneration: body HP healed per turn) or are paid at once (alert, muck, moisture). Negative numbers are the catch.",
+  "//": "TODO(design): working texts and numbers written by Claude; change them freely. Each shrine of the Great Serpent offers one blessing, which the hydra can accept or refuse. effects change the whole hydra (movement: points per turn, sight: hexes, bodyMaxHp, regeneration: body HP healed per turn) or are paid at once (alert, muck, moisture). Negative numbers are the catch. marks: a marking shrine (M6, GAME_DESIGN.md §12): with this chance a world has one, in one of these rings; it offers a mark instead of a blessing, a mutation (mutations.json) the hydra doesn't carry yet, which her heiresses can inherit.",
+  "marks": { "chance": 0.4, "rings": [2, 3] },
   "blessings": [
     {
       "id": "serpentsPatience",

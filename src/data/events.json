@@ -1,5 +1,5 @@
 {
-  "//": "TODO(design): first batch of events, written by Claude for M5 (GAME_DESIGN.md §10, §14); texts and numbers are working values, change them freely. An event happens when the hydra steps on an event site on the map (balance.json undergroundGenerator.rings[].eventSites). Of the events that fit (conditions, as in dialogues.json), those with the highest priority are drawn by weight. once: happens at most once per run (default true). quest: the mini quest the event is a step of (steps are chained by flags: a step sets a flag, the next step needs it). A choice can need a head (needsHead: class id) or a condition on the hydra (needsCondition: world.json conditions, e.g. warmed), cost resources (cost), and either have one outcome, or be a gamble: chance (0–1) of success, otherwise failure. An outcome has a text and may: give or take muck, moisture, bones; change the alert; heal or hurt the body (bodyHp) and every head (headsHp, never below 1); put a condition on the hydra (condition, world.json); show the map around (reveal: hexes); start a battle (battle: an encounter group, enemies.json); set flags (setFlags); start a dialogue (dialogue: an id from dialogues.json); grow a head (newHead: class id); have the Cinderkin melt a tunnel through the rock nearby (bore: true; how, in world.json thresholds.cinderBore).",
+  "//": "TODO(design): first batch of events, written by Claude for M5 (GAME_DESIGN.md §10, §14); texts and numbers are working values, change them freely. An event happens when the hydra steps on an event site on the map (balance.json undergroundGenerator.rings[].eventSites). Of the events that fit (conditions, as in dialogues.json), those with the highest priority are drawn by weight. once: happens at most once in a hydra's life (default true). A step of a mini quest also has notFlags with its own flags, so that a step done in an earlier generation doesn't come again (the quest's flags are world knowledge, flags.json). quest: the mini quest the event is a step of (steps are chained by flags: a step sets a flag, the next step needs it). A choice can need a head (needsHead: class id) or a condition on the hydra (needsCondition: world.json conditions, e.g. warmed), cost resources (cost), and either have one outcome, or be a gamble: chance (0–1) of success, otherwise failure. An outcome has a text and may: give or take muck, moisture, bones; change the alert; heal or hurt the body (bodyHp) and every head (headsHp, never below 1); put a condition on the hydra (condition, world.json); show the map around (reveal: hexes); start a battle (battle: an encounter group, enemies.json); set flags (setFlags); start a dialogue (dialogue: an id from dialogues.json); grow a head (newHead: class id); have the Cinderkin melt a tunnel through the rock nearby (bore: true; how, in world.json thresholds.cinderBore); give the hydra a mutation for her and her heiresses (mutation: an id from mutations.json).",
 
   "events": [
     {
@@ -119,7 +119,7 @@
           "success": { "text": "For one long moment the heads are a single body and agree on everything. Afterwards they argue about who agreed first. The mycelium keeps whispering.", "condition": { "id": "myceliumWhisper", "turns": 4 }, "setFlags": ["heardMycelium"] },
           "failure": { "text": "Too many songs at once. Something with too many eyes says something kind, and it is the worst thing the heads have ever heard.", "headsHp": -8, "setFlags": ["heardMycelium"] }
         },
-        { "text": "Eat a cap.", "outcome": { "text": "It tastes of earth and of the colour green.", "bodyHp": 20 } },
+        { "text": "Eat a cap.", "outcome": { "text": "It tastes of earth and of the colour green. Afterwards the heads hear things a long way off. Some of them are even there.", "mutation": "echoEared" } },
         { "text": "Walk around it.", "outcome": { "text": "Wise. The ring looks almost disappointed." } }
       ]
     },
@@ -149,7 +149,44 @@
       "text": "A skull with too many eye sockets, half sunk in the mud. Not human. Not quite yours. The teeth match your own.",
       "choices": [
         { "text": "Bury it.", "outcome": { "text": "None of the heads knows the words, so they hum something instead. For a moment it sounds like someone else's song.", "setFlags": ["foundAncestor"] } },
-        { "text": "Crack it for the marrow.", "outcome": { "text": "Old marrow, dry as paper. Nobody says anything for a while.", "bones": 6, "setFlags": ["foundAncestor"] } }
+        { "text": "Crack it for the marrow.", "outcome": { "text": "Old marrow, dry as paper. Nobody says anything for a while. That night the necks ache, and in the morning they are thicker.", "bones": 6, "mutation": "thickNecked", "setFlags": ["foundAncestor"] } }
+      ]
+    },
+    {
+      "id": "oldWallow",
+      "title": "An Old Wallow",
+      "text": "A hollow of mud so old it has gone black and soft as velvet. Something large wallowed here for a very long time, and left its smell behind as a kind of will.",
+      "conditions": { "biomes": ["floodedCaves", "rootTangle", "fungalDeeps"] },
+      "choices": [
+        { "text": "Roll in it.", "outcome": { "text": "The smell soaks in past the scales and stays. The heads complain about it, then stop noticing, which is worse.", "mutation": "bogScented" } },
+        { "text": "Scoop up the mud.", "outcome": { "text": "Good mud. Old mud. It keeps its shape in the jaw.", "muck": 10 } },
+        { "text": "Leave it.", "outcome": { "text": "Someone else's smell is someone else's business." } }
+      ]
+    },
+    {
+      "id": "strangeSalt",
+      "title": "A Vein of Strange Salt",
+      "text": "A vein of salt that glitters blue-green, licked smooth by something with a very long tongue. A sign of the Order: DO NOT LICK. Beneath it, in another hand: WE KNOW.",
+      "conditions": { "biomes": ["saltMines"] },
+      "choices": [
+        {
+          "text": "Lick it.",
+          "chance": 0.6,
+          "success": { "text": "The salt tingles down the spine, and the spine stretches to follow it. There is more of you now, at both ends.", "mutation": "longBodied" },
+          "failure": { "text": "The salt bites back. Every tongue goes numb, and the heads take turns blaming each other's.", "headsHp": -6, "condition": { "id": "salted", "turns": 3 } }
+        },
+        { "text": "Read the sign again.", "outcome": { "text": "DO NOT LICK. WE KNOW. The heads feel known." } },
+        { "text": "Leave it.", "outcome": { "text": "Somebody has to obey the signs. Today it is you." } }
+      ]
+    },
+    {
+      "id": "emptyEgg",
+      "title": "An Empty Egg",
+      "text": "Half an eggshell, big as a cauldron, with the smell of your own kind still on it. Something hatched here long ago and left without cleaning up.",
+      "choices": [
+        { "text": "Eat the shell.", "outcome": { "text": "It goes down in pieces. Later the heads swear they can hear another one, very small, waiting its turn.", "mutation": "manyMouthed" } },
+        { "text": "Sleep in it.", "outcome": { "text": "It still fits, more or less. Everyone sleeps better for it.", "bodyHp": 15 } },
+        { "text": "Leave it.", "outcome": { "text": "Whoever it was, they are not coming back for it." } }
       ]
     },
 
@@ -158,6 +195,7 @@
       "title": "A Carving in the Rock",
       "quest": "The Silent Song",
       "weight": 3,
+      "conditions": { "notFlags": ["hushedCarving"] },
       "text": "Carved into the wall: tall figures, or long ones, it is hard to say, standing around a coiled shape. Their mouths are open. Beneath them run rows of marks like notes of music. Or teeth.",
       "choices": [
         { "text": "Study the marks.", "outcome": { "text": "Each head reads the marks differently. One hears a lullaby, one a warning, one a shopping list. They agree it is important.", "setFlags": ["hushedCarving"] } },
@@ -170,7 +208,7 @@
       "title": "The Cold Machine",
       "quest": "The Silent Song",
       "priority": 5,
-      "conditions": { "flags": ["hushedCarving"] },
+      "conditions": { "flags": ["hushedCarving"], "notFlags": ["hushedMachine"] },
       "text": "A machine of brass pipes and stone bellows, taller than the hydra, grown over with moss. Pipes run down into the rock, toward something warm. The coiled shape from the carving is hammered into its side. It is silent, but only just.",
       "choices": [
         { "text": "Breathe into the bellows.", "needsHead": "mistBreather", "outcome": { "text": "The pipes cough mist, then hold one low note. Far below, something turns over in its sleep.", "setFlags": ["hushedMachine", "hushedMachineWoke"], "dialogue": "machineStirs" } },
@@ -188,7 +226,7 @@
       "title": "The Last Note",
       "quest": "The Silent Song",
       "priority": 5,
-      "conditions": { "flags": ["hushedMachine"], "rings": [2, 3] },
+      "conditions": { "flags": ["hushedMachine"], "notFlags": ["hushedSongHeard", "hushedMaskTaken"], "rings": [2, 3] },
       "text": "A round chamber with walls too smooth for any tool. In the middle lies a mask with no mouth, made for a face longer than any human's. As you come near, the whole room hums the note the machine played.",
       "choices": [
         { "text": "Listen.", "outcome": { "text": "The note opens like a door. For one heartbeat you understand the song. Then the heartbeat ends, but the tunnels around stay clear in your mind.", "reveal": 7, "setFlags": ["hushedSongHeard"], "dialogue": "lastNoteHeard" } },
@@ -202,6 +240,7 @@
       "title": "A Surveyor's Stake",
       "quest": "The Subterranean Survey",
       "weight": 3,
+      "conditions": { "notFlags": ["surveyChain"] },
       "text": "A red-painted stake, a measuring chain, and a sign: THIS CAVE IS THE PROPERTY OF THE ORDER OF THE ETERNAL FLAME, PENDING SURVEY. TRESPASSERS WILL BE CATALOGUED.",
       "choices": [
         { "text": "Follow the chain.", "outcome": { "text": "The chain runs off into the dark, marked every ten yards in neat red paint.", "reveal": 5, "setFlags": ["surveyChain"] } },
@@ -214,7 +253,7 @@
       "title": "The Surveyors",
       "quest": "The Subterranean Survey",
       "priority": 5,
-      "conditions": { "flags": ["surveyChain"] },
+      "conditions": { "flags": ["surveyChain"], "notFlags": ["surveyDone"] },
       "text": "Three surveyors of the Order sit round a lantern, arguing over a map. The map is upside down. One of them sees you and writes something down.",
       "choices": [
         { "text": "Attack.", "outcome": { "text": "The surveyors drop the map and pick up torches. Two of them, anyway. The third keeps writing.", "battle": "lostNovices", "setFlags": ["surveyDone"] } },
@@ -232,7 +271,7 @@
       "title": "The Survey Office",
       "quest": "The Subterranean Survey",
       "priority": 5,
-      "conditions": { "flags": ["surveyDone"], "rings": [2, 3] },
+      "conditions": { "flags": ["surveyDone"], "notFlags": ["surveyStamped"], "rings": [2, 3] },
       "text": "A camp table in the dark: ink, wax, the seal of the Order and a stack of forms. A sign on the table: SUBTERRANEAN SURVEY OFFICE. CLOSED FOR PRAYER.",
       "choices": [
         { "text": "Stamp yourself 'Surveyed'.", "outcome": { "text": "Officially, this hydra has been seen to. It says so in red wax.", "alert": -10, "setFlags": ["surveyStamped"] } },

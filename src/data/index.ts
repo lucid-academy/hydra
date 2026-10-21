@@ -11,9 +11,29 @@ import shrinesJson from './shrines.json';
 import worldJson from './world.json';
 import dialoguesJson from './dialogues.json';
 import eventsJson from './events.json';
+import mutationsJson from './mutations.json';
+import lineageJson from './lineage.json';
+import flagsJson from './flags.json';
 import manifestJson from '../assets/manifest.json';
-import { balanceSchema, biomesSchema, combosSchema, dialoguesSchema, eventsSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, textSchema, worldSchema } from './schemas';
-import type { AssetManifest, Balance, StoryConditionsData, BiomesData, CombosData, DialoguesData, EventsData, ShrinesData, EnemiesData, GameText, HeadsData, Palette, WorldData } from './schemas';
+import { balanceSchema, biomesSchema, combosSchema, dialoguesSchema, eventsSchema, flagsSchema, lineageSchema, mutationsSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, textSchema, worldSchema } from './schemas';
+import type {
+  AssetManifest,
+  Balance,
+  StoryConditionsData,
+  BiomesData,
+  CombosData,
+  DialoguesData,
+  EventsData,
+  FlagsData,
+  LineageData,
+  MutationsData,
+  ShrinesData,
+  EnemiesData,
+  GameText,
+  HeadsData,
+  Palette,
+  WorldData,
+} from './schemas';
 import { DataError, validateData } from './validate';
 
 export interface GameData {
@@ -29,6 +49,9 @@ export interface GameData {
   world: WorldData;
   dialogues: DialoguesData;
   events: EventsData;
+  mutations: MutationsData;
+  lineage: LineageData;
+  flags: FlagsData;
 }
 
 export function loadGameData(): GameData {
@@ -45,6 +68,9 @@ export function loadGameData(): GameData {
     world: validateData('src/data/world.json', worldSchema, worldJson),
     dialogues: validateData('src/data/dialogues.json', dialoguesSchema, dialoguesJson),
     events: validateData('src/data/events.json', eventsSchema, eventsJson),
+    mutations: validateData('src/data/mutations.json', mutationsSchema, mutationsJson),
+    lineage: validateData('src/data/lineage.json', lineageSchema, lineageJson),
+    flags: validateData('src/data/flags.json', flagsSchema, flagsJson),
   };
   checkCrossReferences(data);
   return data;
@@ -52,7 +78,8 @@ export function loadGameData(): GameData {
 
 /** Names that one data file borrows from another must exist there. */
 export function checkCrossReferences(
-  data: Pick<GameData, 'heads' | 'combos'> & Partial<Pick<GameData, 'balance' | 'enemies' | 'biomes' | 'manifest' | 'world' | 'dialogues' | 'events'>>,
+  data: Pick<GameData, 'heads' | 'combos'> &
+    Partial<Pick<GameData, 'balance' | 'enemies' | 'biomes' | 'manifest' | 'world' | 'dialogues' | 'events' | 'mutations' | 'lineage' | 'flags' | 'shrines'>>,
 ): void {
   const statuses = Object.keys(data.combos.statuses);
   const problems: string[] = [];
@@ -113,6 +140,9 @@ export function checkCrossReferences(
     if (missing.length > 0) problems.push(`  - src/assets/manifest.json: world.json needs these images (use "file": null for a placeholder): ${missing.join(', ')}`);
   }
   if (data.dialogues && data.events && data.biomes && data.enemies && data.world) problems.push(...storyProblems(data as GameData));
+  if (data.dialogues && data.events && data.world && data.mutations && data.lineage && data.flags && data.enemies && data.shrines && data.balance) {
+    problems.push(...generationProblems(data as GameData));
+  }
   if (problems.length > 0) throw new DataError(`Data files don't match each other:\n${problems.join('\n')}`);
 }
 
@@ -164,6 +194,65 @@ function storyProblems(data: GameData): string[] {
   for (const [id, t] of Object.entries(data.world.thresholds)) {
     const said = t.sealed?.dialogue;
     if (said && !dialogueIds.includes(said)) where('world.json', `thresholds.${id}.sealed.dialogue`, `unknown dialogue "${said}" (dialogues.json)`);
+  }
+  return problems;
+}
+
+/**
+ * Generations (M6): every flag must be listed in flags.json, mutations and enemy types must exist, a step of a mini quest
+ * must not come again once its flags are known, and dialogue and event ids must differ (a lineage remembers dialogues).
+ */
+function generationProblems(data: GameData): string[] {
+  const problems: string[] = [];
+  const where = (file: string, path: string, message: string) => problems.push(`  - src/data/${file}, ${path}: ${message}`);
+  const flags = Object.keys(data.flags.flags);
+  const mutations = data.mutations.mutations.map((m) => m.id);
+  const enemyTypes = Object.keys(data.enemies.types);
+  const checkFlags = (file: string, path: string, list: readonly string[] | undefined) => {
+    for (const flag of list ?? []) if (!flags.includes(flag)) where(file, path, `the flag "${flag}" is not listed in flags.json (add it there, with its scope)`);
+  };
+  const checkConditions = (file: string, path: string, c: StoryConditionsData | undefined) => {
+    checkFlags(file, `${path}.flags`, c?.flags);
+    checkFlags(file, `${path}.notFlags`, c?.notFlags);
+    for (const id of c?.mutations ?? []) if (!mutations.includes(id)) where(file, `${path}.mutations`, `unknown mutation "${id}" (mutations.json)`);
+    for (const id of c?.motherKilledBy ?? []) if (!enemyTypes.includes(id)) where(file, `${path}.motherKilledBy`, `unknown enemy type "${id}" (enemies.json)`);
+  };
+  data.dialogues.dialogues.forEach((d, i) => {
+    const path = `dialogues.${i} (${d.id})`;
+    checkConditions('dialogues.json', `${path}.conditions`, d.conditions);
+    checkFlags('dialogues.json', `${path}.setFlags`, d.setFlags);
+    (d.choices ?? []).forEach((c, j) => checkFlags('dialogues.json', `${path}.choices.${j}.setFlags`, c.setFlags));
+  });
+  const dialogueIds = new Set(data.dialogues.dialogues.map((d) => d.id));
+  data.events.events.forEach((e, i) => {
+    const path = `events.${i} (${e.id})`;
+    if (dialogueIds.has(e.id)) where('events.json', path, `"${e.id}" is also the id of a dialogue; give one of them another id`);
+    checkConditions('events.json', `${path}.conditions`, e.conditions);
+    e.choices.forEach((c, j) => {
+      for (const [name, o] of [['outcome', c.outcome], ['success', c.success], ['failure', c.failure]] as const) {
+        if (!o) continue;
+        checkFlags('events.json', `${path}.choices.${j}.${name}.setFlags`, o.setFlags);
+        if (o.mutation && !mutations.includes(o.mutation)) where('events.json', `${path}.choices.${j}.${name}.mutation`, `unknown mutation "${o.mutation}" (mutations.json)`);
+        // A quest's flags are remembered by the next generations: a step done once must not come again.
+        const set = o.setFlags ?? [];
+        if (e.quest && set.length > 0 && !set.some((f) => e.conditions?.notFlags?.includes(f))) {
+          where('events.json', `${path}.conditions.notFlags`, `a step of a mini quest needs one of the flags it sets (${set.join(', ')}) in notFlags, or it comes again in the next generation`);
+        }
+      }
+    });
+  });
+  for (const [id, t] of Object.entries(data.world.thresholds)) {
+    if (!t.sealed) continue;
+    t.sealed.ways.forEach((w, j) => checkFlags('world.json', `thresholds.${id}.sealed.ways.${j}.flag`, [w.flag]));
+    checkFlags('world.json', `thresholds.${id}.sealed.setFlags`, t.sealed.setFlags);
+  }
+  for (const id of Object.keys(data.lineage.epitaphs.byEnemy)) if (!enemyTypes.includes(id)) where('lineage.json', `epitaphs.byEnemy.${id}`, `unknown enemy type "${id}" (enemies.json)`);
+  const rings = data.balance.undergroundGenerator.rings.length;
+  for (const k of data.shrines.marks.rings) if (k > rings) where('shrines.json', 'marks.rings', `there is no ring ${k} (rings: ${rings})`);
+  for (const [id, m] of Object.entries(data.world.runModifiers)) {
+    if (typeof m === 'string') continue;
+    if (m.unlock.flag !== undefined) checkFlags('world.json', `runModifiers.${id}.unlock.flag`, [m.unlock.flag]);
+    if (m.unlock.reachRing !== undefined && m.unlock.reachRing > rings) where('world.json', `runModifiers.${id}.unlock.reachRing`, `there is no ring ${m.unlock.reachRing} (rings: ${rings})`);
   }
   return problems;
 }

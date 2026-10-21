@@ -43,10 +43,10 @@ export function generateUndergroundWithReport(seed: number, settings: Undergroun
 /** A world, or the step that failed. */
 function tryGenerate(rng: Rng, grid: HexGrid, s: UndergroundGeneratorSettings, terrain: TerrainTable): HexMap | string {
   const rings = s.rings.length;
-  // Rare places are rolled first: the Cinder Scar changes the caves.
+  // Rare places are rolled first: the Cinder Scar changes the caves. Those the world remembers come up less often.
   const rare = shuffled(
     rng,
-    s.places.filter((p) => p.type === 'rare' && rng.chance(p.chance)).map((p) => p.id),
+    s.places.filter((p) => p.type === 'rare' && rng.chance(s.placesSeen.includes(p.id) ? p.chance * s.seenRarePlaceChance : p.chance)).map((p) => p.id),
   ).slice(0, s.maxRarePlaces);
 
   // Extra thresholds (the Sealed Door) are rolled with them.
