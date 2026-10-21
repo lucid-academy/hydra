@@ -73,6 +73,29 @@ async function readDialogueTo(page, line) {
   await page.waitForTimeout(400);
 }
 
+/** Taps through dialogues until line `line` of the dialogue `id` is shown in full. */
+async function readUntilDialogue(page, id, line = 0) {
+  for (let i = 0; i < 40; i++) {
+    const d = await page.evaluate(() => window.__hydra.dialogue?.() ?? null);
+    if (d && d.id === id && d.line >= line && !d.typing) break;
+    await tapGame(page, { x: 320, y: 120 });
+    await page.waitForTimeout(250);
+  }
+  await page.waitForTimeout(400);
+}
+
+/** Taps through the dialogues stepping onto a shrine brought on (a new biome), and waits for the shrine's panel. */
+async function readThroughToShrine(page) {
+  const summary = () => page.evaluate(() => window.__hydra.runSummary());
+  for (let i = 0; i < 40; i++) {
+    if ((await summary()).talking) await tapGame(page, { x: 320, y: 120 });
+    await page.waitForTimeout(600); // a dialogue may still be about to open
+    const { atShrine, talking } = await summary();
+    if (atShrine && !talking) break;
+  }
+  await page.waitForTimeout(600);
+}
+
 /** Steps onto the event site next to the hydra (?event=), and waits for its panel. */
 async function stepOntoEvent(page) {
   const points = await page.evaluate(() => window.__hydra.reachableOnScreen());
@@ -98,7 +121,7 @@ const SHOTS = [
     const shrine = points.find((p) => p.object === 'shrine');
     if (!shrine) throw new Error('No shrine next to the hydra');
     await goTo(page, shrine);
-    await page.waitForTimeout(900);
+    await readThroughToShrine(page);
   } },
   { name: 'battle-start', query: '?seed=123&scene=battle&group=burningDetail', viewport: DESKTOP, scene: 'battle', act: async (page) => {
     await page.keyboard.press('1'); // battles start paused; select the first head
@@ -133,13 +156,13 @@ const SHOTS = [
   { name: 'world-123-modifiers', query: '?seed=123&scene=map&reveal=1&zoom=0.45&modifiers=wetYear,myceliumBloom,oldWorkings', viewport: DESKTOP, scene: 'map' },
   { name: 'map-reveal-close', query: '?seed=123&scene=map&reveal=1&near=saltPlug', viewport: DESKTOP, scene: 'map' },
   { name: 'map-threshold', query: '?seed=123&scene=map&near=saltPlug', viewport: DESKTOP, scene: 'map', act: async (page) => tapThreshold(page, 'saltPlug') },
-  { name: 'map-place', query: '?seed=123&scene=map&near=brineLake', viewport: DESKTOP, scene: 'map', act: async (page) => {
+  { name: 'map-place', query: '?seed=99&scene=map&near=brineLake', viewport: DESKTOP, scene: 'map', act: async (page) => {
     await stepOntoPlace(page, 'brineLake');
     const panel = await page.evaluate(() => window.__hydra.placePanel());
     await tapGame(page, panel.actions[0]); // drink
     await page.waitForTimeout(400);
   } },
-  { name: 'map-place-phone', query: '?seed=138&scene=map&near=lostSurvey', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map', act: async (page) => stepOntoPlace(page, 'lostSurvey') },
+  { name: 'map-place-phone', query: '?seed=7&scene=map&near=lostSurvey', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map', act: async (page) => stepOntoPlace(page, 'lostSurvey') },
   // A travel plan, as in Heroes: one click on a hex several turns away shows the way and how many turns it takes.
   { name: 'map-journey', query: '?seed=123&scene=map&reveal=1', viewport: DESKTOP, scene: 'map', act: async (page) => {
     await tapGame(page, { x: 450, y: 238 });
@@ -194,6 +217,29 @@ const SHOTS = [
   { name: 'battle-serpent', query: '?seed=123&scene=battle&group=patrol&say=battleSmall', viewport: DESKTOP, scene: 'battle', act: async (page) => {
     await page.keyboard.press('Space');
     await page.waitForTimeout(1500);
+  } },
+  // M6: generations. The title of a saved game, the screen after a death, the Book of Lineages, an heiress greeted by
+  // Old Mother Toad, her mother in a dream, and a marking shrine.
+  { name: 'title-continue', query: '?seed=123', viewport: DESKTOP, scene: 'title', act: async (page) => {
+    await tapGame(page, await page.evaluate(() => window.__hydra.buttons().begin));
+    await page.waitForFunction(() => window.__hydra.readyScenes.includes('map'), null, { timeout: 15_000 });
+    await page.waitForTimeout(800); // saved
+    await page.reload();
+    await page.waitForFunction(() => window.__hydra?.readyScenes.includes('title'), null, { timeout: 15_000 });
+    await page.waitForTimeout(500);
+  } },
+  { name: 'generation', query: '?seed=123&scene=generation&ancestors=3', viewport: DESKTOP, scene: 'generation' },
+  { name: 'generation-phone', query: '?seed=123&scene=generation&ancestors=3', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'generation' },
+  { name: 'book', query: '?seed=123&scene=book&ancestors=6', viewport: DESKTOP, scene: 'book' },
+  { name: 'heiress-greeted', query: '?seed=123&scene=map&ancestors=3', viewport: DESKTOP, scene: 'map', act: async (page) => readDialogueTo(page, 1) },
+  { name: 'dialogue-ancestor', query: '?seed=123&scene=map&ancestors=1&say=dreamDeeper', viewport: DESKTOP, scene: 'map', act: async (page) => readUntilDialogue(page, 'dreamDeeper') },
+  { name: 'map-mark', query: '?seed=123&scene=map&near=mark', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    // Step onto the marking shrine like a player: it offers a mutation instead of a blessing.
+    const points = await page.evaluate(() => window.__hydra.reachableOnScreen());
+    const shrine = points.find((p) => p.object === 'shrine');
+    if (!shrine) throw new Error('No shrine next to the hydra');
+    await goTo(page, shrine);
+    await readThroughToShrine(page);
   } },
 ];
 

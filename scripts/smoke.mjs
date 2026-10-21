@@ -1,8 +1,9 @@
 // Smoke test of the whole game loop, clicked through like a player would (mouse only, no shortcuts into the code):
-//   title → map → walk to an encounter → battle with orders → victory → back on the map (twice; a battle lost
-//   on the way goes through Game Over and a new hydra), then a battle that is surely lost → Game Over → a new hydra.
-//   Dialogues on the way are read to the end (picking the first answer), events get their first choice that can be
-//   picked.
+//   title → Begin → map → walk to an encounter → battle with orders → victory → back on the map (twice; a battle
+//   lost on the way goes through the generation screen to her heiress), then a battle that is surely lost → the
+//   generation screen → the heiress hatches. Dialogues on the way are read to the end (picking the first answer),
+//   events get their first choice that can be picked. Last, the saved game: a few moves, the page is reloaded,
+//   Continue brings the same hydra back; New Lineage (confirmed) starts another; the Book of Lineages opens.
 // Opens the built game (dist/) in a headless browser. Run `npm run build` first.
 // Exits with an error on any browser console error, or when a step doesn't happen in time.
 //
@@ -26,7 +27,6 @@ const TITLE_TAP = { x: 320, y: 200 };
 const END_TURN_BUTTON = { x: 590, y: 340 };
 const RESUME_BUTTON = { x: 602, y: 328 };
 const CONTINUE_BUTTON = { x: 320, y: 148 };
-const NEW_HYDRA_BUTTON = { x: 320, y: 212 };
 const ACCEPT_BLESSING_BUTTON = { x: 258, y: 248 };
 const ALL_HEADS_BUTTON = { x: 600, y: 8 };
 /** Map hexes under the top bar, the minimap or the End Turn button can't be tapped. */
@@ -71,6 +71,13 @@ async function goTo(page, point) {
 }
 
 const timesReady = (page, scene) => page.evaluate((s) => window.__hydra.readyScenes.filter((x) => x === s).length, scene);
+
+/** A button on the screen now (title, generation screen, book), by name. */
+async function button(page, name) {
+  const point = await page.evaluate((n) => window.__hydra.buttons?.()[n] ?? null, name);
+  if (!point) throw new Error(`No "${name}" button on the screen`);
+  return point;
+}
 
 /** Waits until the map has shown the last move: the hydra has walked and the view has followed it. */
 async function waitForMap(page) {
@@ -132,10 +139,20 @@ async function playBattle(page, allAtOnce) {
   const end = await page.evaluate(() => window.__hydra.battleSummary());
   log(`battle vs ${start.enemies.length} enemies: ${end.outcome} after ${Math.round(end.tick / 20)} s of game time, heads ${start.heads.length} → ${end.heads.length}, combos: ${end.combos.join(', ') || 'none'}`);
   await page.waitForTimeout(300);
-  const mapsBefore = await timesReady(page, 'map');
+  // Back to the map, or for a dead hydra to the generation screen.
+  const next = end.outcome === 'lost' ? 'generation' : 'map';
+  const before = await timesReady(page, next);
   await tap(page, CONTINUE_BUTTON);
-  await waitForScene(page, 'map', mapsBefore);
+  await waitForScene(page, next, before);
   return end;
+}
+
+/** On the generation screen: Hatch, and the heiress's map. Returns her summary. */
+async function hatchHeiress(page) {
+  const mapsBefore = await timesReady(page, 'map');
+  await tap(page, await button(page, 'hatch'));
+  await waitForScene(page, 'map', mapsBefore);
+  return page.evaluate(() => ({ ...window.__hydra.runSummary(), reachable: window.__hydra.reachableOnScreen().length }));
 }
 
 try {
@@ -150,7 +167,7 @@ try {
   const dialoguesRead = new Set();
   let events = 0;
   for (let step = 0; step < MAX_MAP_STEPS && won < BATTLES_TO_WIN; step++) {
-    const { inBattle, atShrine, atPlace, atEvent, talking, blessings } = await page.evaluate(() => window.__hydra.runSummary());
+    const { inBattle, atShrine, atPlace, atEvent, talking, blessings, mutations } = await page.evaluate(() => window.__hydra.runSummary());
     if (talking) {
       // A dialogue: tap through it, picking the first answer when it asks.
       await page.waitForTimeout(250);
@@ -191,13 +208,14 @@ try {
       continue;
     }
     if (atShrine) {
-      // A shrine of the Great Serpent: take the blessing.
+      // A shrine of the Great Serpent: take the blessing (or, at a marking shrine, the mutation).
       await page.waitForTimeout(300);
       await tap(page, ACCEPT_BLESSING_BUTTON);
       await page.waitForTimeout(300);
       const after = await page.evaluate(() => window.__hydra.runSummary());
-      if (after.atShrine || after.blessings !== blessings + 1) throw new Error(`Accepting the blessing did not work: ${JSON.stringify(after)}`);
-      log('took a blessing at a shrine');
+      const took = after.blessings === blessings + 1 || after.mutations.length === mutations.length + 1;
+      if (after.atShrine || !took) throw new Error(`Accepting the blessing did not work: ${JSON.stringify(after)}`);
+      log(after.blessings > blessings ? 'took a blessing at a shrine' : `took a mark at a shrine: ${after.mutations.at(-1)}`);
       continue;
     }
     if (!inBattle) {
@@ -213,12 +231,10 @@ try {
       won++;
       continue;
     }
-    // Losing a fight is part of the game: Game Over, then a new hydra on a new map.
+    // Losing a fight is part of the game: the generation screen, then her heiress on a new map.
     if (fought - won > 3) throw new Error('Lost too many battles in a row');
-    const mapsBefore = await timesReady(page, 'map');
-    await tap(page, NEW_HYDRA_BUTTON);
-    await waitForScene(page, 'map', mapsBefore);
-    log('lost a battle: Game Over → a new hydra');
+    const heiress = await hatchHeiress(page);
+    log(`lost a battle: the generation screen → ${heiress.hydraName}, generation ${heiress.generation}`);
   }
   if (won < BATTLES_TO_WIN) throw new Error(`Found only ${won} of ${BATTLES_TO_WIN} battles in ${MAX_MAP_STEPS} map steps`);
   if (dialoguesRead.size === 0) throw new Error('No dialogue came up on the way (one should after a battle won)');
@@ -226,7 +242,7 @@ try {
   log('map after two battles:', JSON.stringify(await page.evaluate(() => window.__hydra.runSummary())));
   await page.close();
 
-  // Part 2: a battle the hydra can't win (1 body HP), then Game Over and a new run.
+  // Part 2: a battle the hydra can't win (1 body HP), then the generation screen and her heiress.
   page = await openPage(`?seed=7&scene=battle&group=patrol&hp=1&speed=${SPEED}`);
   await waitForScene(page, 'battle');
   await tap(page, RESUME_BUTTON);
@@ -235,14 +251,55 @@ try {
   if (lost.outcome !== 'lost') throw new Error(`Expected to lose with 1 body HP, but the outcome was "${lost.outcome}"`);
   await page.waitForTimeout(300);
   await tap(page, CONTINUE_BUTTON);
+  await waitForScene(page, 'generation');
+  const fresh = await hatchHeiress(page);
+  if (fresh.turn !== 1 || fresh.reachable === 0 || fresh.generation !== 2 || !fresh.hydraName) throw new Error(`The heiress's run looks wrong: ${JSON.stringify(fresh)}`);
+  log(`defeat → the generation screen → ${fresh.hydraName}, generation 2: ok`);
+  await page.close();
+
+  // Part 3: the saved game. A few steps, the page is reloaded, and Continue brings back the same hydra where she was.
+  page = await openPage(`?seed=11&speed=${SPEED}`);
+  await waitForScene(page, 'title');
+  await tap(page, await button(page, 'begin'));
   await waitForScene(page, 'map');
-  if ((await page.evaluate(() => window.__hydra.reachableOnScreen())).length !== 0) throw new Error('A dead hydra should not be able to move');
+  for (let step = 0; step < 3; step++) {
+    if ((await page.evaluate(() => window.__hydra.runSummary())).talking) {
+      const dialogue = await page.evaluate(() => window.__hydra.dialogue?.() ?? null);
+      await tap(page, dialogue?.choices[0] ?? DIALOGUE_TAP);
+      await page.waitForTimeout(250);
+      continue;
+    }
+    await mapStep(page, step);
+  }
+  await page.waitForTimeout(500); // saved a moment after the last change
+  const saved = await page.evaluate(() => window.__hydra.runSummary());
+  await page.reload();
+  await waitForScene(page, 'title');
+  await tap(page, await button(page, 'continue'));
+  await waitForScene(page, 'map');
+  const continued = await page.evaluate(() => window.__hydra.runSummary());
+  for (const key of ['hydraName', 'generation', 'turn', 'explored', 'alert', 'muck', 'moisture', 'bones']) {
+    if (continued[key] !== saved[key]) throw new Error(`Continue did not bring back the same run (${key}): ${JSON.stringify(saved)} vs ${JSON.stringify(continued)}`);
+  }
+  log(`reload → Continue: ${continued.hydraName}, turn ${continued.turn}, ${continued.explored} hexes known: ok`);
+
+  // New Lineage asks first, then starts a new first hydra; the Book of Lineages has the one that ended.
+  await page.reload();
+  await waitForScene(page, 'title');
+  await tap(page, await button(page, 'newLineage'));
+  await page.waitForTimeout(300);
   const mapsBefore = await timesReady(page, 'map');
-  await tap(page, NEW_HYDRA_BUTTON);
+  await tap(page, await button(page, 'confirmYes'));
   await waitForScene(page, 'map', mapsBefore);
-  const fresh = await page.evaluate(() => ({ ...window.__hydra.runSummary(), reachable: window.__hydra.reachableOnScreen().length }));
-  if (fresh.turn !== 1 || fresh.reachable === 0) throw new Error(`The new run looks wrong: ${JSON.stringify(fresh)}`);
-  log('defeat → Game Over → new hydra: ok');
+  const second = await page.evaluate(() => window.__hydra.runSummary());
+  if (second.turn !== 1 || second.generation !== 1) throw new Error(`New Lineage looks wrong: ${JSON.stringify(second)}`);
+  await page.reload();
+  await waitForScene(page, 'title');
+  await tap(page, await button(page, 'book'));
+  await waitForScene(page, 'book');
+  await tap(page, await button(page, 'back'));
+  await waitForScene(page, 'title', 1);
+  log(`New Lineage → ${second.hydraName}; the Book of Lineages opens: ok`);
   await page.close();
 } finally {
   await browser.close();
