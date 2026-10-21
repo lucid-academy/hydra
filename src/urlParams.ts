@@ -5,7 +5,8 @@
 //   ?group=patrol with ?scene=battle: which enemy group to fight
 //   ?hp=5         with ?scene=battle: start the test battle with this much body HP (to see a defeat quickly)
 //   ?speed=4      battles run this many times faster (for tests)
-//   ?near=shrine  with ?scene=map: start next to the nearest object of that kind (shrine, passage, encounter, moisture...)
+//   ?near=shrine  with ?scene=map: start next to the nearest object of that kind (shrine, passage, encounter, moisture...),
+//                 place or threshold (brineLake, saltPlug...), or marking shrine (mark)
 //   ?reveal=1     show the whole underground map at the start (to look at what the generator made)
 //   ?modifiers=wetYear,oldWorkings  run modifiers that shape the world (world.json runModifiers)
 //   ?zoom=0.45    zoom of the map camera (with ?reveal=1, 0.45 shows the whole underground at once)
@@ -14,6 +15,11 @@
 //   ?event=titheBox   with ?scene=map: an event site with this event (events.json) right next to the hydra
 //   ?flags=hushedSongHeard,surveyChain  with ?scene=map: story flags set from the start (as if those steps were done)
 //   ?conditions=warmed  with ?scene=map: conditions on the hydra from the start (world.json conditions), for 5 turns
+//   ?ancestors=3  the lineage has already lost this many hydras (each with a mutation, slain by the Order), so the
+//                 hydra is an heiress: with ?scene=map her map, ?scene=generation the screen after the last death,
+//                 ?scene=book the Book of Lineages
+// A URL with any of these but seed, debug, speed and zoom is a test: the saved game is neither loaded nor saved
+// (testUrl). ?seed= alone picks the world of a lineage started from the title.
 
 import { seedFromString } from './sim/rng';
 
@@ -45,6 +51,8 @@ export interface UrlParams {
   flags: string[];
   /** Conditions on the hydra at the start (world.json conditions). */
   conditions: string[];
+  /** Hydras of the lineage that have already died, or null. */
+  ancestors: number | null;
 }
 
 export function parseUrlParams(search: string): UrlParams {
@@ -74,5 +82,26 @@ export function parseUrlParams(search: string): UrlParams {
     event: params.get('event')?.trim() || null,
     flags: list('flags'),
     conditions: list('conditions'),
+    ancestors: positive('ancestors') === null ? null : Math.floor(positive('ancestors')!),
   };
+}
+
+/**
+ * A test URL: it starts somewhere other than the title, or changes the run. Such a game is played without touching
+ * the saved one: nothing is loaded and nothing is saved.
+ */
+export function testUrl(params: UrlParams): boolean {
+  return (
+    (params.scene !== null && params.scene !== 'title') ||
+    params.near !== null ||
+    params.event !== null ||
+    params.say !== null ||
+    params.flags.length > 0 ||
+    params.conditions.length > 0 ||
+    params.reveal ||
+    params.modifiers.length > 0 ||
+    params.group !== null ||
+    params.hp !== null ||
+    params.ancestors !== null
+  );
 }
