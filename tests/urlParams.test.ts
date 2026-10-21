@@ -16,15 +16,19 @@ describe('parseUrlParams', () => {
       zoom: null,
       say: null,
       event: null,
+      flags: [],
+      conditions: [],
     });
   });
 
   it('returns defaults when nothing is given', () => {
-    expect(parseUrlParams('')).toEqual({ seed: null, scene: null, debug: false, group: null, hp: null, speed: null, near: null, reveal: false, modifiers: [], zoom: null, say: null, event: null });
+    expect(parseUrlParams('')).toEqual({ seed: null, scene: null, debug: false, group: null, hp: null, speed: null, near: null, reveal: false, modifiers: [], zoom: null, say: null, event: null, flags: [], conditions: [] });
     expect(parseUrlParams('?reveal=1').reveal).toBe(true);
     expect(parseUrlParams('?near=shrine').near).toBe('shrine');
     expect(parseUrlParams('?zoom=0.45').zoom).toBe(0.45);
     expect(parseUrlParams('?say=toadWelcome&event=titheBox')).toMatchObject({ say: 'toadWelcome', event: 'titheBox' });
+    expect(parseUrlParams('?flags=hushedSongHeard, surveyChain,,hushedSongHeard').flags).toEqual(['hushedSongHeard', 'surveyChain']);
+    expect(parseUrlParams('?conditions=warmed').conditions).toEqual(['warmed']);
   });
 
   it('reads run modifiers as a list, without blanks or repeats', () => {

@@ -463,6 +463,51 @@
         { "speaker": "head:any", "text": "Together?" },
         { "speaker": "head:other", "text": "That does seem to be the hard part." }
       ]
+    },
+    {
+      "id": "sealedDoorOpens",
+      "trigger": "eventOnly",
+      "setFlags": ["heardSerpent"],
+      "lines": [
+        { "speaker": "head:any", "text": "It's opening." },
+        { "speaker": "head:other", "text": "Doors do that. It is the whole idea of them." },
+        { "speaker": "serpent", "text": "...a door of theirs... they opened for the song, once... mind the quiet on the other side, little many-mouths... the quiet bites..." },
+        { "speaker": "head:any", "text": "Did he say the quiet bites?" },
+        { "speaker": "head:other", "text": "He says a lot of things." }
+      ]
+    },
+    {
+      "id": "toadSealedDoor",
+      "trigger": "restInLair",
+      "priority": 8,
+      "conditions": { "flags": ["hushedDoorOpened"] },
+      "lines": [
+        { "speaker": "toad", "text": "You opened one of their doors." },
+        { "speaker": "head:any", "text": "It wanted to be opened." },
+        { "speaker": "toad", "text": "Doors of the Hushed want to stay shut. Remember that, the next time one agrees with you." }
+      ]
+    },
+    {
+      "id": "cinderkinBore",
+      "trigger": "eventOnly",
+      "lines": [
+        { "speaker": "head:any", "text": "They're eating the rock." },
+        { "speaker": "head:other", "text": "They're eating the heat in the rock. The rock is just in the way." },
+        { "speaker": "head:any", "text": "Where are they going?" },
+        { "speaker": "head:other", "text": "Somewhere warmer. Everyone is." }
+      ]
+    },
+    {
+      "id": "toadCinderkin",
+      "trigger": "restInLair",
+      "priority": 6,
+      "conditions": { "flags": ["cinderkinMet"] },
+      "lines": [
+        { "speaker": "toad", "text": "You smell of hot stone. You've met the Cinderkin." },
+        { "speaker": "head:any", "text": "They melted us a tunnel." },
+        { "speaker": "toad", "text": "They melted themselves a tunnel. You happened to be standing at one end of it." },
+        { "speaker": "toad", "text": "Their hives are cathedrals of cold lava, somewhere below. Nobody who has gone to look has come back warm." }
+      ]
     }
   ]
 }

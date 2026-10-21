@@ -52,6 +52,7 @@ export function generatorSettingsFrom(data: GameData): UndergroundGeneratorSetti
     deadEndSpur: gen.deadEndSpur,
     deadEndPocket: gen.deadEndPocket,
     thresholdSpacing: gen.thresholdSpacing,
+    extraThresholds: Object.entries(world.thresholds).flatMap(([id, t]) => (t.oneOnBorder !== undefined ? [{ kind: id, border: t.oneOnBorder, chance: t.chance ?? 1 }] : [])),
     digTurns: Object.fromEntries(Object.entries(world.thresholds).flatMap(([id, t]) => (t.dig ? [[id, t.dig.turns]] : []))),
     encounterSpacing: gen.encounterSpacing,
     encounterMinDistanceFromLair: gen.encounterMinDistanceFromLair,
@@ -124,8 +125,19 @@ export function runRulesFrom(data: GameData): RunRules {
     healing: { bodyHpPerTurn: balance.healing.bodyHpPerTurn, headHpPerTurn: balance.healing.headHpPerTurn },
     encounterGroupMembers: Object.fromEntries(enemies.encounterGroups.map((g) => [g.id, g.members])),
     thresholds: Object.fromEntries(
-      Object.entries(world.thresholds).map(([id, t]) => [id, { hidden: t.hidden === true, dug: t.dig !== undefined, headClass: t.open?.headClass ?? null }]),
+      Object.entries(world.thresholds).map(([id, t]) => [
+        id,
+        {
+          hidden: t.hidden === true,
+          dug: t.dig !== undefined,
+          headClass: t.open?.headClass ?? null,
+          sealed: t.sealed ? { ways: t.sealed.ways.map((w) => ({ flag: w.flag })), setFlags: t.sealed.setFlags ?? [], dialogue: t.sealed.dialogue ?? null } : null,
+        },
+      ]),
     ),
+    bore: Object.entries(world.thresholds)
+      .filter(([, t]) => t.bore !== undefined)
+      .map(([id, t]) => ({ thresholdId: id, ...t.bore! }))[0] ?? null,
     places: Object.fromEntries(
       Object.entries(world.places).map(([id, p]) => [
         id,
@@ -170,6 +182,7 @@ export function storyRulesFrom(data: GameData): StoryRules {
     setFlags: o.setFlags ?? [],
     dialogue: o.dialogue ?? null,
     newHead: o.newHead ?? null,
+    bore: o.bore === true,
   });
   return {
     speakerNames: dialogues.speakers,
@@ -196,6 +209,7 @@ export function storyRulesFrom(data: GameData): StoryRules {
       choices: e.choices.map((c) => ({
         text: c.text,
         needsHead: c.needsHead ?? null,
+        needsCondition: c.needsCondition ?? null,
         cost: { muck: c.cost?.muck ?? 0, moisture: c.cost?.moisture ?? 0, bones: c.cost?.bones ?? 0 },
         chance: c.chance ?? null,
         success: outcome((c.outcome ?? c.success)!),

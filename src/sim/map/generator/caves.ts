@@ -70,6 +70,8 @@ export interface Caves {
 export interface CavePlan {
   /** Add a Cinder Scar on the last border. */
   cinderScar: boolean;
+  /** Thresholds added on top of the borders' own (the Sealed Door): their kind and border. */
+  extras: ReadonlyArray<{ kind: string; border: number }>;
   /** Cut the Old Workings shaft through the last two rings. */
   oldWorkings: boolean;
 }
@@ -134,6 +136,11 @@ export function carveCaves(rng: Rng, grid: HexGrid, shape: WorldShape, s: Underg
     // A Cinder Scar: an old tunnel melted by the Cinderkin, only on the last border, and open from the start.
     if (plan.cinderScar && k === rings - 1) {
       for (const c of shuffled(rng, candidates)) if (tryAdd(c.angle, CINDER_SCAR, spacing / 2, true)) break;
+    }
+    // Extra thresholds (the Sealed Door) anywhere around the border, closed. A world where one doesn't fit goes without.
+    for (const extra of plan.extras) {
+      if (extra.border !== k) continue;
+      for (const c of shuffled(rng, candidates)) if (tryAdd(c.angle, extra.kind, spacing / 2, false)) break;
     }
   }
 

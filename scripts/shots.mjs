@@ -163,6 +163,34 @@ const SHOTS = [
     await tapGame(page, panel.actions[0]); // break it open
     await page.waitForTimeout(400);
   } },
+  // M5 thresholds of the story: the Sealed Door (a step of "The Silent Song") and a tunnel the Cinderkin melt.
+  { name: 'sealed-door', query: '?seed=123&scene=map&near=sealedDoor', viewport: DESKTOP, scene: 'map', act: async (page) => tapThreshold(page, 'sealedDoor') },
+  { name: 'sealed-door-open', query: '?seed=123&scene=map&near=sealedDoor&flags=hushedSongHeard', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await tapThreshold(page, 'sealedDoor');
+    const panel = await page.evaluate(() => window.__hydra.placePanel());
+    await tapGame(page, panel.actions[0]); // hum the note
+    await readDialogueTo(page, 2); // the Serpent's line
+  } },
+  { name: 'cinder-bore', query: '?seed=123&scene=map&near=sealedDoor&event=cinderSwarm&conditions=warmed', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await stepOntoEvent(page);
+    const panel = await page.evaluate(() => window.__hydra.placePanel());
+    await tapGame(page, panel.actions[0]); // let them taste the warmth
+    await page.waitForTimeout(600);
+  } },
+  { name: 'cinder-bore-map', query: '?seed=123&scene=map&near=sealedDoor&event=cinderSwarm&conditions=warmed', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await stepOntoEvent(page);
+    let panel = await page.evaluate(() => window.__hydra.placePanel());
+    await tapGame(page, panel.actions[0]);
+    await page.waitForTimeout(400);
+    panel = await page.evaluate(() => window.__hydra.placePanel());
+    await tapGame(page, panel.leave); // Continue
+    // The heads talk it over; then the map shows the glowing tunnel.
+    for (let i = 0; i < 30 && (await page.evaluate(() => window.__hydra.dialogue?.() != null || window.__hydra.runSummary().talking)); i++) {
+      await tapGame(page, { x: 320, y: 120 });
+      await page.waitForTimeout(250);
+    }
+    await page.waitForTimeout(1200);
+  } },
   { name: 'battle-serpent', query: '?seed=123&scene=battle&group=patrol&say=battleSmall', viewport: DESKTOP, scene: 'battle', act: async (page) => {
     await page.keyboard.press('Space');
     await page.waitForTimeout(1500);

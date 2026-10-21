@@ -119,7 +119,55 @@ const smoulderingSeam = drawer((g, cx, b) => {
   }
 });
 
+/** A round door of grey stone filling the tunnel (the Hushed), a long face with no mouth carved in it, humming faintly. */
+const sealedDoor = drawer((g, cx, b) => {
+  px(g, '#100d0a', cx - 14, b - 31, 28, 31);
+  px(g, '#2a2622', cx - 13, b - 30, 26, 29);
+  const cy = b - 15;
+  ellipse(g, cx, cy, 11, 13, '#0b0a0c');
+  ellipse(g, cx, cy, 10, 12, '#6a6670');
+  ellipse(g, cx - 2, cy - 2, 7, 9, '#7e7a84');
+  // The face: brows, closed eyes, a long nose, and smooth stone where a mouth should be.
+  px(g, '#3a3640', cx - 4, cy - 7, 3, 1);
+  px(g, '#3a3640', cx + 1, cy - 7, 3, 1);
+  px(g, '#2a2630', cx - 4, cy - 5, 3, 1);
+  px(g, '#2a2630', cx + 1, cy - 5, 3, 1);
+  px(g, '#4a4650', cx - 1, cy - 5, 1, 9);
+  px(g, '#8e8a94', cx - 3, cy + 6, 5, 1);
+  // The hum: faint teal arcs over it.
+  for (const r of [12, 14]) for (let a = -2.6; a <= -0.5; a += 0.2) px(g, '#7fe0d6', cx + Math.cos(a) * r, cy + Math.sin(a) * (r + 1), 1, 1, 0.5);
+  px(g, '#4a4450', cx - 12, b - 2, 24, 2);
+});
+
 // ---------------------------------------------------------------- thresholds, open (lying flat on the floor)
+
+/** The round door of the Hushed, fallen flat on the floor, face up. Still no mouth. */
+const sealedDoorOpen = drawer((g, cx, b) => {
+  ellipse(g, cx, b - 10, 12, 6, '#0b0a0c', 0.9);
+  ellipse(g, cx, b - 10, 11, 5, '#6a6670');
+  ellipse(g, cx - 2, b - 11, 7, 3, '#7e7a84');
+  px(g, '#3a3640', cx - 4, b - 12, 3, 1);
+  px(g, '#3a3640', cx + 1, b - 12, 3, 1);
+  px(g, '#4a4650', cx - 1, b - 11, 1, 3);
+  px(g, '#7fe0d6', cx - 6, b - 5, 12, 1, 0.35);
+});
+
+/** A fresh tunnel floor of black glass, still running orange where it hasn't set, and a few stray Cinderkin. */
+const cinderBoreOpen = drawer((g, cx, b, width, height) => {
+  const rng = new Rng(16);
+  flatSpans(width, height).forEach(([x0, x1], y) => {
+    if (y < 3 || y > height - 4) return;
+    px(g, '#1a1214', x0 + 3, y, x1 - x0 - 6, 1, 0.9);
+  });
+  for (let i = 0; i < 3; i++) {
+    let x = cx + rng.int(-8, 8);
+    for (let y = b - height + 5; y < b - 4; y++) {
+      x += rng.int(-1, 1);
+      px(g, y % 2 === 0 ? '#e0782c' : '#ffb050', x, y, 1, 1, 0.9);
+    }
+  }
+  for (let i = 0; i < 5; i++) px(g, '#ffd080', cx + rng.int(-10, 10), b - rng.int(5, height - 6), 1, 1);
+});
 
 /** Rubble pushed to both sides of a way dug through. */
 const rubbleChokeOpen = drawer((g, cx, b, width, height) => {
@@ -479,6 +527,9 @@ export const worldPlaceholderDrawers: Readonly<Record<string, PlaceholderDrawer>
   map_threshold_draughtCrack_open: draughtCrackOpen,
   map_threshold_cinderScar_open: cinderScarOpen,
   map_threshold_oldWorkings_open: oldWorkingsOpen,
+  map_threshold_sealedDoor: sealedDoor,
+  map_threshold_sealedDoor_open: sealedDoorOpen,
+  map_threshold_cinderBore_open: cinderBoreOpen,
   map_place_sunkenOak: sunkenOak,
   map_place_drownedChapel: drownedChapel,
   map_place_ossuaryCathedral: ossuaryCathedral,

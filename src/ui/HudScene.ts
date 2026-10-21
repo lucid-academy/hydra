@@ -13,7 +13,7 @@ import { hexKey } from '../sim/hex';
 import { FONT } from './fonts';
 import type { Hex } from '../sim/hex';
 import type { Loot } from '../sim/map';
-import { canChooseEventOption, canDoPlaceAction, canWorkThreshold, pendingEventRules, pendingPlaceTile, pendingThreshold } from '../sim/turn';
+import { canChooseEventOption, canDoPlaceAction, canOpenSealed, canWorkThreshold, pendingEventRules, pendingPlaceTile, pendingThreshold } from '../sim/turn';
 import type { EventOutcome } from '../sim/turn';
 import type { RunEvent } from '../sim/turn';
 import { Button } from './Button';
@@ -29,6 +29,8 @@ const BAR_HEIGHT = 16;
 const WORK_THRESHOLD = '__work';
 /** Action ids of an event's choices: this and the choice's index. */
 const EVENT_CHOICE = '__event:';
+/** Action ids of the ways to open a sealed threshold: this and the way's index. */
+const SEALED_WAY = '__sealed:';
 const ALERT_BAR_WIDTH = 100;
 /** Where each resource counter starts in the top bar. */
 const RESOURCE_X = { muck: 228, moisture: 296, bones: 390 } as const;
@@ -105,6 +107,7 @@ export class HudScene extends Phaser.Scene {
       getContext(this).data,
       (id) => {
         if (id === WORK_THRESHOLD) this.run.workThreshold();
+        else if (id.startsWith(SEALED_WAY)) this.run.openSealed(Number(id.slice(SEALED_WAY.length)));
         else if (id.startsWith(EVENT_CHOICE)) this.run.chooseEventOption(Number(id.slice(EVENT_CHOICE.length)));
         else this.run.doPlaceAction(id);
       },
@@ -215,6 +218,18 @@ export class HudScene extends Phaser.Scene {
         case 'conditionEnded':
           this.toast(fill(text.hud.conditionEnded, { name: world.conditions[event.id]?.name ?? event.id }), '#e0c890');
           break;
+        case 'tunnelBored':
+          this.toast(fill(text.hud.tunnelBored, { direction: this.directionWord(this.run.state.hydra.position, event.at) }), palette.order.orange);
+          break;
+        case 'boreFailed':
+          this.toast(text.hud.boreFailed, '#c8c0b0');
+          break;
+        case 'burned':
+          this.toast(fill(text.hud.burned, { n: -event.amount }), palette.order.orange);
+          break;
+        case 'tunnelCooled':
+          this.toast(text.hud.tunnelCooled, '#c8c0b0');
+          break;
         default:
           break;
       }
@@ -240,6 +255,15 @@ export class HudScene extends Phaser.Scene {
       o.battle ? effects.battle : '',
     ].filter((part) => part);
     return parts.map((part) => (/[.!?]$/.test(part) ? part : `${part}.`)).join(' ');
+  }
+
+  /** Which way `to` lies from `from` on the screen (north is up), as a word from text.json hud.directions. */
+  private directionWord(from: Hex, to: Hex): string {
+    const { directions } = getContext(this).data.text.hud;
+    const x = to.q - from.q + (to.r - from.r) / 2;
+    const y = ((to.r - from.r) * Math.sqrt(3)) / 2;
+    const names = [directions.east, directions.southEast, directions.south, directions.southWest, directions.west, directions.northWest, directions.north, directions.northEast];
+    return names[(Math.round(Math.atan2(y, x) / (Math.PI / 4)) + 8) % 8]!;
   }
 
   /** "+5 Muck, +3 Bones" (empty for no loot). */
@@ -347,6 +371,7 @@ export class HudScene extends Phaser.Scene {
     const { text, world, heads } = getContext(this).data;
     const { state, rules } = this.run;
     const className = (classId: string) => heads.classes[classId]?.displayName ?? classId;
+    const conditionName = (id: string) => world.conditions[id]?.name ?? id;
     const fill = (template: string, values: Record<string, string | number>) => template.replace(/\{(\w+)\}/g, (all, name: string) => String(values[name] ?? all));
     const why = (reason: string, values: Record<string, string | number> = {}) => fill(text.place.why[reason as keyof typeof text.place.why] ?? reason, values);
 
@@ -368,14 +393,24 @@ export class HudScene extends Phaser.Scene {
           : event.choices.map((choice, i) => {
               const check = canChooseEventOption(state, rules, i);
               const cost = priced(choice.cost);
-              const label = [choice.needsHead ? `[${className(choice.needsHead)}]` : '', choice.text, cost ? fill(words.cost, { cost }) : '', choice.chance !== null ? words.gamble : '']
+              const label = [
+                choice.needsHead ? `[${className(choice.needsHead)}]` : '',
+                choice.needsCondition ? `[${conditionName(choice.needsCondition)}]` : '',
+                choice.text,
+                cost ? fill(words.cost, { cost }) : '',
+                choice.chance !== null ? words.gamble : '',
+              ]
                 .filter((part) => part)
                 .join(' ');
               return {
                 id: `${EVENT_CHOICE}${i}`,
                 label,
                 enabled: check.can,
-                why: check.can ? null : check.why === 'cost' ? words.cantAfford : why(check.why, { class: className(choice.needsHead ?? '') }),
+                why: check.can
+                  ? null
+                  : check.why === 'cost'
+                    ? words.cantAfford
+                    : why(check.why, { class: className(choice.needsHead ?? ''), condition: conditionName(choice.needsCondition ?? '') }),
               };
             }),
       };
@@ -413,6 +448,21 @@ export class HudScene extends Phaser.Scene {
       const { thresholdId, dug, digsNeeded } = threshold.object;
       const data = world.thresholds[thresholdId];
       if (!data) return null;
+      if (data.sealed) {
+        // A step of a mini quest: each way needs something found along it, and says what is missing.
+        return {
+          kind: text.place.kinds.threshold,
+          name: data.name,
+          text: data.text,
+          status: null,
+          result: null,
+          leave: text.place.leaveButton,
+          actions: data.sealed.ways.map((way, i) => {
+            const can = canOpenSealed(state, rules, i).can;
+            return { id: `${SEALED_WAY}${i}`, label: way.label, enabled: can, why: can ? null : way.missing };
+          }),
+        };
+      }
       const check = canWorkThreshold(state, rules);
       const headClass = data.open?.headClass ?? null;
       const label = data.dig?.label ?? (data.open ? `[${className(data.open.headClass)}] ${data.open.label}` : null);

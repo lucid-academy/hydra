@@ -136,7 +136,7 @@ All objects: 1 frame, anchor at the feet (bottom middle) unless noted, transpare
 
 Thresholds are the few ways through the rock bands between the rings of the world (`GAME_DESIGN.md` §9.3, `src/data/world.json`). Each has two images: **closed** (it blocks the tunnel; the hydra has to deal with it) and **open** (what is left once it is dealt with). 1 frame each, transparent background.
 
-**Closed** (`map_threshold_<id>`): 30×30 px (`rootWall` 30×32). Anchor: bottom middle; the game puts it **10 px below the hex centre**, at the front of the hex, so it fills the tunnel. The hex under it is drawn as the floor it will have when open. Rock in the row in front may hide its lowest few pixels, so put the important part in the upper two thirds.
+**Closed** (`map_threshold_<id>`): 30×30 px (`rootWall` and `sealedDoor` 30×32). Anchor: bottom middle; the game puts it **10 px below the hex centre**, at the front of the hex, so it fills the tunnel. The hex under it is drawn as the floor it will have when open. Rock in the row in front may hide its lowest few pixels, so put the important part in the upper two thirds.
 
 | Key | What |
 |---|---|
@@ -144,8 +144,9 @@ Thresholds are the few ways through the rock bands between the rings of the worl
 | map_threshold_rootWall | Roots as thick as a man's leg grown across the tunnel every which way, a darker tangle behind them. A Biter gnaws through. |
 | map_threshold_saltPlug | A block of white rock salt sealing the tunnel. Someone began carving a saint's face into it and stopped after the brows, one eye and a nose. An Acid Spitter dissolves it. |
 | map_threshold_smoulderingSeam | A wall of black coal, cracked, glowing orange from inside, a few threads of smoke. The game adds an orange light. A Mist Breather smothers it. |
+| map_threshold_sealedDoor | A round door of grey-purple stone across the tunnel, no handle, no hinge, no keyhole; in the middle a long calm face with closed eyes and no mouth; thin teal arcs (#7fe0d6) around it like rings of sound. The game adds a faint teal light. Only a step of the quest "The Silent Song" opens it (one per world, between rings 2 and 3). |
 
-`draughtCrack` has no closed image: while hidden it looks like plain rock, and the game draws drifting air (`map_draught`) on the hexes next to it.
+`draughtCrack` has no closed image: while hidden it looks like plain rock, and the game draws drifting air (`map_draught`) on the hexes next to it. Neither has `cinderBore`: the Cinderkin melt it during an event, and it appears open.
 
 **Open** (`map_threshold_<id>_open`): 30×22 px. They **lie flat on the hex** (drawn under everything that stands): anchor bottom middle, 10 px below the hex centre, so the image covers the hex face, its top edge at the top point of the face. Keep them low and quiet, like a stain on the floor. Exception: `map_threshold_oldWorkings_open` is 30×30 and **stands** like a closed one (feet 10 px below the hex centre).
 
@@ -157,6 +158,8 @@ Thresholds are the few ways through the rock bands between the rings of the worl
 | map_threshold_smoulderingSeam_open | A patch of grey ash with a few dull red embers, smothered. |
 | map_threshold_draughtCrack_open | A dark, jagged crack across the floor, wide enough to squeeze through, pale wisps of air rising from it. |
 | map_threshold_cinderScar_open | A patch of black glass where the rock melted long ago, a few orange specks still warm (made by the Cinderkin, tiny fire insects, in huge numbers). |
+| map_threshold_sealedDoor_open | The round stone door lying flat where it fell, the mouthless face looking up, cracked, its teal arcs gone dark. |
+| map_threshold_cinderBore_open | A fresh tunnel floor melted by the Cinderkin: soft black glass with bright orange and yellow runnels of molten rock. The game adds a flickering orange light on every hex of the tunnel while it is hot (3 turns). |
 | map_threshold_oldWorkings_open | The mouth of an old shaft of the Order: two timber props and a beam, cut dead straight, rails running in, a long-dead lantern of the Order (gold) hanging on a nail. |
 
 ## Map places: map_place_<id>

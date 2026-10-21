@@ -20,7 +20,21 @@
     "richDeposit": "A rich deposit.",
     "silenced": "The Silent Bell hums. The Order heard nothing.",
     "thresholdOpened": "{name}: the way through is open.",
-    "conditionEnded": "{name} wears off."
+    "conditionEnded": "{name} wears off.",
+    "tunnelBored": "The Cinderkin melt a tunnel through the rock, to the {direction}. It will burn for a while.",
+    "boreFailed": "The swarm finds no rock thin enough nearby, and drifts off to look for some.",
+    "burned": "The tunnel is still molten. Body {n}.",
+    "tunnelCooled": "The Cinder Bore has cooled.",
+    "directions": {
+      "north": "north",
+      "northEast": "north-east",
+      "east": "east",
+      "southEast": "south-east",
+      "south": "south",
+      "southWest": "south-west",
+      "west": "west",
+      "northWest": "north-west"
+    }
   },
   "place": {
     "kinds": {
@@ -33,6 +47,7 @@
     "digProgress": "Dug {dug} of {needed}.",
     "why": {
       "needsHead": "Needs a {class} head.",
+      "needsCondition": "Only while {condition}.",
       "noMovement": "No moves left this turn.",
       "notYet": "Ready again on turn {turn}.",
       "done": "Already done."

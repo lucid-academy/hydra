@@ -100,7 +100,7 @@ export function checkCrossReferences(
     // Every threshold and place needs its map image.
     const keys = [
       // A threshold that is closed until opened shows map_threshold_<id>, and every threshold once open map_threshold_<id>_open.
-      ...Object.entries(data.world.thresholds).flatMap(([id, t]) => [...(t.dig || t.open ? [`map_threshold_${id}`] : []), `map_threshold_${id}_open`]),
+      ...Object.entries(data.world.thresholds).flatMap(([id, t]) => [...(t.dig || t.open || t.sealed ? [`map_threshold_${id}`] : []), `map_threshold_${id}_open`]),
       ...Object.keys(data.world.places).map((id) => `map_place_${id}`),
       'map_remains',
       'map_hoard',
@@ -149,6 +149,7 @@ function storyProblems(data: GameData): string[] {
     checkConditions('events.json', `${path}.conditions`, e.conditions);
     e.choices.forEach((c, j) => {
       if (c.needsHead && !classes.includes(c.needsHead)) where('events.json', `${path}.choices.${j}.needsHead`, `unknown head class "${c.needsHead}"; ${known(classes)}`);
+      if (c.needsCondition && !data.world.conditions[c.needsCondition]) where('events.json', `${path}.choices.${j}.needsCondition`, `unknown condition "${c.needsCondition}"; ${known(Object.keys(data.world.conditions))}`);
       for (const [name, o] of [['outcome', c.outcome], ['success', c.success], ['failure', c.failure]] as const) {
         if (!o) continue;
         const at = `${path}.choices.${j}.${name}`;
@@ -156,9 +157,14 @@ function storyProblems(data: GameData): string[] {
         if (o.dialogue && !dialogueIds.includes(o.dialogue)) where('events.json', `${at}.dialogue`, `unknown dialogue "${o.dialogue}" (dialogues.json)`);
         if (o.condition && !data.world.conditions[o.condition.id]) where('events.json', `${at}.condition`, `unknown condition "${o.condition.id}"; ${known(Object.keys(data.world.conditions))}`);
         if (o.newHead && !classes.includes(o.newHead)) where('events.json', `${at}.newHead`, `unknown head class "${o.newHead}"; ${known(classes)}`);
+        if (o.bore && !Object.values(data.world.thresholds).some((t) => t.bore)) where('events.json', `${at}.bore`, 'no threshold in world.json has "bore" (how the tunnel is melted)');
       }
     });
   });
+  for (const [id, t] of Object.entries(data.world.thresholds)) {
+    const said = t.sealed?.dialogue;
+    if (said && !dialogueIds.includes(said)) where('world.json', `thresholds.${id}.sealed.dialogue`, `unknown dialogue "${said}" (dialogues.json)`);
+  }
   return problems;
 }
 
@@ -190,6 +196,7 @@ function worldProblems(balance: Balance, biomes: BiomesData, world: WorldData, h
   const classes = Object.keys(heads.classes);
   for (const [id, t] of Object.entries(world.thresholds)) {
     if (t.open && !classes.includes(t.open.headClass)) where('world.json', `thresholds.${id}.open.headClass`, `unknown head class "${t.open.headClass}"; known: ${classes.join(', ')}`);
+    if (t.oneOnBorder !== undefined && t.oneOnBorder >= ringCount) where('world.json', `thresholds.${id}.oneOnBorder`, `there is no border ${t.oneOnBorder} (borders: 1 to ${ringCount - 1})`);
   }
   for (const [id, place] of Object.entries(world.places)) {
     if (place.biome !== undefined) checkBiome('world.json', `places.${id}.biome`, place.biome);

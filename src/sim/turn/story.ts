@@ -19,7 +19,7 @@ import type {
   StoryState,
   StoryTrigger,
 } from './types';
-import { growHeads, raiseAlert, startCondition, tileAt } from './world';
+import { boreTunnel, growHeads, look, openThreshold, pendingThreshold, raiseAlert, startCondition, tileAt } from './world';
 
 /** What happened just now, for the conditions of a dialogue (and the names in its lines). */
 export interface StoryFacts {
@@ -118,7 +118,7 @@ function say(state: RunState, d: DialogueRules, shown: ShownDialogue, events: Ru
   const { story } = state;
   story.dialogues.push(shown);
   if (!story.seen.includes(d.id)) story.seen.push(d.id);
-  for (const flag of d.setFlags) if (!story.flags.includes(flag)) story.flags.push(flag);
+  setFlags(state, d.setFlags);
   events.push({ type: 'dialogueQueued', id: d.id });
 }
 
@@ -161,8 +161,7 @@ export function storyDialogue(state: RunState, rules: RunRules, id: string, even
 export function dialogueShown(state: RunState, rules: RunRules, choice: number | null): void {
   const shown = state.story.dialogues.shift();
   if (!shown || choice === null) return;
-  const flags = rules.story.dialogues.find((d) => d.id === shown.id)?.choices[choice]?.setFlags ?? [];
-  for (const flag of flags) if (!state.story.flags.includes(flag)) state.story.flags.push(flag);
+  setFlags(state, rules.story.dialogues.find((d) => d.id === shown.id)?.choices[choice]?.setFlags ?? []);
 }
 
 /** At the end of a turn away from the lair, the Serpent may speak (not too often). */
@@ -218,12 +217,13 @@ export function pendingEventRules(state: RunState, rules: RunRules): EventRules 
   return id ? (rules.story.events.find((e) => e.id === id) ?? null) : null;
 }
 
-export type EventChoiceCheck = { can: true } | { can: false; why: 'needsHead' | 'cost' | 'done' };
+export type EventChoiceCheck = { can: true } | { can: false; why: 'needsHead' | 'needsCondition' | 'cost' | 'done' };
 
 export function canChooseEventOption(state: RunState, rules: RunRules, index: number): EventChoiceCheck {
   const choice = pendingEventRules(state, rules)?.choices[index];
   if (!choice || state.pendingEvent?.result) return { can: false, why: 'done' };
   if (choice.needsHead && !state.hydra.heads.some((h) => h.classId === choice.needsHead && h.hp > 0)) return { can: false, why: 'needsHead' };
+  if (choice.needsCondition && !state.hydra.conditions.some((c) => c.id === choice.needsCondition)) return { can: false, why: 'needsCondition' };
   const { resources } = state;
   if (resources.muck < choice.cost.muck || resources.moisture < choice.cost.moisture || resources.bones < choice.cost.bones) return { can: false, why: 'cost' };
   return { can: true };
@@ -265,12 +265,48 @@ function applyOutcome(state: RunState, rules: RunRules, o: EventOutcome, at: Hex
       if (state.map.tiles.has(key) && !state.visibility.has(key)) state.visibility.set(key, 'remembered');
     }
   }
-  for (const flag of o.setFlags) if (!state.story.flags.includes(flag)) state.story.flags.push(flag);
+  setFlags(state, o.setFlags);
   if (o.newHead) growHeads(state, rules, 1, o.newHead);
+  if (o.bore) {
+    const tunnel = withRng(state.story, (rng) => boreTunnel(state, rules, at, rng));
+    events.push(tunnel ? { type: 'tunnelBored', at: tunnel.at, path: tunnel.path } : { type: 'boreFailed' });
+  }
   if (o.battle) {
     state.pendingBattle = { at, groupId: o.battle };
     const fresh = meetEnemies(state, rules.encounterGroupMembers[o.battle] ?? []);
     storyMoment(state, rules, 'enemyAhead', { newEnemyTypes: fresh }, events);
   }
   if (o.dialogue) storyDialogue(state, rules, o.dialogue, events);
+}
+
+function setFlags(state: RunState, flags: readonly string[]): void {
+  for (const flag of flags) if (!state.story.flags.includes(flag)) state.story.flags.push(flag);
+}
+
+// ---------------------------------------------------------------- sealed thresholds (a step of a mini quest)
+
+export type SealedWayCheck = { can: true } | { can: false; why: 'missing' | 'notSealed' };
+
+/** Can the sealed threshold whose panel is open be opened its way number `way` (is that way's flag set)? */
+export function canOpenSealed(state: RunState, rules: RunRules, way: number): SealedWayCheck {
+  const tile = pendingThreshold(state);
+  const sealed = tile?.object.state === 'closed' ? rules.thresholds[tile.object.thresholdId]?.sealed : null;
+  const flag = sealed?.ways[way]?.flag;
+  if (!flag) return { can: false, why: 'notSealed' };
+  return state.story.flags.includes(flag) ? { can: true } : { can: false, why: 'missing' };
+}
+
+/** Opens the sealed threshold whose panel is open, its way number `way`: it sets its flags and says its dialogue. */
+export function openSealed(state: RunState, rules: RunRules, way: number): RunEvent[] {
+  const tile = pendingThreshold(state);
+  if (!tile || !canOpenSealed(state, rules, way).can) return [];
+  const sealed = rules.thresholds[tile.object.thresholdId]!.sealed!;
+  const events: RunEvent[] = [];
+  openThreshold(tile);
+  events.push({ type: 'thresholdOpened', at: tile.hex, thresholdId: tile.object.thresholdId });
+  state.pendingPlace = null;
+  look(state, rules);
+  setFlags(state, sealed.setFlags);
+  if (sealed.dialogue) storyDialogue(state, rules, sealed.dialogue, events);
+  return events;
 }

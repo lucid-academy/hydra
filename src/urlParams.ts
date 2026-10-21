@@ -12,6 +12,8 @@
 //   ?say=toadWelcome  with ?scene=map: show this dialogue (dialogues.json) at the start; with ?scene=battle, a
 //                 Serpent's battle line (e.g. battleFires) is said when the battle starts
 //   ?event=titheBox   with ?scene=map: an event site with this event (events.json) right next to the hydra
+//   ?flags=hushedSongHeard,surveyChain  with ?scene=map: story flags set from the start (as if those steps were done)
+//   ?conditions=warmed  with ?scene=map: conditions on the hydra from the start (world.json conditions), for 5 turns
 
 import { seedFromString } from './sim/rng';
 
@@ -39,6 +41,10 @@ export interface UrlParams {
   say: string | null;
   /** An event to put next to the hydra at the start, or null. */
   event: string | null;
+  /** Story flags set at the start. */
+  flags: string[];
+  /** Conditions on the hydra at the start (world.json conditions). */
+  conditions: string[];
 }
 
 export function parseUrlParams(search: string): UrlParams {
@@ -47,6 +53,8 @@ export function parseUrlParams(search: string): UrlParams {
   const scene = params.get('scene');
   const debug = params.get('debug');
   const group = params.get('group');
+  /** A comma-separated list, without blanks or repeats. */
+  const list = (name: string): string[] => [...new Set((params.get(name) ?? '').split(',').map((m) => m.trim()).filter((m) => m !== ''))];
   const positive = (name: string): number | null => {
     const value = Number(params.get(name) ?? '');
     return Number.isFinite(value) && value > 0 ? value : null;
@@ -60,9 +68,11 @@ export function parseUrlParams(search: string): UrlParams {
     speed: positive('speed'),
     near: params.get('near')?.trim() || null,
     reveal: params.get('reveal') === '1' || params.get('reveal') === 'true',
-    modifiers: [...new Set((params.get('modifiers') ?? '').split(',').map((m) => m.trim()).filter((m) => m !== ''))],
+    modifiers: list('modifiers'),
     zoom: positive('zoom'),
     say: params.get('say')?.trim() || null,
     event: params.get('event')?.trim() || null,
+    flags: list('flags'),
+    conditions: list('conditions'),
   };
 }

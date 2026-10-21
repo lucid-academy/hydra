@@ -1,7 +1,7 @@
 // What the hydra meets on the map besides battles and shrines (GAME_DESIGN.md §9): thresholds between rings, places
 // and what can be done there, remains and hoards, conditions, and the hints (draughts, echoes, landmarks seen from afar).
 
-import { hexDistance, hexEquals, hexKey, hexNeighbors } from '../hex';
+import { hexDistance, hexEquals, hexKey, hexNeighbors, hexesInRange } from '../hex';
 import type { Hex } from '../hex';
 import { hexesSeenFrom, updateVisibility } from '../map';
 import type { HexMap, Loot, MapObject, Tile } from '../map';
@@ -50,6 +50,7 @@ export function addLoot(state: RunState, loot: Loot): void {
  */
 export function arriveAt(state: RunState, step: Hex, rules: RunRules, events: RunEvent[]): { stop: boolean; discovered: number } {
   state.hydra.position = step;
+  burnIfHot(state, step, rules, events);
   for (const n of hexNeighbors(step)) {
     const t = tileAt(state, n);
     if (t?.object?.kind === 'threshold' && t.object.state === 'hidden') {
@@ -184,7 +185,7 @@ function nearestSeenHex(state: RunState, to: Hex): Hex {
 
 // ---------------------------------------------------------------- thresholds
 
-function openThreshold(tile: ThresholdTile): void {
+export function openThreshold(tile: ThresholdTile): void {
   tile.object.state = 'open';
   tile.terrain = tile.object.floor;
 }
@@ -195,13 +196,14 @@ export function pendingThreshold(state: RunState): ThresholdTile | null {
   return tile?.object?.kind === 'threshold' ? (tile as ThresholdTile) : null;
 }
 
-export type ThresholdWorkCheck = { can: true } | { can: false; why: 'needsHead' | 'noMovement' | 'notClosed' };
+export type ThresholdWorkCheck = { can: true } | { can: false; why: 'needsHead' | 'noMovement' | 'notClosed' | 'sealed' };
 
-/** Can the hydra work on the threshold whose panel is open (dig, or open it with a head)? */
+/** Can the hydra work on the threshold whose panel is open (dig, or open it with a head)? A sealed one opens its own way (story.ts). */
 export function canWorkThreshold(state: RunState, rules: RunRules): ThresholdWorkCheck {
   const tile = pendingThreshold(state);
   if (!tile || tile.object.state !== 'closed') return { can: false, why: 'notClosed' };
   const kind = rules.thresholds[tile.object.thresholdId];
+  if (kind?.sealed) return { can: false, why: 'sealed' };
   if (kind?.dug) return state.hydra.movementLeft > 0 ? { can: true } : { can: false, why: 'noMovement' };
   if (kind?.headClass) return hasHead(state, kind.headClass) ? { can: true } : { can: false, why: 'needsHead' };
   return { can: false, why: 'notClosed' };
@@ -234,6 +236,110 @@ export function workThreshold(state: RunState, rules: RunRules): RunEvent[] {
 
 function hasHead(state: RunState, classId: string): boolean {
   return state.hydra.heads.some((h) => h.classId === classId && h.hp > 0);
+}
+
+// ---------------------------------------------------------------- the Cinderkin melt a tunnel (Cinder Bore)
+
+/**
+ * The Cinderkin melt a tunnel (GAME_DESIGN.md §9.3): from open ground of the hydra's ring near `from`, through one of
+ * the thinnest spots of rock nearby, out onto open ground of another ring. Which spot is a matter of chance, among the
+ * thinnest. Its rock becomes floor that burns for a few turns, and its hex nearest the middle of the band becomes an
+ * open threshold. Returns the tunnel (from this ring to the other) and its threshold, or null when no rock nearby is
+ * thin enough (or the hydra is in the lair).
+ */
+export function boreTunnel(state: RunState, rules: RunRules, from: Hex, rng: Rng): { path: Hex[]; at: Hex } | null {
+  const bore = rules.bore;
+  const here = tileAt(state, from);
+  // From a ring, or from a tunnel through a band (which counts to the ring inside it); never from the lair.
+  if (!bore || !here || (here.region !== 'ring' && here.region !== 'band')) return null;
+  // Plain rock of the rings and bands melts; thresholds and the rock outside the world don't.
+  const meltable = (t: Tile | undefined) => t !== undefined && t.terrain === 'rock' && t.object === null && (t.region === 'band' || t.region === 'ring');
+  const otherRing = (t: Tile | undefined) => t !== undefined && t.terrain !== 'rock' && t.region === 'ring' && t.ring !== here.ring;
+
+  // Rock hexes by how many rock hexes it takes to get there from open ground of this ring near the hydra.
+  const cameFrom = new Map<string, string | null>();
+  let layer: Hex[] = [];
+  for (const h of hexesInRange(from, bore.within)) {
+    const t = tileAt(state, h);
+    if (!t || t.region !== 'ring' || t.ring !== here.ring || t.terrain === 'rock') continue;
+    for (const n of hexNeighbors(h)) {
+      const key = hexKey(n);
+      if (cameFrom.has(key) || !meltable(tileAt(state, n))) continue;
+      cameFrom.set(key, null);
+      layer.push(n);
+    }
+  }
+  // Ends of tunnels: rock touching open ground of another ring, as thin as the thinnest or one hex thicker.
+  const ends: Hex[] = [];
+  let thinnest: number | null = null;
+  for (let length = 1; length <= bore.longest && layer.length > 0; length++) {
+    for (const h of layer) if (hexNeighbors(h).some((n) => otherRing(tileAt(state, n)))) ends.push(h);
+    if (thinnest === null && ends.length > 0) thinnest = length;
+    if (thinnest !== null && length >= thinnest + 1) break;
+    const next: Hex[] = [];
+    for (const h of layer) {
+      for (const n of hexNeighbors(h)) {
+        const key = hexKey(n);
+        if (cameFrom.has(key) || !meltable(tileAt(state, n))) continue;
+        cameFrom.set(key, hexKey(h));
+        next.push(n);
+      }
+    }
+    layer = next;
+  }
+  if (ends.length === 0) return null;
+
+  const end = rng.pick(ends);
+  const path: Hex[] = [];
+  for (let key: string | null = hexKey(end); key !== null; key = cameFrom.get(key) ?? null) path.unshift(state.map.tiles.get(key)!.hex);
+  const lastTurn = state.turn + bore.hotTurns - 1;
+  for (const h of path) {
+    tileAt(state, h)!.terrain = 'mud';
+    state.hotUntil[hexKey(h)] = lastTurn;
+  }
+  // Its threshold: the band hex nearest the middle of the tunnel.
+  const middle = (path.length - 1) / 2;
+  const gate = path
+    .map((h, i) => ({ h, i }))
+    .filter(({ h }) => tileAt(state, h)!.region === 'band')
+    .sort((a, b) => Math.abs(a.i - middle) - Math.abs(b.i - middle))[0]?.h ?? path[Math.floor(middle)]!;
+  const gateTile = tileAt(state, gate)!;
+  const beyond = hexNeighbors(end).map((n) => tileAt(state, n)).find(otherRing)!;
+  gateTile.object = {
+    kind: 'threshold',
+    thresholdId: bore.thresholdId,
+    state: 'open',
+    border: gateTile.region === 'band' ? gateTile.ring : Math.min(here.ring, beyond.ring),
+    floor: 'mud',
+    dug: 0,
+    digsNeeded: 0,
+  };
+  lasting.delete(state.map);
+  // The glow of the molten rock shows the way: the tunnel and the ground around it become known.
+  for (const h of path) {
+    for (const n of [h, ...hexNeighbors(h)]) {
+      const key = hexKey(n);
+      if (state.map.tiles.has(key) && !state.visibility.has(key)) state.visibility.set(key, 'remembered');
+    }
+  }
+  return { path, at: gate };
+}
+
+/** Stepping on a hex of a Cinder Bore that still burns costs body HP (never the last of it). */
+function burnIfHot(state: RunState, at: Hex, rules: RunRules, events: RunEvent[]): void {
+  const lastTurn = state.hotUntil[hexKey(at)];
+  if (lastTurn === undefined || lastTurn < state.turn || !rules.bore || rules.bore.burn <= 0) return;
+  const before = state.hydra.bodyHp;
+  state.hydra.bodyHp = Math.max(1, before - rules.bore.burn);
+  events.push({ type: 'burned', at, amount: before - state.hydra.bodyHp });
+}
+
+/** A turn has passed: hexes of a Cinder Bore that burnt their last turn cool down. */
+export function coolTunnels(state: RunState, events: RunEvent[]): void {
+  const cooled = Object.keys(state.hotUntil).filter((key) => state.hotUntil[key]! < state.turn);
+  if (cooled.length === 0) return;
+  for (const key of cooled) delete state.hotUntil[key];
+  if (Object.keys(state.hotUntil).length === 0) events.push({ type: 'tunnelCooled' });
 }
 
 // ---------------------------------------------------------------- places
