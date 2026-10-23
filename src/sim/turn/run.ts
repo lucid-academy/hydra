@@ -9,7 +9,7 @@ import { generateUnderground, hexesSeenFrom, updateVisibility } from '../map';
 import type { MapObject } from '../map';
 import { Rng } from '../rng';
 import { applyBirthMutations, gainMutation, headMaxHp, startingHeadCount } from './mutations';
-import { newOrder, orderTurn } from './order';
+import { meetOrderAt, newOrder, orderBlocks, orderTurn, removeUnit, sendMessenger } from './order';
 import { eventArrived, meetEnemies, newStory, serpentOnTheWay, storyMoment } from './story';
 import type { BlessingEffects, Heritage, Journey, Reachable, RunEvent, RunRules, RunState } from './types';
 import { arriveAt, battleSilenced, coolTunnels, growHeads, lookAround, movementForTurn, raiseAlert, tickConditions, tileAt } from './world';
@@ -81,7 +81,7 @@ export function createRun(seed: number, rules: RunRules, options: RunOptions = {
     story: newStory(seed, map.tiles.get(hexKey(map.lair))!.biome),
     pendingEvent: null,
     hotUntil: {},
-    order: newOrder(seed),
+    order: newOrder(seed, rules),
   };
   if (heritage) {
     state.story.flags.push(...heritage.flags);
@@ -181,7 +181,7 @@ function cheapestPaths(state: RunState, rules: RunRules, limit: number): Map<str
     const current = frontier.splice(pick, 1)[0]!;
     const here = best.get(hexKey(current))!;
     const tile = state.map.tiles.get(hexKey(current))!;
-    if (!hexEquals(current, start) && stopsTheHydra(tile.object)) continue;
+    if (!hexEquals(current, start) && (stopsTheHydra(tile.object) || orderBlocks(state, current))) continue;
     for (const next of hexNeighbors(current)) {
       const key = hexKey(next);
       const nextTile = state.map.tiles.get(key);
@@ -218,7 +218,7 @@ export function moveHydra(state: RunState, target: Hex, rules: RunRules): RunEve
     walked.push(step);
     const arrived = arriveAt(state, step, rules, events);
     discovered += arrived.discovered;
-    if (arrived.stop || eventArrived(state, step, rules, events)) {
+    if (arrived.stop || meetOrderAt(state, step, rules, events) || eventArrived(state, step, rules, events)) {
       stopped = true;
       break;
     }
@@ -397,9 +397,13 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
   }
   const tile = tileAt(state, pending.at);
   if (tile?.object?.kind === 'encounter') tile.object = null;
+  const unit = pending.unitId ? state.order.units.find((u) => u.id === pending.unitId) : undefined;
+  if (unit) removeUnit(state, unit);
   const bones = (rules.encounterGroupMembers[pending.groupId]?.length ?? 0) * rules.bonesPerEnemy;
   state.resources.bones += bones;
   const events: RunEvent[] = [{ type: 'battleWon', at: pending.at, bones, silenced }];
+  // Someone always gets away to tell the Order, unless the Silent Bell drowned it all out.
+  if (!silenced) sendMessenger(state, pending.at, rules, events);
   // The heads talk it over: who was lost, who grew, what was burnt shut.
   const before = new Set(headsBefore.map((h) => h.id));
   const after = new Set(state.hydra.heads.map((h) => h.id));

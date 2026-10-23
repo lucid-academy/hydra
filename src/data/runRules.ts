@@ -127,6 +127,7 @@ export function runRulesFrom(data: GameData): RunRules {
     headNames: heads.names,
     healing: { bodyHpPerTurn: balance.healing.bodyHpPerTurn, headHpPerTurn: balance.healing.headHpPerTurn },
     encounterGroupMembers: Object.fromEntries(enemies.encounterGroups.map((g) => [g.id, g.members])),
+    encounterGroupTiers: Object.fromEntries(enemies.encounterGroups.map((g) => [g.id, g.tier])),
     thresholds: Object.fromEntries(
       Object.entries(world.thresholds).map(([id, t]) => [
         id,
@@ -190,7 +191,7 @@ export function orderRulesFrom(order: OrderData): OrderRules {
       chaseTurns: patrols.chaseTurns,
       groups: groups(patrols.groups),
     },
-    messengers: { headStart: messengers.headStart, movement: messengers.movement, alertOnArrival: messengers.alertOnArrival, alertWhenEaten: messengers.alertWhenEaten, bones: messengers.bones },
+    messengers: { headStart: messengers.headStart, movement: messengers.movement, alertOnArrival: messengers.alertOnArrival, alertWhenEaten: messengers.alertWhenEaten, bones: messengers.bones, eatenLines: messengers.eatenLines.length },
     expeditions: { fromStage: expeditions.fromStage, firstAfterTurns: expeditions.firstAfterTurns, everyTurns: expeditions.everyTurns, movement: expeditions.movement, groups: groups(expeditions.groups) },
     greatBurning: { atStage: greatBurning.atStage, movement: greatBurning.movement, groupId: greatBurning.group },
     siege: { perTurn: order.siege.perTurn },

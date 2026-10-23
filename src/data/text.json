@@ -24,6 +24,11 @@
     "boreFailed": "The swarm finds no rock thin enough nearby, and drifts off to look for some.",
     "burned": "The tunnel is still molten. Body {n}.",
     "tunnelCooled": "The Cinder Bore has cooled.",
+    "lastSeen": "{n} turns ago",
+    "lastSeenOne": "a turn ago",
+    "lastSeenNow": "this turn",
+    "messengerEaten": "+{bones} Bones. Alert {alert}.",
+    "messengerEscaped": "Alert +{n}.",
     "directions": {
       "north": "north",
       "northEast": "north-east",

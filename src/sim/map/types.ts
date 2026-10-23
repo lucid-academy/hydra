@@ -107,6 +107,8 @@ export interface WorldLayout {
   readonly chambers: readonly Chamber[];
   readonly deadEnds: readonly DeadEnd[];
   readonly echoSources: readonly EchoSource[];
+  /** The top of the Old Workings shaft, where the Order comes down besides the Passages (null: no shaft). */
+  readonly orderShaft: Hex | null;
 }
 
 export interface HexMap {
@@ -119,5 +121,5 @@ export interface HexMap {
 
 /** A layout with nothing in it, for maps made by hand (tests). */
 export function emptyLayout(): WorldLayout {
-  return { rings: 0, modifiers: [], rarePlaces: [], ringCenter: { x: 0, y: 0 }, chambers: [], deadEnds: [], echoSources: [] };
+  return { rings: 0, modifiers: [], rarePlaces: [], ringCenter: { x: 0, y: 0 }, chambers: [], deadEnds: [], echoSources: [], orderShaft: null };
 }

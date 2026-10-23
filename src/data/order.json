@@ -16,6 +16,7 @@
     "movement": 4,
     "sight": 3,
     "chaseTurns": 3,
+    "arrived": "A patrol of the Order comes down from the surface, with lanterns and a list.",
     "groups": [
       { "group": "patrol", "weight": 3 },
       { "group": "lostNovices", "weight": 1 },
@@ -24,12 +25,20 @@
     ]
   },
   "messengers": {
-    "//": "After every battle the Order hears of (not near the Silent Bell), a messenger runs for the nearest Passage, headStart hexes ahead. If he gets there, the Alert rises by alertOnArrival. Stepping onto his hex eats him: bones, and the Alert changes by alertWhenEaten.",
+    "//": "After every battle the Order hears of (not near the Silent Bell), a messenger runs for the nearest Passage, headStart hexes ahead. If he gets there, the Alert rises by alertOnArrival. Stepping onto his hex eats him: bones, and the Alert changes by alertWhenEaten. eatenLines: one of them is said when he is eaten.",
     "headStart": 2,
     "movement": 4,
     "alertOnArrival": 8,
     "alertWhenEaten": -3,
-    "bones": 2
+    "bones": 2,
+    "sent": "Someone got away from the fight and is running for the Passage, to tell the Order. Catch him first.",
+    "escaped": "The messenger reached the Passage. The chapter house will hear of this by supper.",
+    "eatenLines": [
+      "The messenger is eaten, satchel and all. One head reads the letter. It was mostly about us, and not kind.",
+      "Caught. His letter said: monster in the deep, send help. It no longer says anything.",
+      "The messenger is eaten. Somewhere a chapter house waits for news, and gets none.",
+      "Swallowed mid-prayer. The heads agree he was running the wrong way anyway."
+    ]
   },
   "expeditions": {
     "//": "From the Alert stage fromStage on, an expedition sets out for the lair every everyTurns world turns, one at a time, from the entrance furthest from the lair that has a way to it. groups: encounter groups from enemies.json, by weight.",

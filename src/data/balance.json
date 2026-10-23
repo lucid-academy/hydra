@@ -119,11 +119,11 @@
     "bonesPerEnemy": 2
   },
   "alert": {
-    "//": "TODO(design): perHexDiscovered and perBattle are working values for M1.",
+    "//": "TODO(design): perHexDiscovered and perBattle are working values. Since M3 a battle raises the Alert less, and its messenger more if he gets away (order.json messengers).",
     "min": 0,
     "max": 100,
     "perHexDiscovered": 0.2,
-    "perBattle": 5
+    "perBattle": 2
   },
   "battle": {
     "//": "TODO(design): working values. The board is counted in hexes: boardColumns across, boardRows down (both odd, so the body has a middle hex). The body covers 7 hexes.",

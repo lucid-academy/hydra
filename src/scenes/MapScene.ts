@@ -20,6 +20,7 @@ import { exposeInspectable, exposeMapBusy, exposeReachable, exposeRunSummary, ma
 import { color, getContext } from './context';
 import { hexOutlines, roundCorners } from './hexOutline';
 import { MapGround } from './mapGround';
+import { OrderTokens } from './mapOrder';
 import { LIGHT_TEXTURE, LIGHT_TEXTURE_SIZE, MapLight, SHADOW_TEXTURE, SHADOW_TEXTURE_WIDTH, makeSoftTextures } from './mapLight';
 import type { Light } from './mapLight';
 import { lineages } from './LineageKeeper';
@@ -180,6 +181,8 @@ export class MapScene extends Phaser.Scene {
   private echoes = new Map<string, Phaser.GameObjects.Image>();
   /** Glows over hexes of a Cinder Bore that still burn, by hex key. */
   private heat = new Map<string, Glow>();
+  /** The Order's people walking the underground. */
+  private order!: OrderTokens;
 
   constructor() {
     super(SceneKey.Map);
@@ -193,11 +196,12 @@ export class MapScene extends Phaser.Scene {
       this.scene.start(SceneKey.Generation);
       return;
     }
-    const { near, reveal, say, event, flags, conditions, alert } = getContext(this).params;
+    const { near, reveal, say, event, flags, conditions, alert, units } = getContext(this).params;
     if (firstTime && flags.length > 0) this.run.flagsForTest(flags);
     if (firstTime && conditions.length > 0) this.run.conditionsForTest(conditions);
     if (firstTime && alert !== null) this.run.alertForTest(alert);
     if (firstTime && near) this.run.placeNear(near);
+    if (firstTime && units.length > 0) this.run.unitsForTest(units);
     if (firstTime && reveal) this.run.revealAll();
     if (firstTime && event) this.run.eventForTest(event);
     if (firstTime && say) this.run.sayForTest(say, lineages(this).motherFacts());
@@ -215,6 +219,14 @@ export class MapScene extends Phaser.Scene {
 
     makeSoftTextures(this);
     this.drawMap();
+    const words = getContext(this).data.text.hud;
+    this.order = new OrderTokens(this, {
+      feet: (h) => this.tokenPosition(h),
+      depth: (feetY) => this.standingDepth(feetY),
+      shadow: (x, feetY, width) => this.contactShadow(x, feetY, width),
+      hintDepth: DEPTH.hint,
+      words: { lastSeen: words.lastSeen, lastSeenOne: words.lastSeenOne, lastSeenNow: words.lastSeenNow },
+    });
     this.token = this.add.image(0, 0, 'map_hydra').setOrigin(0.5, 1);
     this.tokenShadow = this.contactShadow(0, 0, this.token.width);
     this.placeToken(this.run.state.hydra.position);
@@ -492,6 +504,7 @@ export class MapScene extends Phaser.Scene {
     this.drawReach(reachable);
     this.drawJourney();
     this.refreshHints();
+    this.order.sync(this.run.state);
     this.drawLights();
     this.seeThroughTallPlaces();
     this.announceNewBiomes();
@@ -638,6 +651,7 @@ export class MapScene extends Phaser.Scene {
     for (const glow of this.heat.values()) {
       lights.push({ x: glow.image.x, y: glow.groundY, radius: glow.radius * LIGHTS.glowReach, color: glow.color, strength: glow.alpha * LIGHTS.glowStrength });
     }
+    lights.push(...this.order.lights());
     this.light.draw(lights);
   }
 
@@ -769,6 +783,7 @@ export class MapScene extends Phaser.Scene {
     const revealed = events.find((e) => e.type === 'thresholdRevealed' || e.type === 'tunnelBored') as { at: Hex } | undefined;
     if (steps.length === 0) {
       if (revealed) this.panTo(revealed.at);
+      this.animateOrder(events);
       return;
     }
     this.animating = true;
@@ -797,6 +812,30 @@ export class MapScene extends Phaser.Scene {
         this.run.settle();
       },
     });
+  }
+
+  /** The Order's people walk (the world turn), then the map shows the new state; a patrol that found the hydra fights her. */
+  private animateOrder(events: RunEvent[]): void {
+    const walking = this.order.animate(
+      this.run.state,
+      events,
+      () => {
+        this.animating = false;
+        this.run.animating = false;
+        this.refresh();
+        this.run.settle();
+      },
+      () => this.drawLights(),
+    );
+    if (!walking) return;
+    this.animating = true;
+    this.run.animating = true;
+    this.reach.glow.setVisible(false);
+    this.reach.line.setVisible(false);
+    this.reach.over.setVisible(false);
+    this.path.clear();
+    this.journeyDots.clear();
+    this.journeyTurns.setVisible(false);
   }
 
   private startBattle(): void {

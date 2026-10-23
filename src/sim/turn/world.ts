@@ -124,7 +124,25 @@ export function lookAround(state: RunState, rules: RunRules, events: RunEvent[])
   sightLandmarks(state, rules, events);
   feelDraughts(state, events);
   hearEchoes(state, rules, events);
+  noteSightings(state);
   return discovered;
+}
+
+/**
+ * The Order's people in sight are noted where they stand, and when (GAME_DESIGN.md §5.3: out of sight they are shown
+ * where they were last seen). A noted spot seen empty again is forgotten.
+ */
+export function noteSightings(state: RunState): void {
+  const { order, visibility } = state;
+  const inSight = (h: Hex) => visibility.get(hexKey(h)) === 'visible';
+  for (const unit of order.units) {
+    if (!inSight(unit.at)) continue;
+    const sighting = { unitId: unit.id, kind: unit.kind, tier: unit.tier, at: unit.at, turn: state.turn };
+    const i = order.sightings.findIndex((s) => s.unitId === unit.id);
+    if (i >= 0) order.sightings[i] = sighting;
+    else order.sightings.push(sighting);
+  }
+  order.sightings = order.sightings.filter((s) => !inSight(s.at) || order.units.some((u) => u.id === s.unitId && hexEquals(u.at, s.at)));
 }
 
 /** Landmarks close enough are seen even through rock: their hex becomes known. */

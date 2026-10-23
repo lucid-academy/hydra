@@ -323,10 +323,37 @@ export interface OrderRules {
     chaseTurns: number;
     groups: readonly OrderGroupRules[];
   };
-  messengers: { headStart: number; movement: number; alertOnArrival: number; alertWhenEaten: number; bones: number };
+  messengers: { headStart: number; movement: number; alertOnArrival: number; alertWhenEaten: number; bones: number; eatenLines: number };
   expeditions: { fromStage: string; firstAfterTurns: number; everyTurns: number; movement: number; groups: readonly OrderGroupRules[] };
   greatBurning: { atStage: string; movement: number; groupId: string };
   siege: { perTurn: number };
+}
+
+export type OrderUnitKind = 'patrol' | 'messenger' | 'expedition' | 'greatBurning';
+
+/** People of the Order walking the underground. */
+export interface OrderUnit {
+  id: string;
+  kind: OrderUnitKind;
+  at: Hex;
+  /** Its people: an encounter group (enemies.json), and the group's tier (how it is drawn). Empty for a messenger. */
+  groupId: string;
+  tier: number;
+  /** Where it is walking to (a chamber, a Passage, the lair), or null to pick somewhere new. */
+  goal: Hex | null;
+  /** World turns it keeps following the hydra after losing sight of her (0: not following her). */
+  chase: number;
+  /** Where it last saw the hydra. */
+  trail: Hex | null;
+}
+
+/** Where the hydra last saw one of the Order's units, and on which turn (GAME_DESIGN.md §5.3). */
+export interface OrderSighting {
+  unitId: string;
+  kind: OrderUnitKind;
+  tier: number;
+  at: Hex;
+  turn: number;
 }
 
 export interface OrderState {
@@ -334,6 +361,12 @@ export interface OrderState {
   act: number;
   /** Alert stages (ids) reached in this act. They stay reached when the Alert falls. */
   stagesReached: string[];
+  units: OrderUnit[];
+  nextUnitId: number;
+  /** The world turn on which the next patrol may come down. */
+  nextPatrolTurn: number;
+  /** Units the hydra has seen, where she saw them last (a unit in sight now is there too). */
+  sightings: OrderSighting[];
   /** Random numbers for the Order's moves, apart from the hydra's. */
   rngState: number;
 }
@@ -364,6 +397,8 @@ export interface RunRules {
   bonesPerEnemy: number;
   /** Enemy type ids for each encounter group id. */
   encounterGroupMembers: Readonly<Record<string, readonly string[]>>;
+  /** How strong each encounter group is (1–3), by id. */
+  encounterGroupTiers: Readonly<Record<string, number>>;
   /** What each blessing (by id) does. */
   blessings: Readonly<Record<string, BlessingEffects>>;
   thresholds: Readonly<Record<string, ThresholdRules>>;
@@ -431,8 +466,8 @@ export interface RunState {
   /** 0–100. Stored with fractions; show it rounded down. */
   alert: number;
   resources: Resources;
-  /** The encounter the hydra stepped on, until its battle is resolved. */
-  pendingBattle: { at: Hex; groupId: string } | null;
+  /** The encounter the hydra stepped on (or the Order's unit she met: `unitId`), until its battle is resolved. */
+  pendingBattle: { at: Hex; groupId: string; unitId?: string } | null;
   /** The shrine the hydra stands at, until its blessing is accepted or refused. */
   pendingShrine: Hex | null;
   /** The place the hydra stands at, or the threshold it stands next to, while its panel is open. */
@@ -501,6 +536,18 @@ export type RunEvent =
   | { type: 'dialogueQueued'; id: string }
   /** The Alert reached a stage (order.json alertStages): the Order does more from now on. */
   | { type: 'alertStage'; stageId: string }
+  /** People of the Order came down a Passage (or the Old Workings shaft); `seen`: in the hydra's sight. */
+  | { type: 'orderArrived'; unitId: string; kind: OrderUnitKind; at: Hex; seen: boolean }
+  /** One of the Order's units walked `path` (its old hex not included) in the world turn. */
+  | { type: 'orderMoved'; unitId: string; path: Hex[] }
+  /** A patrol (or another unit) walked onto the hydra: a battle. */
+  | { type: 'orderAttacked'; unitId: string; at: Hex }
+  /** After a battle, a messenger runs for the nearest Passage. */
+  | { type: 'messengerSent'; unitId: string; at: Hex }
+  /** He got there: the Alert rises. */
+  | { type: 'messengerEscaped'; unitId: string; alert: number }
+  /** The hydra caught him: `line` is which of order.json messengers.eatenLines is said. */
+  | { type: 'messengerEaten'; at: Hex; bones: number; alert: number; line: number }
   | { type: 'turnEnded'; turn: number };
 
 export interface Reachable {
