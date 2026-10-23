@@ -12,7 +12,7 @@ import { tileAt } from './world';
 
 /** The lair a hydra hatches into: her mother's eggs (startingEggs of them), each with its share of her mutations. */
 export function newLair(state: RunState, rules: RunRules): LairState {
-  const lair: LairState = { eggs: [], defenders: 0, scouts: [], nextId: 1 };
+  const lair: LairState = { eggs: [], defenders: 0, scouts: [], nextId: 1, eggHidden: false };
   state.lair = lair;
   for (let i = 0; i < rules.brood.startingEggs; i++) lair.eggs.push(newEgg(state, rules));
   return lair;
@@ -46,7 +46,7 @@ function inTheLair(state: RunState): boolean {
   return hexEquals(state.hydra.position, state.map.lair);
 }
 
-export type LairCheck = { can: true } | { can: false; why: 'notInLair' | 'cost' | 'full' | 'noEgg' | 'alreadyHatching' };
+export type LairCheck = { can: true } | { can: false; why: 'notInLair' | 'cost' | 'full' | 'noEgg' | 'alreadyHatching' | 'alreadyHidden' };
 
 export function canLayEgg(state: RunState, rules: RunRules): LairCheck {
   const { eggCost } = rules.brood;
@@ -85,6 +85,25 @@ export function hatchEgg(state: RunState, eggId: string, role: BroodlingRole, ru
   const events: RunEvent[] = [{ type: 'hatchingStarted', eggId, role }];
   if (rules.brood.hatchTurns === 0) hatchReady(state, events);
   return events;
+}
+
+export function canHideEgg(state: RunState, eggId: string): LairCheck {
+  const check = canHatch(state, eggId);
+  if (!check.can) return check;
+  if (state.lair.eggHidden) return { can: false, why: 'alreadyHidden' };
+  return { can: true };
+}
+
+/**
+ * Old Mother Toad hides an egg somewhere secret (GAME_DESIGN.md §12, the Hidden Egg): it leaves the lair, and the
+ * lineage keeps it with the mutations it carries, for when no other egg is left. One at a time.
+ */
+export function hideEgg(state: RunState, eggId: string): RunEvent[] {
+  if (!canHideEgg(state, eggId).can) return [];
+  const egg = state.lair.eggs.find((e) => e.id === eggId)!;
+  state.lair.eggs = state.lair.eggs.filter((e) => e !== egg);
+  state.lair.eggHidden = true;
+  return [{ type: 'eggHidden', eggId, mutations: [...egg.mutations] }];
 }
 
 /** The lair's part of the world turn: eggs whose time has come hatch, and the scouts walk. */

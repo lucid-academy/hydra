@@ -59,6 +59,8 @@ export interface Heritage {
   placesSeen: readonly string[];
   /** Her mother, for the dialogues of a new generation (null for the first hydra of a lineage). */
   mother: { name: string; killedBy: string | null } | null;
+  /** Old Mother Toad already keeps an egg of the lineage hidden (then no other can be hidden). */
+  hiddenEgg?: boolean;
 }
 
 /** How a kind of threshold opens (world.json thresholds). */
@@ -400,6 +402,8 @@ export interface LairState {
   scouts: Scout[];
   /** Next free number for ids of eggs and scouts. */
   nextId: number;
+  /** Old Mother Toad keeps an egg of the lineage hidden: no other can be hidden. */
+  eggHidden: boolean;
 }
 
 /** Eggs and Broodlings (brood.json). */
@@ -604,6 +608,8 @@ export type RunEvent =
   | { type: 'lairOpened' }
   | { type: 'eggLaid'; eggId: string }
   | { type: 'hatchingStarted'; eggId: string; role: BroodlingRole }
+  /** Old Mother Toad hid an egg for the lineage (GAME_DESIGN.md §12), with the mutations it carries. */
+  | { type: 'eggHidden'; eggId: string; mutations: string[] }
   | { type: 'hatched'; eggId: string; role: BroodlingRole; scoutId: string | null }
   /** A scout walked `path` in the world turn. */
   | { type: 'scoutMoved'; scoutId: string; path: Hex[] }

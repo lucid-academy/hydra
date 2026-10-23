@@ -65,9 +65,26 @@ describe('the saved profile', () => {
     expect(readProfile(writeProfile(profile))).toEqual(profile);
   });
 
+  it('a profile of the first format (before eggs) is brought up to date, its book and unlocks kept', () => {
+    const profile = newProfile();
+    const lineage = startLineage(profile, 9, lineageRules);
+    lineage.inherited = ['thickNecked'];
+    profile.unlocked.push('wetYear');
+    const old = JSON.parse(writeProfile(profile)) as { format: number; profile: { lineages: Array<Record<string, unknown>> } };
+    old.format = 1;
+    for (const l of old.profile.lineages) {
+      delete l.eggs;
+      delete l.hiddenEgg;
+    }
+    const read = readProfile(JSON.stringify(old));
+    expect(read).toEqual(profile);
+    expect(read?.lineages[0]).toMatchObject({ eggs: null, hiddenEgg: null, inherited: ['thickNecked'] });
+  });
+
   it('a profile of another format, or a broken one, is a fresh start', () => {
     const text = writeProfile(newProfile());
     expect(readProfile(text.replace(`"format":${PROFILE_FORMAT}`, '"format":99'))).toBeNull();
+    expect(readProfile(text.replace(`"format":${PROFILE_FORMAT}`, '"format":0'))).toBeNull();
     expect(readProfile('{"format":1,"profile":{"lineages":[{}],"knowledge":{"flags":[],"placesSeen":[]},"unlocked":[]}}')).toBeNull();
     expect(readProfile('not json')).toBeNull();
     expect(readProfile(null)).toBeNull();

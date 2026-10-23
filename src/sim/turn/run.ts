@@ -83,7 +83,7 @@ export function createRun(seed: number, rules: RunRules, options: RunOptions = {
     pendingEvent: null,
     hotUntil: {},
     order: newOrder(seed, rules),
-    lair: { eggs: [], defenders: 0, scouts: [], nextId: 1 },
+    lair: { eggs: [], defenders: 0, scouts: [], nextId: 1, eggHidden: false },
   };
   if (heritage) {
     state.story.flags.push(...heritage.flags);
@@ -93,6 +93,7 @@ export function createRun(seed: number, rules: RunRules, options: RunOptions = {
   }
   // Her mother's eggs wait in the lair, each with its share of what she was born with.
   newLair(state, rules);
+  state.lair.eggHidden = heritage?.hiddenEgg ?? false;
   placeMark(state, rules);
   // Seeing the lair's surroundings at the start doesn't count as exploring.
   lookAround(state, rules, []);

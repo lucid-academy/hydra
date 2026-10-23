@@ -4,12 +4,14 @@ import { lineageRulesFrom, runRulesFrom } from '../src/data/runRules';
 import { hexKey } from '../src/sim/hex';
 import {
   checkUnlocks,
+  chooseEgg,
   currentLineage,
   endLineage,
   generationSeed,
   heritageOf,
+  hideEgg,
   hydraDied,
-  inherit,
+  miraculousIntervention,
   modifierFor,
   newProfile,
   remember,
@@ -19,7 +21,7 @@ import {
 } from '../src/sim/lineage';
 import type { Lineage, LineageRules, Profile } from '../src/sim/lineage';
 import { Rng } from '../src/sim/rng';
-import { createRun, finishBattle, gainMutation } from '../src/sim/turn';
+import { breakEggs, createRun, eggMutations, finishBattle, gainMutation, hideEgg as hideEggInLair, layEgg } from '../src/sim/turn';
 import type { RunState } from '../src/sim/turn';
 
 const data = loadGameData();
@@ -76,17 +78,17 @@ describe('names', () => {
 });
 
 describe('inheritance', () => {
-  it('passes on a random half of the mutations, rounded up, in the order she carried them', () => {
+  it('an egg carries a random half of the mutations, rounded up, in the order she carried them', () => {
     const rng = new Rng(5);
-    expect(inherit([], 0.5, rng)).toEqual([]);
-    expect(inherit(['a'], 0.5, rng)).toEqual(['a']);
-    expect(inherit(['a', 'b'], 0.5, rng)).toHaveLength(1);
+    expect(eggMutations([], [], 0.5, rng)).toEqual([]);
+    expect(eggMutations(['a'], [], 0.5, rng)).toEqual(['a']);
+    expect(eggMutations(['a', 'b'], [], 0.5, rng)).toHaveLength(1);
     const five = ['a', 'b', 'c', 'd', 'e'];
-    const kept = inherit(five, 0.5, rng);
+    const kept = eggMutations(five, [], 0.5, rng);
     expect(kept).toHaveLength(3);
     expect(kept).toEqual(five.filter((id) => kept.includes(id)));
     // Not always the same half.
-    const halves = new Set(Array.from({ length: 20 }, () => inherit(five, 0.5, rng).join()));
+    const halves = new Set(Array.from({ length: 20 }, () => eggMutations(five, [], 0.5, rng).join()));
     expect(halves.size).toBeGreaterThan(1);
   });
 });
@@ -107,11 +109,15 @@ describe('a lineage', () => {
     expect(run.lineageName).toBe(lineage.name);
   });
 
-  it('when a hydra dies, she goes into the book and her heiress hatches with half her mutations', () => {
+  it('when a hydra dies, she goes into the book, and her heiress hatches from the egg the player chooses', () => {
     const profile = newProfile();
     const lineage = startLineage(profile, 123, lineageRules);
     const run = hatch(profile, lineage);
     for (const id of ['thickNecked', 'slowBlood', 'echoEared']) gainMutation(run, id, rules, []);
+    // She lays an egg in the lair, carrying half of what she has now.
+    run.resources = { muck: 50, moisture: 0, bones: 50 };
+    layEgg(run, rules);
+    expect(run.lair.eggs).toHaveLength(2);
     run.turn = 17;
     slay(run, 'patrol');
     expect(run.deathCause?.groupId).toBe('patrol');
@@ -124,15 +130,19 @@ describe('a lineage', () => {
     expect(lineage.chronicle).toEqual([entry]);
 
     expect(lineage.generation).toBe(2);
-    expect(lineage.inherited).toHaveLength(2);
+    expect(lineage.eggs).toEqual([[], run.lair.eggs[1]!.mutations]);
+    expect(lineage.eggs![1]).toHaveLength(2);
     expect(lineage.mother).toEqual({ name: entry.name, killedBy: entry.killedBy });
     expect(generationSeed(lineage)).not.toBe(123);
 
+    expect(chooseEgg(lineage, 2)).toBe(false);
+    expect(chooseEgg(lineage, 1)).toBe(true);
+    expect(lineage.eggs).toBeNull();
     const heir = hatch(profile, lineage);
     expect(heir.generation).toBe(2);
     expect(heir.hydra.name).toBe(lineage.hydraName);
     expect(heir.lineageName).toBe(lineage.name);
-    expect(heir.hydra.mutations).toEqual(lineage.inherited);
+    expect(heir.hydra.mutations).toEqual(run.lair.eggs[1]!.mutations);
     expect(heir.hydra.inherited).toEqual(lineage.inherited);
   });
 
@@ -146,6 +156,7 @@ describe('a lineage', () => {
         gainMutation(run, data.mutations.mutations[g + 3]!.id, rules, []);
         slay(run, 'patrol');
         hydraDied(profile, lineage, run, lineageRules);
+        chooseEgg(lineage, 0);
       }
       return lineage;
     };
@@ -171,6 +182,66 @@ describe('a lineage', () => {
     const run = hatch(profile, lineage);
     slay(run, 'patrol');
     expect(couldBe(r.epitaphs.any, hydraDied(profile, lineage, run, r).epitaph)).toBe(true);
+  });
+});
+
+describe('eggs and the end of a lineage', () => {
+  it('with no egg left, the lineage can only end, and goes into the book', () => {
+    const profile = newProfile();
+    const lineage = startLineage(profile, 31, lineageRules);
+    const run = hatch(profile, lineage);
+    breakEggs(run, 1);
+    slay(run, 'patrol');
+    hydraDied(profile, lineage, run, lineageRules);
+    expect(lineage.eggs).toEqual([]);
+    expect(chooseEgg(lineage, 0)).toBe(false);
+    expect(miraculousIntervention(lineage)).toBe(false);
+    endLineage(profile, lineage, null, lineageRules);
+    expect(currentLineage(profile)).toBeNull();
+    expect(lineage.chronicle).toHaveLength(1);
+  });
+
+  it('Old Mother Toad hides an egg in the lair for the lineage: one at a time, and it saves a lineage with no eggs', () => {
+    const profile = newProfile();
+    const lineage = startLineage(profile, 32, lineageRules);
+    const run = hatch(profile, lineage);
+    gainMutation(run, 'thickNecked', rules, []);
+    run.resources = { muck: 50, moisture: 0, bones: 50 };
+    layEgg(run, rules);
+    const egg = run.lair.eggs[1]!;
+    const events = hideEggInLair(run, egg.id);
+    expect(events).toEqual([{ type: 'eggHidden', eggId: egg.id, mutations: ['thickNecked'] }]);
+    expect(run.lair.eggs).toHaveLength(1);
+    expect(run.lair.eggHidden).toBe(true);
+    expect(hideEggInLair(run, run.lair.eggs[0]!.id)).toEqual([]);
+    expect(hideEgg(lineage, ['thickNecked'])).toBe(true);
+    expect(hideEgg(lineage, [])).toBe(false);
+    expect(heritageOf(profile, lineage).hiddenEgg).toBe(true);
+
+    // Her heiress knows of it: no other egg can be hidden while it is.
+    breakEggs(run, 1);
+    slay(run, 'patrol');
+    hydraDied(profile, lineage, run, lineageRules);
+    expect(miraculousIntervention(lineage)).toBe(true);
+    expect(lineage.inherited).toEqual(['thickNecked']);
+    expect(lineage.hiddenEgg).toBeNull();
+    const heir = hatch(profile, lineage);
+    expect(heir.hydra.mutations).toEqual(['thickNecked']);
+    expect(heir.lair.eggHidden).toBe(false);
+  });
+
+  it('the hidden egg waits while there are other eggs to choose from', () => {
+    const profile = newProfile();
+    const lineage = startLineage(profile, 33, lineageRules);
+    hideEgg(lineage, []);
+    const run = hatch(profile, lineage);
+    expect(run.lair.eggHidden).toBe(true);
+    slay(run, 'patrol');
+    hydraDied(profile, lineage, run, lineageRules);
+    expect(lineage.eggs).toHaveLength(rules.brood.startingEggs);
+    expect(miraculousIntervention(lineage)).toBe(false);
+    expect(chooseEgg(lineage, 0)).toBe(true);
+    expect(lineage.hiddenEgg).not.toBeNull();
   });
 });
 

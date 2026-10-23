@@ -272,7 +272,6 @@ export function lineageRulesFrom(data: GameData): LineageRules {
   return {
     names: lineage.names,
     takeAncestorName: lineage.takeAncestorName,
-    inheritedShare: lineage.inheritedShare,
     epitaphs: { byEnemy: lineage.epitaphs.byEnemy, any: lineage.epitaphs.any, ended: lineage.epitaphs.ended },
     flagScopes: Object.fromEntries(Object.entries(data.flags.flags).map(([id, f]) => [id, f.scope])),
     biomeNames: Object.fromEntries(Object.entries(data.biomes.biomes).map(([id, b]) => [id, b.displayName])),

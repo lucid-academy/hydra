@@ -749,6 +749,19 @@ export const textSchema = z
       unlocked: z.string().min(1),
       heiress: z.string().min(1),
       hatchButton: z.string().min(1),
+      // The eggs she left (M3). eggTitle: {n}, the egg's number; extinctText: {lineage}; hiddenEggText: {name}, the
+      // hydra in whose time the egg was hidden.
+      eggsHeading: z.string().min(1),
+      eggsHint: z.string().min(1),
+      eggTitle: z.string().min(1),
+      eggNothing: z.string().min(1),
+      eggButton: z.string().min(1),
+      extinctHeading: z.string().min(1),
+      extinctText: z.string().min(1),
+      hiddenEggText: z.string().min(1),
+      hiddenEggTitle: z.string().min(1),
+      interventionButton: z.string().min(1),
+      endLineageButton: z.string().min(1),
       bookTitle: z.string().min(1),
       bookEmpty: z.string().min(1),
       bookEnded: z.string().min(1),
@@ -984,6 +997,11 @@ export const broodSchema = section({
     full: text,
     noEgg: text,
     alreadyHatching: text,
+    // The Hidden Egg (GAME_DESIGN.md §12). hide: {n}, the egg's number.
+    hide: text,
+    hidden: text,
+    keptHidden: text,
+    alreadyHidden: text,
     roles: section({ defender: text, scout: text }),
   }),
 });

@@ -284,8 +284,9 @@ const SHOTS = [
     await page.waitForFunction(() => window.__hydra?.readyScenes.includes('title'), null, { timeout: 15_000 });
     await page.waitForTimeout(500);
   } },
-  { name: 'generation', query: '?seed=123&scene=generation&ancestors=3', viewport: DESKTOP, scene: 'generation' },
-  { name: 'generation-phone', query: '?seed=123&scene=generation&ancestors=3', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'generation' },
+  { name: 'generation', query: '?seed=123&scene=generation&ancestors=3&eggs=3', viewport: DESKTOP, scene: 'generation' },
+  { name: 'generation-phone', query: '?seed=123&scene=generation&ancestors=3&eggs=3', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'generation' },
+  { name: 'generation-extinct', query: '?seed=123&scene=generation&ancestors=2&eggs=0&hidden=1', viewport: DESKTOP, scene: 'generation' },
   { name: 'book', query: '?seed=123&scene=book&ancestors=6', viewport: DESKTOP, scene: 'book' },
   { name: 'heiress-greeted', query: '?seed=123&scene=map&ancestors=3', viewport: DESKTOP, scene: 'map', act: async (page) => readDialogueTo(page, 1) },
   { name: 'dialogue-ancestor', query: '?seed=123&scene=map&ancestors=1&say=dreamDeeper', viewport: DESKTOP, scene: 'map', act: async (page) => readUntilDialogue(page, 'dreamDeeper') },

@@ -1,6 +1,6 @@
-// A lineage of hydras (GAME_DESIGN.md §12): when a hydra dies, her heiress hatches with a part of her mutations and
-// what the lineage remembers; the Book of Lineages keeps every hydra with her epitaph. Until eggs come (M3) an heiress
-// always hatches, so a lineage ends only when the player starts a new one.
+// A lineage of hydras (GAME_DESIGN.md §12): when a hydra dies, the player picks one of the eggs she left, and her
+// heiress hatches from it with the mutations it carries and what the lineage remembers. With no egg left the lineage
+// ends, unless Old Mother Toad has one hidden. The Book of Lineages keeps every hydra with her epitaph.
 
 import { hexKey } from '../hex';
 import { Rng } from '../rng';
@@ -34,6 +34,8 @@ export function startLineage(profile: Profile, seed: number, rules: LineageRules
     seen: [],
     enemyTypesMet: [],
     chronicle: [],
+    eggs: null,
+    hiddenEgg: null,
     ended: false,
     rngState: rng.getState(),
   };
@@ -65,6 +67,7 @@ export function heritageOf(profile: Profile, lineage: Lineage): Heritage {
     enemyTypesMet: [...lineage.enemyTypesMet],
     placesSeen: [...profile.knowledge.placesSeen],
     mother: lineage.mother ? { ...lineage.mother } : null,
+    hiddenEgg: lineage.hiddenEgg !== null,
   };
 }
 
@@ -94,8 +97,9 @@ export function remember(profile: Profile, lineage: Lineage, run: RunState, rule
 }
 
 /**
- * The living hydra has died: she goes into the Book of Lineages with an epitaph that fits her killer, and her heiress
- * is named, with a random half of her mutations (rounded up). Returns her entry in the book.
+ * The living hydra has died: she goes into the Book of Lineages with an epitaph that fits her killer, her heiress is
+ * named, and the eggs she left wait for the player to choose which one the heiress hatches from (chooseEgg). Returns
+ * her entry in the book.
  */
 export function hydraDied(profile: Profile, lineage: Lineage, run: RunState, rules: LineageRules): ChronicleEntry {
   remember(profile, lineage, run, rules);
@@ -118,15 +122,43 @@ export function hydraDied(profile: Profile, lineage: Lineage, run: RunState, rul
   };
   lineage.chronicle.push(entry);
 
-  const inherited = inherit(run.hydra.mutations, rules.inheritedShare, rng);
   const name = nextName(lineage.names, rules, rng);
   lineage.names.push(name);
   lineage.generation += 1;
   lineage.hydraName = withNumber(name, lineage.names);
-  lineage.inherited = inherited;
+  lineage.inherited = [];
+  lineage.eggs = run.lair.eggs.map((egg) => [...egg.mutations]);
   lineage.mother = { name: entry.name, killedBy };
   lineage.rngState = rng.getState();
   return entry;
+}
+
+/** The heiress hatches from the egg `index` of those her mother left, with the mutations it carries. */
+export function chooseEgg(lineage: Lineage, index: number): boolean {
+  const egg = lineage.eggs?.[index];
+  if (!egg) return false;
+  lineage.inherited = [...egg];
+  lineage.eggs = null;
+  return true;
+}
+
+/**
+ * No egg survived, but Old Mother Toad has one hidden (GAME_DESIGN.md §12: Miraculous Intervention): the heiress
+ * hatches from it, with what it carries. Then another egg can be hidden.
+ */
+export function miraculousIntervention(lineage: Lineage): boolean {
+  if (!lineage.eggs || lineage.eggs.length > 0 || !lineage.hiddenEgg) return false;
+  lineage.inherited = [...lineage.hiddenEgg.mutations];
+  lineage.hiddenEgg = null;
+  lineage.eggs = null;
+  return true;
+}
+
+/** Old Mother Toad hides an egg of the living hydra for the lineage (one at a time; it can't be swapped). */
+export function hideEgg(lineage: Lineage, mutations: readonly string[]): boolean {
+  if (lineage.hiddenEgg) return false;
+  lineage.hiddenEgg = { mutations: [...mutations], generation: lineage.generation, mother: lineage.hydraName };
+  return true;
 }
 
 /**
@@ -201,14 +233,6 @@ export function roman(n: number): string {
     }
   }
   return text;
-}
-
-/** A random `share` of the mutations, rounded up, in the order she carried them. */
-export function inherit(mutations: readonly string[], share: number, rng: Rng): string[] {
-  const count = Math.ceil(mutations.length * share);
-  const order = mutations.map((id) => ({ id, key: rng.next() })).sort((a, b) => a.key - b.key);
-  const kept = new Set(order.slice(0, count).map((o) => o.id));
-  return mutations.filter((id) => kept.has(id));
 }
 
 function fill(template: string, values: Record<string, string | number>): string {

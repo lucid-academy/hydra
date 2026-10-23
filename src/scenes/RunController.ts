@@ -17,6 +17,7 @@ import {
   endTurn,
   finishBattle,
   hatchEgg,
+  hideEgg,
   inspect,
   layEgg,
   leavePlace,
@@ -100,6 +101,11 @@ export class RunController extends Phaser.Events.EventEmitter {
 
   hatchEgg(eggId: string, role: BroodlingRole): void {
     this.publish(hatchEgg(this.state, eggId, role, this.rules));
+  }
+
+  /** Old Mother Toad hides the egg for the lineage (the lineage keeper keeps it). */
+  hideEgg(eggId: string): void {
+    this.publish(hideEgg(this.state, eggId));
   }
 
   /** Opens the sealed threshold whose panel is open, its way number `way`. */
