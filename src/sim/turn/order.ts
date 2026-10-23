@@ -6,6 +6,7 @@
 import { hasLineOfSight, hexDistance, hexEquals, hexKey, hexNeighbors } from '../hex';
 import type { Hex } from '../hex';
 import { Rng } from '../rng';
+import { gainMutation } from './mutations';
 import { meetEnemies, storyMoment } from './story';
 import type { OrderGroupRules, OrderState, OrderUnit, OrderUnitKind, RunEvent, RunRules, RunState } from './types';
 import { noteSightings, raiseAlert, tileAt } from './world';
@@ -255,6 +256,14 @@ export function unitBeaten(state: RunState, unit: OrderUnit, rules: RunRules, ev
   const { order } = state;
   if (unit.kind === 'expedition') order.nextExpeditionTurn = state.turn + rules.order.expeditions.everyTurns;
   if (unit.kind === 'greatBurning') {
+    // The beaten Master is eaten, and leaves her something of himself (GAME_DESIGN.md §12).
+    const fresh = rules.order.greatBurning.mutations.filter((id) => !state.hydra.mutations.includes(id));
+    if (fresh.length > 0) {
+      const rng = Rng.fromState(order.rngState);
+      const id = rng.pick(fresh);
+      order.rngState = rng.getState();
+      gainMutation(state, id, rules, events);
+    }
     order.act += 1;
     order.stagesReached = [];
     order.nextExpeditionTurn = null;

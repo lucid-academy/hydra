@@ -103,6 +103,10 @@
     "grief": "{name} is grieving.",
     "badIdea": "{name} has an idea.",
     "eaten": "Eaten.",
+    "//m3": "M3: the Tithe Collector has counted everything (collected) and got away (escaped); a Broodling died (allyKilled).",
+    "collected": "Counted. Itemised.",
+    "escaped": "Gone, with the tithe.",
+    "allyKilled": "A Broodling is lost.",
     "skillFizzled": "Nothing happens.",
     "codexButton": "Codex",
     "codexTitle": "Combos",
@@ -186,7 +190,8 @@
       "startingHeads": "Heads at hatching {n}",
       "alertPercent": "Alert gain {n}%",
       "findsPercent": "Muck and Moisture found {n}%",
-      "echoRange": "Echoes heard {n} hexes further"
+      "echoRange": "Echoes heard {n} hexes further",
+      "cauterizePercent": "Stumps take {n}% longer to burn shut"
     }
   }
 }

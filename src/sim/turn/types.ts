@@ -39,6 +39,8 @@ export interface MutationEffects {
   findsPercent?: number;
   /** Echoes are heard this many hexes further. */
   echoRange?: number;
+  /** Burning a stump shut in battle takes this many percent longer. */
+  cauterizePercent?: number;
 }
 
 /** What a hydra hatches with (GAME_DESIGN.md §12), given by her lineage (sim/lineage). */
@@ -327,7 +329,10 @@ export interface OrderRules {
   };
   messengers: { headStart: number; movement: number; alertOnArrival: number; alertWhenEaten: number; bones: number; eatenLines: number };
   expeditions: { fromStage: string; firstAfterTurns: number; everyTurns: number; movement: number; groups: readonly OrderGroupRules[] };
-  greatBurning: { atStage: string; movement: number; groupId: string };
+  /** mutations: what eating the beaten Master can give (one she doesn't carry, at random). */
+  greatBurning: { atStage: string; movement: number; groupId: string; mutations: readonly string[] };
+  /** A Tithe Collector who gets away takes this many percent of each resource. */
+  tithePercent: number;
   siege: { perTurn: number };
 }
 
@@ -452,6 +457,8 @@ export interface RunRules {
   thresholds: Readonly<Record<string, ThresholdRules>>;
   /** What each mutation (by id) does. */
   mutations: Readonly<Record<string, MutationEffects>>;
+  /** Mutations only a boss eaten gives: marking shrines never offer them. */
+  bossMutations: readonly string[];
   /** Marking shrines: with this chance a world has one, in one of these rings, offering a mutation instead of a blessing. */
   marks: { chance: number; rings: readonly number[] };
   /** How the Cinderkin melt a tunnel (null: no threshold in world.json can be bored). */
@@ -610,6 +617,8 @@ export type RunEvent =
   | { type: 'hatchingStarted'; eggId: string; role: BroodlingRole }
   /** Old Mother Toad hid an egg for the lineage (GAME_DESIGN.md §12), with the mutations it carries. */
   | { type: 'eggHidden'; eggId: string; mutations: string[] }
+  /** A Tithe Collector got away from the battle with this much. */
+  | { type: 'titheTaken'; muck: number; moisture: number; bones: number }
   | { type: 'hatched'; eggId: string; role: BroodlingRole; scoutId: string | null }
   /** A scout walked `path` in the world turn. */
   | { type: 'scoutMoved'; scoutId: string; path: Hex[] }

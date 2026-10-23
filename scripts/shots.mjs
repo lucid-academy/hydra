@@ -270,6 +270,22 @@ const SHOTS = [
     }
     await page.waitForTimeout(1200);
   } },
+  // M3: the battle for the lair with Broodlings, the Order's new people, and the Great Burning's Master.
+  { name: 'battle-lair', query: '?seed=123&scene=battle&group=knightsVigil&allies=3', viewport: DESKTOP, scene: 'battle', act: async (page) => {
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(6000);
+    await page.keyboard.press('Space');
+  } },
+  { name: 'battle-tithe', query: '?seed=123&scene=battle&group=titheVisit', viewport: DESKTOP, scene: 'battle', act: async (page) => {
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(7000);
+    await page.keyboard.press('Space');
+  } },
+  { name: 'battle-great-burning', query: '?seed=123&scene=battle&group=greatBurning&allies=2', viewport: DESKTOP, scene: 'battle', act: async (page) => {
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(5000);
+    await page.keyboard.press('Space');
+  } },
   { name: 'battle-serpent', query: '?seed=123&scene=battle&group=patrol&say=battleSmall', viewport: DESKTOP, scene: 'battle', act: async (page) => {
     await page.keyboard.press('Space');
     await page.waitForTimeout(1500);

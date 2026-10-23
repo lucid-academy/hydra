@@ -229,7 +229,7 @@ export const headsSchema = section({
   });
 });
 
-export const ENEMY_BEHAVIORS = ['fighter', 'headhunter', 'torchbearer'] as const;
+export const ENEMY_BEHAVIORS = ['fighter', 'headhunter', 'torchbearer', 'collector'] as const;
 
 export const enemiesSchema = section({
   types: z.record(
@@ -246,6 +246,16 @@ export const enemiesSchema = section({
       behavior: z.enum(ENEMY_BEHAVIORS),
       // Statuses (combos.json) that never take hold on this type, e.g. knights and "terrified".
       immuneTo: z.array(z.string().min(1)).optional(),
+      // A ranged attacker that sees nothing through Mist but what is right next to it (crossbowmen).
+      blindInMist: z.boolean().optional(),
+      // Attacks from afar before it runs out (crossbow bolts); after that it fights up close, at range 1.
+      shots: z.number().int().min(0).optional(),
+      // Walks faster (step time multiplied by stepMultiplier) until its first blow, which hits firstHitMultiplier times harder.
+      charge: section({ stepMultiplier: z.number().positive(), firstHitMultiplier: z.number().positive() }).optional(),
+      // collector behavior: seconds it spends counting next to the body before it runs for the edge.
+      collectSeconds: z.number().positive().optional(),
+      // A boss: named over the board with a big HP bar.
+      boss: z.boolean().optional(),
     }),
   ),
   encounterGroups: z
@@ -256,6 +266,8 @@ export const enemiesSchema = section({
         tier: z.number().int().min(1),
         weight: z.number().positive(),
         members: z.array(z.string()).min(1),
+        // Only the Order brings this group (order.json): it never waits on the map as an encounter.
+        orderOnly: z.boolean().optional(),
       }),
     )
     .min(1),
@@ -270,6 +282,9 @@ export const enemiesSchema = section({
   for (const [id, type] of Object.entries(data.types)) {
     if (type.behavior === 'torchbearer' && type.cauterizeSeconds === undefined) {
       ctx.addIssue({ code: 'custom', path: ['types', id, 'cauterizeSeconds'], message: 'torchbearer behavior needs cauterizeSeconds' });
+    }
+    if (type.behavior === 'collector' && type.collectSeconds === undefined) {
+      ctx.addIssue({ code: 'custom', path: ['types', id, 'collectSeconds'], message: 'collector behavior needs collectSeconds' });
     }
   }
 });
@@ -304,7 +319,7 @@ export const biomesSchema = section({
 /** What a blessing can change (see shrines.json). */
 export const BLESSING_EFFECTS = ['movement', 'sight', 'bodyMaxHp', 'regeneration', 'alert', 'muck', 'moisture'] as const;
 /** What a mutation can change (see mutations.json). */
-export const MUTATION_EFFECTS = ['movement', 'sight', 'bodyMaxHp', 'regeneration', 'headMaxHpPercent', 'startingHeads', 'alertPercent', 'findsPercent', 'echoRange'] as const;
+export const MUTATION_EFFECTS = ['movement', 'sight', 'bodyMaxHp', 'regeneration', 'headMaxHpPercent', 'startingHeads', 'alertPercent', 'findsPercent', 'echoRange', 'cauterizePercent'] as const;
 
 export const shrinesSchema = section({
   blessings: z
@@ -718,6 +733,10 @@ export const textSchema = z
       grief: z.string().min(1),
       badIdea: z.string().min(1),
       eaten: z.string().min(1),
+      '//m3': z.string().optional(),
+      collected: z.string().min(1),
+      escaped: z.string().min(1),
+      allyKilled: z.string().min(1),
       skillFizzled: z.string().min(1),
       // The combo codex: {n} combos found of {total}.
       codexButton: z.string().min(1),
@@ -892,6 +911,8 @@ export const mutationsSchema = section({
         name: z.string().min(1),
         text: z.string().min(1),
         effects: z.partialRecord(z.enum(MUTATION_EFFECTS), z.number().int()),
+        // Only a boss eaten gives it: marking shrines never offer it.
+        bossOnly: z.boolean().optional(),
       }),
     )
     .min(1),
@@ -956,7 +977,18 @@ export const orderSchema = section({
     groups: z.array(orderGroupSchema).min(1),
   }),
   // beaten: {act} is the number of the act that begins.
-  greatBurning: section({ atStage: z.string().min(1), movement: z.number().int().min(1), group: z.string().min(1), sent: z.string().min(1), beaten: z.string().min(1) }),
+  greatBurning: section({
+    atStage: z.string().min(1),
+    movement: z.number().int().min(1),
+    group: z.string().min(1),
+    // Mutation ids (mutations.json): the hydra gets one she doesn't carry for eating the Master.
+    mutations: z.array(z.string().min(1)),
+    sent: z.string().min(1),
+    // {act}: the act that begins.
+    beaten: z.string().min(1),
+  }),
+  // {list}: what the Tithe Collector took.
+  tithe: section({ percent: z.number().min(0).max(100), taken: z.string().min(1), nothing: z.string().min(1), receipt: z.string().min(1) }),
   siege: section({ perTurn: z.number().int().min(0), killedDefender: z.string().min(1), brokeEgg: z.string().min(1) }),
 });
 
@@ -968,6 +1000,8 @@ export const broodSchema = section({
   hatchTurns: z.number().int().min(0),
   scouts: section({ movement: z.number().int().min(1), sight: z.number().int().min(0) }),
   lostDefense: section({ eggsBrokenShare: z.number().min(0).max(1) }),
+  // Broodlings guarding the lair fight beside the hydra in the battle for it.
+  battle: section({ maxHp: z.number().positive(), stepSeconds: z.number().positive(), attack: attackSchema }),
   texts: section({
     kind: text,
     name: text,

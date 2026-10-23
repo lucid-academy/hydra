@@ -13,6 +13,12 @@
     "//": "A lost battle for the lair: the Order breaks this share of the eggs (rounded up; 1 = all of them).",
     "eggsBrokenShare": 0.5
   },
+  "battle": {
+    "//": "TODO(design): Broodlings guarding the lair fight beside the hydra in the battle for it. Each stands on a hex round the body, walks to the nearest human and bites it; the Order hits them like heads in its way. Those that die are gone from the lair. Times in seconds, attack range in hexes.",
+    "maxHp": 40,
+    "stepSeconds": 0.6,
+    "attack": { "damage": 5, "cooldownSeconds": 1.6, "range": 1 }
+  },
   "texts": {
     "kind": "The lair",
     "name": "The swamp under the swamp",

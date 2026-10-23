@@ -48,6 +48,22 @@
       "name": "Echo-eared",
       "text": "Hears the deep places talking from far off. Mostly they talk about her.",
       "effects": { "echoRange": 3 }
+    },
+    {
+      "id": "fireproofScales",
+      "name": "Fireproof Scales",
+      "//": "Only from eating a Master of the Order (order.json greatBurning mutations); a marking shrine never offers it (bossOnly). cauterizePercent: burning a stump shut takes this many percent longer.",
+      "bossOnly": true,
+      "text": "Scales that have been through a Master of the Order and come out the other side. Torches find them tedious.",
+      "effects": { "cauterizePercent": 50 }
+    },
+    {
+      "id": "ashTongued",
+      "name": "Ash-tongued",
+      "//": "Only from eating a Master of the Order, like Fireproof Scales.",
+      "bossOnly": true,
+      "text": "The Master's last sermon is still in there somewhere. The heads heal faster for it, and the Order can smell him on her.",
+      "effects": { "regeneration": 4, "alertPercent": 15 }
     }
   ]
 }

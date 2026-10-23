@@ -6,7 +6,8 @@
 // Several heads at once: Ctrl or Shift + tap on heads or cards (Shift + 1–9), or "All heads" (key A).
 // With no head selected, tap a free hex to move the body there (right-click always moves it).
 // The board is one painted surface (GAME_DESIGN.md §13) with a faint grid, reach is one line round the area,
-// things stand on soft shadows, and torches light the board around them.
+// things stand on soft shadows, and torches light the board around them. In the battle for the lair, Broodlings
+// fight beside the hydra; a boss (the Master of the Order) has his name and HP in the top bar.
 
 import * as Phaser from 'phaser';
 import { SCREEN } from '../scaling';
@@ -29,6 +30,7 @@ import {
   bodyDistance,
   boardHexes,
   canCauterize,
+  cauterizeTicksFor,
   createBattle,
   enemyCan,
   hasStatus,
@@ -38,7 +40,7 @@ import {
   skillInSlot,
   stepBattle,
 } from '../sim/battle';
-import type { BattleEvent, BattleHead, BattleSetup, BattleState, Enemy, HeadRecord, MistCloud, SkillAim, Walker } from '../sim/battle';
+import type { Ally, BattleEvent, BattleHead, BattleSetup, BattleState, Enemy, HeadRecord, MistCloud, SkillAim, Walker } from '../sim/battle';
 import { hexDistance, hexKey, hexToPixel, pixelToHex } from '../sim/hex';
 import type { Hex, HexLayout } from '../sim/hex';
 import type { ShownLine } from '../sim/turn';
@@ -67,6 +69,8 @@ const PANEL_TOP = 316;
 /** Screen position of the board's middle hex, where the body starts. */
 const LAYOUT: HexLayout = { columnWidth: HEX_COLUMN_WIDTH, rowHeight: HEX_ROW_HEIGHT, originX: 320, originY: 170 };
 const SPEEDS = [1, 0.5] as const;
+/** A boss's name in the top bar starts here, and his HP bar after it is this wide (screen units). */
+const BOSS_BAR = { x: 86, width: 90 } as const;
 const DEFAULT_TEST_GROUP = 'burningDetail';
 /** The skill buttons lie over the front edge of the board, in the middle (SkillBar is 372 wide). */
 const SKILL_BAR = { x: 134, y: PANEL_TOP - 21 } as const;
@@ -122,7 +126,7 @@ const MARK_LINE = { rounding: 3, glowWidth: 4, glowAlpha: 0.2, width: 1.25 } as 
  * Soft shadows under soldiers and under the body (screen units). The body's is an oval round the foot of the mound,
  * its middle this far below the middle of the footprint, so it shows at the sides and in front.
  */
-const SHADOW = { soldier: 24, body: { width: 176, height: 100, below: 12 } } as const;
+const SHADOW = { soldier: 24, broodling: 14, body: { width: 176, height: 100, below: 12 } } as const;
 /** A cloud of Mist is soft patches this wide, one on each hex it covers, and soft puffs this big over them (screen units). */
 const MIST_PATCH = 70;
 const MIST_PUFF = { width: 34, height: 16 } as const;
@@ -158,6 +162,16 @@ interface HeadView {
   recoilUntil: number;
   recoilFrom: Point;
   phase: number;
+}
+
+/** A Broodling on the board. */
+interface AllyView {
+  sprite: Phaser.GameObjects.Image;
+  shadow: Phaser.GameObjects.Image;
+  lungeUntil: number;
+  lungeTo: Point;
+  phase: number;
+  feet: Point;
 }
 
 interface EnemyView {
@@ -200,6 +214,12 @@ export class BattleScene extends Phaser.Scene {
   private bodySprite!: Phaser.GameObjects.Image;
   private heads = new Map<string, HeadView>();
   private enemies = new Map<number, EnemyView>();
+  private allies = new Map<number, AllyView>();
+  /** Humans who left the board (a Tithe Collector with the tithe): they walk off instead of falling. */
+  private escaped = new Set<number>();
+  /** A boss's name and HP in the top bar (hidden without a boss). */
+  private bossText!: Phaser.GameObjects.Text;
+  private bossBar!: Phaser.GameObjects.Graphics;
   private stumpSprites = new Map<number, Phaser.GameObjects.Image>();
   private necks!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Graphics;
@@ -230,7 +250,7 @@ export class BattleScene extends Phaser.Scene {
     if (!run || (!run.state.pendingBattle && params.scene === SceneKey.Battle)) {
       // ?scene=battle: a test battle without walking to an encounter.
       run = run ?? startNewRun(this);
-      run.startTestBattle(params.group ?? DEFAULT_TEST_GROUP, params.hp);
+      run.startTestBattle(params.group ?? DEFAULT_TEST_GROUP, params.hp, params.allies);
     }
     this.run = run;
     const setup = run.battleSetup();
@@ -255,6 +275,8 @@ export class BattleScene extends Phaser.Scene {
     this.mistPuffs = new Map();
     this.heads = new Map();
     this.enemies = new Map();
+    this.allies = new Map();
+    this.escaped = new Set();
     this.stumpSprites = new Map();
     makeSoftTextures(this);
 
@@ -296,6 +318,7 @@ export class BattleScene extends Phaser.Scene {
       orders: Object.fromEntries(this.battle.heads.map((h) => [h.id, h.orderTargetId])),
       clouds: this.battle.clouds.length,
       combos: [...this.combosSeen],
+      allies: this.battle.allies.length,
     }));
     markReady(SceneKey.Battle);
   }
@@ -451,6 +474,11 @@ export class BattleScene extends Phaser.Scene {
       .text(width / 2, 3, text.battle.paused, { fontFamily: FONT.text, fontSize: '10px', color: palette.order.gold })
       .setOrigin(0.5, 0)
       .setDepth(DEPTH.ui + 1);
+    // A boss's name, then his HP bar (drawOverlay), between the body's HP and the word PAUSED.
+    this.bossText = this.add
+      .text(BOSS_BAR.x, 3, '', { fontFamily: FONT.title, fontSize: '10px', color: palette.order.fire })
+      .setDepth(DEPTH.ui + 1);
+    this.bossBar = this.add.graphics().setDepth(DEPTH.ui + 1);
     this.pausedFrame = this.add.graphics().setDepth(DEPTH.ui - 1);
     this.pausedFrame.lineStyle(2, color(palette.order.gold), 0.9);
     this.pausedFrame.strokeRect(1, ARENA_TOP + 1, width - 2, PANEL_TOP - ARENA_TOP - 2);
@@ -869,8 +897,22 @@ export class BattleScene extends Phaser.Scene {
     const enemyIds = new Set(this.battle.enemies.map((e) => e.id));
     for (const [id, view] of this.enemies) {
       if (enemyIds.has(id)) continue;
-      this.fallDown(view);
+      if (this.escaped.has(id)) this.walkOff(view);
+      else this.fallDown(view);
       this.enemies.delete(id);
+    }
+    const allyIds = new Set(this.battle.allies.map((a) => a.id));
+    for (const [id, view] of this.allies) {
+      if (allyIds.has(id)) continue;
+      this.fallDown(view);
+      this.allies.delete(id);
+    }
+    for (const ally of this.battle.allies) {
+      if (this.allies.has(ally.id)) continue;
+      const feet = this.hexFeet(ally.hex);
+      const sprite = this.add.image(feet.x, feet.y, 'battle_broodling').setOrigin(0.5, 1);
+      const shadow = this.softShadow(SHADOW.broodling).setPosition(feet.x, feet.y);
+      this.allies.set(ally.id, { sprite, shadow, lungeUntil: 0, lungeTo: feet, phase: ally.id * 1.9, feet });
     }
     for (const enemy of this.battle.enemies) {
       if (this.enemies.has(enemy.id)) continue;
@@ -928,6 +970,7 @@ export class BattleScene extends Phaser.Scene {
     this.bodyShadow.setPosition(body.x, body.y + SHADOW.body.below);
 
     for (const enemy of this.battle.enemies) this.drawEnemy(enemy, body, now);
+    for (const ally of this.battle.allies) this.drawAlly(ally, now);
     this.drawMist(now);
     this.drawHeads(body, now, delta);
 
@@ -941,6 +984,8 @@ export class BattleScene extends Phaser.Scene {
     this.drawLights(now);
     const { text } = getContext(this).data;
     this.bodyHpText.setText(`${text.battle.body} ${Math.max(0, Math.ceil(this.battle.body.hp))}/${this.battle.body.maxHp}`);
+    const boss = this.battle.enemies.find((e) => rules.enemyTypes[e.typeId]!.boss);
+    this.bossText.setText(boss ? (getContext(this).data.enemies.types[boss.typeId]?.displayName ?? boss.typeId) : '');
     this.cards.update(
       this.battle.heads.map((h) => ({ ...h, charge: 1 - h.cooldown / rules.headClasses[h.classId]!.attack.cooldownTicks })),
       this.selected,
@@ -994,6 +1039,27 @@ export class BattleScene extends Phaser.Scene {
       y += Math.sign(view.lungeTo.y - y) * 2;
     }
     const facingLeft = hop > 0 ? this.hexCenter(enemy.hex).x < this.hexCenter(enemy.stepFrom).x : x > body.x;
+    view.sprite
+      .setPosition(Math.round(x), Math.round(y))
+      .setFlipX(facingLeft)
+      .setDepth(DEPTH.standing + view.feet.y / 1000);
+  }
+
+  /** A Broodling: hops when it walks, lunges when it bites, wriggles a little when it stands. */
+  private drawAlly(ally: Ally, now: number): void {
+    const view = this.allies.get(ally.id);
+    if (!view) return;
+    const { point, hop } = this.walkerPosition(ally, ally.hex);
+    let x = point.x;
+    let y = point.y + FEET_BELOW_HEX_CENTER;
+    view.feet = { x, y };
+    view.shadow.setPosition(Math.round(x), Math.round(y));
+    y -= hop > 0 ? Math.round(hop * 4) : Math.sin(now / 200 + view.phase) > 0.7 ? 1 : 0;
+    if (now < view.lungeUntil) {
+      x += Math.sign(view.lungeTo.x - x) * 3;
+      y += Math.sign(view.lungeTo.y - y) * 2;
+    }
+    const facingLeft = hop > 0 ? this.hexCenter(ally.hex).x < this.hexCenter(ally.stepFrom).x : view.lungeTo.x < x;
     view.sprite
       .setPosition(Math.round(x), Math.round(y))
       .setFlipX(facingLeft)
@@ -1231,9 +1297,27 @@ export class BattleScene extends Phaser.Scene {
       });
       if (enemy.cauterizingStumpId !== null) {
         const stump = this.battle.stumps.find((s) => s.id === enemy.cauterizingStumpId);
-        const cauterizeTicks = rules.enemyTypes[enemy.typeId]!.cauterizeTicks ?? 1;
-        if (stump) hpBar(g, view.feet.x, view.feet.y + 3, 18, stump.cauterizeProgress / cauterizeTicks, 0xffa030);
+        if (stump) hpBar(g, view.feet.x, view.feet.y + 3, 18, stump.cauterizeProgress / cauterizeTicksFor(this.battle, enemy, rules), 0xffa030);
       }
+      // A Tithe Collector counting what the hydra has.
+      const collectTicks = rules.enemyTypes[enemy.typeId]!.collectTicks;
+      if (collectTicks !== null && !enemy.collected && (enemy.collectProgress ?? 0) > 0) {
+        hpBar(g, view.feet.x, view.feet.y + 3, 18, (enemy.collectProgress ?? 0) / collectTicks, color(getContext(this).data.palette.order.gold));
+      }
+    }
+    for (const ally of this.battle.allies) {
+      const view = this.allies.get(ally.id);
+      if (view) hpBar(g, view.feet.x, view.feet.y - 18, 12, ally.hp / ally.maxHp, 0x7fc05a);
+    }
+    // The boss's HP, in the top bar beside his name.
+    const boss = this.battle.enemies.find((e) => rules.enemyTypes[e.typeId]!.boss);
+    this.bossBar.clear();
+    if (boss) {
+      const x = Math.round(this.bossText.x + this.bossText.width + 6);
+      this.bossBar.fillStyle(0x3a1a14);
+      this.bossBar.fillRect(x - 1, 5, BOSS_BAR.width + 2, 6);
+      this.bossBar.fillStyle(color(getContext(this).data.palette.order.fire));
+      this.bossBar.fillRect(x, 6, Math.round(BOSS_BAR.width * Math.max(0, boss.hp / boss.maxHp)), 4);
     }
     for (const head of this.battle.heads) {
       const view = this.heads.get(head.id);
@@ -1274,10 +1358,18 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private fallDown(view: EnemyView): void {
+  private fallDown(view: EnemyView | AllyView): void {
+    view.shadow.destroy();
+    if ('glow' in view) view.glow.destroy();
+    this.tweens.add({ targets: view.sprite, alpha: 0, y: view.sprite.y + 4, duration: 500, onComplete: () => view.sprite.destroy() });
+  }
+
+  /** Off the edge of the board, still standing: away from the body, fading. */
+  private walkOff(view: EnemyView): void {
     view.shadow.destroy();
     view.glow.destroy();
-    this.tweens.add({ targets: view.sprite, alpha: 0, y: view.sprite.y + 4, duration: 500, onComplete: () => view.sprite.destroy() });
+    const away = view.sprite.x >= this.bodyCenter().x ? 1 : -1;
+    this.tweens.add({ targets: view.sprite, alpha: 0, x: view.sprite.x + away * 20, duration: 700, onComplete: () => view.sprite.destroy() });
   }
 
   private showEvents(events: readonly BattleEvent[], now: number): void {
@@ -1326,6 +1418,22 @@ export class BattleScene extends Phaser.Scene {
         case 'devoured': {
           const at = this.hexFeet(event.at);
           this.floatText({ x: at.x, y: at.y - 30 }, text.battle.eaten, '#d98a6a');
+          break;
+        }
+        case 'collected': {
+          const at = this.enemies.get(event.enemyId)?.feet ?? this.hexFeet(event.at);
+          this.floatText({ x: at.x, y: at.y - 50 }, text.battle.collected, palette.order.gold);
+          break;
+        }
+        case 'escaped': {
+          this.escaped.add(event.enemyId);
+          const at = this.hexFeet(event.at);
+          this.floatText({ x: at.x, y: at.y - 50 }, text.battle.escaped, palette.order.orange);
+          break;
+        }
+        case 'allyKilled': {
+          const at = this.hexFeet(event.at);
+          this.floatText({ x: at.x, y: at.y - 24 }, text.battle.allyKilled, '#ff8060', '9px');
           break;
         }
         case 'mood':
@@ -1405,14 +1513,26 @@ export class BattleScene extends Phaser.Scene {
       const view = this.heads.get(event.attackerId);
       if (view) Object.assign(view, { lungeUntil: now + HEAD_LUNGE_MS, lungeTo: { x: hitAt.x, y: hitAt.y - 16 } });
     }
+    if (event.attacker === 'ally' && typeof event.attackerId === 'number') {
+      const view = this.allies.get(event.attackerId);
+      if (view) Object.assign(view, { lungeUntil: now + 120, lungeTo: { x: hitAt.x, y: hitAt.y } });
+    }
     const headHit = event.targetKind === 'head' ? this.heads.get(event.targetId as string) : undefined;
+    const allyHit = event.targetKind === 'ally' ? this.allies.get(event.targetId as number) : undefined;
     if (event.attacker === 'enemy' && typeof event.attackerId === 'number') {
       const view = this.enemies.get(event.attackerId);
-      if (view) Object.assign(view, { lungeUntil: now + 120, lungeTo: headHit ? { x: headHit.x, y: headHit.y } : this.bodyCenter() });
+      const target = headHit ? { x: headHit.x, y: headHit.y } : allyHit ? allyHit.feet : this.bodyCenter();
+      if (view) Object.assign(view, { lungeUntil: now + 120, lungeTo: target });
       if (view && headHit) Object.assign(headHit, { recoilUntil: now + HEAD_RECOIL_MS, recoilFrom: { x: view.feet.x, y: view.feet.y - 20 } });
     }
     const sprite =
-      event.targetKind === 'enemy' ? this.enemies.get(event.targetId as number)?.sprite : event.targetKind === 'head' ? headHit?.sprite : this.bodySprite;
+      event.targetKind === 'enemy'
+        ? this.enemies.get(event.targetId as number)?.sprite
+        : event.targetKind === 'head'
+          ? headHit?.sprite
+          : event.targetKind === 'ally'
+            ? allyHit?.sprite
+            : this.bodySprite;
     if (sprite) this.flash(sprite);
     if (headHit) this.flash(headHit.jaw);
   }

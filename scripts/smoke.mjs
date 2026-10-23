@@ -245,6 +245,23 @@ try {
   log('map after two battles:', JSON.stringify(await page.evaluate(() => window.__hydra.runSummary())));
   await page.close();
 
+  // Part 2a: the battle for the lair, with Broodlings guarding it: they fight, and those left go back to the lair.
+  page = await openPage(`?seed=7&scene=battle&group=lostNovices&allies=2&speed=${SPEED}`);
+  await waitForScene(page, 'battle');
+  const guards = await page.evaluate(() => window.__hydra.battleSummary().allies);
+  if (guards !== 2) throw new Error(`Expected 2 Broodlings in the battle for the lair, got ${guards}`);
+  await tap(page, RESUME_BUTTON);
+  await page.waitForFunction(() => window.__hydra.battleSummary().outcome !== null, null, { timeout: 240_000 });
+  const defended = await page.evaluate(() => window.__hydra.battleSummary());
+  await page.waitForTimeout(300);
+  const mapsBeforeDefense = await timesReady(page, 'map');
+  await tap(page, CONTINUE_BUTTON);
+  await waitForScene(page, 'map', mapsBeforeDefense);
+  const home = await page.evaluate(() => window.__hydra.runSummary());
+  if (defended.outcome === 'won' && home.defenders !== defended.allies) throw new Error(`Broodlings left after the battle: ${defended.allies}, in the lair: ${home.defenders}`);
+  log(`the battle for the lair: ${defended.outcome}, Broodlings 2 → ${home.defenders}: ok`);
+  await page.close();
+
   // Part 2: a battle the hydra can't win (1 body HP), then the generation screen and her heiress.
   page = await openPage(`?seed=7&scene=battle&group=patrol&hp=1&speed=${SPEED}`);
   await waitForScene(page, 'battle');

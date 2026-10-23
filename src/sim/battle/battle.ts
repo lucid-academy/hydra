@@ -2,9 +2,10 @@
 // Same seed + same commands at the same ticks = same battle.
 //
 // The body covers seven hexes in the middle of the board. Humans walk from hex to hex, surround it and hit
-// whatever is next to them: a head if one is there, otherwise the body. Heads don't stand on hexes: they grow
-// out of the body and reach a number of hexes from it. A biting head goes out to its enemy and can be hit back there,
-// and so does a head holding a human (Strangler).
+// whatever is next to them: a head if one is there, then a Broodling, otherwise the body. Heads don't stand on hexes:
+// they grow out of the body and reach a number of hexes from it. A biting head goes out to its enemy and can be hit
+// back there, and so does a head holding a human (Strangler). In the battle for the lair, Broodlings stand on hexes
+// round the body, walk to the nearest human and bite it.
 
 import { HEX_DIRECTIONS, hex, hexAdd, hexDistance, hexEquals, hexKey, hexNeighbors } from '../hex';
 import type { Hex } from '../hex';
@@ -25,9 +26,11 @@ import {
   enemyStepTicks,
   healHead,
   hurtEnemy,
+  isInMist,
   random,
   randomPick,
   rememberHit,
+  removeEnemy,
   takenHexes,
   triggerCombos,
   updateEffects,
@@ -35,7 +38,7 @@ import {
 } from './effects';
 import type { HitContext } from './effects';
 import { skillBlock, skillInSlot, useSkill } from './skills';
-import type { BattleCommand, BattleHead, BattleOutcome, BattleRules, BattleState, Enemy, HeadAttackRules, HeadRecord, Stump } from './types';
+import type { Ally, BattleCommand, BattleHead, BattleOutcome, BattleRules, BattleState, Enemy, HeadAttackRules, HeadRecord, Stump } from './types';
 
 /**
  * Where the first neck leaves the body; the others follow evenly around it. It points north-east, at a hex,
@@ -58,6 +61,10 @@ export interface BattleSetup {
   firstFreeId: number;
   /** Ultimate skills (key E) can be used. */
   ultimatesUnlocked?: boolean;
+  /** Broodlings fighting beside the hydra (the battle for the lair). */
+  allies?: number;
+  /** Burning a stump shut takes this many percent longer (Fireproof Scales). */
+  cauterizePercent?: number;
 }
 
 /** The two skills a head takes into battle: its own choice if it is still valid, otherwise its class's first two. */
@@ -118,7 +125,21 @@ export function createBattle(setup: BattleSetup, rules: BattleRules): BattleStat
       torchOutUntilTick: 0,
       recentHits: [],
       comboCooldowns: {},
+      ...(type.charge ? { charging: true } : {}),
+      ...(type.shots !== null ? { shotsLeft: type.shots } : {}),
+      ...(type.behavior === 'collector' ? { collectProgress: 0, collected: false } : {}),
     };
+  });
+
+  // Broodlings stand round the body, spread evenly, on hexes the Order hasn't taken.
+  const taken = new Set(enemies.map((e) => hexKey(e.hex)));
+  const ring = boardHexes(rules)
+    .filter((h) => bodyDistance(BOARD_MIDDLE, h) === 1 && !taken.has(hexKey(h)))
+    .sort((a, b) => hexAngle(BOARD_MIDDLE, a) - hexAngle(BOARD_MIDDLE, b));
+  const allyCount = Math.min(setup.allies ?? 0, ring.length);
+  const allies: Ally[] = Array.from({ length: allyCount }, (_, i) => {
+    const at = ring[Math.floor((i * ring.length) / allyCount)]!;
+    return { id: i + 1, hex: at, stepFrom: at, stepStartTick: 0, stepEndTick: 0, hp: rules.broodling.maxHp, maxHp: rules.broodling.maxHp, cooldown: 0 };
   });
 
   // The Spare's Bad Idea: once per battle, at a random moment (only heads present at the start).
@@ -145,6 +166,9 @@ export function createBattle(setup: BattleSetup, rules: BattleRules): BattleStat
     heads,
     stumps: [],
     enemies,
+    allies,
+    tithesTaken: 0,
+    cauterizeMultiplier: Math.max(0.1, 1 + (setup.cauterizePercent ?? 0) / 100),
     clouds: [],
     pools: [],
     beacons: [],
@@ -210,6 +234,7 @@ export function stepBattle(state: BattleState, rules: BattleRules): void {
   moveBody(state, rules);
   for (const head of [...state.heads]) if (state.heads.includes(head)) updateHead(state, head, rules);
   updateEffects(state, rules);
+  for (const ally of [...state.allies]) updateAlly(state, ally, rules);
   for (const enemy of [...state.enemies]) updateEnemy(state, enemy, rules);
   regrowStumps(state, rules, false);
 
@@ -448,7 +473,11 @@ function updateEnemy(state: BattleState, enemy: Enemy, rules: BattleRules): void
     return;
   }
 
-  if (type.behavior === 'torchbearer' && type.cauterizeTicks !== null && canCauterize(state, enemy, rules) && tendStump(state, enemy, type.cauterizeTicks, canWalk, rules)) return;
+  if (type.behavior === 'collector' && type.collectTicks !== null) {
+    collectTithe(state, enemy, type.collectTicks, canWalk, rules);
+    return;
+  }
+  if (type.behavior === 'torchbearer' && type.cauterizeTicks !== null && canCauterize(state, enemy, rules) && tendStump(state, enemy, cauterizeTicksFor(state, enemy, rules), canWalk, rules)) return;
   enemy.cauterizingStumpId = null;
 
   if (enemyCan(enemy, 'canAttack', rules)) {
@@ -456,8 +485,13 @@ function updateEnemy(state: BattleState, enemy: Enemy, rules: BattleRules): void
     if (target) {
       if (enemy.cooldown <= 0) {
         enemy.cooldown = type.attack.cooldownTicks;
-        if (target === 'body') damageBody(state, type.attack.damage, enemy.id);
-        else damageHead(state, target, type.attack.damage * type.bonusDamageVsHeads, enemy.id, rules);
+        // A charging knight's first blow lands harder.
+        const damage = type.attack.damage * (enemy.charging && type.charge ? type.charge.firstHitMultiplier : 1);
+        enemy.charging = type.charge ? false : undefined;
+        if (enemy.shotsLeft !== undefined && enemy.shotsLeft > 0) enemy.shotsLeft -= 1;
+        if (target.kind === 'body') damageBody(state, damage, enemy.id);
+        else if (target.kind === 'ally') damageAlly(state, target.ally, damage, enemy.id);
+        else damageHead(state, target.head, damage * type.bonusDamageVsHeads, enemy.id, rules);
       }
       return;
     }
@@ -466,24 +500,82 @@ function updateEnemy(state: BattleState, enemy: Enemy, rules: BattleRules): void
 }
 
 /**
- * Who this enemy can hit from where it stands: a head first (it is in the way; the one biting this enemy before others,
- * then the weakest), otherwise the body. Headhunters leave the body alone while there are heads to take.
+ * A Tithe Collector walks up to the body and counts what the hydra has (it takes collectTicks, and a status that
+ * stops channelling stops the counting), then runs for the edge of the board. There it is gone, with the tithe.
  */
-function pickEnemyTarget(state: BattleState, enemy: Enemy, rules: BattleRules): BattleHead | 'body' | null {
+function collectTithe(state: BattleState, enemy: Enemy, collectTicks: number, canWalk: boolean, rules: BattleRules): void {
+  const center = state.body.center;
+  if (!enemy.collected) {
+    if (bodyDistance(center, enemy.hex) <= 1) {
+      if (!enemyCan(enemy, 'canChannel', rules)) return;
+      enemy.collectProgress = (enemy.collectProgress ?? 0) + 1;
+      if (enemy.collectProgress >= collectTicks) {
+        enemy.collected = true;
+        state.events.push({ type: 'collected', tick: state.tick, enemyId: enemy.id, at: enemy.hex });
+      }
+      return;
+    }
+    if (canWalk) walk(state, enemy, freeHexes(state, enemy, rules).filter((h) => bodyDistance(center, h) <= 1), rules);
+    return;
+  }
+  const rim = rimHexes(rules);
+  if (!canWalk) return;
+  if (rim.some((h) => hexEquals(h, enemy.hex))) {
+    removeEnemy(state, enemy, rules);
+    state.tithesTaken += 1;
+    state.events.push({ type: 'escaped', tick: state.tick, enemyId: enemy.id, at: enemy.hex });
+    return;
+  }
+  const taken = takenHexes(state, enemy);
+  walk(state, enemy, rim.filter((h) => !taken.has(hexKey(h))), rules);
+}
+
+/** How far the enemy reaches now: a crossbowman out of bolts comes in close. */
+export function enemyRange(enemy: Enemy, rules: BattleRules): number {
+  return enemy.shotsLeft === 0 ? 1 : rules.enemyTypes[enemy.typeId]!.attack.range;
+}
+
+type EnemyTarget = { kind: 'head'; head: BattleHead } | { kind: 'ally'; ally: Ally } | { kind: 'body' };
+
+/**
+ * Who this enemy can hit from where it stands: a head first (it is in the way; the one biting this enemy before others,
+ * then the weakest), then the weakest Broodling, otherwise the body. Headhunters leave the body alone while there are
+ * heads to take. A crossbowman sees nothing through Mist (blindInMist) but what is right next to him.
+ */
+function pickEnemyTarget(state: BattleState, enemy: Enemy, rules: BattleRules): EnemyTarget | null {
   const type = rules.enemyTypes[enemy.typeId]!;
-  const inReach = state.heads.filter((h) => hexDistance(enemy.hex, headHex(state, h, rules)) <= type.attack.range);
+  const range = enemyRange(enemy, rules);
+  const sees = (h: Hex): boolean => !type.blindInMist || hexDistance(enemy.hex, h) <= 1 || (!isInMist(state, h) && !isInMist(state, enemy.hex));
+  const inReach = state.heads.filter((h) => {
+    const at = headHex(state, h, rules);
+    return hexDistance(enemy.hex, at) <= range && sees(at);
+  });
   const biter = inReach.find((h) => (h.targetId === enemy.id && rules.headClasses[h.classId]!.attack.melee) || h.holdingId === enemy.id);
   const head = biter ?? minBy(inReach, (h) => h.hp);
-  if (head) return head;
-  const bodyInReach = bodyDistance(state.body.center, enemy.hex) <= type.attack.range;
-  if (bodyInReach && (type.behavior !== 'headhunter' || state.heads.length === 0)) return 'body';
+  if (head) return { kind: 'head', head };
+  const ally = minBy(
+    state.allies.filter((a) => hexDistance(enemy.hex, a.hex) <= range && sees(a.hex)),
+    (a) => a.hp,
+  );
+  if (ally) return { kind: 'ally', ally };
+  const bodyInReach = bodyDistance(state.body.center, enemy.hex) <= range && sees(nearestBodyHex(state.body.center, enemy.hex));
+  if (bodyInReach && (type.behavior !== 'headhunter' || state.heads.length === 0)) return { kind: 'body' };
   return null;
 }
 
-/** Free hexes from which this enemy could attack: near a head for Headhunters, near the body for everyone else. */
+/** The hex of the body nearest to `h`. */
+function nearestBodyHex(center: Hex, h: Hex): Hex {
+  return minBy(bodyHexes(center), (b) => hexDistance(b, h)) ?? center;
+}
+
+/**
+ * Free hexes from which this enemy could attack: near a head for Headhunters, near the body for everyone else. A
+ * crossbowman who sees nothing from where he stands (Mist) comes up close.
+ */
 function attackSpots(state: BattleState, enemy: Enemy, rules: BattleRules): Hex[] {
   const type = rules.enemyTypes[enemy.typeId]!;
-  const range = type.attack.range;
+  const reach = enemyRange(enemy, rules);
+  const range = type.blindInMist && bodyDistance(state.body.center, enemy.hex) <= reach ? 1 : reach;
   const free = freeHexes(state, enemy, rules);
   if (type.behavior === 'headhunter' && state.heads.length > 0) {
     const headSpots = state.heads.map((h) => headHex(state, h, rules));
@@ -498,8 +590,8 @@ function freeHexes(state: BattleState, enemy: Enemy, rules: BattleRules): Hex[] 
   return boardHexes(rules).filter((h) => bodyDistance(state.body.center, h) > 0 && !taken.has(hexKey(h)));
 }
 
-/** Takes one step along the shortest way to the nearest goal, walking around the body. Waits if another enemy is in the way. */
-function walk(state: BattleState, enemy: Enemy, goals: readonly Hex[], rules: BattleRules): void {
+/** Takes one step along the shortest way to the nearest goal, walking around the body. Waits if someone is in the way. */
+function walk(state: BattleState, enemy: Enemy | Ally, goals: readonly Hex[], rules: BattleRules): void {
   if (goals.length === 0) return;
   const center = state.body.center;
   const field = distanceField(goals, (h) => isOnBoard(h, rules) && bodyDistance(center, h) > 0);
@@ -527,11 +619,49 @@ function fleeStep(state: BattleState, enemy: Enemy, rules: BattleRules): void {
   if (next) stepTo(state, enemy, next, rules);
 }
 
-function stepTo(state: BattleState, enemy: Enemy, next: Hex, rules: BattleRules): void {
+function stepTo(state: BattleState, enemy: Enemy | Ally, next: Hex, rules: BattleRules): void {
   enemy.stepFrom = enemy.hex;
   enemy.hex = next;
   enemy.stepStartTick = state.tick;
-  enemy.stepEndTick = state.tick + enemyStepTicks(enemy, rules);
+  enemy.stepEndTick = state.tick + ('typeId' in enemy ? enemyStepTicks(enemy, rules) : rules.broodling.stepTicks);
+}
+
+// ---------------------------------------------------------------- Broodlings
+
+/** A Broodling bites the weakest human in reach, or walks to the nearest one. */
+function updateAlly(state: BattleState, ally: Ally, rules: BattleRules): void {
+  if (!state.allies.includes(ally)) return;
+  const { attack } = rules.broodling;
+  if (ally.cooldown > 0) ally.cooldown -= 1;
+  if (state.tick < ally.stepEndTick) return;
+  const target = minBy(
+    state.enemies.filter((e) => hexDistance(ally.hex, e.hex) <= attack.range),
+    (e) => e.hp,
+  );
+  if (target) {
+    if (ally.cooldown <= 0) {
+      ally.cooldown = attack.cooldownTicks;
+      hurtEnemy(state, target, Math.max(1, attack.damage - enemyArmor(target, rules)), 'ally', ally.id, rules);
+    }
+    return;
+  }
+  const taken = takenHexes(state, ally);
+  const center = state.body.center;
+  const goals = boardHexes(rules).filter((h) => bodyDistance(center, h) > 0 && !taken.has(hexKey(h)) && state.enemies.some((e) => hexDistance(e.hex, h) <= attack.range));
+  walk(state, ally, goals, rules);
+}
+
+function damageAlly(state: BattleState, ally: Ally, damage: number, attackerId: number): void {
+  ally.hp -= damage;
+  state.events.push({ type: 'hit', tick: state.tick, attacker: 'enemy', attackerId, targetKind: 'ally', targetId: ally.id, damage, at: ally.hex });
+  if (ally.hp > 0) return;
+  state.allies = state.allies.filter((a) => a !== ally);
+  state.events.push({ type: 'allyKilled', tick: state.tick, allyId: ally.id, at: ally.hex });
+}
+
+/** How long this human takes to burn a stump shut in this battle (the hydra's Fireproof Scales make it longer). */
+export function cauterizeTicksFor(state: BattleState, enemy: Enemy, rules: BattleRules): number {
+  return Math.max(1, Math.round((rules.enemyTypes[enemy.typeId]!.cauterizeTicks ?? 1) * state.cauterizeMultiplier));
 }
 
 /** Returns true if the Torchbearer spent this tick on a stump (walking to it or burning it). */
@@ -657,6 +787,10 @@ export interface BattleResult {
   /** Stumps burnt shut in this battle; they stay as scars. */
   newScars: number;
   nextId: number;
+  /** Broodlings still alive (missing: none fought). */
+  alliesLeft?: number;
+  /** Tithe Collectors that got away with the tithe (missing: none). */
+  tithesTaken?: number;
 }
 
 /** What goes back to the map. Stumps still waiting to regrow do so right away. */
@@ -670,6 +804,8 @@ export function battleResult(state: BattleState, rules: BattleRules): BattleResu
     heads: state.heads.map(({ id, name, classId, level, hp, maxHp, skills }) => ({ id, name, classId, level, hp, maxHp, skills: [...skills] })),
     newScars,
     nextId: state.nextId,
+    alliesLeft: state.allies.length,
+    tithesTaken: state.tithesTaken,
   };
 }
 

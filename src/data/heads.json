@@ -318,9 +318,9 @@
     "procession": {
       "displayName": "Procession",
       "description": "Every human walks in single file, singing, to the chosen hex.",
-      "//": "TODO(design): knights and bosses don't follow (skipsTypes), once they exist.",
+      "//": "Knights and the Master of the Order don't follow (skipsTypes, GAME_DESIGN.md §6.9).",
       "target": "hex", "range": 8, "cooldownSeconds": 60, "tags": ["light"], "area": { "shape": "none" },
-      "specials": [{ "type": "beacon", "seconds": 8, "kneel": false }]
+      "specials": [{ "type": "beacon", "seconds": 8, "kneel": false, "skipsTypes": ["knight", "masterOfTheOrder"] }]
     }
   },
   "rummage": [

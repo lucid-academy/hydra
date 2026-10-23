@@ -9,6 +9,7 @@ describe('parseUrlParams', () => {
       debug: true,
       group: 'patrol',
       hp: 5,
+      allies: null,
       speed: 4,
       near: null,
       reveal: false,
@@ -33,7 +34,7 @@ describe('parseUrlParams', () => {
   });
 
   it('returns defaults when nothing is given', () => {
-    expect(parseUrlParams('')).toEqual({ seed: null, scene: null, debug: false, group: null, hp: null, speed: null, near: null, reveal: false, modifiers: [], zoom: null, say: null, event: null, flags: [], conditions: [], alert: null, units: [], ancestors: null, eggs: null, hidden: false, heads: [], ults: false });
+    expect(parseUrlParams('')).toEqual({ seed: null, scene: null, debug: false, group: null, hp: null, allies: null, speed: null, near: null, reveal: false, modifiers: [], zoom: null, say: null, event: null, flags: [], conditions: [], alert: null, units: [], ancestors: null, eggs: null, hidden: false, heads: [], ults: false });
     expect(parseUrlParams('?reveal=1').reveal).toBe(true);
     expect(parseUrlParams('?near=shrine').near).toBe('shrine');
     expect(parseUrlParams('?zoom=0.45').zoom).toBe(0.45);
@@ -63,7 +64,7 @@ describe('parseUrlParams', () => {
 describe('testUrl', () => {
   it('a URL that starts elsewhere than the title or changes the run is a test, which never touches the saved game', () => {
     for (const query of ['', '?seed=7', '?seed=7&debug=1&speed=4&zoom=2', '?scene=title', '?scene=title&seed=3']) expect(testUrl(parseUrlParams(query)), query).toBe(false);
-    for (const query of ['?scene=map', '?scene=battle', '?near=shrine', '?event=titheBox', '?say=toadWelcome', '?flags=surveyChain', '?conditions=warmed', '?alert=60', '?units=patrol', '?reveal=1', '?modifiers=wetYear', '?group=patrol', '?hp=3', '?ancestors=2', '?eggs=0', '?hidden=1', '?heads=tender', '?ults=1']) {
+    for (const query of ['?scene=map', '?scene=battle', '?near=shrine', '?event=titheBox', '?say=toadWelcome', '?flags=surveyChain', '?conditions=warmed', '?alert=60', '?units=patrol', '?reveal=1', '?modifiers=wetYear', '?group=patrol', '?hp=3', '?allies=2', '?ancestors=2', '?eggs=0', '?hidden=1', '?heads=tender', '?ults=1']) {
       expect(testUrl(parseUrlParams(query)), query).toBe(true);
     }
     expect(parseUrlParams('?ancestors=2.7').ancestors).toBe(2);

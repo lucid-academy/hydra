@@ -4,6 +4,7 @@
 //   ?debug=1      show the debug overlay
 //   ?group=patrol with ?scene=battle: which enemy group to fight
 //   ?hp=5         with ?scene=battle: start the test battle with this much body HP (to see a defeat quickly)
+//   ?allies=3     with ?scene=battle: the test battle is the battle for the lair, with this many Broodlings
 //   ?speed=4      battles run this many times faster (for tests)
 //   ?near=shrine  with ?scene=map: start next to the nearest object of that kind (shrine, passage, encounter, moisture...),
 //                 place or threshold (brineLake, saltPlug...), or marking shrine (mark)
@@ -39,6 +40,8 @@ export interface UrlParams {
   group: string | null;
   /** Body HP at the start of a test battle, or null for full health. */
   hp: number | null;
+  /** Broodlings in a test battle (the battle for the lair), or null for an ordinary battle. */
+  allies: number | null;
   /** Battles run this many times faster, or null for normal speed. */
   speed: number | null;
   /** Start the map next to the nearest object of this kind, or null. */
@@ -91,6 +94,7 @@ export function parseUrlParams(search: string): UrlParams {
     debug: debug === '1' || debug === 'true',
     group: group !== null && group.trim() !== '' ? group.trim() : null,
     hp: positive('hp'),
+    allies: positive('allies') === null ? null : Math.floor(positive('allies')!),
     speed: positive('speed'),
     near: params.get('near')?.trim() || null,
     reveal: params.get('reveal') === '1' || params.get('reveal') === 'true',
@@ -128,6 +132,7 @@ export function testUrl(params: UrlParams): boolean {
     params.modifiers.length > 0 ||
     params.group !== null ||
     params.hp !== null ||
+    params.allies !== null ||
     params.ancestors !== null ||
     params.eggs !== null ||
     params.hidden ||

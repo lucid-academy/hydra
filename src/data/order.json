@@ -21,7 +21,9 @@
       { "group": "patrol", "weight": 3 },
       { "group": "lostNovices", "weight": 1 },
       { "group": "huntingParty", "weight": 2, "minRing": 2 },
-      { "group": "burningDetail", "weight": 2, "minRing": 2 }
+      { "group": "burningDetail", "weight": 2, "minRing": 2 },
+      { "group": "crossbowLine", "weight": 2, "fromStage": "newEnemies" },
+      { "group": "titheVisit", "weight": 2, "fromStage": "newEnemies" }
     ]
   },
   "messengers": {
@@ -49,16 +51,25 @@
     "sent": "An expedition of the Order sets out for the lair, with a cart of firewood and a hymn.",
     "groups": [
       { "group": "burningDetail", "weight": 2 },
-      { "group": "pyreProcession", "weight": 1 }
+      { "group": "pyreProcession", "weight": 1 },
+      { "group": "knightsVigil", "weight": 2, "fromStage": "newEnemies" }
     ]
   },
   "greatBurning": {
-    "//": "At the Alert stage atStage, once per act, the Great Burning sets out for the lair: a Master of the Order with his procession (group, from enemies.json).",
+    "//": "At the Alert stage atStage, once per act, the Great Burning sets out for the lair: a Master of the Order with his procession (group, from enemies.json). Beaten, the Master is eaten, and the hydra gets one of mutations (mutations.json) she doesn't carry yet, at random.",
     "atStage": "greatBurning",
     "movement": 2,
-    "group": "pyreProcession",
+    "group": "greatBurning",
+    "mutations": ["fireproofScales", "ashTongued"],
     "sent": "The Great Burning comes down to the lair: a Master of the Order, carried, and everyone who could be spared, walking.",
     "beaten": "The Master is eaten. The Order will need a while to choose a new one, and longer to forgive. Act {act} begins."
+  },
+  "tithe": {
+    "//": "A Tithe Collector who gets away from a battle takes percent of each of the hydra's resources (rounded down), and leaves a receipt. {list}: what he took.",
+    "percent": 10,
+    "taken": "The Tithe Collector got away with {list}.",
+    "nothing": "nothing at all, which he wrote down",
+    "receipt": "He left a receipt: \"Received of the beast in the swamp, for the upkeep of the Eternal Flame. With thanks. No refunds.\""
   },
   "siege": {
     "//": "An expedition that finds the lair empty camps in it: every world turn it kills perTurn Broodlings guarding it, or, when none is left, breaks as many eggs.",

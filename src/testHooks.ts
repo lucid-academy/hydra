@@ -55,6 +55,8 @@ declare global {
         orders: Record<string, number | null>;
         clouds: number;
         combos: string[];
+        /** Broodlings on the board (the battle for the lair). */
+        allies: number;
       };
       /** Buttons on the screen now (the title, the generation screen, the Book of Lineages), by name: where they are (game pixels). */
       buttons?: () => Record<string, { x: number; y: number }>;

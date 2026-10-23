@@ -310,6 +310,12 @@ export class HudScene extends Phaser.Scene {
           if (stage) this.toast(stage.text, palette.order.orange);
           break;
         }
+        case 'titheTaken': {
+          const { tithe } = getContext(this).data.order;
+          const list = this.lootText(event).replace(/\+/g, '') || tithe.nothing;
+          this.toast(`${fill(tithe.taken, { list })} ${tithe.receipt}`, palette.order.gold);
+          break;
+        }
         case 'mutationGained': {
           const data = getContext(this).data;
           this.toast(fillText(text.lineages.mutationGained, { name: mutationName(data, event.id), text: mutationWords(data, event.id) }), MUTATION_COLOR);

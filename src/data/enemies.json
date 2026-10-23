@@ -26,6 +26,51 @@
       "attack": { "damage": 3, "cooldownSeconds": 2.4, "range": 1 },
       "cauterizeSeconds": 4,
       "behavior": "torchbearer"
+    },
+    "crossbowman": {
+      "//": "TODO(design): M3, from Alert stage 75 (GAME_DESIGN.md §6.6). Shoots from 4 hexes; sees nothing through Mist but what is right next to him (Fog Bank, §6.9), so in a cloud he has to come close. After shots bolts he has none left and comes in with a knife.",
+      "displayName": "Crossbowman",
+      "maxHp": 70,
+      "armor": 0,
+      "stepSeconds": 0.85,
+      "attack": { "damage": 6, "cooldownSeconds": 3, "range": 4 },
+      "behavior": "fighter",
+      "blindInMist": true,
+      "shots": 10
+    },
+    "titheCollector": {
+      "//": "TODO(design): M3, from Alert stage 75 (§6.6). Doesn't fight: walks up to the body, counts what the hydra has for collectSeconds, then runs for the edge of the board. If he gets away, he takes the tithe (order.json tithe) and leaves a receipt. Lockjaw, Coil and anything that stops channelling keep him.",
+      "displayName": "Tithe Collector",
+      "maxHp": 90,
+      "armor": 1,
+      "stepSeconds": 0.8,
+      "attack": { "damage": 0, "cooldownSeconds": 3, "range": 1 },
+      "behavior": "collector",
+      "collectSeconds": 4
+    },
+    "knight": {
+      "//": "TODO(design): M3, from Alert stage 75 (§6.6). Heavy armour, not afraid of anything, charges: walks twice as fast until his first blow, which lands twice as hard.",
+      "displayName": "Knight of the Eternal Flame",
+      "maxHp": 220,
+      "armor": 4,
+      "stepSeconds": 1.1,
+      "attack": { "damage": 9, "cooldownSeconds": 2.6, "range": 1 },
+      "behavior": "fighter",
+      "immuneTo": ["terrified"],
+      "charge": { "stepMultiplier": 0.5, "firstHitMultiplier": 2 }
+    },
+    "masterOfTheOrder": {
+      "//": "TODO(design): M3, the boss of the Great Burning (§4, §6.6). A torchbearer at heart: he burns stumps shut before anything else, quickly, and hits hard. Not afraid and not taken in by false lights. Eaten when beaten, he leaves the hydra a mutation (order.json greatBurning).",
+      "displayName": "Master of the Order",
+      "maxHp": 520,
+      "armor": 3,
+      "stepSeconds": 1,
+      "attack": { "damage": 13, "cooldownSeconds": 2.2, "range": 1 },
+      "bonusDamageVsHeads": 1.2,
+      "cauterizeSeconds": 2,
+      "behavior": "torchbearer",
+      "immuneTo": ["terrified", "entranced"],
+      "boss": true
     }
   },
   "encounterGroups": [
@@ -33,6 +78,10 @@
     { "id": "patrol", "tier": 1, "weight": 3, "members": ["manAtArms", "manAtArms", "manAtArms"] },
     { "id": "huntingParty", "tier": 2, "weight": 2, "members": ["manAtArms", "headhunter", "headhunter"] },
     { "id": "burningDetail", "tier": 2, "weight": 2, "members": ["manAtArms", "manAtArms", "torchbearer", "headhunter"] },
-    { "id": "pyreProcession", "tier": 3, "weight": 1, "members": ["manAtArms", "manAtArms", "manAtArms", "torchbearer", "torchbearer", "headhunter"] }
+    { "id": "pyreProcession", "tier": 3, "weight": 1, "members": ["manAtArms", "manAtArms", "manAtArms", "torchbearer", "torchbearer", "headhunter"] },
+    { "id": "crossbowLine", "tier": 2, "weight": 1, "orderOnly": true, "members": ["manAtArms", "manAtArms", "crossbowman", "crossbowman"] },
+    { "id": "titheVisit", "tier": 2, "weight": 1, "orderOnly": true, "members": ["titheCollector", "manAtArms", "manAtArms", "crossbowman"] },
+    { "id": "knightsVigil", "tier": 3, "weight": 1, "orderOnly": true, "members": ["knight", "manAtArms", "torchbearer", "crossbowman"] },
+    { "id": "greatBurning", "tier": 3, "weight": 1, "orderOnly": true, "members": ["masterOfTheOrder", "knight", "manAtArms", "manAtArms", "torchbearer", "crossbowman"] }
   ]
 }
