@@ -215,7 +215,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 **Z `GAME_DESIGN.md` §16 (decyduje Piotr):**
 - ile kapliczek Płomienia trzeba zgasić;
 - nowe głowy słabsze i rosnące (od czego rosną?);
-- pula głów: które klasy od startu, a które do odblokowania;
+- odblokowania klas głów: które klasy zamknąć za odblokowaniami konta i jak je zdobywać (na razie w puli są wszystkie 9);
 - zakończenia gry.
 
 **Z `GAME_DESIGN.md` §1, „Świat” (`TODO(design)`):** odpowiedzi na tajemnice Hushed, jednostki i eventy The Discordant, czy Cinderkin walczą w bitwach.
@@ -256,7 +256,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 
 ## M2a: głowy i combosy (wątek „Głowy i balans bitwy”, od 2026-10-21)
 
-Budowane na gałęzi `claude/project-thread-lil67f`, równolegle z M6 w wątku „Następny etap gry”. Plan wysłany Piotrowi 2026-10-21; do main nic nie wchodzi przed jego OK. Pytania A (pula głów), B (odrost 6 czy 8 s) i C (słabsza nowa głowa) czekają na odpowiedź.
+Budowane na gałęzi `claude/project-thread-lil67f`, równolegle z M6 w wątku „Następny etap gry”. Plan wysłany Piotrowi 2026-10-21, OK 2026-10-23 z wariantami pierwszymi: A, z odrostu losuje się każda z 9 klas (odblokowania później); B, odrost zostaje 8 s (dokument poprawiony); C, słabsza nowa głowa jeszcze nie.
 
 Zrobione:
 - Symulacja (`src/sim/battle/`): statusy z flagami w `combos.json` (`canWalk`, `canAttack`, `canChannel`, `flees`, `damageTakenMultiplier`, `endsOnDamage`, `breaksWhenHolderTakes`): Terrified, Stunned, Seized, Entranced oraz pomocnicze Pinned, Charmed, Melted (`TODO(design)`: spoza sześciu statusów ze słownika). Chwyt Stranglera (głowa trzyma człowieka, pęka po 8 obrażeniach), odrzut i przyciąganie, rzut, kałuże, światła Lanterna (wabią, ludzie klękają), sen i jedzenie Gluttona, nastroje bliźniaków po śmierci jednego, Bad Idea The Spare.

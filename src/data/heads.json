@@ -3,7 +3,7 @@
   "maxHeads": 9,
   "regrowSeconds": 8,
   "startingHeads": ["biter", "acidSpitter", "mistBreather"],
-  "hatchlingClassPool": ["biter", "acidSpitter", "mistBreather"],
+  "hatchlingClassPool": ["biter", "acidSpitter", "mistBreather", "screamer", "glutton", "spare", "strangler", "tender", "lantern"],
   "classes": {
     "biter": {
       "displayName": "Biter",
