@@ -8,7 +8,7 @@ import type { Hex } from '../hex';
 import { generateUnderground, hexesSeenFrom, updateVisibility } from '../map';
 import type { MapObject } from '../map';
 import { Rng } from '../rng';
-import { applyBirthMutations, gainMutation, headMaxHp, startingHeadCount } from './mutations';
+import { applyBirthMutations, gainMutation, headMaxHp, mutationTotal, startingHeadCount } from './mutations';
 import { breakEggs, lairTurn, newLair, scoutsCaught } from './lair';
 import { meetOrderAt, newOrder, orderBlocks, orderTurn, sendMessenger, unitBeaten } from './order';
 import { eventArrived, meetEnemies, newStory, serpentOnTheWay, storyMoment } from './story';
@@ -117,7 +117,7 @@ function placeMark(state: RunState, rules: RunRules): void {
   const rng = new Rng((state.seed ^ 0x3a2c71) >>> 0);
   if (!rng.chance(rules.marks.chance)) return;
   const shrines = [...state.map.tiles.values()].filter((t) => t.object?.kind === 'shrine' && t.region === 'ring' && rules.marks.rings.includes(t.ring));
-  const marks = Object.keys(rules.mutations).filter((id) => !state.hydra.mutations.includes(id));
+  const marks = Object.keys(rules.mutations).filter((id) => !state.hydra.mutations.includes(id) && !rules.bossMutations.includes(id));
   if (shrines.length === 0 || marks.length === 0) return;
   const shrine = rng.pick(shrines).object as Extract<MapObject, { kind: 'shrine' }>;
   shrine.mark = rng.pick(marks);
@@ -378,6 +378,9 @@ export function pendingBattleSetup(state: RunState, rules: RunRules): BattleSetu
     bodyMaxHp: state.hydra.bodyMaxHp,
     enemies,
     firstFreeId: state.nextId,
+    // In the battle for the lair, the Broodlings guarding it fight too.
+    allies: pending.defense ? state.lair.defenders : 0,
+    cauterizePercent: mutationTotal(state.hydra, rules, 'cauterizePercent'),
   };
 }
 
@@ -401,6 +404,7 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
   });
   state.hydra.bodyHp = result.bodyHp;
   state.hydra.scars += result.newScars;
+  if (pending.defense && result.alliesLeft !== undefined) state.lair.defenders = Math.min(state.lair.defenders, result.alliesLeft);
   const silenced = battleSilenced(state, pending.at, rules);
   if (!silenced) raiseAlert(state, rules.alertPerBattle, rules);
 
@@ -412,9 +416,12 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
 
   const tile = tileAt(state, pending.at);
   if (tile?.object?.kind === 'encounter') tile.object = null;
-  const bones = (rules.encounterGroupMembers[pending.groupId]?.length ?? 0) * rules.bonesPerEnemy;
+  // Those who got away (Tithe Collectors) leave no Bones; they take their tithe instead.
+  const escaped = result.tithesTaken ?? 0;
+  const bones = Math.max(0, (rules.encounterGroupMembers[pending.groupId]?.length ?? 0) - escaped) * rules.bonesPerEnemy;
   state.resources.bones += bones;
   const events: RunEvent[] = [{ type: 'battleWon', at: pending.at, bones, silenced }];
+  if (escaped > 0) events.push(takeTithe(state, escaped, rules));
   const unit = pending.unitId ? state.order.units.find((u) => u.id === pending.unitId) : undefined;
   if (unit) unitBeaten(state, unit, rules, events);
   // Someone always gets away to tell the Order, unless the Silent Bell drowned it all out.
@@ -431,6 +438,19 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
     newHeadIds,
   }, events);
   return events;
+}
+
+/** Each Tithe Collector who got away takes his percent of every resource (rounded down). */
+function takeTithe(state: RunState, collectors: number, rules: RunRules): RunEvent {
+  const taken = { muck: 0, moisture: 0, bones: 0 };
+  for (let i = 0; i < collectors; i++) {
+    for (const key of ['muck', 'moisture', 'bones'] as const) {
+      const part = Math.floor((state.resources[key] * rules.order.tithePercent) / 100);
+      state.resources[key] -= part;
+      taken[key] += part;
+    }
+  }
+  return { type: 'titheTaken', ...taken };
 }
 
 function lostBattle(state: RunState, pending: NonNullable<RunState['pendingBattle']>, rules: RunRules, events: RunEvent[]): RunEvent[] {

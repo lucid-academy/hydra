@@ -21,7 +21,8 @@ export function generatorSettingsFrom(data: GameData): UndergroundGeneratorSetti
     return { id, ground: b.ground, encounterDensity: b.encounterDensity ?? 1 };
   };
   const groupsByTier: Record<number, Array<{ id: string; weight: number }>> = {};
-  for (const g of enemies.encounterGroups) (groupsByTier[g.tier] ??= []).push({ id: g.id, weight: g.weight });
+  // Groups only the Order brings (orderOnly) never wait on the map.
+  for (const g of enemies.encounterGroups) if (!g.orderOnly) (groupsByTier[g.tier] ??= []).push({ id: g.id, weight: g.weight });
   const places: PlaceSettings[] = [
     ...Object.entries(world.places).map(([id, p]) => ({
       id,
@@ -140,6 +141,7 @@ export function runRulesFrom(data: GameData): RunRules {
       ]),
     ),
     mutations: Object.fromEntries(data.mutations.mutations.map((m) => [m.id, m.effects])),
+    bossMutations: data.mutations.mutations.filter((m) => m.bossOnly).map((m) => m.id),
     marks: { chance: data.shrines.marks.chance, rings: data.shrines.marks.rings },
     bore: Object.entries(world.thresholds)
       .filter(([, t]) => t.bore !== undefined)
@@ -202,7 +204,8 @@ export function orderRulesFrom(order: OrderData): OrderRules {
     },
     messengers: { headStart: messengers.headStart, movement: messengers.movement, alertOnArrival: messengers.alertOnArrival, alertWhenEaten: messengers.alertWhenEaten, bones: messengers.bones, eatenLines: messengers.eatenLines.length },
     expeditions: { fromStage: expeditions.fromStage, firstAfterTurns: expeditions.firstAfterTurns, everyTurns: expeditions.everyTurns, movement: expeditions.movement, groups: groups(expeditions.groups) },
-    greatBurning: { atStage: greatBurning.atStage, movement: greatBurning.movement, groupId: greatBurning.group },
+    greatBurning: { atStage: greatBurning.atStage, movement: greatBurning.movement, groupId: greatBurning.group, mutations: greatBurning.mutations },
+    tithePercent: order.tithe.percent,
     siege: { perTurn: order.siege.perTurn },
   };
 }

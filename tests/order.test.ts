@@ -270,6 +270,20 @@ describe('expeditions', () => {
     expect(state.order.nextExpeditionTurn).toBe(state.turn + rules.order.expeditions.everyTurns);
   });
 
+  it('the Broodlings guarding the lair fight in the battle for it; those killed are gone', () => {
+    const state = quietRun();
+    state.lair.defenders = 3;
+    const unit = place(state, 'patrol', hex(1, 0));
+    state.pendingBattle = { at: state.map.lair, groupId: 'patrol', unitId: unit.id, defense: true };
+    expect(pendingBattleSetup(state, rules)?.allies).toBe(3);
+    finishBattle(state, { ...won(state), alliesLeft: 1 }, rules);
+    expect(state.lair.defenders).toBe(1);
+    // Away from the lair they stay at home.
+    const away = place(state, 'patrol', hex(3, 0));
+    state.pendingBattle = { at: hex(3, 0), groupId: 'patrol', unitId: away.id };
+    expect(pendingBattleSetup(state, rules)?.allies).toBe(0);
+  });
+
   it('lost, the battle for the lair breaks eggs', () => {
     const state = quietRun();
     state.lair.eggs = [1, 2, 3, 4].map((n) => ({ id: `e${n}`, mutations: [], hatching: null }));
@@ -278,6 +292,33 @@ describe('expeditions', () => {
     const events = finishBattle(state, { outcome: 'lost', bodyHp: 0, heads: [], newScars: 0, nextId: state.nextId }, rules);
     expect(state.lair.eggs).toHaveLength(4 - Math.ceil(4 * rules.brood.lostDefenseBreaksShare));
     expect(events.map((e) => e.type)).toEqual(['eggsBroken', 'hydraDied']);
+  });
+});
+
+describe('the Tithe Collector', () => {
+  it('who got away takes his share of everything, and the escaped leave no Bones', () => {
+    const state = quietRun();
+    state.resources = { muck: 55, moisture: 20, bones: 9 };
+    state.pendingBattle = { at: hex(2, 0), groupId: 'titheVisit' };
+    const events = finishBattle(state, { ...won(state), tithesTaken: 1 }, rules);
+    const share = (n: number) => Math.floor((n * rules.order.tithePercent) / 100);
+    const bones = (rules.encounterGroupMembers.titheVisit!.length - 1) * rules.bonesPerEnemy;
+    expect(events).toContainEqual({ type: 'titheTaken', muck: share(55), moisture: share(20), bones: share(9 + bones) });
+    expect(state.resources).toEqual({ muck: 55 - share(55), moisture: 20 - share(20), bones: 9 + bones - share(9 + bones) });
+  });
+});
+
+describe('groups only the Order brings', () => {
+  it('never wait on the map, but come with the new enemies stage', () => {
+    const orderOnly = loadGameData().enemies.encounterGroups.filter((g) => g.orderOnly).map((g) => g.id);
+    expect(orderOnly.length).toBeGreaterThan(0);
+    for (let seed = 1; seed <= 10; seed++) {
+      const state = createRun(seed, rules);
+      for (const tile of state.map.tiles.values()) if (tile.object?.kind === 'encounter') expect(orderOnly).not.toContain(tile.object.groupId);
+    }
+    const sent = [...rules.order.patrols.groups, ...rules.order.expeditions.groups].filter((g) => orderOnly.includes(g.groupId));
+    expect(sent.length).toBeGreaterThan(0);
+    for (const g of sent) expect(g.fromStage).toBe('newEnemies');
   });
 });
 
@@ -299,6 +340,13 @@ describe('the Great Burning', () => {
     expect(state.order.act).toBe(2);
     expect(state.alert).toBe(rules.alertMin);
     expect(state.order.stagesReached).toEqual([]);
+    // The Master is eaten: one of his mutations is hers now.
+    const gained = events.find((e) => e.type === 'mutationGained');
+    expect(gained && gained.type === 'mutationGained' && rules.order.greatBurning.mutations.includes(gained.id)).toBe(true);
+  });
+
+  it('is led by the Master of the Order, a boss', () => {
+    expect(rules.encounterGroupMembers[rules.order.greatBurning.groupId]).toContain('masterOfTheOrder');
   });
 
   it('in act 2 the Order sends every group, and more patrols', () => {

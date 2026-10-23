@@ -175,9 +175,13 @@ export class RunController extends Phaser.Events.EventEmitter {
     this.publish(refuseBlessing(this.state));
   }
 
-  /** For `?scene=battle`: a battle against the given group without walking to it, optionally with a wounded body. */
-  startTestBattle(groupId: string, bodyHp: number | null = null): void {
-    this.state.pendingBattle = { at: hex(0, 0), groupId };
+  /**
+   * For `?scene=battle`: a battle against the given group without walking to it, optionally with a wounded body, or as
+   * the battle for the lair with `allies` Broodlings guarding it.
+   */
+  startTestBattle(groupId: string, bodyHp: number | null = null, allies: number | null = null): void {
+    this.state.pendingBattle = allies !== null ? { at: this.state.map.lair, groupId, defense: true } : { at: hex(0, 0), groupId };
+    if (allies !== null) this.state.lair.defenders = allies;
     if (bodyHp !== null) this.state.hydra.bodyHp = Math.min(this.state.hydra.bodyMaxHp, bodyHp);
   }
 

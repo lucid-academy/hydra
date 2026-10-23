@@ -313,6 +313,35 @@ People of the Order of the Eternal Flame, standing, seen from the side and a lit
 
 A new enemy type needs an image with the key `battle_enemy_<type id from enemies.json>`; without one, the game shows the Man-at-Arms.
 
+## The Order's new people (M3): battle_enemy_crossbowman, battle_enemy_titheCollector, battle_enemy_knight, battle_enemy_masterOfTheOrder
+
+| | |
+|---|---|
+| Size | 28×38 (crossbowman), 26×40 (Tithe Collector), 28×40 (knight, Master) px |
+| Frames | 1 (the game makes them bob, hop and lunge) |
+| Anchor | feet, at the bottom middle |
+| Background | transparent |
+| Used in | battle, from Alert stage 75 (the Master: the Great Burning) |
+
+Same look, angle and facing as the soldiers above (facing right, gear on the right side). Each must read at a glance:
+
+- **battle_enemy_crossbowman:** red tabard over a padded jack, open steel cap, a crossbow held level, a quiver at the hip. Lighter than the Man-at-Arms.
+- **battle_enemy_titheCollector:** a clerk, not a soldier: dark violet-black robe, a wide black hat, an open ledger in his hand, a purse at the belt. Thin and very upright.
+- **battle_enemy_knight:** a Knight of the Eternal Flame: full white-and-steel plate, a closed helm with a red plume, a white tabard with a red flame, a long sword. The heaviest figure on the board after the Master.
+- **battle_enemy_masterOfTheOrder:** the boss. Deep red robes over gilded plate, a tall gold-crested helm, a great burning torch held high (its flame at the same place as the Torchbearer's, 10 px right of and 32 px above the feet, so its light and glow shine from there). He can be drawn taller than 40 px; then the manifest gets his size and he stays anchored at his feet.
+
+## battle_broodling
+
+| | |
+|---|---|
+| Size | 16×14 px |
+| Frames | 1 (the game makes it hop, lunge and wriggle) |
+| Anchor | feet, at the bottom middle (8, 13) |
+| Background | transparent |
+| Used in | the battle for the lair: Broodlings guarding it stand on hexes round the body |
+
+A hatchling of the hydra, the same bronze scales as her body, one small head on a short neck, mouth open, facing right. About the size of a soldier's boot: it should look brave and far too small.
+
 The Order looks like the soldiers on the game's cover (plate armour, red tabards and capes, red banners), with a gold flame as its emblem instead of the cover's lion. Prompts: `docs/ART_PROMPTS.md`, section "Zakon i hydra na mapie, Zakon w bitwie: próba".
 
 ## dialogue_<class>, dialogue_oldMotherToad

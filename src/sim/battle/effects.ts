@@ -6,7 +6,7 @@ import { HEX_DIRECTIONS, hexAdd, hexDistance, hexEquals, hexKey } from '../hex';
 import type { Hex } from '../hex';
 import { Rng } from '../rng';
 import { angleDifference, bodyDistance, hexAngle, isOnBoard } from './board';
-import type { Beacon, BattleHead, BattleRules, BattleState, ComboRules, ComboTrigger, Effect, Enemy, HitSource, MistCloud, StatusRules } from './types';
+import type { Ally, Beacon, BattleHead, BattleRules, BattleState, ComboRules, ComboTrigger, Effect, Enemy, HitSource, MistCloud, StatusRules } from './types';
 
 // ---------------------------------------------------------------- randomness
 
@@ -78,8 +78,8 @@ export function wakeUp(state: BattleState, enemy: Enemy, rules: BattleRules): vo
   endStatuses(state, enemy, rules, (s) => rules.statuses[s.id]!.endsOnDamage);
 }
 
-/** The enemy is gone (killed or eaten): heads holding it let go. */
-function removeEnemy(state: BattleState, enemy: Enemy, rules?: BattleRules): void {
+/** The enemy is gone (killed, eaten or fled the board): heads holding it let go. */
+export function removeEnemy(state: BattleState, enemy: Enemy, rules?: BattleRules): void {
   state.enemies = state.enemies.filter((e) => e !== enemy);
   for (const head of state.heads) {
     if (head.holdingId === enemy.id) releaseHold(head);
@@ -139,11 +139,13 @@ export function enemyArmor(enemy: Enemy, rules: BattleRules): number {
   return Math.max(0, armor);
 }
 
-/** Ticks one step takes this enemy now: statuses that slow it down make steps longer. */
+/** Ticks one step takes this enemy now: statuses that slow it down make steps longer, a charge shorter. */
 export function enemyStepTicks(enemy: Enemy, rules: BattleRules): number {
+  const type = rules.enemyTypes[enemy.typeId]!;
   let speed = 1;
   for (const status of enemy.statuses) speed *= rules.statuses[status.id]!.speedMultiplier;
-  return Math.max(1, Math.round(rules.enemyTypes[enemy.typeId]!.stepTicks / speed));
+  const charge = enemy.charging && type.charge ? type.charge.stepMultiplier : 1;
+  return Math.max(1, Math.round((type.stepTicks * charge) / speed));
 }
 
 // ---------------------------------------------------------------- statuses
@@ -603,7 +605,8 @@ function placeBySlide(state: BattleState, enemy: Enemy, from: Hex, to: Hex): voi
   enemy.cauterizingStumpId = null;
 }
 
-/** Keys of hexes taken by humans (for walking). */
-export function takenHexes(state: BattleState, except: Enemy | null): Set<string> {
-  return new Set(state.enemies.filter((e) => e !== except).map((e) => hexKey(e.hex)));
+/** Keys of hexes taken by humans and Broodlings (for walking). */
+export function takenHexes(state: BattleState, except: Enemy | Ally | null): Set<string> {
+  const standing: Array<Enemy | Ally> = [...state.enemies, ...state.allies];
+  return new Set(standing.filter((e) => e !== except).map((e) => hexKey(e.hex)));
 }

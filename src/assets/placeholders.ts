@@ -204,7 +204,14 @@ const drawBattleHead: PlaceholderDrawer = (scene, key, width, height) => {
  * A soldier of the Order standing on a hex, seen from a slant, facing right.
  * Feet at the bottom middle of the image; what they carry is held on the right.
  */
-function battleSoldier(tabard: string, emblem: string, gear: 'sword' | 'axe' | 'torch', heavy: boolean): PlaceholderDrawer {
+/** What a soldier carries, and how he is dressed beyond his tabard: a plume on the helmet, a wide hat (no helmet). */
+type SoldierGear = 'sword' | 'axe' | 'torch' | 'crossbow' | 'ledger';
+interface SoldierLook {
+  plume?: string;
+  hat?: boolean;
+}
+
+function battleSoldier(tabard: string, emblem: string, gear: SoldierGear, heavy: boolean, look: SoldierLook = {}): PlaceholderDrawer {
   return (scene, key, width, height, palette) => {
     const g = scene.make.graphics({}, false);
     const cx = Math.floor(width / 2);
@@ -224,7 +231,13 @@ function battleSoldier(tabard: string, emblem: string, gear: 'sword' | 'axe' | '
     g.fillRect(cx + body, feet - 22, 3, 9);
     g.fillStyle(0x101010);
     g.fillCircle(cx, feet - 27, 5);
-    if (gear === 'torch') {
+    if (look.hat) {
+      g.fillStyle(color('#c9a27a')); // a clerk: a face, and a wide black hat
+      g.fillCircle(cx, feet - 27, 4);
+      g.fillStyle(0x111111);
+      g.fillRect(cx - 7, feet - 31, 14, 2);
+      g.fillRect(cx - 4, feet - 35, 8, 4);
+    } else if (gear === 'torch' && !heavy) {
       g.fillStyle(color('#c9a27a')); // a lay brother: no helmet, a tonsure
       g.fillCircle(cx, feet - 27, 4);
       g.fillStyle(color('#6b5530'));
@@ -234,6 +247,11 @@ function battleSoldier(tabard: string, emblem: string, gear: 'sword' | 'axe' | '
       g.fillCircle(cx, feet - 27, 4);
       g.fillStyle(0x3a3a3e);
       g.fillRect(cx - 3, feet - 28, 7, 2); // visor
+      if (look.plume) {
+        g.fillStyle(color(look.plume));
+        g.fillRect(cx - 1, feet - 36, 3, 5);
+        g.fillRect(cx - 3, feet - 37, 3, 2);
+      }
     }
     const hand = cx + body + 2;
     if (gear === 'sword') {
@@ -241,6 +259,16 @@ function battleSoldier(tabard: string, emblem: string, gear: 'sword' | 'axe' | '
       g.fillRect(hand, feet - 34, 2, 20);
       g.fillStyle(0x6b4a2a);
       g.fillRect(hand - 2, feet - 15, 6, 2);
+    } else if (gear === 'crossbow') {
+      g.fillStyle(0x6b4a2a);
+      g.fillRect(hand - 1, feet - 22, 9, 2); // the stock, held level
+      g.fillStyle(0xb0b0b4);
+      g.fillRect(hand + 6, feet - 26, 2, 10); // the bow
+    } else if (gear === 'ledger') {
+      g.fillStyle(color('#e8dcb8'));
+      g.fillRect(hand - 1, feet - 21, 6, 8); // the ledger, open
+      g.fillStyle(0x6b4a2a);
+      g.fillRect(hand + 1, feet - 21, 1, 8);
     } else if (gear === 'axe') {
       g.fillStyle(0x6b4a2a);
       g.fillRect(hand, feet - 33, 2, 24);
@@ -258,6 +286,27 @@ function battleSoldier(tabard: string, emblem: string, gear: 'sword' | 'axe' | '
     g.destroy();
   };
 }
+
+/** A Broodling standing on the battle board: a small bronze hatchling, mouth open, facing right. */
+const drawBroodlingInBattle: PlaceholderDrawer = (scene, key, width, height) => {
+  const g = scene.make.graphics({}, false);
+  const feet = height - 1;
+  g.fillStyle(0x171510);
+  g.fillEllipse(width / 2, feet - 4, width - 2, 8); // outline
+  g.fillStyle(0x6e5228);
+  g.fillEllipse(width / 2, feet - 4, width - 4, 6); // body
+  g.fillStyle(0x9a7a40);
+  g.fillRect(width / 2 + 2, feet - 10, 3, 5); // neck
+  g.fillRect(width / 2 + 3, feet - 12, 5, 3); // head
+  g.fillStyle(0xc1b18e);
+  g.fillRect(width / 2 + 6, feet - 10, 2, 1); // jaw
+  g.fillStyle(0x7fe0d6);
+  g.fillRect(width / 2 + 5, feet - 12, 1, 1); // eye
+  g.fillStyle(0x4a3a1c);
+  g.fillRect(1, feet - 5, 3, 2); // tail
+  g.generateTexture(key, width, height);
+  g.destroy();
+};
 
 /**
  * The lower jaw as its own image, so the game can open the mouth. The placeholder head already has its jaw drawn in,
@@ -309,6 +358,11 @@ export const placeholderDrawers: Readonly<Record<string, PlaceholderDrawer>> = {
   battle_enemy_manAtArms: battleSoldier('#9e2323', '#d9a93b', 'sword', false),
   battle_enemy_headhunter: battleSoldier('#5a1a1a', '#b08a3a', 'axe', true),
   battle_enemy_torchbearer: battleSoldier('#6b5530', '#8a7040', 'torch', false),
+  battle_enemy_crossbowman: battleSoldier('#7a2e2e', '#c8b070', 'crossbow', false),
+  battle_enemy_titheCollector: battleSoldier('#2e2a40', '#d9c890', 'ledger', false, { hat: true }),
+  battle_enemy_knight: battleSoldier('#d8d4c8', '#c23a2a', 'sword', true, { plume: '#c23a2a' }),
+  battle_enemy_masterOfTheOrder: battleSoldier('#8a1a12', '#f0c040', 'torch', true, { plume: '#f0c040' }),
+  battle_broodling: drawBroodlingInBattle,
   battle_stump: battleDot('#8a2a2a', '#3a0d0d'),
   battle_scar: battleDot('#2a2220', '#111111'),
   title_background: drawTitleBackground,

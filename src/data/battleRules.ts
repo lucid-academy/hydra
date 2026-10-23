@@ -6,7 +6,7 @@ import type { EffectData, SkillSpecialData } from './battleSchemas';
 import type { GameData } from './index';
 
 export function battleRulesFrom(data: GameData): BattleRules {
-  const { balance, heads, enemies, combos } = data;
+  const { balance, heads, enemies, combos, brood } = data;
   const tps = balance.battle.ticksPerSecond;
   const ticks = (seconds: number) => Math.max(1, Math.round(seconds * tps));
   const maybeTicks = (seconds: number | undefined) => (seconds === undefined ? null : ticks(seconds));
@@ -158,6 +158,11 @@ export function battleRulesFrom(data: GameData): BattleRules {
           cauterizeTicks: e.cauterizeSeconds !== undefined ? ticks(e.cauterizeSeconds) : null,
           behavior: e.behavior,
           immuneTo: e.immuneTo ?? [],
+          blindInMist: e.blindInMist ?? false,
+          shots: e.shots ?? null,
+          charge: e.charge ? { stepMultiplier: e.charge.stepMultiplier, firstHitMultiplier: e.charge.firstHitMultiplier } : null,
+          collectTicks: e.collectSeconds !== undefined ? ticks(e.collectSeconds) : null,
+          boss: e.boss ?? false,
         },
       ]),
     ),
@@ -229,5 +234,10 @@ export function battleRulesFrom(data: GameData): BattleRules {
       }
     }),
     hitMemoryTicks: ticks(combos.hitMemorySeconds),
+    broodling: {
+      maxHp: brood.battle.maxHp,
+      stepTicks: ticks(brood.battle.stepSeconds),
+      attack: { damage: brood.battle.attack.damage, cooldownTicks: ticks(brood.battle.attack.cooldownSeconds), range: brood.battle.attack.range },
+    },
   };
 }

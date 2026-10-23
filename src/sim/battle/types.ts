@@ -233,7 +233,11 @@ export interface HeadClassRules {
   badIdea: { ticks: number; earliestTick: number; latestTick: number } | null;
 }
 
-export type EnemyBehavior = 'fighter' | 'headhunter' | 'torchbearer';
+/**
+ * fighter: walks up and hits what is in reach. headhunter: goes for the heads. torchbearer: burns stumps shut first.
+ * collector (Tithe Collector): walks up to the body, counts what the hydra has, then runs for the edge of the board.
+ */
+export type EnemyBehavior = 'fighter' | 'headhunter' | 'torchbearer' | 'collector';
 
 export interface EnemyTypeRules {
   maxHp: number;
@@ -246,6 +250,23 @@ export interface EnemyTypeRules {
   behavior: EnemyBehavior;
   /** Statuses that never take hold on this type (knights are not afraid). */
   immuneTo: readonly string[];
+  /** A ranged attacker that can't see through Mist: what stands in a cloud, or anything when it stands in one, is hidden unless next to it. */
+  blindInMist: boolean;
+  /** Shots from afar before it runs out (crossbowmen), then it fights up close (range 1); null = never runs out. */
+  shots: number | null;
+  /** Charges (knights): walks faster until its first blow, which hits harder. */
+  charge: { stepMultiplier: number; firstHitMultiplier: number } | null;
+  /** Collector: how long it counts next to the body before it runs. */
+  collectTicks: number | null;
+  /** A boss: shown by name with a big HP bar. */
+  boss: boolean;
+}
+
+/** Broodlings fighting for the lair (brood.json battle). */
+export interface AllyRules {
+  maxHp: number;
+  stepTicks: number;
+  attack: EnemyAttackRules;
 }
 
 export interface BoardSize {
@@ -283,6 +304,7 @@ export interface BattleRules extends BoardSize {
   rummage: readonly RummageFind[];
   /** How long a hit is remembered on an enemy, for combos that need several heads. */
   hitMemoryTicks: number;
+  broodling: AllyRules;
 }
 
 // ---------------------------------------------------------------- state
@@ -434,6 +456,22 @@ export interface Enemy extends Walker {
   recentHits?: RememberedHit[];
   /** Tick until which each combo can't fire on this enemy again, by combo id. */
   comboCooldowns?: Record<string, number>;
+  /** A charging knight that hasn't struck yet. */
+  charging?: boolean;
+  /** Shots left (crossbowmen); at 0 it fights up close. */
+  shotsLeft?: number;
+  /** Collector: ticks of counting done next to the body, and whether it has counted it all and is running. */
+  collectProgress?: number;
+  collected?: boolean;
+}
+
+/** A Broodling fighting for the lair: it stands on a hex like a human, walks to the nearest one and bites. */
+export interface Ally extends Walker {
+  id: number;
+  hex: Hex;
+  hp: number;
+  maxHp: number;
+  cooldown: number;
 }
 
 export interface Body extends Walker {
@@ -448,7 +486,7 @@ export interface Body extends Walker {
 export type BattleOutcome = 'won' | 'lost';
 
 /** What dealt the damage: a head, a human, a status (e.g. Corroded), an acid Mist cloud or a combo. */
-export type HitSource = 'head' | 'enemy' | 'status' | 'mist' | 'combo';
+export type HitSource = 'head' | 'enemy' | 'status' | 'mist' | 'combo' | 'ally';
 
 export type BattleEvent =
   | {
@@ -457,13 +495,18 @@ export type BattleEvent =
       attacker: HitSource;
       /** Head id or enemy id of the attacker, when there is one. */
       attackerId: string | number | null;
-      targetKind: 'head' | 'enemy' | 'body';
+      targetKind: 'head' | 'enemy' | 'body' | 'ally';
       targetId: number | string;
       damage: number;
       at: Hex;
     }
   | { type: 'heal'; tick: number; targetKind: 'head' | 'body'; targetId: string; amount: number; at: Hex }
   | { type: 'enemyKilled'; tick: number; enemyId: number; at: Hex }
+  /** A human left the board (a Tithe Collector with the tithe counted). */
+  | { type: 'escaped'; tick: number; enemyId: number; at: Hex }
+  /** A Tithe Collector has counted what the hydra has and makes for the edge. */
+  | { type: 'collected'; tick: number; enemyId: number; at: Hex }
+  | { type: 'allyKilled'; tick: number; allyId: number; at: Hex }
   | { type: 'devoured'; tick: number; enemyId: number; headId: string | null; at: Hex }
   | { type: 'severed'; tick: number; headId: string; name: string; stumpId: number }
   | { type: 'regrown'; tick: number; stumpId: number; headIds: string[] }
@@ -491,6 +534,12 @@ export interface BattleState {
   heads: BattleHead[];
   stumps: Stump[];
   enemies: Enemy[];
+  /** Broodlings fighting beside the hydra (in the battle for the lair). */
+  allies: Ally[];
+  /** Tithe Collectors that got away with the tithe. */
+  tithesTaken: number;
+  /** Burning stumps shut takes this many times as long (the hydra's mutations). */
+  cauterizeMultiplier: number;
   clouds: MistCloud[];
   pools: Pool[];
   beacons: Beacon[];

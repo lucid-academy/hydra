@@ -119,7 +119,7 @@ export function checkCrossReferences(
     }
   }
   if (data.balance && data.biomes && data.world) problems.push(...worldProblems(data.balance, data.biomes, data.world, data.heads));
-  if (data.order && data.enemies && data.balance) problems.push(...orderProblems(data.order, data.enemies, data.balance));
+  if (data.order && data.enemies && data.balance && data.mutations) problems.push(...orderProblems(data.order, data.enemies, data.balance, data.mutations));
   if (data.biomes && data.manifest) {
     // Every biome needs its map images (with "file": null the game draws a placeholder from the biome's colours).
     for (const [id, biome] of Object.entries(data.biomes.biomes)) {
@@ -269,7 +269,7 @@ function generationProblems(data: GameData): string[] {
 }
 
 /** The Order (order.json) sends groups that exist in enemies.json, at Alert stages it names. */
-function orderProblems(order: OrderData, enemies: EnemiesData, balance: Balance): string[] {
+function orderProblems(order: OrderData, enemies: EnemiesData, balance: Balance, mutations: MutationsData): string[] {
   const problems: string[] = [];
   const where = (path: string, message: string) => problems.push(`  - src/data/order.json, ${path}: ${message}`);
   const groups = enemies.encounterGroups.map((g) => g.id);
@@ -295,6 +295,10 @@ function orderProblems(order: OrderData, enemies: EnemiesData, balance: Balance)
   checkStage('expeditions.fromStage', order.expeditions.fromStage);
   checkStage('greatBurning.atStage', order.greatBurning.atStage);
   checkGroup('greatBurning.group', order.greatBurning.group);
+  const mutationIds = mutations.mutations.map((m) => m.id);
+  order.greatBurning.mutations.forEach((id, i) => {
+    if (!mutationIds.includes(id)) where(`greatBurning.mutations.${i}`, `unknown mutation "${id}"; known (from mutations.json): ${mutationIds.join(', ')}`);
+  });
   return problems;
 }
 
