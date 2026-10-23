@@ -261,7 +261,7 @@ describe('unlocks', () => {
     const lineage = startLineage(profile, 11, lineageRules);
     const run = hatch(profile, lineage);
     expect(checkUnlocks(profile, lineage, run, lineageRules)).toEqual([]);
-    expect(modifierFor(profile, lineage)).toBeNull();
+    expect(modifierFor(profile, lineage, lineageRules)).toBeNull();
 
     run.story.flags.push('heardMycelium');
     expect(checkUnlocks(profile, lineage, run, lineageRules)).toEqual(['myceliumBloom']);
@@ -276,18 +276,30 @@ describe('unlocks', () => {
     expect(profile.unlocked).toEqual(['myceliumBloom', 'oldWorkings', 'wetYear']);
   });
 
-  it('every generation gets one unlocked modifier, the same for the same generation', () => {
+  it('every generation gets one unlocked modifier or a normal year, the same for the same generation', () => {
     const profile = newProfile();
     const lineage = startLineage(profile, 11, lineageRules);
     profile.unlocked.push('wetYear', 'myceliumBloom', 'oldWorkings');
-    const picks = new Set<string>();
-    for (let g = 0; g < 12; g++) {
-      const pick = modifierFor(profile, lineage)!;
-      expect(profile.unlocked).toContain(pick);
-      expect(modifierFor(profile, lineage)).toBe(pick);
+    const picks = new Set<string | null>();
+    for (let g = 0; g < 40; g++) {
+      const pick = modifierFor(profile, lineage, lineageRules);
+      if (pick !== null) expect(profile.unlocked).toContain(pick);
+      expect(modifierFor(profile, lineage, lineageRules)).toBe(pick);
       picks.add(pick);
       lineage.generation += 1;
     }
-    expect(picks.size).toBeGreaterThan(1);
+    expect(picks).toContain(null);
+    expect(picks.size).toBeGreaterThan(2);
+  });
+
+  it('with one modifier unlocked, not every year is that one', () => {
+    const profile = newProfile();
+    const lineage = startLineage(profile, 5, lineageRules);
+    profile.unlocked.push('wetYear');
+    let wet = 0;
+    for (let g = 0; g < 200; g++, lineage.generation++) if (modifierFor(profile, lineage, lineageRules) === 'wetYear') wet++;
+    expect(wet).toBeGreaterThan(60);
+    expect(wet).toBeLessThan(140);
+    expect(modifierFor(profile, lineage, { ...lineageRules, normalYearWeight: 0 })).toBe('wetYear');
   });
 });

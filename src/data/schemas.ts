@@ -560,6 +560,7 @@ export const worldSchema = section({
     myceliumBloom: section({ ...named, unlock: unlockSchema, extraFungalPatches: intRange(0), fungalBiome: z.string().min(1) }),
     oldWorkings: section({ ...named, unlock: unlockSchema, extraEncounters: z.number().int().min(0) }),
   }),
+  modifierDraw: section({ normalYearWeight: z.number().min(0) }),
 }).superRefine((world, ctx) => {
   // The generator relies on these.
   const needed = { draughtCrack: 'hidden', cinderScar: 'alwaysOpen', oldWorkings: 'alwaysOpen' } as const;
@@ -890,6 +891,48 @@ export const lineageSchema = section({
   epitaphs: section({ byEnemy: entries(lines.min(1)), any: lines.min(1), ended: lines.min(1) }),
 });
 
+/** An encounter group (enemies.json) the Order sends, by weight. */
+const orderGroupSchema = section({
+  group: z.string().min(1),
+  weight: z.number().positive(),
+  minRing: z.number().int().min(0).optional(),
+  fromStage: z.string().min(1).optional(),
+});
+export const orderSchema = section({
+  alertStages: z
+    .array(section({ id: z.string().min(1), at: z.number().min(0), text: z.string().min(1) }))
+    .min(1)
+    .refine((stages) => stages.every((s, i) => i === 0 || s.at > stages[i - 1]!.at), 'stages must go up: each "at" bigger than the one before')
+    .refine((stages) => new Set(stages.map((s) => s.id)).size === stages.length, 'each stage needs its own id'),
+  alertPerTurn: z.number().min(0),
+  patrols: section({
+    firstOnTurn: z.number().int().min(1),
+    maxByStage: z.array(z.number().int().min(0)).min(1),
+    everyTurnsByStage: z.array(z.number().int().min(1)).min(1),
+    actMaxBonus: z.number().int().min(0),
+    movement: z.number().int().min(1),
+    sight: z.number().int().min(0),
+    chaseTurns: z.number().int().min(0),
+    groups: z.array(orderGroupSchema).min(1),
+  }),
+  messengers: section({
+    headStart: z.number().int().min(0),
+    movement: z.number().int().min(1),
+    alertOnArrival: z.number(),
+    alertWhenEaten: z.number(),
+    bones: z.number().int().min(0),
+  }),
+  expeditions: section({
+    fromStage: z.string().min(1),
+    firstAfterTurns: z.number().int().min(0),
+    everyTurns: z.number().int().min(1),
+    movement: z.number().int().min(1),
+    groups: z.array(orderGroupSchema).min(1),
+  }),
+  greatBurning: section({ atStage: z.string().min(1), movement: z.number().int().min(1), group: z.string().min(1) }),
+  siege: section({ perTurn: z.number().int().min(0) }),
+});
+
 export const FLAG_SCOPES = ['life', 'lineage', 'world'] as const;
 export const flagsSchema = section({
   flags: entries(section({ scope: z.enum(FLAG_SCOPES), about: z.string().min(1) })),
@@ -928,3 +971,4 @@ export type EventsData = z.infer<typeof eventsSchema>;
 export type MutationsData = z.infer<typeof mutationsSchema>;
 export type LineageData = z.infer<typeof lineageSchema>;
 export type FlagsData = z.infer<typeof flagsSchema>;
+export type OrderData = z.infer<typeof orderSchema>;

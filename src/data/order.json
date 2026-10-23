@@ -1,0 +1,55 @@
+{
+  "//": "TODO(design): the Order of the Eternal Flame on the map (GAME_DESIGN.md §5.5, §8; M3). Working values and texts by Claude; change them freely. The Order comes down through the Passages to the surface (and the Old Workings shaft) and moves in the world turn, after End Turn. Movement is in movement points, with the same terrain costs as the hydra's. sight: how far a patrol sees the hydra, in hexes.",
+  "alertStages": [
+    { "id": "morePatrols", "at": 25, "text": "Bells in the chapter house. The Order doubles its patrols and tells them to look under things." },
+    { "id": "expeditions", "at": 50, "text": "The Order is raising an expedition against the lair. Somebody has been made to count the torches." },
+    { "id": "newEnemies", "at": 75, "text": "Crossbowmen, knights and a tithe collector come down from the castle. The tithe collector has brought his own ledger." },
+    { "id": "greatBurning", "at": 100, "text": "The Great Burning is declared. A Master of the Order is coming to the lair, with everyone he could find." }
+  ],
+  "alertPerTurn": 0,
+  "patrols": {
+    "//": "How many patrols walk the underground at once, and how often a new one comes down, by the number of Alert stages reached (first number: none reached yet). In act 2 and later, actMaxBonus more at once. A patrol walks from chamber to chamber; one that sees the hydra follows her for chaseTurns world turns after losing sight of her. groups: encounter groups from enemies.json, by weight; minRing: only from an entrance in this ring or deeper; fromStage: only once this Alert stage is reached (or in act 2 and later).",
+    "firstOnTurn": 4,
+    "maxByStage": [1, 2, 2, 3, 3],
+    "everyTurnsByStage": [8, 5, 5, 4, 4],
+    "actMaxBonus": 1,
+    "movement": 4,
+    "sight": 3,
+    "chaseTurns": 3,
+    "groups": [
+      { "group": "patrol", "weight": 3 },
+      { "group": "lostNovices", "weight": 1 },
+      { "group": "huntingParty", "weight": 2, "minRing": 2 },
+      { "group": "burningDetail", "weight": 2, "minRing": 2 }
+    ]
+  },
+  "messengers": {
+    "//": "After every battle the Order hears of (not near the Silent Bell), a messenger runs for the nearest Passage, headStart hexes ahead. If he gets there, the Alert rises by alertOnArrival. Stepping onto his hex eats him: bones, and the Alert changes by alertWhenEaten.",
+    "headStart": 2,
+    "movement": 4,
+    "alertOnArrival": 8,
+    "alertWhenEaten": -3,
+    "bones": 2
+  },
+  "expeditions": {
+    "//": "From the Alert stage fromStage on, an expedition sets out for the lair every everyTurns world turns, one at a time, from the entrance furthest from the lair that has a way to it. groups: encounter groups from enemies.json, by weight.",
+    "fromStage": "expeditions",
+    "firstAfterTurns": 2,
+    "everyTurns": 10,
+    "movement": 3,
+    "groups": [
+      { "group": "burningDetail", "weight": 2 },
+      { "group": "pyreProcession", "weight": 1 }
+    ]
+  },
+  "greatBurning": {
+    "//": "At the Alert stage atStage, once per act, the Great Burning sets out for the lair: a Master of the Order with his procession (group, from enemies.json).",
+    "atStage": "greatBurning",
+    "movement": 2,
+    "group": "pyreProcession"
+  },
+  "siege": {
+    "//": "An expedition that finds the lair empty camps in it: every world turn it kills one Broodling defender, or, when none is left, breaks one egg.",
+    "perTurn": 1
+  }
+}

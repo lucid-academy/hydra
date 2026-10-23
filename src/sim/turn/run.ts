@@ -9,6 +9,7 @@ import { generateUnderground, hexesSeenFrom, updateVisibility } from '../map';
 import type { MapObject } from '../map';
 import { Rng } from '../rng';
 import { applyBirthMutations, gainMutation, headMaxHp, startingHeadCount } from './mutations';
+import { newOrder, orderTurn } from './order';
 import { eventArrived, meetEnemies, newStory, serpentOnTheWay, storyMoment } from './story';
 import type { BlessingEffects, Heritage, Journey, Reachable, RunEvent, RunRules, RunState } from './types';
 import { arriveAt, battleSilenced, coolTunnels, growHeads, lookAround, movementForTurn, raiseAlert, tickConditions, tileAt } from './world';
@@ -80,6 +81,7 @@ export function createRun(seed: number, rules: RunRules, options: RunOptions = {
     story: newStory(seed, map.tiles.get(hexKey(map.lair))!.biome),
     pendingEvent: null,
     hotUntil: {},
+    order: newOrder(seed),
   };
   if (heritage) {
     state.story.flags.push(...heritage.flags);
@@ -441,6 +443,7 @@ export function endTurn(state: RunState, rules: RunRules): RunEvent[] {
   } else {
     serpentOnTheWay(state, rules, events);
   }
+  orderTurn(state, rules, events);
   events.push({ type: 'turnEnded', turn: state.turn });
   return events;
 }

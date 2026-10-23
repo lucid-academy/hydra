@@ -2,9 +2,9 @@
 
 import type { BiomeSettings, PlaceSettings, UndergroundGeneratorSettings } from '../sim/map';
 import type { LineageRules } from '../sim/lineage';
-import type { EventOutcome, PlaceAction, RunRules, StoryRules } from '../sim/turn';
+import type { EventOutcome, OrderGroupRules, OrderRules, PlaceAction, RunRules, StoryRules } from '../sim/turn';
 import type { GameData } from './index';
-import type { Balance, EventsData } from './schemas';
+import type { Balance, EventsData, OrderData } from './schemas';
 
 type OutcomeData = NonNullable<EventsData['events'][number]['choices'][number]['outcome']>;
 
@@ -168,6 +168,32 @@ export function runRulesFrom(data: GameData): RunRules {
     conditions: Object.fromEntries(Object.entries(world.conditions).map(([id, c]) => [id, { movement: c.movement ?? 0, revealsEncounters: c.revealsEncounters === true }])),
     headMaxHp: Object.fromEntries(Object.entries(heads.classes).map(([id, c]) => [id, c.maxHp])),
     story: storyRulesFrom(data),
+    order: orderRulesFrom(data.order),
+  };
+}
+
+/** How the Order reacts to the Alert and walks the underground, with every field filled in. */
+export function orderRulesFrom(order: OrderData): OrderRules {
+  const groups = (list: OrderData['patrols']['groups']): OrderGroupRules[] =>
+    list.map((g) => ({ groupId: g.group, weight: g.weight, minRing: g.minRing ?? 0, fromStage: g.fromStage ?? null }));
+  const { patrols, messengers, expeditions, greatBurning } = order;
+  return {
+    stages: order.alertStages.map((s) => ({ id: s.id, at: s.at })),
+    alertPerTurn: order.alertPerTurn,
+    patrols: {
+      firstOnTurn: patrols.firstOnTurn,
+      maxByStage: patrols.maxByStage,
+      everyTurnsByStage: patrols.everyTurnsByStage,
+      actMaxBonus: patrols.actMaxBonus,
+      movement: patrols.movement,
+      sight: patrols.sight,
+      chaseTurns: patrols.chaseTurns,
+      groups: groups(patrols.groups),
+    },
+    messengers: { headStart: messengers.headStart, movement: messengers.movement, alertOnArrival: messengers.alertOnArrival, alertWhenEaten: messengers.alertWhenEaten, bones: messengers.bones },
+    expeditions: { fromStage: expeditions.fromStage, firstAfterTurns: expeditions.firstAfterTurns, everyTurns: expeditions.everyTurns, movement: expeditions.movement, groups: groups(expeditions.groups) },
+    greatBurning: { atStage: greatBurning.atStage, movement: greatBurning.movement, groupId: greatBurning.group },
+    siege: { perTurn: order.siege.perTurn },
   };
 }
 
@@ -246,5 +272,6 @@ export function lineageRulesFrom(data: GameData): LineageRules {
       const { text: _text, '//': _note, ...challenge } = m.unlock;
       return [{ id, challenge }];
     }),
+    normalYearWeight: world.modifierDraw.normalYearWeight,
   };
 }

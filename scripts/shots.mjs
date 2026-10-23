@@ -96,6 +96,17 @@ async function readThroughToShrine(page) {
   await page.waitForTimeout(600);
 }
 
+/** Reads through any dialogue on screen, then ends the turn. */
+async function endTurn(page) {
+  for (let i = 0; i < 40; i++) {
+    if (!(await page.evaluate(() => window.__hydra.runSummary().talking))) break;
+    await tapGame(page, { x: 320, y: 120 });
+    await page.waitForTimeout(400);
+  }
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(700);
+}
+
 /** Steps onto the event site next to the hydra (?event=), and waits for its panel. */
 async function stepOntoEvent(page) {
   const points = await page.evaluate(() => window.__hydra.reachableOnScreen());
@@ -147,6 +158,7 @@ const SHOTS = [
     await page.keyboard.press('Space');
     await page.waitForTimeout(12_000);
   } },
+  { name: 'map-alert-stage', query: '?seed=123&scene=map&alert=55', viewport: DESKTOP, scene: 'map', act: endTurn },
   { name: 'map-phone-landscape', query: '?seed=123&scene=map', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map' },
   // M2c: whole worlds at a glance (map revealed and zoomed out), with and without run modifiers.
   { name: 'world-123', query: '?seed=123&scene=map&reveal=1&zoom=0.45', viewport: DESKTOP, scene: 'map' },

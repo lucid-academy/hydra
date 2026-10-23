@@ -14,9 +14,10 @@ import eventsJson from './events.json';
 import mutationsJson from './mutations.json';
 import lineageJson from './lineage.json';
 import flagsJson from './flags.json';
+import orderJson from './order.json';
 import manifestJson from '../assets/manifest.json';
 import { battleProblems } from './battleChecks';
-import { balanceSchema, biomesSchema, combosSchema, dialoguesSchema, eventsSchema, flagsSchema, lineageSchema, mutationsSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, textSchema, worldSchema } from './schemas';
+import { balanceSchema, biomesSchema, combosSchema, dialoguesSchema, eventsSchema, flagsSchema, lineageSchema, mutationsSchema, orderSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, textSchema, worldSchema } from './schemas';
 import type {
   AssetManifest,
   Balance,
@@ -28,6 +29,7 @@ import type {
   FlagsData,
   LineageData,
   MutationsData,
+  OrderData,
   ShrinesData,
   EnemiesData,
   GameText,
@@ -53,6 +55,7 @@ export interface GameData {
   mutations: MutationsData;
   lineage: LineageData;
   flags: FlagsData;
+  order: OrderData;
 }
 
 export function loadGameData(): GameData {
@@ -72,6 +75,7 @@ export function loadGameData(): GameData {
     mutations: validateData('src/data/mutations.json', mutationsSchema, mutationsJson),
     lineage: validateData('src/data/lineage.json', lineageSchema, lineageJson),
     flags: validateData('src/data/flags.json', flagsSchema, flagsJson),
+    order: validateData('src/data/order.json', orderSchema, orderJson),
   };
   checkCrossReferences(data);
   return data;
@@ -80,7 +84,7 @@ export function loadGameData(): GameData {
 /** Names that one data file borrows from another must exist there. */
 export function checkCrossReferences(
   data: Pick<GameData, 'heads' | 'combos'> &
-    Partial<Pick<GameData, 'balance' | 'enemies' | 'biomes' | 'manifest' | 'world' | 'dialogues' | 'events' | 'mutations' | 'lineage' | 'flags' | 'shrines'>>,
+    Partial<Pick<GameData, 'balance' | 'enemies' | 'biomes' | 'manifest' | 'world' | 'dialogues' | 'events' | 'mutations' | 'lineage' | 'flags' | 'shrines' | 'order'>>,
 ): void {
   const statuses = Object.keys(data.combos.statuses);
   const problems: string[] = [];
@@ -111,6 +115,7 @@ export function checkCrossReferences(
     }
   }
   if (data.balance && data.biomes && data.world) problems.push(...worldProblems(data.balance, data.biomes, data.world, data.heads));
+  if (data.order && data.enemies && data.balance) problems.push(...orderProblems(data.order, data.enemies, data.balance));
   if (data.biomes && data.manifest) {
     // Every biome needs its map images (with "file": null the game draws a placeholder from the biome's colours).
     for (const [id, biome] of Object.entries(data.biomes.biomes)) {
@@ -256,6 +261,36 @@ function generationProblems(data: GameData): string[] {
     if (m.unlock.flag !== undefined) checkFlags('world.json', `runModifiers.${id}.unlock.flag`, [m.unlock.flag]);
     if (m.unlock.reachRing !== undefined && m.unlock.reachRing > rings) where('world.json', `runModifiers.${id}.unlock.reachRing`, `there is no ring ${m.unlock.reachRing} (rings: ${rings})`);
   }
+  return problems;
+}
+
+/** The Order (order.json) sends groups that exist in enemies.json, at Alert stages it names. */
+function orderProblems(order: OrderData, enemies: EnemiesData, balance: Balance): string[] {
+  const problems: string[] = [];
+  const where = (path: string, message: string) => problems.push(`  - src/data/order.json, ${path}: ${message}`);
+  const groups = enemies.encounterGroups.map((g) => g.id);
+  const stages = order.alertStages.map((s) => s.id);
+  const rings = balance.undergroundGenerator.rings.length;
+  const checkGroup = (path: string, id: string) => {
+    if (!groups.includes(id)) where(path, `unknown encounter group "${id}"; known (from enemies.json): ${groups.join(', ')}`);
+  };
+  const checkStage = (path: string, id: string) => {
+    if (!stages.includes(id)) where(path, `unknown Alert stage "${id}"; known: ${stages.join(', ')}`);
+  };
+  for (const [name, list] of [['patrols.groups', order.patrols.groups], ['expeditions.groups', order.expeditions.groups]] as const) {
+    list.forEach((g, i) => {
+      checkGroup(`${name}.${i}.group`, g.group);
+      if (g.fromStage !== undefined) checkStage(`${name}.${i}.fromStage`, g.fromStage);
+      if (g.minRing !== undefined && g.minRing > rings) where(`${name}.${i}.minRing`, `there is no ring ${g.minRing} (rings: ${rings})`);
+    });
+  }
+  if (!order.patrols.groups.some((g) => g.minRing === undefined && g.fromStage === undefined)) where('patrols.groups', 'needs at least one group without minRing and fromStage, so any entrance can send a patrol');
+  for (const name of ['maxByStage', 'everyTurnsByStage'] as const) {
+    if (order.patrols[name].length !== stages.length + 1) where(`patrols.${name}`, `needs ${stages.length + 1} numbers: one for no stage reached, then one for each of the ${stages.length} Alert stages`);
+  }
+  checkStage('expeditions.fromStage', order.expeditions.fromStage);
+  checkStage('greatBurning.atStage', order.greatBurning.atStage);
+  checkGroup('greatBurning.group', order.greatBurning.group);
   return problems;
 }
 

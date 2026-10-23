@@ -294,6 +294,50 @@ export interface StoryState {
   rngState: number;
 }
 
+// ---------------------------------------------------------------- the Order on the map (GAME_DESIGN.md §5.5, §8)
+
+/** An encounter group the Order can send, by weight. */
+export interface OrderGroupRules {
+  groupId: string;
+  weight: number;
+  /** Only from an entrance in this ring or deeper (0: any). */
+  minRing: number;
+  /** Only once this Alert stage is reached, or in act 2 and later (null: always). */
+  fromStage: string | null;
+}
+
+/** How the Order reacts to the Alert and walks the underground (order.json). */
+export interface OrderRules {
+  /** Alert stages, lowest first: from `at` on, the Order does more. */
+  stages: ReadonlyArray<{ id: string; at: number }>;
+  /** The Alert rises this much every world turn. */
+  alertPerTurn: number;
+  patrols: {
+    firstOnTurn: number;
+    /** By the number of stages reached (index 0: none yet). */
+    maxByStage: readonly number[];
+    everyTurnsByStage: readonly number[];
+    actMaxBonus: number;
+    movement: number;
+    sight: number;
+    chaseTurns: number;
+    groups: readonly OrderGroupRules[];
+  };
+  messengers: { headStart: number; movement: number; alertOnArrival: number; alertWhenEaten: number; bones: number };
+  expeditions: { fromStage: string; firstAfterTurns: number; everyTurns: number; movement: number; groups: readonly OrderGroupRules[] };
+  greatBurning: { atStage: string; movement: number; groupId: string };
+  siege: { perTurn: number };
+}
+
+export interface OrderState {
+  /** 1 until the first Great Burning is survived (GAME_DESIGN.md §4). */
+  act: number;
+  /** Alert stages (ids) reached in this act. They stay reached when the Alert falls. */
+  stagesReached: string[];
+  /** Random numbers for the Order's moves, apart from the hydra's. */
+  rngState: number;
+}
+
 export interface RunRules {
   movementPointsPerTurn: number;
   sightRangeHexes: number;
@@ -332,6 +376,7 @@ export interface RunRules {
   places: Readonly<Record<string, PlaceRules>>;
   conditions: Readonly<Record<string, ConditionRules>>;
   story: StoryRules;
+  order: OrderRules;
 }
 
 export interface Hydra {
@@ -412,6 +457,8 @@ export interface RunState {
   pendingEvent: { at: Hex; eventId: string; result: { text: string; choice: number; success: boolean } | null } | null;
   /** Hexes of a fresh Cinder Bore that still burn: hex key → the last turn they burn. */
   hotUntil: Record<string, number>;
+  /** The Order of the Eternal Flame: how alarmed it is, and who it has sent down. */
+  order: OrderState;
 }
 
 export type RunEvent =
@@ -452,6 +499,8 @@ export type RunEvent =
   | { type: 'eventReached'; at: Hex; eventId: string }
   | { type: 'eventResolved'; at: Hex; eventId: string; choice: number; success: boolean }
   | { type: 'dialogueQueued'; id: string }
+  /** The Alert reached a stage (order.json alertStages): the Order does more from now on. */
+  | { type: 'alertStage'; stageId: string }
   | { type: 'turnEnded'; turn: number };
 
 export interface Reachable {
