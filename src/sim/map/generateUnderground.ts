@@ -84,6 +84,8 @@ function tryGenerate(rng: Rng, grid: HexGrid, s: UndergroundGeneratorSettings, t
     })),
     deadEnds: caves.deadEnds.map((d) => ({ ring: d.ring, spur: d.spur.map(hexOf), pocket: d.pocket.map(hexOf), content: hexOf(d.content) })),
     echoSources: contents.echoSources.map((e) => ({ at: hexOf(e.at), placeId: e.placeId, biome: e.biome })),
+    // The shaft runs outwards: its last hex is at the world's edge.
+    orderShaft: caves.shaft.length > 0 ? hexOf(caves.shaft[caves.shaft.length - 1]!) : null,
   };
   const map: HexMap = { radius: s.radius, tiles, lair: { q: 0, r: 0 }, layout };
   const problems = ringConnectionProblems(map, terrain);

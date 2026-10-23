@@ -96,13 +96,18 @@ async function readThroughToShrine(page) {
   await page.waitForTimeout(600);
 }
 
-/** Reads through any dialogue on screen, then ends the turn. */
-async function endTurn(page) {
+/** Taps through any dialogue on screen. */
+async function readThrough(page) {
   for (let i = 0; i < 40; i++) {
     if (!(await page.evaluate(() => window.__hydra.runSummary().talking))) break;
     await tapGame(page, { x: 320, y: 120 });
     await page.waitForTimeout(400);
   }
+}
+
+/** Reads through any dialogue on screen, then ends the turn. */
+async function endTurn(page) {
+  await readThrough(page);
   await page.keyboard.press('Enter');
   await page.waitForTimeout(700);
 }
@@ -157,6 +162,21 @@ const SHOTS = [
   { name: 'battle-phone-landscape', query: '?seed=123&scene=battle&group=patrol', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'battle', act: async (page) => {
     await page.keyboard.press('Space');
     await page.waitForTimeout(12_000);
+  } },
+  { name: 'map-order', query: '?seed=123&scene=map&units=patrol,messenger', viewport: DESKTOP, scene: 'map' },
+  { name: 'map-order-ghosts', query: '?seed=123&scene=map&units=patrol,messenger', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await readThrough(page);
+    await moveFarthest(page);
+  } },
+  { name: 'map-order-attack', query: '?seed=123&scene=map&units=patrol', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await endTurn(page);
+    // Old Mother Toad speaks while the hydra rests; then the patrol is upon her.
+    for (let i = 0; i < 40 && !(await page.evaluate(() => window.__hydra.readyScenes.includes('battle'))); i++) {
+      await readThrough(page);
+      await page.waitForTimeout(400);
+    }
+    await page.waitForFunction(() => window.__hydra?.readyScenes.includes('battle'), null, { timeout: 15_000 });
+    await page.waitForTimeout(800);
   } },
   { name: 'map-alert-stage', query: '?seed=123&scene=map&alert=55', viewport: DESKTOP, scene: 'map', act: endTurn },
   { name: 'map-phone-landscape', query: '?seed=123&scene=map', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map' },

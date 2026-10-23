@@ -129,6 +129,8 @@ Small things that make each biome feel different. They do nothing in the game. E
 | map_moisture | 16×20 | A spring: a small pool with water trickling down into it from above. |
 | map_encounter_1, _2, _3 | 22×36, 36×38, 44×40 | People of the Order waiting there, with a red banner bearing a gold flame. More of them and a bigger banner the stronger the group: one soldier (tier 1), two (tier 2), three with a torch (tier 3). Tier 1 is drawn (2026-10-06: a Man-at-Arms beside a banner on a pole, as tall and narrow as GPT drew it); tiers 2 and 3 are still drawn in code. |
 | map_hydra | 26×28 | The hydra on the map: the battle body in miniature, bronze like the cover (GAME_DESIGN.md §13), with three heads on short necks and amber eyes. Drawn since 2026-10-06. The map draws it over everything on its own hex, so on its lair it sits in the pool, in front of the glowing rim. |
+| map_patrol | 26×30 | A patrol of the Order walking the underground (M3): two soldiers in red tabards, the front one holding a pole with a lit lantern hanging from it (the map adds its warm light round the lantern, at the top right). Unlike map_encounter_*, which stand still, these move: no banner, on the march, facing a little to the right. Drawn in code for now. |
+| map_messenger | 14×22 | A messenger of the Order running for the Passage (M3): one man in a red tabard mid-stride, leaning forward, a satchel at his hip and a white letter in his hand. Drawn in code for now. |
 
 All objects: 1 frame, anchor at the feet (bottom middle) unless noted, transparent background.
 

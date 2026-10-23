@@ -249,6 +249,20 @@ export class HudScene extends Phaser.Scene {
         case 'tunnelCooled':
           this.toast(text.hud.tunnelCooled, '#c8c0b0');
           break;
+        case 'orderArrived':
+          if (event.kind === 'patrol') this.toast(getContext(this).data.order.patrols.arrived, palette.order.gold);
+          break;
+        case 'messengerSent':
+          this.toast(getContext(this).data.order.messengers.sent, palette.order.gold);
+          break;
+        case 'messengerEscaped':
+          this.toast(`${getContext(this).data.order.messengers.escaped} ${fill(text.hud.messengerEscaped, { n: event.alert })}`, palette.order.orange);
+          break;
+        case 'messengerEaten': {
+          const line = getContext(this).data.order.messengers.eatenLines[event.line] ?? '';
+          this.toast(`${line} ${fill(text.hud.messengerEaten, { bones: event.bones, alert: event.alert > 0 ? `+${event.alert}` : event.alert })}`.trim(), '#d8d0c0');
+          break;
+        }
         case 'alertStage': {
           const stage = getContext(this).data.order.alertStages.find((s) => s.id === event.stageId);
           if (stage) this.toast(stage.text, palette.order.orange);

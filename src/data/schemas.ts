@@ -637,6 +637,14 @@ export const textSchema = z
       // {n}: body HP lost, e.g. "-8".
       burned: z.string().min(1),
       tunnelCooled: z.string().min(1),
+      // Under the Order's people out of sight, where they were last seen: {n} turns ago (lastSeenOne: one, lastSeenNow: this turn).
+      lastSeen: z.string().min(1),
+      lastSeenOne: z.string().min(1),
+      lastSeenNow: z.string().min(1),
+      // After a messenger is eaten (order.json eatenLines): {bones} gained, {alert} the change, e.g. "-3".
+      messengerEaten: z.string().min(1),
+      // After a messenger got away (order.json escaped): {n} the Alert gained.
+      messengerEscaped: z.string().min(1),
       // Which way something lies from the hydra, as on the screen (north is up).
       directions: section({
         north: z.string().min(1),
@@ -913,6 +921,7 @@ export const orderSchema = section({
     movement: z.number().int().min(1),
     sight: z.number().int().min(0),
     chaseTurns: z.number().int().min(0),
+    arrived: z.string().min(1),
     groups: z.array(orderGroupSchema).min(1),
   }),
   messengers: section({
@@ -921,6 +930,9 @@ export const orderSchema = section({
     alertOnArrival: z.number(),
     alertWhenEaten: z.number(),
     bones: z.number().int().min(0),
+    sent: z.string().min(1),
+    escaped: z.string().min(1),
+    eatenLines: z.array(z.string().min(1)).min(1),
   }),
   expeditions: section({
     fromStage: z.string().min(1),

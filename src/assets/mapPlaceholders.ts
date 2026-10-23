@@ -379,6 +379,37 @@ function drawEncounter(tier: number): PlaceholderDrawer {
   };
 }
 
+/** A patrol of the Order on the move: two soldiers, the front one with a lantern on a pole. */
+const drawPatrol: PlaceholderDrawer = (scene, key, width, height, palette) => {
+  const g = scene.make.graphics({}, false);
+  const b = height - 1;
+  const cx = Math.floor(width / 2);
+  mapSoldier(g, cx - 5, b - 1, palette.order.bannerRed);
+  mapSoldier(g, cx + 4, b, palette.order.bannerRed);
+  px(g, '#6b4a2a', cx + 8, b - 24, 1, 16);
+  px(g, '#6b4a2a', cx + 8, b - 24, 4, 1);
+  px(g, '#101010', cx + 10, b - 23, 4, 5);
+  px(g, palette.order.fire, cx + 11, b - 22, 2, 3);
+  finish(g, key, width, height);
+};
+
+/** A messenger of the Order running, a satchel at his hip and a letter in his hand. */
+const drawMessenger: PlaceholderDrawer = (scene, key, width, height, palette) => {
+  const g = scene.make.graphics({}, false);
+  const b = height - 1;
+  const cx = Math.floor(width / 2);
+  px(g, '#2a2a2e', cx - 4, b - 3, 2, 3); // legs, mid-stride
+  px(g, '#2a2a2e', cx + 2, b - 4, 2, 3);
+  px(g, '#2a2a2e', cx - 2, b - 6, 5, 3);
+  px(g, '#101010', cx - 3, b - 14, 8, 9);
+  px(g, palette.order.bannerRed, cx - 2, b - 13, 6, 7);
+  px(g, '#8a6238', cx - 4, b - 9, 3, 4); // satchel
+  px(g, '#101010', cx, b - 19, 6, 6);
+  px(g, '#c9a27a', cx + 1, b - 18, 4, 4);
+  px(g, '#e8e0d0', cx + 5, b - 13, 3, 2); // the letter
+  finish(g, key, width, height);
+};
+
 const drawHydra: PlaceholderDrawer = (scene, key, width, height, palette) => {
   const g = scene.make.graphics({}, false);
   const cx = Math.floor(width / 2);
@@ -414,6 +445,8 @@ export const mapPlaceholderDrawers: Readonly<Record<string, PlaceholderDrawer>> 
   map_encounter_1: drawEncounter(1),
   map_encounter_2: drawEncounter(2),
   map_encounter_3: drawEncounter(3),
+  map_patrol: drawPatrol,
+  map_messenger: drawMessenger,
   map_hydra: drawHydra,
 };
 

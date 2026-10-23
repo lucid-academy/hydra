@@ -16,6 +16,7 @@
 //   ?flags=hushedSongHeard,surveyChain  with ?scene=map: story flags set from the start (as if those steps were done)
 //   ?conditions=warmed  with ?scene=map: conditions on the hydra from the start (world.json conditions), for 5 turns
 //   ?alert=60     with ?scene=map: the Alert at the start (the Order hears of the stages it passes after End Turn)
+//   ?units=patrol,messenger  with ?scene=map: the Order's people of these kinds 2–3 hexes from the hydra, in sight
 //   ?ancestors=3  the lineage has already lost this many hydras (each with a mutation, slain by the Order), so the
 //                 hydra is an heiress: with ?scene=map her map, ?scene=generation the screen after the last death,
 //                 ?scene=book the Book of Lineages
@@ -56,6 +57,8 @@ export interface UrlParams {
   conditions: string[];
   /** The Alert at the start, or null for the usual. */
   alert: number | null;
+  /** Kinds of the Order's units to put near the hydra at the start. */
+  units: string[];
   /** Hydras of the lineage that have already died, or null. */
   ancestors: number | null;
   /** Head classes for a test battle (empty = the usual heads). */
@@ -92,6 +95,7 @@ export function parseUrlParams(search: string): UrlParams {
     flags: list('flags'),
     conditions: list('conditions'),
     alert: positive('alert'),
+    units: list('units'),
     ancestors: positive('ancestors') === null ? null : Math.floor(positive('ancestors')!),
     heads: (params.get('heads') ?? '').split(',').map((h) => h.trim()).filter((h) => h !== ''),
     ults: params.get('ults') === '1' || params.get('ults') === 'true',
@@ -111,6 +115,7 @@ export function testUrl(params: UrlParams): boolean {
     params.flags.length > 0 ||
     params.conditions.length > 0 ||
     params.alert !== null ||
+    params.units.length > 0 ||
     params.reveal ||
     params.modifiers.length > 0 ||
     params.group !== null ||

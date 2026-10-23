@@ -61,6 +61,8 @@
     "map_encounter_1": { "file": "images/map_encounter_1.png", "width": 22, "height": 36 },
     "map_encounter_2": { "file": null, "width": 36, "height": 38 },
     "map_encounter_3": { "file": null, "width": 44, "height": 40 },
+    "map_patrol": { "file": null, "width": 26, "height": 30 },
+    "map_messenger": { "file": null, "width": 14, "height": 22 },
     "map_hydra": { "file": "images/map_hydra.png", "width": 26, "height": 28 },
     "map_glow": { "file": null, "width": 64, "height": 64 },
     "map_mark": { "file": null, "width": 30, "height": 24 },

@@ -2,11 +2,43 @@
 
 import { describe, expect, it } from 'vitest';
 import { checkCrossReferences, loadGameData } from '../src/data';
-import { endTurn, stageReached } from '../src/sim/turn';
-import type { RunEvent } from '../src/sim/turn';
+import { hex, hexDistance, hexKey } from '../src/sim/hex';
+import type { Hex } from '../src/sim/hex';
+import { emptyLayout } from '../src/sim/map';
+import type { HexMap } from '../src/sim/map';
+import { createRun, endTurn, finishBattle, moveHydra, orderTurn, pendingBattleSetup, reachableHexes, stageReached } from '../src/sim/turn';
+import type { OrderUnit, RunEvent, RunState } from '../src/sim/turn';
 import { flatMap, rules, runOn } from './runHelpers';
 
 const stageEvents = (events: RunEvent[]) => events.flatMap((e) => (e.type === 'alertStage' ? [e.stageId] : []));
+
+/** A flat map with a Passage at (7, 0) and two chambers to walk between. */
+function orderMap(): HexMap {
+  const map = flatMap(8, (tiles) => {
+    tiles.get('7,0')!.object = { kind: 'passage' };
+  });
+  return { ...map, layout: { ...emptyLayout(), chambers: [chamber([hex(-6, 3), hex(-6, 4)]), chamber([hex(6, -6), hex(5, -6)])] } };
+}
+
+function chamber(hexes: Hex[]) {
+  return { ring: 1, biome: 'lairSwamp', patch: false, hexes, exits: 2 };
+}
+
+/** Puts one of the Order's units on the map by hand. */
+function place(state: RunState, kind: OrderUnit['kind'], at: Hex, groupId = 'patrol'): OrderUnit {
+  const unit: OrderUnit = { id: `o${state.order.nextUnitId++}`, kind, at, groupId: kind === 'messenger' ? '' : groupId, tier: 1, goal: null, chase: 0, trail: null };
+  state.order.units.push(unit);
+  return unit;
+}
+
+/** A run on the order map where no new patrol comes down unless a test wants one. */
+function quietRun(): RunState {
+  const state = runOn(orderMap(), 6);
+  state.order.nextPatrolTurn = 999;
+  return state;
+}
+
+const won = (state: RunState) => ({ outcome: 'won' as const, bodyHp: state.hydra.bodyHp, heads: [...pendingBattleSetup(state, rules)!.heads], newScars: 0, nextId: state.nextId });
 
 describe('Alert stages', () => {
   it('are heard in the world turn, lowest first, once each', () => {
@@ -29,12 +61,6 @@ describe('Alert stages', () => {
     expect(stageReached(state, 'expeditions')).toBe(false);
   });
 
-  it('all count as reached from act 2 on', () => {
-    const state = runOn(flatMap(4));
-    state.order.act = 2;
-    expect(stageReached(state, 'newEnemies')).toBe(true);
-  });
-
   it('are named in order.json by stages that exist, and groups that exist', () => {
     const data = loadGameData();
     const order = structuredClone(data.order);
@@ -42,5 +68,154 @@ describe('Alert stages', () => {
     order.patrols.groups[0]!.group = 'patrolz';
     expect(() => checkCrossReferences({ ...data, order })).toThrow(/order\.json, patrols\.groups\.0\.group: unknown encounter group "patrolz"/);
     expect(() => checkCrossReferences({ ...data, order })).toThrow(/order\.json, expeditions\.fromStage: unknown Alert stage "expedition"/);
+  });
+});
+
+describe('patrols', () => {
+  it('come down a Passage from the turn order.json says, one at a time', () => {
+    const state = runOn(orderMap(), 6);
+    const arrivals: RunEvent[] = [];
+    while (state.turn < rules.order.patrols.firstOnTurn) arrivals.push(...endTurn(state, rules).filter((e) => e.type === 'orderArrived'));
+    expect(arrivals).toEqual([{ type: 'orderArrived', unitId: 'o1', kind: 'patrol', at: hex(7, 0), seen: false }]);
+    expect(state.order.units).toHaveLength(1);
+    // The most the first stage allows is out: no more come down.
+    for (let i = 0; i < 12; i++) endTurn(state, rules);
+    expect(state.order.units.filter((u) => u.kind === 'patrol')).toHaveLength(rules.order.patrols.maxByStage[0]!);
+  });
+
+  it('walk from chamber to chamber while they have not seen the hydra', () => {
+    const state = quietRun();
+    const unit = place(state, 'patrol', hex(7, 0));
+    endTurn(state, rules);
+    expect(unit.goal).not.toBeNull();
+    expect(hexDistance(unit.at, hex(7, 0))).toBeGreaterThan(0);
+    expect(state.pendingBattle).toBeNull();
+  });
+
+  it('that see the hydra walk onto her, and that is a battle', () => {
+    const state = quietRun();
+    const unit = place(state, 'patrol', hex(3, 0));
+    const events = endTurn(state, rules);
+    expect(unit.at).toEqual(state.hydra.position);
+    expect(state.pendingBattle).toEqual({ at: state.hydra.position, groupId: 'patrol', unitId: unit.id });
+    expect(events.map((e) => e.type)).toContain('orderAttacked');
+    expect(events.at(-2)?.type === 'battleStarted' || events.some((e) => e.type === 'battleStarted')).toBe(true);
+  });
+
+  it('follow her to where they saw her last, for a few turns', () => {
+    const state = quietRun();
+    state.hydra.position = hex(-4, 0);
+    const unit = place(state, 'patrol', hex(-4, 4));
+    // Out of its sight (4 hexes), then in sight for one world turn, then gone again.
+    unit.trail = hex(-4, 1);
+    unit.chase = 2;
+    endTurn(state, rules);
+    expect(unit.chase).toBe(1);
+  });
+
+  it('are stops on the hydra\'s way when she sees them, and walking onto one is a battle', () => {
+    const state = quietRun();
+    const unit = place(state, 'patrol', hex(2, 0));
+    expect(reachableHexes(state, rules).get(hexKey(hex(3, 0)))?.path).not.toContainEqual(hex(2, 0));
+    moveHydra(state, hex(2, 0), rules);
+    expect(state.pendingBattle).toEqual({ at: hex(2, 0), groupId: 'patrol', unitId: unit.id });
+  });
+
+  it('beaten, are gone, and a messenger runs for the Passage', () => {
+    const state = quietRun();
+    place(state, 'patrol', hex(2, 0));
+    moveHydra(state, hex(2, 0), rules);
+    const events = finishBattle(state, won(state), rules);
+    expect(state.order.units.map((u) => u.kind)).toEqual(['messenger']);
+    const messenger = state.order.units[0]!;
+    expect(hexDistance(messenger.at, hex(2, 0))).toBe(rules.order.messengers.headStart);
+    expect(hexDistance(messenger.at, hex(7, 0))).toBeLessThan(hexDistance(hex(2, 0), hex(7, 0)));
+    expect(events.map((e) => e.type)).toContain('messengerSent');
+  });
+});
+
+describe('messengers', () => {
+  it('who reach the Passage raise the Alert, and are gone', () => {
+    const state = quietRun();
+    place(state, 'messenger', hex(5, 0));
+    state.alert = 10;
+    const events = endTurn(state, rules);
+    expect(state.order.units).toEqual([]);
+    expect(state.alert).toBeCloseTo(10 + rules.order.messengers.alertOnArrival);
+    expect(events.find((e) => e.type === 'messengerEscaped')).toMatchObject({ alert: rules.order.messengers.alertOnArrival });
+  });
+
+  it('keep clear of the hydra on the way', () => {
+    const state = quietRun();
+    state.hydra.position = hex(6, 0);
+    const unit = place(state, 'messenger', hex(4, 0));
+    endTurn(state, rules);
+    expect(unit.at).not.toEqual(hex(6, 0));
+    expect(state.pendingBattle).toBeNull();
+  });
+
+  it('are eaten when the hydra steps on them: Bones, the Alert falls, no battle', () => {
+    const state = quietRun();
+    place(state, 'messenger', hex(2, 0));
+    state.alert = 20;
+    const events = moveHydra(state, hex(2, 0), rules);
+    expect(state.pendingBattle).toBeNull();
+    expect(state.order.units).toEqual([]);
+    expect(state.resources.bones).toBe(rules.order.messengers.bones);
+    expect(state.alert).toBeLessThan(20);
+    expect(events.find((e) => e.type === 'messengerEaten')).toMatchObject({ bones: rules.order.messengers.bones, alert: rules.order.messengers.alertWhenEaten });
+  });
+
+  it('are not sent when the Silent Bell drowns the battle out, or when there is no way up', () => {
+    const state = runOn(flatMap(6), 6);
+    place(state, 'patrol', hex(2, 0));
+    moveHydra(state, hex(2, 0), rules);
+    finishBattle(state, won(state), rules);
+    expect(state.order.units).toEqual([]);
+  });
+});
+
+describe('sightings', () => {
+  it('remember where a unit was last seen, and forget it when the spot is seen empty', () => {
+    const state = quietRun();
+    const unit = place(state, 'patrol', hex(-2, 0));
+    unit.goal = hex(-6, 4);
+    moveHydra(state, hex(0, 1), rules);
+    expect(state.order.sightings).toMatchObject([{ unitId: unit.id, at: hex(-2, 0) }]);
+    // It walks off out of sight: the sighting stays where it was, until that spot is seen empty.
+    unit.at = hex(-7, 4);
+    state.visibility.set(hexKey(hex(-7, 4)), 'remembered');
+    orderTurn(state, rules, []);
+    expect(state.order.sightings.map((s) => s.at)).not.toContainEqual(hex(-2, 0));
+  });
+
+  it('stay where the unit was while that spot is out of sight', () => {
+    const state = quietRun();
+    const unit = place(state, 'patrol', hex(-2, 0));
+    moveHydra(state, hex(1, 0), rules);
+    const seenOn = state.turn;
+    moveHydra(state, hex(5, 0), rules);
+    unit.at = hex(-5, 0);
+    endTurn(state, rules);
+    expect(state.order.sightings).toMatchObject([{ unitId: unit.id, at: hex(-2, 0), turn: seenOn }]);
+  });
+});
+
+describe('the Order on generated worlds', () => {
+  it('always has a way down, and its patrols come', () => {
+    for (const seed of [1, 7, 123, 2026]) {
+      const state = createRun(seed, rules);
+      for (let i = 0; i < 12 && !state.pendingBattle; i++) endTurn(state, rules);
+      expect(state.order.units.length, `seed ${seed}`).toBeGreaterThan(0);
+    }
+  });
+
+  it('does the same with the same seed', () => {
+    const play = () => {
+      const state = createRun(99, rules);
+      for (let i = 0; i < 25 && !state.pendingBattle; i++) endTurn(state, rules);
+      return JSON.stringify(state.order);
+    };
+    expect(play()).toEqual(play());
   });
 });

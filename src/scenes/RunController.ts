@@ -9,6 +9,7 @@ import { hexesSeenFrom, updateVisibility } from '../sim/map';
 import type { MapObject } from '../sim/map';
 import {
   acceptBlessing,
+  addOrderUnit,
   chooseEventOption,
   closeEvent,
   dialogueShown,
@@ -18,7 +19,9 @@ import {
   inspect,
   leavePlace,
   moveHydra,
+  noteSightings,
   openSealed,
+  orderUnitAt,
   pendingBattleSetup,
   plannedJourney,
   reachableHexes,
@@ -28,7 +31,7 @@ import {
   storyDialogue,
   workThreshold,
 } from '../sim/turn';
-import type { Journey, Reachable, RunEvent, RunRules, RunState, ShownDialogue, ShownLine, StoryFacts } from '../sim/turn';
+import type { Journey, OrderUnitKind, Reachable, RunEvent, RunRules, RunState, ShownDialogue, ShownLine, StoryFacts } from '../sim/turn';
 import { lineages } from './LineageKeeper';
 
 const REGISTRY_KEY = 'run';
@@ -229,6 +232,25 @@ export class RunController extends Phaser.Events.EventEmitter {
       if (!this.rules.conditions[id]) console.warn(`?conditions=${id} is not a condition in world.json`);
       else startCondition(this.state, id, 5, this.rules, []);
     }
+  }
+
+  /** For `?units=`: the Order's people of these kinds 2–3 hexes from the hydra, where she sees them. Testing only. */
+  unitsForTest(kinds: readonly string[]): void {
+    const { state, rules } = this;
+    const spots = [...state.map.tiles.values()].filter((t) => {
+      const d = hexDistance(t.hex, state.hydra.position);
+      return d >= 2 && d <= 3 && t.object === null && rules.terrain[t.terrain].moveCost !== null && state.visibility.get(hexKey(t.hex)) === 'visible';
+    });
+    for (const kind of kinds) {
+      if (!['patrol', 'messenger', 'expedition', 'greatBurning'].includes(kind)) {
+        console.warn(`?units=${kind}: not a kind of unit (patrol, messenger, expedition, greatBurning)`);
+        continue;
+      }
+      const spot = spots.find((t) => !orderUnitAt(state, t.hex));
+      if (!spot) continue;
+      addOrderUnit(state, kind as OrderUnitKind, spot.hex, kind === 'messenger' ? '' : 'patrol', rules);
+    }
+    noteSightings(state);
   }
 
   /** For `?alert=`: the Alert at the start. Testing only. */
