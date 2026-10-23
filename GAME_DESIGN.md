@@ -177,7 +177,7 @@ Współrzędne osiowe (axial q, r), heksy pointy-top, algorytmy według przewodn
 
 ### 6.3 Ścinanie, odrost, przypalanie (rdzeń gry)
 - Głowa z 0 HP zostaje ścięta i zostaje po niej Stump.
-- Po czasie odrostu (roboczo 6 s) z kikuta wyrastają **dwie Hatchling Heads**: poziom 1, losowa klasa z odblokowanej puli, losowa przypadłość, wygenerowane imię. Liczba głów nigdy nie przekracza 9.
+- Po czasie odrostu (8 s, decyzja Piotra z 2026-10-23) z kikuta wyrastają **dwie Hatchling Heads**: poziom 1, losowa klasa z odblokowanej puli, losowa przypadłość, wygenerowane imię. Liczba głów nigdy nie przekracza 9.
 - Człowiek z ogniem (Torchbearer, zaklęcia ognia) może **przypalić** kikut: stoi przy nim kilka sekund („kanałuje"). Przypalony kikut nie odrasta do końca bitwy i zostaje blizną, którą leczy odpoczynek w leżu albo kapliczka.
 - Głowy zbierają doświadczenie między bitwami i na poziomach 3 i 5 wybierają specjalizację (jak w Tomb Guard). Stracić weterana boli, ale w zamian dostajesz dwie młode głowy. To jest główne napięcie gry.
 
@@ -194,7 +194,7 @@ Komplet to 9 klas (decyzja Piotra z 2026-10-04). Głowy dzielą się na trzy gru
 - **Tender:** leczy głowy, przyspiesza odrost i broni kikutów przed przypaleniem. Odpowiedź na Torchbearera i Headhuntera. Charakter: troskliwa i bardzo upierdliwa niania, do wszystkich mówi „dear”, także do ludzi, których liże. *„Who did this to your neck? Sit still, Kevin."* (Kevin to inna głowa z tej samej bitwy.)
 - **Lantern:** wabi ludzi fałszywym światłem. Odpowiedź na Torchbearera, Censer Priesta i Crossbowmana. Charakter: fałszywy kaznodzieja, mówi łagodnie i namaszczenie. *„Come closer, brother. The light forgives."* Zakon bierze każde światło za znak z niebios: *„A sign! Brother, a sign!"*
 
-Pula startowa: pierwsze sześć klas. Czy Strangler, Tender i Lantern są w puli od startu, czy do odblokowania: otwarte pytanie w §16.
+Pula głów (decyzja Piotra z 2026-10-23, M2a): na razie z odrostu losuje się każda z dziewięciu klas. Odblokowania klas (odblokowania konta, §12) dopniemy później; sposób odblokowania: `TODO(design)`.
 
 ### 6.5 Synergie i combosy
 - Głowy działają najlepiej razem. Ataki mają **tagi** (bite, acid, mist, scream, devour, coil, lick, light), a trafienia nakładają na ludzi **statusy** (Corroded, Terrified, Soaked, Stunned, Seized, Entranced). Combo powstaje, gdy atak z odpowiednim tagiem trafi cel z odpowiednim statusem albo gdy dwie głowy trafią ten sam cel w krótkim oknie czasu (roboczo 1,5 s).
@@ -543,7 +543,7 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 ## 16. Otwarte pytania (decyduje Piotr, nie zgadywać)
 
 - Ile kapliczek Płomienia trzeba zgasić, żeby zamek stał się celem (roboczo: wszystkie).
-- **Odrost (pomysł Piotra po playteście M1b):** nowe głowy są mniejsze i na początku zadają połowę obrażeń, żeby odrost nie dawał od razu siły. Głowy potem rosną, i dlatego z czasem hydra jest mocna. Do ustalenia: od czego rosną (doświadczenie z walk, błogosławieństwa, czas).
+- **Odrost (pomysł Piotra po playteście M1b):** nowe głowy są mniejsze i na początku zadają połowę obrażeń, żeby odrost nie dawał od razu siły. Głowy potem rosną, i dlatego z czasem hydra jest mocna. Do ustalenia: od czego rosną (doświadczenie z walk, błogosławieństwa, czas). Decyzja Piotra z 2026-10-23: jeszcze nie wprowadzamy; najpierw gra z pełnym składem klas.
 - **Zakończenia:** które i jak się do nich dochodzi? Propozycja Claude: obudzić Węża (z Wakers), nastroić pieśń na nowo i zająć miejsce Hushed, pójść za grzybnią poza świat Węża, zgasić Wieczny Płomień.
-- **Pula głów:** które klasy są w puli od startu, a które trzeba odblokować (odblokowania konta, §12)? Propozycja Claude: sześć pierwszych od startu, a Strangler, Tender i Lantern do odblokowania. Sposób odblokowania do ustalenia.
+- **Odblokowania klas głów:** na razie w puli są wszystkie dziewięć (§6.4, decyzja z 2026-10-23). Które klasy zamknąć za odblokowaniami konta (§12) i jak je zdobywać? Propozycja Claude: sześć pierwszych od startu, a Strangler, Tender i Lantern do odblokowania.
 - **Świat dnia:** jeden seed dziennie, ten sam dla wszystkich graczy, jak w Spelunky. Czy go chcemy i kiedy? Propozycja Claude: później, np. po M5, bo łatwo go dodać.
