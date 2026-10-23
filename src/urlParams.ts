@@ -20,6 +20,8 @@
 //   ?ancestors=3  the lineage has already lost this many hydras (each with a mutation, slain by the Order), so the
 //                 hydra is an heiress: with ?scene=map her map, ?scene=generation the screen after the last death,
 //                 ?scene=book the Book of Lineages
+//   ?eggs=3       with ?ancestors=: the eggs the last of them left (0: none, so the lineage dies out); 1 if not given
+//   ?hidden=1     with ?ancestors=: Old Mother Toad has an egg of the lineage hidden
 //   ?heads=strangler,lantern,tender  with ?scene=battle: the test battle's heads, by class (heads.json)
 //   ?ults=1       ultimate skills (key E) can be used in battle
 // A URL with any of these but seed, debug, speed and zoom is a test: the saved game is neither loaded nor saved
@@ -61,6 +63,10 @@ export interface UrlParams {
   units: string[];
   /** Hydras of the lineage that have already died, or null. */
   ancestors: number | null;
+  /** Eggs the last ancestor left, or null for the usual one. */
+  eggs: number | null;
+  /** The lineage has a hidden egg. */
+  hidden: boolean;
   /** Head classes for a test battle (empty = the usual heads). */
   heads: string[];
   /** Ultimate skills can be used in battle. */
@@ -97,6 +103,8 @@ export function parseUrlParams(search: string): UrlParams {
     alert: positive('alert'),
     units: list('units'),
     ancestors: positive('ancestors') === null ? null : Math.floor(positive('ancestors')!),
+    eggs: (params.get('eggs') ?? '').trim() !== '' && Number.isFinite(Number(params.get('eggs'))) && Number(params.get('eggs')) >= 0 ? Math.floor(Number(params.get('eggs'))) : null,
+    hidden: params.get('hidden') === '1' || params.get('hidden') === 'true',
     heads: (params.get('heads') ?? '').split(',').map((h) => h.trim()).filter((h) => h !== ''),
     ults: params.get('ults') === '1' || params.get('ults') === 'true',
   };
@@ -121,6 +129,8 @@ export function testUrl(params: UrlParams): boolean {
     params.group !== null ||
     params.hp !== null ||
     params.ancestors !== null ||
+    params.eggs !== null ||
+    params.hidden ||
     params.heads.length > 0 ||
     params.ults
   );

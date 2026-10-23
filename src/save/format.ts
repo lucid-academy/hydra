@@ -3,14 +3,15 @@
 // older version of the game is recognised and dropped instead of breaking the new one.
 //
 // Bump RUN_FORMAT whenever RunState changes shape (a new field the game can't do without), and PROFILE_FORMAT whenever
-// Profile does. A run of another format is dropped and the living generation starts again; a profile of another
-// format is a fresh start. Old profiles could be converted here instead, when there are players to keep.
+// Profile does. A run of another format is dropped and the living generation starts again. A profile of an older
+// format is brought up to date (upgradeProfile), so the Book of Lineages and the unlocks survive a new version of
+// the game; one it doesn't know is a fresh start.
 
 import type { Lineage, Profile } from '../sim/lineage';
 import type { RunState } from '../sim/turn';
 
-export const PROFILE_FORMAT = 1;
-export const RUN_FORMAT = 4;
+export const PROFILE_FORMAT = 2;
+export const RUN_FORMAT = 5;
 
 /** The run of the living hydra, with whose it is (a lineage's number and the hydra's generation). */
 export interface SavedRun {
@@ -42,8 +43,9 @@ export function readProfile(text: string | null): Profile | null {
   if (text === null) return null;
   try {
     const saved: unknown = JSON.parse(text);
-    if (!isObject(saved) || saved.format !== PROFILE_FORMAT || !isObject(saved.profile)) return null;
-    const profile = saved.profile;
+    if (!isObject(saved) || typeof saved.format !== 'number' || !isObject(saved.profile)) return null;
+    const profile = upgradeProfile(saved.format, saved.profile);
+    if (!profile) return null;
     if (!Array.isArray(profile.lineages) || !isObject(profile.knowledge) || !Array.isArray(profile.unlocked)) return null;
     if (!Array.isArray(profile.knowledge.flags) || !Array.isArray(profile.knowledge.placesSeen)) return null;
     if (!profile.lineages.every((l) => isLineage(l))) return null;
@@ -51,6 +53,19 @@ export function readProfile(text: string | null): Profile | null {
   } catch {
     return null;
   }
+}
+
+/** A profile of an older format, brought up to this one; null for a format this game doesn't know. */
+function upgradeProfile(format: number, profile: Record<string, unknown>): Record<string, unknown> | null {
+  if (format > PROFILE_FORMAT || format < 1) return null;
+  // 1 → 2 (M3): a lineage keeps the eggs its last hydra left, and the egg Old Mother Toad hid. Format 1 had neither:
+  // an heiress waiting to hatch already has her inheritance.
+  if (format < 2 && Array.isArray(profile.lineages)) {
+    for (const lineage of profile.lineages) {
+      if (isObject(lineage)) Object.assign(lineage, { eggs: null, hiddenEgg: null });
+    }
+  }
+  return profile;
 }
 
 function isLineage(l: unknown): l is Lineage {
@@ -67,6 +82,8 @@ function isLineage(l: unknown): l is Lineage {
     Array.isArray(l.seen) &&
     Array.isArray(l.enemyTypesMet) &&
     Array.isArray(l.chronicle) &&
+    (l.eggs === null || (Array.isArray(l.eggs) && l.eggs.every((e) => Array.isArray(e)))) &&
+    (l.hiddenEgg === null || (isObject(l.hiddenEgg) && Array.isArray(l.hiddenEgg.mutations))) &&
     typeof l.ended === 'boolean' &&
     typeof l.rngState === 'number'
   );

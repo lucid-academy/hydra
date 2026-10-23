@@ -147,10 +147,13 @@ async function playBattle(page, allAtOnce) {
   return end;
 }
 
-/** On the generation screen: Hatch, and the heiress's map. Returns her summary. */
+/** On the generation screen: hatch from the first egg (or the hidden one), and the heiress's map. Returns her summary. */
 async function hatchHeiress(page) {
   const mapsBefore = await timesReady(page, 'map');
-  await tap(page, await button(page, 'hatch'));
+  const buttons = await page.evaluate(() => window.__hydra.buttons());
+  const choice = ['egg1', 'hatch', 'intervene'].find((key) => buttons[key]);
+  if (!choice) throw new Error(`No egg to hatch from on the generation screen: ${Object.keys(buttons).join(', ')}`);
+  await tap(page, buttons[choice]);
   await waitForScene(page, 'map', mapsBefore);
   return page.evaluate(() => ({ ...window.__hydra.runSummary(), reachable: window.__hydra.reachableOnScreen().length }));
 }

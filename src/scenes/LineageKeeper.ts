@@ -1,6 +1,7 @@
 // The account's lineages (GAME_DESIGN.md §12): the profile with the Book of Lineages, the living hydra's run, and the
-// saved game. It starts each generation (her world's seed, her heritage, one unlocked run modifier), writes the dead
-// into the book, unlocks run modifiers, and saves after every command, and when the page is hidden or closed.
+// saved game. It starts each generation (her world's seed, her heritage from the egg the player chose, one unlocked
+// run modifier), writes the dead into the book, keeps the egg Old Mother Toad hides, ends a lineage that has died
+// out, unlocks run modifiers, and saves after every command, and when the page is hidden or closed.
 // On a test URL (urlParams testUrl) the same happens in memory only: nothing is loaded and nothing is saved.
 
 import type * as Phaser from 'phaser';
@@ -8,10 +9,23 @@ import { battleRulesFrom } from '../data/battleRules';
 import { lineageRulesFrom, runRulesFrom } from '../data/runRules';
 import { SAVE_KEYS, readProfile, readRun, readSaved, writeProfile, writeRun, writeSaved } from '../save';
 import type { BattleRules } from '../sim/battle';
-import { checkUnlocks, currentLineage, endLineage, generationSeed, heritageOf, hydraDied, modifierFor, newProfile, startLineage } from '../sim/lineage';
+import {
+  checkUnlocks,
+  chooseEgg,
+  currentLineage,
+  endLineage,
+  generationSeed,
+  heritageOf,
+  hideEgg,
+  hydraDied,
+  miraculousIntervention,
+  modifierFor,
+  newProfile,
+  startLineage,
+} from '../sim/lineage';
 import type { Lineage, LineageRules, Profile } from '../sim/lineage';
 import { Rng } from '../sim/rng';
-import { createRun, finishBattle, gainMutation } from '../sim/turn';
+import { createRun, eggMutations, finishBattle, gainMutation } from '../sim/turn';
 import type { RunEvent, RunRules, RunState, StoryFacts } from '../sim/turn';
 import { testUrl } from '../urlParams';
 import { getContext } from './context';
@@ -59,7 +73,7 @@ export class LineageKeeper {
     const ancestors = params.ancestors ?? (params.scene === 'generation' ? 1 : 0);
     if (!this.persist && ancestors > 0) {
       const lineage = startLineage(this.profile, this.takeSeed(), this.rules);
-      this.liveAndDie(lineage, ancestors);
+      this.liveAndDie(lineage, ancestors, params.eggs ?? 1, params.hidden);
     }
   }
 
@@ -110,11 +124,41 @@ export class LineageKeeper {
     return !(saved && saved.lineage === lineage.number && saved.generation === lineage.generation);
   }
 
-  /** The run for a scene opened straight from a test URL: the living hydra's, or a new hydra's. */
+  /**
+   * The run for a scene opened straight from a test URL: the living hydra's, or a new hydra's. An heiress whose mother
+   * left eggs hatches from the first (or the hidden egg, or with nothing, when there are none).
+   */
   playNow(): RunController {
     const live = this.liveRun();
     if (live) return live;
-    return this.lineage() ? this.hatch() : this.newLineage();
+    const lineage = this.lineage();
+    if (!lineage) return this.newLineage();
+    if (lineage.eggs && !chooseEgg(lineage, 0) && !miraculousIntervention(lineage)) lineage.eggs = null;
+    return this.hatch();
+  }
+
+  /** The heiress hatches from the egg her mother left at `index` (the generation screen). */
+  hatchFromEgg(index: number): RunController {
+    const lineage = this.lineage();
+    if (!lineage || !chooseEgg(lineage, index)) throw new Error(`No egg ${index} to hatch from.`);
+    this.saveProfile();
+    return this.hatch();
+  }
+
+  /** No egg survived: Old Mother Toad brings out the hidden one, and the heiress hatches from it. */
+  intervene(): RunController {
+    const lineage = this.lineage();
+    if (!lineage || !miraculousIntervention(lineage)) throw new Error('No hidden egg to hatch from.');
+    this.saveProfile();
+    return this.hatch();
+  }
+
+  /** No egg survived, and the player lets the lineage end: it goes into the Book of Lineages. Unlocks stay. */
+  letLineageEnd(): void {
+    const lineage = this.lineage();
+    if (!lineage) return;
+    endLineage(this.profile, lineage, null, this.rules);
+    this.saveProfile();
   }
 
   /**
@@ -133,6 +177,7 @@ export class LineageKeeper {
   hatch(): RunController {
     const lineage = this.lineage();
     if (!lineage) throw new Error('No lineage to hatch in: start one first.');
+    if (lineage.eggs) throw new Error('Her mother left eggs: choose the one she hatches from first.');
     const state = createRun(generationSeed(lineage), this.runRules, { modifiers: this.modifiers(lineage), heritage: heritageOf(this.profile, lineage) });
     this.unlockedAtDeath = [];
     const run = this.attach(state, lineage);
@@ -164,6 +209,7 @@ export class LineageKeeper {
     this.run = run;
     this.runLineage = lineage.number;
     run.on('events', (events: RunEvent[]) => {
+      for (const event of events) if (event.type === 'eggHidden') this.eggHidden(run, event.mutations);
       if (events.some((e) => e.type === 'hydraDied')) this.died(run.state);
     });
     run.on('changed', () => {
@@ -184,6 +230,14 @@ export class LineageKeeper {
     this.saveRunNow();
   }
 
+  /** Old Mother Toad has hidden an egg of the living hydra: the lineage keeps it, whatever becomes of her. */
+  private eggHidden(run: RunController, mutations: readonly string[]): void {
+    const lineage = this.lineage();
+    if (!lineage || run !== this.liveRun()) return;
+    hideEgg(lineage, mutations);
+    this.saveProfile();
+  }
+
   /** Challenges met in this life unlock their run modifiers for the account; the screen is told which. */
   private unlock(run: RunController): void {
     const lineage = this.lineage();
@@ -201,14 +255,27 @@ export class LineageKeeper {
     return seed;
   }
 
-  /** For test URLs: `count` hydras of the lineage live (each gaining a mutation) and die to a group of the Order. */
-  private liveAndDie(lineage: Lineage, count: number): void {
+  /**
+   * For test URLs: `count` hydras of the lineage live (each gaining two mutations and laying an egg, the first hiding
+   * one when `hidden`) and die to a group of the Order. Each heiress hatches from the first egg; the last one leaves
+   * `lastEggs` eggs for the generation screen.
+   */
+  private liveAndDie(lineage: Lineage, count: number, lastEggs: number, hidden: boolean): void {
     for (let i = 0; i < count; i++) {
+      if (i > 0 && !chooseEgg(lineage, 0)) lineage.eggs = null;
       const seed = generationSeed(lineage);
       const state = createRun(seed, this.runRules, { heritage: heritageOf(this.profile, lineage) });
       const rng = new Rng((seed ^ 0xa4ce57) >>> 0);
-      const fresh = Object.keys(this.runRules.mutations).filter((id) => !state.hydra.mutations.includes(id));
-      if (fresh.length > 0) gainMutation(state, rng.pick(fresh), this.runRules, []);
+      for (let m = 0; m < 2; m++) {
+        const fresh = Object.keys(this.runRules.mutations).filter((id) => !state.hydra.mutations.includes(id));
+        if (fresh.length > 0) gainMutation(state, rng.pick(fresh), this.runRules, []);
+      }
+      const eggs = i === count - 1 ? lastEggs : 1;
+      state.lair.eggs = [];
+      for (let e = 0; e < eggs; e++) {
+        state.lair.eggs.push({ id: `e${e + 1}`, mutations: eggMutations(state.hydra.mutations, state.lair.eggs, this.runRules.brood.inheritedShare, rng), hatching: null });
+      }
+      if (hidden && i === 0) hideEgg(lineage, eggMutations(state.hydra.mutations, [], this.runRules.brood.inheritedShare, rng));
       state.turn = rng.int(4, 30);
       const encounters = [...state.map.tiles.values()].flatMap((t) => (t.object?.kind === 'encounter' ? [{ at: t.hex, groupId: t.object.groupId }] : []));
       if (encounters.length > 0) {

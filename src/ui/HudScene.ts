@@ -14,7 +14,7 @@ import { hexKey } from '../sim/hex';
 import { FONT } from './fonts';
 import type { Hex } from '../sim/hex';
 import type { Loot } from '../sim/map';
-import { canChooseEventOption, canDoPlaceAction, canHatch, canLayEgg, canOpenSealed, canWorkThreshold, pendingEventRules, pendingPlaceTile, pendingThreshold } from '../sim/turn';
+import { canChooseEventOption, canDoPlaceAction, canHatch, canHideEgg, canLayEgg, canOpenSealed, canWorkThreshold, pendingEventRules, pendingPlaceTile, pendingThreshold } from '../sim/turn';
 import type { LairCheck } from '../sim/turn';
 import type { EventOutcome } from '../sim/turn';
 import type { RunEvent } from '../sim/turn';
@@ -35,7 +35,7 @@ const EVENT_CHOICE = '__event:';
 /** Action ids of the ways to open a sealed threshold: this and the way's index. */
 const SEALED_WAY = '__sealed:';
 /** Action ids in the lair's panel. */
-const LAIR = { rest: '__lair:rest', lay: '__lair:lay', next: '__lair:next', defender: '__lair:defender', scout: '__lair:scout' } as const;
+const LAIR = { rest: '__lair:rest', lay: '__lair:lay', next: '__lair:next', defender: '__lair:defender', scout: '__lair:scout', hide: '__lair:hide' } as const;
 const ALERT_BAR_WIDTH = 100;
 /** Where each resource counter starts in the top bar. */
 const RESOURCE_X = { muck: 228, moisture: 296, bones: 390 } as const;
@@ -258,6 +258,9 @@ export class HudScene extends Phaser.Scene {
         case 'eggLaid':
           this.placeResult = { at: hexKey(this.run.state.map.lair), text: getContext(this).data.brood.texts.laid };
           break;
+        case 'eggHidden':
+          this.placeResult = { at: hexKey(this.run.state.map.lair), text: getContext(this).data.brood.texts.hidden };
+          break;
         case 'hatchingStarted': {
           const index = this.run.state.lair.eggs.findIndex((e) => e.id === event.eggId);
           const turns = this.run.rules.brood.hatchTurns;
@@ -444,6 +447,7 @@ export class HudScene extends Phaser.Scene {
       this.selectedEgg = eggs.length > 0 ? (this.selectedEgg + 1) % eggs.length : 0;
       this.refresh();
     } else if (egg && (id === LAIR.defender || id === LAIR.scout)) this.run.hatchEgg(egg.id, id === LAIR.defender ? 'defender' : 'scout');
+    else if (egg && id === LAIR.hide) this.run.hideEgg(egg.id);
   }
 
   /** The lair's panel: the eggs (one looked at closely), the Broodlings, and what can be done with them. */
@@ -462,9 +466,17 @@ export class HudScene extends Phaser.Scene {
       : egg.hatching
         ? fill(words.eggHatching, { n, role: words.roles[egg.hatching.role], turns: Math.max(0, egg.hatching.onTurn - state.turn), mutations })
         : fill(words.egg, { n, mutations });
-    const status = [eggs.length > 0 ? fill(words.eggs, { n: eggs.length }) : '', eggLine, fill(words.broodlings, { defenders, scouts: scouts.length })].filter((p) => p).join(' ');
+    const status = [
+      eggs.length > 0 ? fill(words.eggs, { n: eggs.length }) : '',
+      eggLine,
+      fill(words.broodlings, { defenders, scouts: scouts.length }),
+      state.lair.eggHidden ? words.keptHidden : '',
+    ]
+      .filter((p) => p)
+      .join(' ');
     const lay = canLayEgg(state, rules);
     const hatch = egg ? canHatch(state, egg.id) : { can: false as const, why: 'noEgg' as const };
+    const hide = egg ? canHideEgg(state, egg.id) : { can: false as const, why: 'noEgg' as const };
     const cost = this.lootText(rules.brood.eggCost).replace(/\+/g, '');
     const why = (check: LairCheck) => (check.can ? null : check.why === 'cost' ? data.text.event.cantAfford : check.why === 'notInLair' ? null : words[check.why]);
     return {
@@ -479,6 +491,7 @@ export class HudScene extends Phaser.Scene {
         ...(eggs.length > 1 ? [{ id: LAIR.next, label: words.nextEgg, enabled: true, why: null }] : []),
         { id: LAIR.defender, label: fill(words.hatchDefender, { n }), enabled: hatch.can, why: why(hatch) },
         { id: LAIR.scout, label: fill(words.hatchScout, { n }), enabled: hatch.can, why: why(hatch) },
+        { id: LAIR.hide, label: fill(words.hide, { n }), enabled: hide.can, why: why(hide) },
         { id: LAIR.rest, label: words.rest, enabled: true, why: null },
       ],
     };

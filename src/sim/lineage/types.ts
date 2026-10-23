@@ -22,8 +22,6 @@ export interface LineageRules {
   names: readonly string[];
   /** The chance that an heiress is named after one of her ancestresses. */
   takeAncestorName: number;
-  /** The share of her mother's mutations an heiress inherits (rounded up). */
-  inheritedShare: number;
   epitaphs: { byEnemy: Readonly<Record<string, readonly string[]>>; any: readonly string[]; ended: readonly string[] };
   flagScopes: Readonly<Record<string, FlagScope>>;
   /** For {biome} in epitaphs. */
@@ -72,7 +70,15 @@ export interface Lineage {
   enemyTypesMet: string[];
   /** The hydras that came before, first first. */
   chronicle: ChronicleEntry[];
-  /** The player ended it (New Lineage): nobody hatches any more. */
+  /**
+   * The eggs her mother left (the mutations each one carries), while the player chooses which one the heiress hatches
+   * from; empty when none survived (then the lineage ends, or Old Mother Toad brings out the hidden egg). Null when
+   * there is nothing to choose.
+   */
+  eggs: string[][] | null;
+  /** The egg Old Mother Toad keeps hidden for the lineage (GAME_DESIGN.md §12): what it carries, and whose it was. */
+  hiddenEgg: { mutations: string[]; generation: number; mother: string } | null;
+  /** The player ended it (New Lineage, or no egg survived): nobody hatches any more. */
   ended: boolean;
   /** Random numbers for names, inheritance and epitaphs. */
   rngState: number;

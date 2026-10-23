@@ -37,6 +37,11 @@
     "full": "The lair has room for no more eggs.",
     "noEgg": "No egg to hatch.",
     "alreadyHatching": "This egg is already hatching.",
+    "//": "TODO(design): the Hidden Egg (GAME_DESIGN.md §12) can be hidden at any time for now; the design says 'when the lineage is doing well', which has no rule yet. Hiding takes the egg out of the lair, with the mutations it carries.",
+    "hide": "Ask Old Mother Toad to hide egg {n}",
+    "hidden": "Old Mother Toad takes the egg and waddles off into the dark. She comes back without it, and without an explanation.",
+    "keptHidden": "Old Mother Toad keeps one egg of the lineage hidden.",
+    "alreadyHidden": "Old Mother Toad already keeps one egg hidden. She will not say where.",
     "roles": { "defender": "guard", "scout": "scout" }
   }
 }
