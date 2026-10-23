@@ -97,7 +97,7 @@ Trzy poziomy pętli:
 
 **Tura:** ruch po mapie heksagonalnej, odkrywanie, decyzje. Wejście na heks z ludźmi uruchamia bitwę.
 
-**Run, czyli jedno pokolenie:** hydra startuje w leżu na nowej, wygenerowanej mapie. Eksploruje, odkrywa kawałki tajemnicy Węża (lokacje, mini questy, głos Węża), walczy, zbiera, znosi jaja, buduje komnaty. Czujność Zakonu rośnie razem z tym, co hydra robi i zdobywa. Wyprawy atakują leże, a gaszenie kapliczek na powierzchni czujność obniża. Gdy czujność dojdzie do maksimum, Zakon ogłasza Great Burning: szturm na leże pod wodzą Mistrza Zakonu (boss). Przetrwanie otwiera kolejny akt: Zakon się wzmacnia (nowe typy wrogów), w podziemiach otwiera się głębsza warstwa, a Alert zaczyna od nowa. Run trwa, dopóki hydra żyje.
+**Run, czyli jedno pokolenie:** hydra startuje w leżu na nowej, wygenerowanej mapie. Eksploruje, odkrywa kawałki tajemnicy Węża (lokacje, mini questy, głos Węża), walczy, zbiera, znosi jaja, buduje komnaty. Czujność Zakonu rośnie razem z tym, co hydra robi i zdobywa. Wyprawy atakują leże, a gaszenie kapliczek na powierzchni czujność obniża. Gdy czujność dojdzie do maksimum, Zakon ogłasza Great Burning: szturm na leże pod wodzą Mistrza Zakonu (boss). Przetrwanie otwiera kolejny akt: Zakon się wzmacnia (nowe typy wrogów), w podziemiach otwiera się głębsza warstwa, a Alert zaczyna od nowa. W M3 akt 2 jest w lekkiej wersji (decyzja Piotra z 2026-10-23): Alert od zera, silniejszy Zakon (nowi wrogowie od początku aktu, więcej patroli), ta sama mapa; głębsza warstwa przyjdzie w osobnym etapie. Run trwa, dopóki hydra żyje.
 
 **Ród:** po śmierci wybierasz jedno z ocalałych jaj. Nowa hydra zaczyna od aktu 1 na nowej mapie, ale dziedziczy mutacje i zaklęcia rodu (sekcja 12). Wiedza o świecie przechodzi na kolejne pokolenia i zostaje także po końcu rodu, więc tajemnica Węża odsłania się po kawałku przez całą grę (§12).
 
@@ -142,7 +142,11 @@ Zasięg wzroku zmieniają klasy głów, przypadłości, mutacje, kapliczki i noc
 - **Hazard:** wypalona strefa, sól, pułapka.
 
 ### 5.5 Ludzie na mapie
-Patrole i wyprawy poruszają się po heksach w turze świata. Gracz widzi je tylko w zasięgu wzroku. Po bitwie posłaniec biegnie do zamku; jeśli dotrze, Alert skacze, więc warto go przechwycić. Wyprawa, która dojdzie do leża, wywołuje bitwę obronną.
+Patrole i wyprawy poruszają się po heksach w turze świata. Do M4 schodzą do podziemi przez Passages i szyb Old Workings (decyzja Piotra z 2026-10-23). Gracz widzi je tylko w zasięgu wzroku. Patrol, który zobaczy hydrę, idzie za nią; gdy ludzie i hydra staną na jednym heksie, zaczyna się bitwa.
+
+Po bitwie posłaniec biegnie do zamku, czyli do najbliższego Passage; jeśli dotrze, Alert skacze, więc warto go przechwycić. Złapanie posłańca nie wymaga bitwy: wystarczy wejść na jego heks, a hydra go zjada (decyzja Piotra z 2026-10-23).
+
+Wyprawa, która dojdzie do leża, wywołuje bitwę obronną. Jeśli hydry nie ma w leżu, wyprawa zostaje w nim i co turę niszczy jedno jajo albo zabija jednego Broodlinga-obrońcę (obrońcy giną pierwsi), aż hydra wróci i stoczy z nią bitwę na arenie leża (decyzja Piotra z 2026-10-23).
 
 ### 5.6 Powierzchnia i Mist
 - Hydra może wejść tylko na heks z Mist.
@@ -256,6 +260,8 @@ Pula głów (decyzja Piotra z 2026-10-23, M2a): na razie z odrostu losuje się k
 - **Knight of the Eternal Flame:** pancerny, szarżuje, odporny na strach.
 - **Bossowie:** Mistrzowie Zakonu, na końcu Wielki Mistrz strzegący Wiecznego Płomienia.
 
+W M3 (decyzja Piotra z 2026-10-23) od progu Alertu 75 do Zakonu dołączają Crossbowman, Tithe Collector i Knight of the Eternal Flame. Censer Priest i Brazier Bearer przychodzą w M4, razem z mgłą na powierzchni.
+
 ### 6.7 Teren areny
 Woda (Body szybsze, powolne leczenie), błoto, suchy grunt (Body wolniejsze), chmury Mist, kosze żarowe.
 
@@ -340,15 +346,16 @@ Woda (Body szybsze, powolne leczenie), błoto, suchy grunt (Body wolniejsze), ch
 
 - Leże to heks-baza. Tam hydra odpoczywa (leczenie, usuwanie blizn), znosi jaja, buduje komnaty i zarządza głowami (specjalizacje).
 - Zasoby (trzy, to decyzja ostateczna): **Muck** (budowa), **Moisture** (paliwo mgły), **Bones** (z ludzi; jaja i wzrost).
-- **Jaja** kosztują Bones i Muck, po kilku turach wykluwają się w **Broodlingi**: obrońców w bitwie o leże albo zwiadowców na mapie (mały żeton, odsłania teren, może zginąć). Niewyklute jaja to kandydaci na następne pokolenie.
+- **Jaja** kosztują Bones i Muck i czekają w leżu, aż hydra każe im się wykluć (decyzja Piotra z 2026-10-23). Wykluwanie trwa roboczo 3 tury, a młode to **Broodling**: obrońca w bitwie o leże albo zwiadowca na mapie (mały żeton, odsłania teren, może zginąć). Niewyklute jaja to kandydaci na następne pokolenie, więc każdy Broodling to jedna następczyni mniej.
 - **Komnaty** buduje się na Nest Sites w sąsiedztwie leża, każda poszerza terytorium (jak granice w Cywilizacji): Brood Pool (więcej jaj), Mist Well (więcej Moisture), Bone Pit, Trophy Wall (morale), Shrine Grotto.
-- Bitwa obronna toczy się na arenie leża, z Broodlingami i efektami komnat. Przegrana obrona oznacza, że Zakon niszczy jaja i komnaty, łącznie z możliwością zniszczenia wszystkich jaj.
+- Bitwa obronna toczy się na arenie leża, z Broodlingami i efektami komnat. Przegrana obrona oznacza, że Zakon niszczy jaja i komnaty, łącznie z możliwością zniszczenia wszystkich jaj. Komnaty nie wchodzą do M3 (decyzja Piotra z 2026-10-23), więc do tego czasu bitwa obronna toczy się bez ich efektów.
 
 ## 8. Alert (czujność Zakonu)
 
 - Skala 0–100. Rośnie przede wszystkim od tego, co hydra robi: odkrywanie nowych heksów (bardzo mało), otwieranie kapliczek i Spell Caches, bitwy, posłańcy docierający do zamku, pokazywanie się na powierzchni. Sam upływ tur podnosi go minimalnie albo wcale.
 - Podziemia mają być miejscem długich wypraw. **Cel balansu:** gracz odkrywa roboczo 40–80 heksów podziemi, zanim pierwsza wyprawa ruszy na leże. Presja ma być tłem, nie stoperem.
-- Progi: częstsze patrole, potem wyprawy na leże, potem nowe typy wrogów, a przy 100 Great Burning, czyli boss aktu.
+- Progi: częstsze patrole, potem wyprawy na leże, potem nowe typy wrogów, a przy 100 Great Burning, czyli boss aktu. Roboczo (decyzja Piotra z 2026-10-23): 25, 50, 75 i 100, zaznaczone na pasku Alertu.
+- Sama bitwa podnosi Alert mniej niż do M3; więcej daje posłaniec, który z niej ucieknie i dotrze do Passage (roboczo +8) (decyzja Piotra z 2026-10-23).
 - Spada po zgaszeniu kapliczki Płomienia, przechwyceniu posłańców i w niektórych eventach (heretycki mnich rozpowiada, że potwór z bagien to tylko przypowieść).
 - Pasek Alertu jest zawsze widoczny.
 
@@ -418,6 +425,7 @@ Na granicy pierścieni stoją 2–4 progi, co najmniej 1/5 obwodu od siebie. Zaw
   - Mycelium Bloom: wtrącenia Fungal Deeps w każdym pierścieniu, także w pierwszym.
   - Old Workings: stary szyb Zakonu przecina pierścienie 2 i 3 prostym korytarzem. Darmowy próg, ale wzdłuż szybu więcej spotkań z Zakonem.
 - **Modyfikatory to odblokowania konta** (decyzja Piotra z 2026-10-21, M6): każde pokolenie losuje jeden z modyfikatorów odblokowanych na koncie. Modyfikator odblokowuje proste wyzwanie z danych, np. dojdź do 3. pierścienia.
+- **Zwykły rok** (decyzja Piotra z 2026-10-23): w losowaniu jest też rok bez modyfikatora, jako jedna z równych opcji (szansa w danych). Dzięki temu modyfikator zostaje wydarzeniem, a nie stałym stanem świata, nawet gdy odblokowany jest tylko jeden.
 - Walidator: test generuje co najmniej 1000 seedów i sprawdza reguły z tej sekcji: każdy pierścień osiągalny od leża bez kluczy, liczby progów i obiektów, żaden ślepy zaułek nie jest pusty, szerokość pierścieni, częstość rzadkich miejsc, brak kolizji obiektów i ten sam świat z tego samego seeda.
 
 ## 10. Eventy
@@ -530,7 +538,7 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 
 **Wygląd mapy (HD).** Gra w rozdzielczości ekranu z pixel artem w podwójnej gęstości i mapa w stylu Songs of Conquest (oba punkty w §13). Najpierw mapa pod osobnym linkiem (`?hd=1`) do porównania z obecną, potem bitwa i interfejs; na koniec HD zostaje jedynym trybem. Grafiki Piotra wchodzą w podwójnej gęstości z tych samych plików w `art/raw/`. (Decyzja Piotra z 2026-10-05.)
 
-**M3: Zakon kontratakuje.** Alert z progami, patrole i posłańcy na mapie, wyprawy, obrona leża, jaja i Broodlingi, Great Burning jako boss aktu.
+**M3: Zakon kontratakuje.** Alert z progami, patrole i posłańcy na mapie, wyprawy, obrona leża, jaja i Broodlingi, Great Burning jako boss aktu. Plan zatwierdzony przez Piotra 2026-10-23 (dokument Claude „Hydra M3: Zakon kontratakuje”). Do tego: wybór jaja po śmierci, Hidden Egg i wymarcie rodu (§12), nowi wrogowie od progu 75 (§6.6), akt 2 w lekkiej wersji (§4) oraz doświadczenie i poziomy głów, pozostałe z M2a. Bez komnat leża, Lineage Grimoire, głębszej warstwy podziemi, Censer Priesta i Brazier Bearera.
 
 **M4: powierzchnia.** Passages, Mist, dzień i noc, kapliczki Płomienia (gaszenie, trwała mgła, ponowne rozpalanie przez Zakon), stan Exposed.
 
