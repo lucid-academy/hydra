@@ -1,5 +1,7 @@
-// The Order's people on the map (GAME_DESIGN.md §5.3, §5.5): patrols and messengers where the hydra sees them, walking
-// in the world turn; out of sight, a faded picture where they were last seen, with how many turns ago.
+// The Order's people on the map (GAME_DESIGN.md §5.3, §5.5): patrols, messengers and expeditions where the hydra sees
+// them, walking in the world turn; out of sight, a faded picture where they were last seen, with how many turns ago.
+// Also the hydra's own brood (§7): her scouts, which she always knows the whereabouts of, and the eggs and Broodlings
+// in the lair.
 
 import type * as Phaser from 'phaser';
 import { hexKey } from '../sim/hex';
@@ -23,6 +25,9 @@ const STEP_MS = 150;
 const LANTERN = { color: 0xe8a450, radius: 34, strength: 0.42, height: 20 } as const;
 /** Where a unit was last seen: faded and grey, a faint light so it shows in the dark. */
 const GHOST = { alpha: 0.45, tint: 0x9a9aa8, light: { color: 0xa8a8c0, radius: 18, strength: 0.25 } } as const;
+/** Where eggs and Broodlings guarding it sit round the lair's pool (from its feet), first first. */
+const EGG_SPOTS: ReadonlyArray<readonly [number, number]> = [[-17, -3], [-13, 0], [-20, 1], [16, -2], [20, 1], [12, 1]];
+const GUARD_SPOTS: ReadonlyArray<readonly [number, number]> = [[-9, 7], [9, 7], [0, 9], [-22, 6], [22, 6], [0, -8]];
 
 interface Token {
   image: Phaser.GameObjects.Image;
@@ -30,14 +35,19 @@ interface Token {
 }
 
 /** The picture of a unit (manifest keys). */
-function imageKey(kind: OrderUnit['kind'], tier: number): string {
+function imageKey(kind: OrderUnit['kind'] | 'scout', tier: number): string {
+  if (kind === 'scout') return 'map_broodling';
   if (kind === 'messenger') return 'map_messenger';
   if (kind === 'patrol') return 'map_patrol';
+  if (kind === 'expedition') return 'map_expedition';
+  if (kind === 'greatBurning') return 'map_great_burning';
   return `map_encounter_${Math.min(3, tier)}`;
 }
 
 export class OrderTokens {
   private live = new Map<string, Token>();
+  /** Eggs and guards drawn round the lair. */
+  private brood: Phaser.GameObjects.Image[] = [];
   private ghosts = new Map<string, Token & { label: Phaser.GameObjects.Text; key: string }>();
 
   constructor(
@@ -54,8 +64,15 @@ export class OrderTokens {
       token.image.setVisible(visible(unit.at));
       token.shadow.setVisible(visible(unit.at));
     }
+    for (const scout of state.lair.scouts) {
+      const token = this.tokenFor({ id: scout.id, kind: 'scout', tier: 1 });
+      this.put(token, scout.at);
+      token.image.setVisible(true);
+      token.shadow.setVisible(true);
+    }
+    this.syncBrood(state);
     for (const [id, token] of this.live) {
-      if (state.order.units.some((u) => u.id === id)) continue;
+      if (state.order.units.some((u) => u.id === id) || state.lair.scouts.some((s) => s.id === id)) continue;
       token.image.destroy();
       token.shadow.destroy();
       this.live.delete(id);
@@ -78,21 +95,26 @@ export class OrderTokens {
    * down). Each is shown only on hexes in sight. Calls `done` when all have arrived; returns false if none moved.
    */
   animate(state: RunState, events: readonly RunEvent[], done: () => void, onFrame: () => void = () => {}): boolean {
-    const moves = events.filter((e): e is Extract<RunEvent, { type: 'orderMoved' }> => e.type === 'orderMoved');
+    const moves = events.flatMap((e) =>
+      e.type === 'orderMoved' ? [{ id: e.unitId, path: e.path, ours: false }] : e.type === 'scoutMoved' ? [{ id: e.scoutId, path: e.path, ours: true }] : [],
+    );
     if (moves.length === 0) return false;
     const visible = (h: Hex) => state.visibility.get(hexKey(h)) === 'visible';
     let running = 0;
     for (const move of moves) {
-      const unit = state.order.units.find((u) => u.id === move.unitId);
-      const arrived = events.find((e) => e.type === 'orderArrived' && e.unitId === move.unitId) as { at: Hex } | undefined;
-      // A messenger who got away is gone from the state already: his token walks off and goes.
-      const token = this.live.get(move.unitId) ?? (unit ? this.tokenFor(unit) : null);
+      const unit = state.order.units.find((u) => u.id === move.id);
+      const arrived = events.find((e) => (e.type === 'orderArrived' || e.type === 'expeditionSent') && e.unitId === move.id) as { at: Hex } | undefined;
+      // A messenger who got away is gone from the state already: his token walks off and goes. A scout that just
+      // hatched comes out of the lair.
+      const hatched = move.ours && !this.live.has(move.id);
+      const token = this.live.get(move.id) ?? (unit ? this.tokenFor(unit) : move.ours ? this.tokenFor({ id: move.id, kind: 'scout', tier: 1 }) : null);
       if (!token) continue;
-      if (arrived) this.put(token, arrived.at);
-      let from = arrived?.at ?? null;
+      const start = arrived?.at ?? (hatched ? state.map.lair : null);
+      if (start) this.put(token, start);
+      let from = start;
       const steps = move.path.map((h) => {
         const to = this.drawing.feet(h);
-        const shown = visible(h) || (from !== null && visible(from));
+        const shown = move.ours || visible(h) || (from !== null && visible(from));
         from = h;
         return { x: to.x, y: to.y, duration: STEP_MS, onStart: () => token.image.setVisible(shown) };
       });
@@ -115,6 +137,8 @@ export class OrderTokens {
   }
 
   destroy(): void {
+    for (const image of this.brood) image.destroy();
+    this.brood = [];
     for (const token of [...this.live.values(), ...this.ghosts.values()]) {
       token.image.destroy();
       token.shadow.destroy();
@@ -124,7 +148,28 @@ export class OrderTokens {
     this.ghosts.clear();
   }
 
-  private tokenFor(unit: OrderUnit): Token {
+  /** Eggs (the ones hatching wobble a little) and the Broodlings guarding the lair, round its pool, when it is known. */
+  private syncBrood(state: RunState): void {
+    for (const image of this.brood) {
+      this.scene.tweens.killTweensOf(image);
+      image.destroy();
+    }
+    this.brood = [];
+    if (!state.visibility.has(hexKey(state.map.lair))) return;
+    const { x, y } = this.drawing.feet(state.map.lair);
+    state.lair.eggs.slice(0, EGG_SPOTS.length).forEach((egg, i) => {
+      const [dx, dy] = EGG_SPOTS[i]!;
+      const image = this.scene.add.image(x + dx, y + dy, 'map_egg').setOrigin(0.5, 1).setDepth(this.drawing.depth(y + dy));
+      if (egg.hatching) this.scene.tweens.add({ targets: image, angle: { from: -8, to: 8 }, duration: 260, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      this.brood.push(image);
+    });
+    for (let i = 0; i < Math.min(state.lair.defenders, GUARD_SPOTS.length); i++) {
+      const [dx, dy] = GUARD_SPOTS[i]!;
+      this.brood.push(this.scene.add.image(x + dx, y + dy, 'map_broodling').setOrigin(0.5, 1).setFlipX(dx > 0).setDepth(this.drawing.depth(y + dy)));
+    }
+  }
+
+  private tokenFor(unit: Pick<OrderUnit, 'id' | 'tier'> & { kind: OrderUnit['kind'] | 'scout' }): Token {
     let token = this.live.get(unit.id);
     if (!token) {
       const image = this.scene.add.image(0, 0, imageKey(unit.kind, unit.tier)).setOrigin(0.5, 1);

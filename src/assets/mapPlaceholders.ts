@@ -410,6 +410,66 @@ const drawMessenger: PlaceholderDrawer = (scene, key, width, height, palette) =>
   finish(g, key, width, height);
 };
 
+/** An expedition against the lair: three soldiers under a big banner, two torches. */
+function drawMarch(master: boolean): PlaceholderDrawer {
+  return (scene, key, width, height, palette) => {
+    const g = scene.make.graphics({}, false);
+    const b = height - 1;
+    const cx = Math.floor(width / 2);
+    px(g, '#8a6238', cx - 2, b - 34, 1, 30);
+    px(g, palette.order.bannerRed, cx - 1, b - 34, 12, 9);
+    px(g, palette.order.fire, cx + 3, b - 32, 3, 5);
+    for (const [dx, torch] of [[-13, true], [-4, false], [6, false], [14, true]] as const) {
+      mapSoldier(g, cx + dx, b - (dx > 0 ? 0 : 1), palette.order.bannerRed);
+      if (!torch) continue;
+      px(g, '#6b4a2a', cx + dx + 4, b - 20, 1, 10);
+      px(g, palette.order.orange, cx + dx + 3, b - 23, 3, 4);
+      px(g, palette.order.fire, cx + dx + 4, b - 22, 1, 2);
+    }
+    if (master) {
+      // A Master of the Order, carried high in a gilded chair under a canopy.
+      px(g, '#101010', cx - 9, b - 30, 19, 3);
+      px(g, palette.order.gold, cx - 8, b - 29, 17, 1);
+      px(g, '#101010', cx - 4, b - 42, 9, 12);
+      px(g, '#e8e0d0', cx - 3, b - 41, 7, 10);
+      px(g, palette.order.gold, cx - 2, b - 47, 5, 6); // mitre
+      px(g, palette.order.bannerRed, cx - 11, b - 50, 23, 3);
+    }
+    finish(g, key, width, height);
+  };
+}
+
+/** A Broodling: a hatchling hydra, one small head, green and wet. */
+const drawBroodling: PlaceholderDrawer = (scene, key, width, height, palette) => {
+  const g = scene.make.graphics({}, false);
+  const b = height - 1;
+  const cx = Math.floor(width / 2);
+  g.fillStyle(color('#0c0f0c'));
+  g.fillEllipse(cx, b - 3, 11, 6);
+  g.fillStyle(color('#43804f'));
+  g.fillEllipse(cx, b - 3, 9, 4);
+  px(g, '#0c0f0c', cx + 1, b - 11, 3, 7);
+  px(g, '#5f9a4a', cx + 2, b - 10, 1, 6);
+  px(g, '#0c0f0c', cx, b - 13, 5, 3);
+  px(g, '#8fb34a', cx + 1, b - 12, 3, 1);
+  px(g, palette.underground.bioluminescence, cx + 3, b - 12, 1, 1);
+  finish(g, key, width, height);
+};
+
+/** An egg in the lair: pale, speckled, a little luminous. */
+const drawEgg: PlaceholderDrawer = (scene, key, width, height) => {
+  const g = scene.make.graphics({}, false);
+  const cx = width / 2;
+  g.fillStyle(color('#1a1a12'));
+  g.fillEllipse(cx, height / 2, width, height);
+  g.fillStyle(color('#d8dcc0'));
+  g.fillEllipse(cx, height / 2, width - 2, height - 2);
+  px(g, '#8fa070', cx - 1, height / 2 - 1, 1, 1);
+  px(g, '#8fa070', cx + 1, height / 2 + 1, 1, 1);
+  px(g, '#f4f8e8', cx - 1, 2, 1, 2);
+  finish(g, key, width, height);
+};
+
 const drawHydra: PlaceholderDrawer = (scene, key, width, height, palette) => {
   const g = scene.make.graphics({}, false);
   const cx = Math.floor(width / 2);
@@ -447,6 +507,10 @@ export const mapPlaceholderDrawers: Readonly<Record<string, PlaceholderDrawer>> 
   map_encounter_3: drawEncounter(3),
   map_patrol: drawPatrol,
   map_messenger: drawMessenger,
+  map_expedition: drawMarch(false),
+  map_great_burning: drawMarch(true),
+  map_broodling: drawBroodling,
+  map_egg: drawEgg,
   map_hydra: drawHydra,
 };
 

@@ -88,6 +88,14 @@ declare global {
         /** Echoes heard and draughts felt so far. */
         echoes: number;
         draughts: number;
+        /** The Order's act and stages, and its people on the map by kind. */
+        act: number;
+        stages: string[];
+        orderUnits: string[];
+        /** Eggs in the lair, Broodlings guarding it, scouts out. */
+        eggs: number;
+        defenders: number;
+        scouts: number;
       };
     };
   }

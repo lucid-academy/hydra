@@ -16,7 +16,9 @@ import {
   doPlaceAction,
   endTurn,
   finishBattle,
+  hatchEgg,
   inspect,
+  layEgg,
   leavePlace,
   moveHydra,
   noteSightings,
@@ -31,7 +33,7 @@ import {
   storyDialogue,
   workThreshold,
 } from '../sim/turn';
-import type { Journey, OrderUnitKind, Reachable, RunEvent, RunRules, RunState, ShownDialogue, ShownLine, StoryFacts } from '../sim/turn';
+import type { BroodlingRole, Journey, OrderUnitKind, Reachable, RunEvent, RunRules, RunState, ShownDialogue, ShownLine, StoryFacts } from '../sim/turn';
 import { lineages } from './LineageKeeper';
 
 const REGISTRY_KEY = 'run';
@@ -90,6 +92,14 @@ export class RunController extends Phaser.Events.EventEmitter {
 
   workThreshold(): void {
     this.publish(workThreshold(this.state, this.rules));
+  }
+
+  layEgg(): void {
+    this.publish(layEgg(this.state, this.rules));
+  }
+
+  hatchEgg(eggId: string, role: BroodlingRole): void {
+    this.publish(hatchEgg(this.state, eggId, role, this.rules));
   }
 
   /** Opens the sealed threshold whose panel is open, its way number `way`. */

@@ -15,14 +15,16 @@ import mutationsJson from './mutations.json';
 import lineageJson from './lineage.json';
 import flagsJson from './flags.json';
 import orderJson from './order.json';
+import broodJson from './brood.json';
 import manifestJson from '../assets/manifest.json';
 import { battleProblems } from './battleChecks';
-import { balanceSchema, biomesSchema, combosSchema, dialoguesSchema, eventsSchema, flagsSchema, lineageSchema, mutationsSchema, orderSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, textSchema, worldSchema } from './schemas';
+import { balanceSchema, biomesSchema, broodSchema, combosSchema, dialoguesSchema, eventsSchema, flagsSchema, lineageSchema, mutationsSchema, orderSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, textSchema, worldSchema } from './schemas';
 import type {
   AssetManifest,
   Balance,
   StoryConditionsData,
   BiomesData,
+  BroodData,
   CombosData,
   DialoguesData,
   EventsData,
@@ -56,6 +58,7 @@ export interface GameData {
   lineage: LineageData;
   flags: FlagsData;
   order: OrderData;
+  brood: BroodData;
 }
 
 export function loadGameData(): GameData {
@@ -76,6 +79,7 @@ export function loadGameData(): GameData {
     lineage: validateData('src/data/lineage.json', lineageSchema, lineageJson),
     flags: validateData('src/data/flags.json', flagsSchema, flagsJson),
     order: validateData('src/data/order.json', orderSchema, orderJson),
+    brood: validateData('src/data/brood.json', broodSchema, broodJson),
   };
   checkCrossReferences(data);
   return data;

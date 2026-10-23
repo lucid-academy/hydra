@@ -97,7 +97,8 @@ describe('patrols', () => {
     const unit = place(state, 'patrol', hex(3, 0));
     const events = endTurn(state, rules);
     expect(unit.at).toEqual(state.hydra.position);
-    expect(state.pendingBattle).toEqual({ at: state.hydra.position, groupId: 'patrol', unitId: unit.id });
+    // She is in her lair: it is the battle for the lair.
+    expect(state.pendingBattle).toEqual({ at: state.hydra.position, groupId: 'patrol', unitId: unit.id, defense: true });
     expect(events.map((e) => e.type)).toContain('orderAttacked');
     expect(events.at(-2)?.type === 'battleStarted' || events.some((e) => e.type === 'battleStarted')).toBe(true);
   });
@@ -217,5 +218,98 @@ describe('the Order on generated worlds', () => {
       return JSON.stringify(state.order);
     };
     expect(play()).toEqual(play());
+  });
+});
+
+describe('expeditions', () => {
+  /** A run that has just reached the expeditions stage, the first one due in the next world turn. */
+  function expeditionRun(): RunState {
+    const state = quietRun();
+    state.order.stagesReached = ['morePatrols', 'expeditions'];
+    state.order.nextExpeditionTurn = state.turn + 1;
+    return state;
+  }
+
+  it('set out once the stage is reached, after a few turns, from the Passage', () => {
+    const state = quietRun();
+    state.alert = 50;
+    endTurn(state, rules);
+    expect(state.order.nextExpeditionTurn).toBe(state.turn + rules.order.expeditions.firstAfterTurns);
+    const events: RunEvent[] = [];
+    for (let i = 0; i <= rules.order.expeditions.firstAfterTurns; i++) events.push(...endTurn(state, rules));
+    expect(events.find((e) => e.type === 'expeditionSent')).toMatchObject({ kind: 'expedition', at: hex(7, 0) });
+    expect(state.order.units.filter((u) => u.kind === 'expedition')).toHaveLength(1);
+  });
+
+  it('walk to the lair and camp there while the hydra is away, killing a guard, then breaking eggs', () => {
+    const state = expeditionRun();
+    state.hydra.position = hex(-6, 6);
+    state.lair.defenders = 1;
+    state.lair.eggs = [{ id: 'e1', mutations: [], hatching: null }, { id: 'e2', mutations: [], hatching: null }];
+    const raids: string[] = [];
+    for (let i = 0; i < 8; i++) raids.push(...endTurn(state, rules).flatMap((e) => (e.type === 'lairRaided' ? [e.killed] : [])));
+    expect(state.order.units.find((u) => u.kind === 'expedition')?.at).toEqual(state.map.lair);
+    expect(raids.slice(0, 3)).toEqual(['defender', 'egg', 'egg']);
+    expect(state.lair.eggs).toEqual([]);
+  });
+
+  it('in the lair fight the hydra when she comes back, a battle for the lair', () => {
+    const state = expeditionRun();
+    state.hydra.position = hex(-3, 0);
+    const unit = place(state, 'expedition', state.map.lair, 'burningDetail');
+    moveHydra(state, state.map.lair, rules);
+    expect(state.pendingBattle).toEqual({ at: state.map.lair, groupId: 'burningDetail', unitId: unit.id, defense: true });
+  });
+
+  it('beaten, are followed by the next one after a while', () => {
+    const state = expeditionRun();
+    state.order.nextExpeditionTurn = null;
+    place(state, 'expedition', hex(2, 0), 'burningDetail');
+    moveHydra(state, hex(2, 0), rules);
+    finishBattle(state, won(state), rules);
+    expect(state.order.nextExpeditionTurn).toBe(state.turn + rules.order.expeditions.everyTurns);
+  });
+
+  it('lost, the battle for the lair breaks eggs', () => {
+    const state = quietRun();
+    state.lair.eggs = [1, 2, 3, 4].map((n) => ({ id: `e${n}`, mutations: [], hatching: null }));
+    const unit = place(state, 'patrol', hex(1, 0));
+    state.pendingBattle = { at: state.map.lair, groupId: 'patrol', unitId: unit.id, defense: true };
+    const events = finishBattle(state, { outcome: 'lost', bodyHp: 0, heads: [], newScars: 0, nextId: state.nextId }, rules);
+    expect(state.lair.eggs).toHaveLength(4 - Math.ceil(4 * rules.brood.lostDefenseBreaksShare));
+    expect(events.map((e) => e.type)).toEqual(['eggsBroken', 'hydraDied']);
+  });
+});
+
+describe('the Great Burning', () => {
+  it('sets out once per act at the last stage, and beaten, begins the next act', () => {
+    const state = quietRun();
+    state.alert = 100;
+    endTurn(state, rules);
+    const burning = state.order.units.find((u) => u.kind === 'greatBurning');
+    expect(burning?.groupId).toBe(rules.order.greatBurning.groupId);
+    endTurn(state, rules);
+    expect(state.order.units.filter((u) => u.kind === 'greatBurning')).toHaveLength(1);
+
+    burning!.at = hex(1, 0);
+    state.hydra.position = hex(2, 0);
+    state.pendingBattle = { at: hex(1, 0), groupId: burning!.groupId, unitId: burning!.id };
+    const events = finishBattle(state, won(state), rules);
+    expect(events).toContainEqual({ type: 'actBegins', act: 2 });
+    expect(state.order.act).toBe(2);
+    expect(state.alert).toBe(rules.alertMin);
+    expect(state.order.stagesReached).toEqual([]);
+  });
+
+  it('in act 2 the Order sends every group, and more patrols', () => {
+    const state = quietRun();
+    state.order.act = 2;
+    state.order.nextPatrolTurn = state.turn + 1;
+    for (let i = 0; i < 30; i++) {
+      endTurn(state, rules);
+      state.pendingBattle = null;
+      state.order.units = state.order.units.filter((u) => u.kind === 'patrol');
+    }
+    expect(state.order.units.length).toBe(rules.order.patrols.maxByStage[0]! + rules.order.patrols.actMaxBonus);
   });
 });

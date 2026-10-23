@@ -178,6 +178,30 @@ const SHOTS = [
     await page.waitForFunction(() => window.__hydra?.readyScenes.includes('battle'), null, { timeout: 15_000 });
     await page.waitForTimeout(800);
   } },
+  { name: 'map-lair', query: '?seed=123&scene=map', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await readThrough(page);
+    const lair = (await page.evaluate(() => window.__hydra.inspectableOnScreen())).find((p) => p.object === 'lair');
+    if (!lair) throw new Error('The lair is not there to tap');
+    await tapGame(page, lair);
+    await page.waitForFunction(() => window.__hydra.placePanel() !== null, null, { timeout: 5_000 });
+    await page.waitForTimeout(300);
+  } },
+  { name: 'map-scout', query: '?seed=123&scene=map&zoom=0.7', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await readThrough(page);
+    const lair = (await page.evaluate(() => window.__hydra.inspectableOnScreen())).find((p) => p.object === 'lair');
+    await tapGame(page, lair);
+    await page.waitForFunction(() => window.__hydra.placePanel() !== null, null, { timeout: 5_000 });
+    const scout = (await page.evaluate(() => window.__hydra.placePanel())).actions.find((a) => a.id === '__lair:scout');
+    await tapGame(page, scout);
+    // Three turns to hatch, then two of scouting.
+    for (let i = 0; i < 5; i++) {
+      await endTurn(page);
+      await page.waitForFunction(() => !window.__hydra.mapBusy?.(), null, { timeout: 15_000 });
+    }
+    await readThrough(page);
+    await page.waitForTimeout(400);
+  } },
+  { name: 'map-expedition', query: '?seed=123&scene=map&units=expedition,greatBurning', viewport: DESKTOP, scene: 'map' },
   { name: 'map-alert-stage', query: '?seed=123&scene=map&alert=55', viewport: DESKTOP, scene: 'map', act: endTurn },
   { name: 'map-phone-landscape', query: '?seed=123&scene=map', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map' },
   // M2c: whole worlds at a glance (map revealed and zoomed out), with and without run modifiers.

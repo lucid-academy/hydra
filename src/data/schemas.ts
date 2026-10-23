@@ -939,10 +939,53 @@ export const orderSchema = section({
     firstAfterTurns: z.number().int().min(0),
     everyTurns: z.number().int().min(1),
     movement: z.number().int().min(1),
+    sent: z.string().min(1),
     groups: z.array(orderGroupSchema).min(1),
   }),
-  greatBurning: section({ atStage: z.string().min(1), movement: z.number().int().min(1), group: z.string().min(1) }),
-  siege: section({ perTurn: z.number().int().min(0) }),
+  // beaten: {act} is the number of the act that begins.
+  greatBurning: section({ atStage: z.string().min(1), movement: z.number().int().min(1), group: z.string().min(1), sent: z.string().min(1), beaten: z.string().min(1) }),
+  siege: section({ perTurn: z.number().int().min(0), killedDefender: z.string().min(1), brokeEgg: z.string().min(1) }),
+});
+
+const text = z.string().min(1);
+export const broodSchema = section({
+  startingEggs: z.number().int().min(0),
+  maxEggs: z.number().int().min(1),
+  eggCost: section({ bones: z.number().int().min(0), muck: z.number().int().min(0), moisture: z.number().int().min(0).optional() }),
+  hatchTurns: z.number().int().min(0),
+  scouts: section({ movement: z.number().int().min(1), sight: z.number().int().min(0) }),
+  lostDefense: section({ eggsBrokenShare: z.number().min(0).max(1) }),
+  texts: section({
+    kind: text,
+    name: text,
+    text: text,
+    // {n}: how many.
+    eggs: text,
+    noEggs: text,
+    // {n}: the egg's number; {mutations}: what it carries; {role}: one of roles; {turns}: until it hatches.
+    egg: text,
+    eggHatching: text,
+    noMutations: text,
+    // {defenders}, {scouts}: how many.
+    broodlings: text,
+    rest: text,
+    lay: text,
+    nextEgg: text,
+    hatchDefender: text,
+    hatchScout: text,
+    laid: text,
+    // {n}: the egg's number; {turns}: until it hatches.
+    hatchingStarted: text,
+    hatched: text,
+    hatchedScout: text,
+    scoutKilled: text,
+    // {n}: how many.
+    eggsBroken: text,
+    full: text,
+    noEgg: text,
+    alreadyHatching: text,
+    roles: section({ defender: text, scout: text }),
+  }),
 });
 
 export const FLAG_SCOPES = ['life', 'lineage', 'world'] as const;
@@ -984,3 +1027,4 @@ export type MutationsData = z.infer<typeof mutationsSchema>;
 export type LineageData = z.infer<typeof lineageSchema>;
 export type FlagsData = z.infer<typeof flagsSchema>;
 export type OrderData = z.infer<typeof orderSchema>;
+export type BroodData = z.infer<typeof broodSchema>;
