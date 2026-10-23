@@ -170,6 +170,15 @@ export function runRulesFrom(data: GameData): RunRules {
     headMaxHp: Object.fromEntries(Object.entries(heads.classes).map(([id, c]) => [id, c.maxHp])),
     story: storyRulesFrom(data),
     order: orderRulesFrom(data.order),
+    brood: {
+      startingEggs: data.brood.startingEggs,
+      maxEggs: data.brood.maxEggs,
+      eggCost: { bones: data.brood.eggCost.bones, muck: data.brood.eggCost.muck, moisture: data.brood.eggCost.moisture ?? 0 },
+      hatchTurns: data.brood.hatchTurns,
+      inheritedShare: data.lineage.inheritedShare,
+      scouts: { movement: data.brood.scouts.movement, sight: data.brood.scouts.sight },
+      lostDefenseBreaksShare: data.brood.lostDefense.eggsBrokenShare,
+    },
   };
 }
 

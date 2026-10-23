@@ -365,10 +365,54 @@ export interface OrderState {
   nextUnitId: number;
   /** The world turn on which the next patrol may come down. */
   nextPatrolTurn: number;
+  /** The world turn on which the next expedition sets out for the lair (null: none planned). */
+  nextExpeditionTurn: number | null;
+  /** The Great Burning of this act has been declared. */
+  greatBurningSent: boolean;
   /** Units the hydra has seen, where she saw them last (a unit in sight now is there too). */
   sightings: OrderSighting[];
   /** Random numbers for the Order's moves, apart from the hydra's. */
   rngState: number;
+}
+
+// ---------------------------------------------------------------- the lair: eggs and Broodlings (GAME_DESIGN.md §7)
+
+export type BroodlingRole = 'defender' | 'scout';
+
+/** An egg in the lair: a candidate for the next generation, with the mutations it carries. */
+export interface Egg {
+  id: string;
+  mutations: string[];
+  /** Told to hatch: as what, and the turn it hatches on (null: it waits). */
+  hatching: { role: BroodlingRole; onTurn: number } | null;
+}
+
+/** A Broodling out scouting the underground. */
+export interface Scout {
+  id: string;
+  at: Hex;
+}
+
+export interface LairState {
+  eggs: Egg[];
+  /** Broodlings guarding the lair. */
+  defenders: number;
+  scouts: Scout[];
+  /** Next free number for ids of eggs and scouts. */
+  nextId: number;
+}
+
+/** Eggs and Broodlings (brood.json). */
+export interface BroodRules {
+  startingEggs: number;
+  maxEggs: number;
+  eggCost: { bones: number; muck: number; moisture: number };
+  hatchTurns: number;
+  /** The share of the mother's mutations an egg carries (rounded up). */
+  inheritedShare: number;
+  scouts: { movement: number; sight: number };
+  /** A lost battle for the lair breaks this share of the eggs (rounded up). */
+  lostDefenseBreaksShare: number;
 }
 
 export interface RunRules {
@@ -412,6 +456,7 @@ export interface RunRules {
   conditions: Readonly<Record<string, ConditionRules>>;
   story: StoryRules;
   order: OrderRules;
+  brood: BroodRules;
 }
 
 export interface Hydra {
@@ -467,7 +512,7 @@ export interface RunState {
   alert: number;
   resources: Resources;
   /** The encounter the hydra stepped on (or the Order's unit she met: `unitId`), until its battle is resolved. */
-  pendingBattle: { at: Hex; groupId: string; unitId?: string } | null;
+  pendingBattle: { at: Hex; groupId: string; unitId?: string; defense?: boolean } | null;
   /** The shrine the hydra stands at, until its blessing is accepted or refused. */
   pendingShrine: Hex | null;
   /** The place the hydra stands at, or the threshold it stands next to, while its panel is open. */
@@ -494,6 +539,7 @@ export interface RunState {
   hotUntil: Record<string, number>;
   /** The Order of the Eternal Flame: how alarmed it is, and who it has sent down. */
   order: OrderState;
+  lair: LairState;
 }
 
 export type RunEvent =
@@ -548,6 +594,22 @@ export type RunEvent =
   | { type: 'messengerEscaped'; unitId: string; alert: number }
   /** The hydra caught him: `line` is which of order.json messengers.eatenLines is said. */
   | { type: 'messengerEaten'; at: Hex; bones: number; alert: number; line: number }
+  /** An expedition (or the Great Burning) sets out for the lair. */
+  | { type: 'expeditionSent'; unitId: string; kind: OrderUnitKind; at: Hex }
+  /** It found the lair empty and camps in it: it killed a Broodling guarding it, or broke an egg. */
+  | { type: 'lairRaided'; unitId: string; killed: 'defender' | 'egg' }
+  /** The Great Burning is beaten: a new act begins, the Alert starts again, and the Order is stronger. */
+  | { type: 'actBegins'; act: number }
+  /** The lair's panel opened (the hydra came home, or tapped the lair). */
+  | { type: 'lairOpened' }
+  | { type: 'eggLaid'; eggId: string }
+  | { type: 'hatchingStarted'; eggId: string; role: BroodlingRole }
+  | { type: 'hatched'; eggId: string; role: BroodlingRole; scoutId: string | null }
+  /** A scout walked `path` in the world turn. */
+  | { type: 'scoutMoved'; scoutId: string; path: Hex[] }
+  | { type: 'scoutKilled'; scoutId: string; at: Hex }
+  /** A lost battle for the lair: eggs the Order broke. */
+  | { type: 'eggsBroken'; count: number }
   | { type: 'turnEnded'; turn: number };
 
 export interface Reachable {

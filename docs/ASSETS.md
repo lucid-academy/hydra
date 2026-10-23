@@ -131,6 +131,10 @@ Small things that make each biome feel different. They do nothing in the game. E
 | map_hydra | 26×28 | The hydra on the map: the battle body in miniature, bronze like the cover (GAME_DESIGN.md §13), with three heads on short necks and amber eyes. Drawn since 2026-10-06. The map draws it over everything on its own hex, so on its lair it sits in the pool, in front of the glowing rim. |
 | map_patrol | 26×30 | A patrol of the Order walking the underground (M3): two soldiers in red tabards, the front one holding a pole with a lit lantern hanging from it (the map adds its warm light round the lantern, at the top right). Unlike map_encounter_*, which stand still, these move: no banner, on the march, facing a little to the right. Drawn in code for now. |
 | map_messenger | 14×22 | A messenger of the Order running for the Passage (M3): one man in a red tabard mid-stride, leaning forward, a satchel at his hip and a white letter in his hand. Drawn in code for now. |
+| map_expedition | 40×38 | An expedition of the Order marching on the lair (M3): four soldiers in red tabards under a big red banner with a gold flame, the outer two with lit torches. Bigger and busier than a patrol. Drawn in code for now. |
+| map_great_burning | 40×52 | The Great Burning (M3): the expedition's soldiers and torches, and above them a Master of the Order in white robes and a gold mitre, carried high in a gilded chair under a red canopy. The tallest thing the Order brings. Drawn in code for now. |
+| map_broodling | 14×14 | A Broodling (M3): a hatchling hydra with one small head, green and wet, glowing eye. Shown as a scout on the map and, flipped, guarding the lair round its pool. Drawn in code for now. |
+| map_egg | 6×8 | A hydra egg in the lair (M3): pale, speckled, a little luminous; up to six sit round the pool. One that is hatching wobbles (in code). Drawn in code for now. |
 
 All objects: 1 frame, anchor at the feet (bottom middle) unless noted, transparent background.
 

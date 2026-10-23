@@ -1,0 +1,42 @@
+{
+  "//": "TODO(design): eggs and Broodlings in the lair (GAME_DESIGN.md §7, §12; M3). Working values and texts by Claude; change them freely. Eggs are laid in the lair for eggCost and wait there until the hydra tells one to hatch, which takes hatchTurns world turns. Each egg carries a random share of the mutations its mother has when she lays it (lineage.json inheritedShare, rounded up), a different one from the other eggs when it can. An unhatched egg is a candidate for the next generation, so every Broodling is one heiress fewer. A hydra hatches with startingEggs eggs already in her lair.",
+  "startingEggs": 1,
+  "maxEggs": 6,
+  "eggCost": { "bones": 6, "muck": 10 },
+  "hatchTurns": 3,
+  "scouts": {
+    "//": "Broodlings that leave the lair and explore on their own: every world turn a scout walks movement points towards the nearest ground nobody has seen, and shows what it sees within sight hexes. It keeps clear of encounters; the Order's people kill a scout that ends a world turn next to them.",
+    "movement": 4,
+    "sight": 2
+  },
+  "lostDefense": {
+    "//": "A lost battle for the lair: the Order breaks this share of the eggs (rounded up; 1 = all of them).",
+    "eggsBrokenShare": 0.5
+  },
+  "texts": {
+    "kind": "The lair",
+    "name": "The swamp under the swamp",
+    "text": "Warm mud, old bones, and the smell of home. Old Mother Toad keeps an eye on the eggs, and the other eye on you.",
+    "eggs": "Eggs: {n}.",
+    "noEggs": "No eggs. The lineage hangs by one neck.",
+    "egg": "Egg {n}: {mutations}.",
+    "eggHatching": "Egg {n}, hatching as a {role} in {turns}: {mutations}.",
+    "noMutations": "nothing inherited",
+    "broodlings": "Broodlings: {defenders} guarding the lair, {scouts} out scouting.",
+    "rest": "Sleep in the mud until morning (End Turn)",
+    "lay": "Lay an egg",
+    "nextEgg": "Look at the next egg",
+    "hatchDefender": "Hatch egg {n} to guard the lair",
+    "hatchScout": "Hatch egg {n} to scout",
+    "laid": "An egg is laid. The heads are briefly, uniformly proud.",
+    "hatchingStarted": "Egg {n} begins to hatch. Give it {turns} turns.",
+    "hatched": "An egg hatches. The Broodling is small, wet and already hungry, and takes up its post in the lair.",
+    "hatchedScout": "An egg hatches. The Broodling sniffs the air once and goes off to look around.",
+    "scoutKilled": "One of the scouts was caught by the Order. It did not tell them anything. It cannot talk.",
+    "eggsBroken": "The Order broke eggs in the lair: {n}.",
+    "full": "The lair has room for no more eggs.",
+    "noEgg": "No egg to hatch.",
+    "alreadyHatching": "This egg is already hatching.",
+    "roles": { "defender": "guard", "scout": "scout" }
+  }
+}

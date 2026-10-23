@@ -912,7 +912,7 @@ export class MapScene extends Phaser.Scene {
     const key = hexKey(h);
     const object = map.tiles.get(key)?.object;
     if (!visibility.has(key)) return false;
-    return (object?.kind === 'threshold' && object.state === 'closed') || (object?.kind === 'place' && hexEquals(h, hydra.position));
+    return (object?.kind === 'threshold' && object.state === 'closed') || ((object?.kind === 'place' || object?.kind === 'lair') && hexEquals(h, hydra.position));
   }
 
   private setUpInput(): void {
@@ -1073,6 +1073,12 @@ export class MapScene extends Phaser.Scene {
         conditions: hydra.conditions.map((c) => c.id),
         echoes: echoes.length,
         draughts: draughtsFelt.length,
+        act: this.run.state.order.act,
+        stages: [...this.run.state.order.stagesReached],
+        orderUnits: this.run.state.order.units.map((u) => u.kind),
+        eggs: this.run.state.lair.eggs.length,
+        defenders: this.run.state.lair.defenders,
+        scouts: this.run.state.lair.scouts.length,
       };
     });
   }

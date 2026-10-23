@@ -17,6 +17,8 @@ export function newOrder(seed: number, rules: RunRules): OrderState {
     units: [],
     nextUnitId: 1,
     nextPatrolTurn: rules.order.patrols.firstOnTurn,
+    nextExpeditionTurn: null,
+    greatBurningSent: false,
     sightings: [],
     // Its own stream of random numbers, so what the Order does never changes the map or the hydra's luck.
     rngState: new Rng((seed ^ 0x0de7) >>> 0).getState(),
@@ -51,12 +53,15 @@ export function orderTurn(state: RunState, rules: RunRules, events: RunEvent[]):
   if (rules.order.alertPerTurn > 0) raiseAlert(state, rules.order.alertPerTurn, rules);
   hearAlert(state, rules, events);
   const rng = Rng.fromState(state.order.rngState);
+  raidTheLair(state, rules, rng, events);
   sendPatrol(state, rules, rng, events);
+  sendToTheLair(state, rules, rng, events);
   // Each unit in turn, the oldest first; the first to walk onto the hydra fights her, the rest wait.
   for (const unit of [...state.order.units]) {
     if (state.pendingBattle) break;
     if (unit.kind === 'messenger') runForIt(state, unit, rules, events);
-    else patrol(state, unit, rules, rng, events);
+    else if (unit.kind === 'patrol') patrol(state, unit, rules, rng, events);
+    else march(state, unit, rules, events);
   }
   state.order.rngState = rng.getState();
   noteSightings(state);
@@ -73,6 +78,7 @@ function hearAlert(state: RunState, rules: RunRules, events: RunEvent[]): void {
     if (state.alert < stage.at || state.order.stagesReached.includes(stage.id)) continue;
     state.order.stagesReached.push(stage.id);
     events.push({ type: 'alertStage', stageId: stage.id });
+    if (stage.id === rules.order.expeditions.fromStage) state.order.nextExpeditionTurn = state.turn + rules.order.expeditions.firstAfterTurns;
   }
 }
 
@@ -142,7 +148,7 @@ function patrol(state: RunState, unit: OrderUnit, rules: RunRules, rng: Rng, eve
   }
   const chasing = unit.trail !== null;
   // The lair's swamp is the hydra's: patrols only go in after her.
-  const ways = waysFrom(state, rules, unit, (h) => chasing || tileAt(state, h)!.region !== 'lair');
+  const ways = waysFrom(state, rules, unit.at, unit, (h) => chasing || tileAt(state, h)!.region !== 'lair');
   let goal: Hex | null = chasing ? unit.trail : unit.goal;
   if (!goal || hexEquals(goal, unit.at) || !ways.has(hexKey(goal))) {
     goal = wanderGoal(state, unit, ways, rng);
@@ -151,8 +157,110 @@ function patrol(state: RunState, unit: OrderUnit, rules: RunRules, rng: Rng, eve
   if (!goal) return;
   walk(state, unit, pathTo(ways, goal), patrols.movement, rules, events);
   if (hexEquals(unit.at, state.hydra.position)) {
-    state.pendingBattle = { at: unit.at, groupId: unit.groupId, unitId: unit.id };
+    fight(state, unit);
     events.push({ type: 'orderAttacked', unitId: unit.id, at: unit.at });
+  }
+}
+
+/** A battle with a unit where the hydra stands: in the lair, a battle for the lair. */
+function fight(state: RunState, unit: OrderUnit): void {
+  const at = state.hydra.position;
+  state.pendingBattle = hexEquals(at, state.map.lair) ? { at, groupId: unit.groupId, unitId: unit.id, defense: true } : { at, groupId: unit.groupId, unitId: unit.id };
+}
+
+// ---------------------------------------------------------------- expeditions and the Great Burning
+
+/**
+ * From its Alert stage on, an expedition sets out for the lair, one at a time; at the last stage, once per act, the
+ * Great Burning. They come down where the way to the lair is longest (the Order likes a procession).
+ */
+function sendToTheLair(state: RunState, rules: RunRules, rng: Rng, events: RunEvent[]): void {
+  const { order } = state;
+  const { expeditions, greatBurning } = rules.order;
+  if (stageReached(state, greatBurning.atStage) && !order.greatBurningSent) {
+    if (setOut(state, 'greatBurning', greatBurning.groupId, rules, events)) order.greatBurningSent = true;
+  }
+  const out = order.units.some((u) => u.kind === 'expedition');
+  if (out || order.nextExpeditionTurn === null || state.turn < order.nextExpeditionTurn) return;
+  const ring = (at: Hex) => tileAt(state, at)!.ring;
+  const entrance = farthestEntrance(state, rules);
+  if (!entrance) return;
+  const groups = expeditions.groups.filter((g) => groupAllowed(state, g, ring(entrance)));
+  if (groups.length === 0) return;
+  if (setOut(state, 'expedition', rng.weightedPick(groups).groupId, rules, events)) order.nextExpeditionTurn = null;
+}
+
+/** People of the Order set out for the lair from the entrance farthest from it. Returns whether they could. */
+function setOut(state: RunState, kind: OrderUnitKind, groupId: string, rules: RunRules, events: RunEvent[]): boolean {
+  const at = farthestEntrance(state, rules);
+  if (!at) return false;
+  const unit = addOrderUnit(state, kind, at, groupId, rules);
+  unit.goal = state.map.lair;
+  events.push({ type: 'expeditionSent', unitId: unit.id, kind, at });
+  return true;
+}
+
+/** The free entrance with the longest way to the lair (the thresholds still shut keep some out), or null. */
+function farthestEntrance(state: RunState, rules: RunRules): Hex | null {
+  const ways = waysFrom(state, rules, state.map.lair, null, () => true);
+  let best: { at: Hex; cost: number } | null = null;
+  for (const at of orderEntrances(state)) {
+    const way = ways.get(hexKey(at));
+    if (!way || !freeFor(state, at) || hexEquals(at, state.hydra.position)) continue;
+    if (!best || way.cost > best.cost) best = { at, cost: way.cost };
+  }
+  return best?.at ?? null;
+}
+
+/** An expedition (or the Great Burning) walks to the lair; on the way it fights the hydra if she stands in it. */
+function march(state: RunState, unit: OrderUnit, rules: RunRules, events: RunEvent[]): void {
+  const lair = state.map.lair;
+  if (hexEquals(unit.at, lair)) return;
+  const ways = waysFrom(state, rules, unit.at, unit, () => true);
+  const movement = unit.kind === 'greatBurning' ? rules.order.greatBurning.movement : rules.order.expeditions.movement;
+  walk(state, unit, pathTo(ways, lair), movement, rules, events);
+  if (hexEquals(unit.at, state.hydra.position)) {
+    fight(state, unit);
+    events.push({ type: 'orderAttacked', unitId: unit.id, at: unit.at });
+  }
+}
+
+/**
+ * The Order camps in the lair while the hydra is away (GAME_DESIGN.md §5.5): every world turn it kills a Broodling
+ * guarding it, or, when none is left, breaks an egg.
+ */
+function raidTheLair(state: RunState, rules: RunRules, rng: Rng, events: RunEvent[]): void {
+  if (hexEquals(state.hydra.position, state.map.lair)) return;
+  for (const unit of state.order.units) {
+    if (!hexEquals(unit.at, state.map.lair) || unit.kind === 'messenger') continue;
+    for (let i = 0; i < rules.order.siege.perTurn; i++) {
+      const { lair } = state;
+      if (lair.defenders > 0) {
+        lair.defenders -= 1;
+        events.push({ type: 'lairRaided', unitId: unit.id, killed: 'defender' });
+      } else if (lair.eggs.length > 0) {
+        lair.eggs.splice(rng.int(0, lair.eggs.length - 1), 1);
+        events.push({ type: 'lairRaided', unitId: unit.id, killed: 'egg' });
+      }
+    }
+  }
+}
+
+/**
+ * A unit is beaten. An expedition: the next one comes after a while. The Great Burning: the act is survived, and a
+ * new one begins (GAME_DESIGN.md §4: the Alert starts again from nothing, and the Order is stronger).
+ */
+export function unitBeaten(state: RunState, unit: OrderUnit, rules: RunRules, events: RunEvent[]): void {
+  removeUnit(state, unit);
+  const { order } = state;
+  if (unit.kind === 'expedition') order.nextExpeditionTurn = state.turn + rules.order.expeditions.everyTurns;
+  if (unit.kind === 'greatBurning') {
+    order.act += 1;
+    order.stagesReached = [];
+    order.nextExpeditionTurn = null;
+    order.greatBurningSent = false;
+    state.alert = rules.alertMin;
+    events.push({ type: 'actBegins', act: order.act });
   }
 }
 
@@ -169,7 +277,7 @@ function wanderGoal(state: RunState, unit: OrderUnit, ways: Map<string, Way>, rn
  */
 function runForIt(state: RunState, unit: OrderUnit, rules: RunRules, events: RunEvent[]): void {
   const hydra = hexKey(state.hydra.position);
-  const ways = waysFrom(state, rules, unit, (h) => hexKey(h) !== hydra);
+  const ways = waysFrom(state, rules, unit.at, unit, (h) => hexKey(h) !== hydra);
   const goal = nearestEntrance(state, ways);
   if (!goal) return;
   unit.goal = goal;
@@ -215,8 +323,7 @@ function walk(state: RunState, unit: OrderUnit, path: readonly Hex[], movement: 
  * No way up from here (the thresholds are still shut): no messenger.
  */
 export function sendMessenger(state: RunState, from: Hex, rules: RunRules, events: RunEvent[]): void {
-  const runner: OrderUnit = { id: '', kind: 'messenger', at: from, groupId: '', tier: 1, goal: null, chase: 0, trail: null };
-  const ways = waysFrom(state, rules, runner, () => true);
+  const ways = waysFrom(state, rules, from, null, () => true);
   const goal = nearestEntrance(state, ways);
   if (!goal) return;
   const path = pathTo(ways, goal);
@@ -246,7 +353,7 @@ export function meetOrderAt(state: RunState, at: Hex, rules: RunRules, events: R
     events.push({ type: 'messengerEaten', at, bones: messengers.bones, alert: messengers.alertWhenEaten, line });
     return false;
   }
-  state.pendingBattle = { at, groupId: unit.groupId, unitId: unit.id };
+  fight(state, unit);
   return true;
 }
 
@@ -263,7 +370,7 @@ export function orderBlocks(state: RunState, at: Hex): boolean {
 
 // ---------------------------------------------------------------- ways
 
-interface Way {
+export interface Way {
   cost: number;
   /** The hex before this one on the cheapest way, or null at the start. */
   from: string | null;
@@ -271,13 +378,15 @@ interface Way {
 }
 
 /**
- * The cheapest ways from a unit to every hex it can get to, by the terrain's costs, through hexes `open` allows.
- * Encounters and other units are walked around. Every hex counts, known to the hydra or not.
+ * The cheapest ways from `from` to every hex that can be got to, by the terrain's costs, through hexes `open` allows.
+ * Encounters and the Order's units (but `mover`, the one walking) are walked around; the hydra's hex can be walked
+ * into. Every hex counts, known to the hydra or not.
  */
-function waysFrom(state: RunState, rules: RunRules, unit: OrderUnit, open: (h: Hex) => boolean): Map<string, Way> {
-  const ways = new Map<string, Way>([[hexKey(unit.at), { cost: 0, from: null, at: unit.at }]]);
+export function waysFrom(state: RunState, rules: RunRules, from: Hex, mover: OrderUnit | null, open: (h: Hex) => boolean): Map<string, Way> {
+  const unit = mover;
+  const ways = new Map<string, Way>([[hexKey(from), { cost: 0, from: null, at: from }]]);
   // Costs are small whole numbers, so a list per cost is all the queue needed.
-  const queue: Hex[][] = [[unit.at]];
+  const queue: Hex[][] = [[from]];
   for (let cost = 0; cost < queue.length; cost++) {
     for (const current of queue[cost] ?? []) {
       const key = hexKey(current);
@@ -300,7 +409,7 @@ function waysFrom(state: RunState, rules: RunRules, unit: OrderUnit, open: (h: H
 }
 
 /** The steps from the start of `ways` to `goal` (the start left out, the goal included). */
-function pathTo(ways: Map<string, Way>, goal: Hex): Hex[] {
+export function pathTo(ways: Map<string, Way>, goal: Hex): Hex[] {
   const path: Hex[] = [];
   let way = ways.get(hexKey(goal));
   while (way && way.from !== null) {

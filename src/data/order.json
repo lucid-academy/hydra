@@ -46,6 +46,7 @@
     "firstAfterTurns": 2,
     "everyTurns": 10,
     "movement": 3,
+    "sent": "An expedition of the Order sets out for the lair, with a cart of firewood and a hymn.",
     "groups": [
       { "group": "burningDetail", "weight": 2 },
       { "group": "pyreProcession", "weight": 1 }
@@ -55,10 +56,14 @@
     "//": "At the Alert stage atStage, once per act, the Great Burning sets out for the lair: a Master of the Order with his procession (group, from enemies.json).",
     "atStage": "greatBurning",
     "movement": 2,
-    "group": "pyreProcession"
+    "group": "pyreProcession",
+    "sent": "The Great Burning comes down to the lair: a Master of the Order, carried, and everyone who could be spared, walking.",
+    "beaten": "The Master is eaten. The Order will need a while to choose a new one, and longer to forgive. Act {act} begins."
   },
   "siege": {
-    "//": "An expedition that finds the lair empty camps in it: every world turn it kills one Broodling defender, or, when none is left, breaks one egg.",
-    "perTurn": 1
+    "//": "An expedition that finds the lair empty camps in it: every world turn it kills perTurn Broodlings guarding it, or, when none is left, breaks as many eggs.",
+    "perTurn": 1,
+    "killedDefender": "The Order is camped in the lair. A Broodling guarding it was killed.",
+    "brokeEgg": "The Order is camped in the lair. An egg was broken, and the shell entered into the record."
   }
 }

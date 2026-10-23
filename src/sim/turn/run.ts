@@ -9,7 +9,8 @@ import { generateUnderground, hexesSeenFrom, updateVisibility } from '../map';
 import type { MapObject } from '../map';
 import { Rng } from '../rng';
 import { applyBirthMutations, gainMutation, headMaxHp, startingHeadCount } from './mutations';
-import { meetOrderAt, newOrder, orderBlocks, orderTurn, removeUnit, sendMessenger } from './order';
+import { breakEggs, lairTurn, newLair, scoutsCaught } from './lair';
+import { meetOrderAt, newOrder, orderBlocks, orderTurn, sendMessenger, unitBeaten } from './order';
 import { eventArrived, meetEnemies, newStory, serpentOnTheWay, storyMoment } from './story';
 import type { BlessingEffects, Heritage, Journey, Reachable, RunEvent, RunRules, RunState } from './types';
 import { arriveAt, battleSilenced, coolTunnels, growHeads, lookAround, movementForTurn, raiseAlert, tickConditions, tileAt } from './world';
@@ -82,6 +83,7 @@ export function createRun(seed: number, rules: RunRules, options: RunOptions = {
     pendingEvent: null,
     hotUntil: {},
     order: newOrder(seed, rules),
+    lair: { eggs: [], defenders: 0, scouts: [], nextId: 1 },
   };
   if (heritage) {
     state.story.flags.push(...heritage.flags);
@@ -89,6 +91,8 @@ export function createRun(seed: number, rules: RunRules, options: RunOptions = {
     state.story.enemyTypesMet.push(...heritage.enemyTypesMet);
     applyBirthMutations(state, heritage.mutations, rules);
   }
+  // Her mother's eggs wait in the lair, each with its share of what she was born with.
+  newLair(state, rules);
   placeMark(state, rules);
   // Seeing the lair's surroundings at the start doesn't count as exploring.
   lookAround(state, rules, []);
@@ -229,6 +233,11 @@ export function moveHydra(state: RunState, target: Hex, rules: RunRules): RunEve
       state.pendingPlace = target;
       events.push({ type: 'placeReached', at: target, placeId: object.placeId, firstVisit: false });
     }
+    // Home: the lair's panel opens, for the eggs.
+    if (object?.kind === 'lair') {
+      state.pendingPlace = target;
+      events.push({ type: 'lairOpened' });
+    }
   }
 
   events.unshift({ type: 'moved', path: walked });
@@ -259,6 +268,10 @@ export function inspect(state: RunState, target: Hex, rules: RunRules): RunEvent
   if (object?.kind === 'place' && hexEquals(target, state.hydra.position)) {
     state.pendingPlace = target;
     return [{ type: 'placeReached', at: target, placeId: object.placeId, firstVisit: false }];
+  }
+  if (object?.kind === 'lair' && hexEquals(target, state.hydra.position)) {
+    state.pendingPlace = target;
+    return [{ type: 'lairOpened' }];
   }
   if (object?.kind !== 'threshold' || object.state !== 'closed') return [];
 
@@ -391,17 +404,18 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
   if (!silenced) raiseAlert(state, rules.alertPerBattle, rules);
 
   if (result.outcome === 'lost') {
-    state.over = true;
-    state.deathCause = { at: pending.at, groupId: pending.groupId, enemyTypes: [...(rules.encounterGroupMembers[pending.groupId] ?? [])] };
-    return [{ type: 'hydraDied' }];
+    // Losing the battle for the lair, she loses eggs too.
+    const broken = pending.defense ? breakEggs(state, rules.brood.lostDefenseBreaksShare) : 0;
+    return lostBattle(state, pending, rules, broken > 0 ? [{ type: 'eggsBroken', count: broken }] : []);
   }
+
   const tile = tileAt(state, pending.at);
   if (tile?.object?.kind === 'encounter') tile.object = null;
-  const unit = pending.unitId ? state.order.units.find((u) => u.id === pending.unitId) : undefined;
-  if (unit) removeUnit(state, unit);
   const bones = (rules.encounterGroupMembers[pending.groupId]?.length ?? 0) * rules.bonesPerEnemy;
   state.resources.bones += bones;
   const events: RunEvent[] = [{ type: 'battleWon', at: pending.at, bones, silenced }];
+  const unit = pending.unitId ? state.order.units.find((u) => u.id === pending.unitId) : undefined;
+  if (unit) unitBeaten(state, unit, rules, events);
   // Someone always gets away to tell the Order, unless the Silent Bell drowned it all out.
   if (!silenced) sendMessenger(state, pending.at, rules, events);
   // The heads talk it over: who was lost, who grew, what was burnt shut.
@@ -418,6 +432,12 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
   return events;
 }
 
+function lostBattle(state: RunState, pending: NonNullable<RunState['pendingBattle']>, rules: RunRules, events: RunEvent[]): RunEvent[] {
+  state.over = true;
+  state.deathCause = { at: pending.at, groupId: pending.groupId, enemyTypes: [...(rules.encounterGroupMembers[pending.groupId] ?? [])] };
+  return [...events, { type: 'hydraDied' }];
+}
+
 // ---------------------------------------------------------------- turns and the lair
 
 /**
@@ -425,6 +445,8 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
  * Ending it in the lair is resting: everything heals fully, and burnt stumps heal and grow heads again.
  */
 export function endTurn(state: RunState, rules: RunRules): RunEvent[] {
+  // The lair's panel needs no answer: the turn can end with it open.
+  if (state.pendingPlace && hexEquals(state.pendingPlace, state.map.lair)) state.pendingPlace = null;
   if (isWaiting(state)) return [];
   const { hydra } = state;
   const events: RunEvent[] = [];
@@ -447,7 +469,9 @@ export function endTurn(state: RunState, rules: RunRules): RunEvent[] {
   } else {
     serpentOnTheWay(state, rules, events);
   }
+  lairTurn(state, rules, events);
   orderTurn(state, rules, events);
+  scoutsCaught(state, events);
   events.push({ type: 'turnEnded', turn: state.turn });
   return events;
 }

@@ -14,7 +14,8 @@ import { hexKey } from '../sim/hex';
 import { FONT } from './fonts';
 import type { Hex } from '../sim/hex';
 import type { Loot } from '../sim/map';
-import { canChooseEventOption, canDoPlaceAction, canOpenSealed, canWorkThreshold, pendingEventRules, pendingPlaceTile, pendingThreshold } from '../sim/turn';
+import { canChooseEventOption, canDoPlaceAction, canHatch, canLayEgg, canOpenSealed, canWorkThreshold, pendingEventRules, pendingPlaceTile, pendingThreshold } from '../sim/turn';
+import type { LairCheck } from '../sim/turn';
 import type { EventOutcome } from '../sim/turn';
 import type { RunEvent } from '../sim/turn';
 import { Button } from './Button';
@@ -33,6 +34,8 @@ const WORK_THRESHOLD = '__work';
 const EVENT_CHOICE = '__event:';
 /** Action ids of the ways to open a sealed threshold: this and the way's index. */
 const SEALED_WAY = '__sealed:';
+/** Action ids in the lair's panel. */
+const LAIR = { rest: '__lair:rest', lay: '__lair:lay', next: '__lair:next', defender: '__lair:defender', scout: '__lair:scout' } as const;
 const ALERT_BAR_WIDTH = 100;
 /** Where each resource counter starts in the top bar. */
 const RESOURCE_X = { muck: 228, moisture: 296, bones: 390 } as const;
@@ -61,6 +64,8 @@ export class HudScene extends Phaser.Scene {
   private toasts: Phaser.GameObjects.Text[] = [];
   /** What was said after the last action at a place, shown in its panel while the hydra stays there. */
   private placeResult: { at: string; text: string } | null = null;
+  /** The egg looked at in the lair's panel (its place in the lair's list). */
+  private selectedEgg = 0;
 
   constructor() {
     super(SceneKey.Hud);
@@ -121,6 +126,7 @@ export class HudScene extends Phaser.Scene {
       getContext(this).data,
       (id) => {
         if (id === WORK_THRESHOLD) this.run.workThreshold();
+        else if (id.startsWith('__lair:')) this.lairAction(id);
         else if (id.startsWith(SEALED_WAY)) this.run.openSealed(Number(id.slice(SEALED_WAY.length)));
         else if (id.startsWith(EVENT_CHOICE)) this.run.chooseEventOption(Number(id.slice(EVENT_CHOICE.length)));
         else this.run.doPlaceAction(id);
@@ -248,6 +254,39 @@ export class HudScene extends Phaser.Scene {
           break;
         case 'tunnelCooled':
           this.toast(text.hud.tunnelCooled, '#c8c0b0');
+          break;
+        case 'eggLaid':
+          this.placeResult = { at: hexKey(this.run.state.map.lair), text: getContext(this).data.brood.texts.laid };
+          break;
+        case 'hatchingStarted': {
+          const index = this.run.state.lair.eggs.findIndex((e) => e.id === event.eggId);
+          const turns = this.run.rules.brood.hatchTurns;
+          this.placeResult = { at: hexKey(this.run.state.map.lair), text: fill(getContext(this).data.brood.texts.hatchingStarted, { n: index + 1, turns }) };
+          break;
+        }
+        case 'hatched': {
+          const words = getContext(this).data.brood.texts;
+          this.toast(event.role === 'scout' ? words.hatchedScout : words.hatched, palette.underground.bioluminescence);
+          break;
+        }
+        case 'scoutKilled':
+          this.toast(getContext(this).data.brood.texts.scoutKilled, palette.order.orange);
+          break;
+        case 'eggsBroken':
+          this.toast(fill(getContext(this).data.brood.texts.eggsBroken, { n: event.count }), palette.order.orange);
+          break;
+        case 'expeditionSent': {
+          const { order } = getContext(this).data;
+          this.toast(event.kind === 'greatBurning' ? order.greatBurning.sent : order.expeditions.sent, palette.order.orange);
+          break;
+        }
+        case 'lairRaided': {
+          const { siege } = getContext(this).data.order;
+          this.toast(event.killed === 'defender' ? siege.killedDefender : siege.brokeEgg, palette.order.orange);
+          break;
+        }
+        case 'actBegins':
+          this.toast(fill(getContext(this).data.order.greatBurning.beaten, { act: event.act }), palette.order.fire);
           break;
         case 'orderArrived':
           if (event.kind === 'patrol') this.toast(getContext(this).data.order.patrols.arrived, palette.order.gold);
@@ -388,11 +427,61 @@ export class HudScene extends Phaser.Scene {
       const reached = this.run.state.order.stagesReached.includes(id);
       mark.setFillStyle(color(reached ? palette.order.fire : palette.order.gold), reached ? 1 : 0.7);
     }
-    this.endTurnButton.setEnabled(pendingBattle === null && pendingShrine === null && pendingPlace === null && this.run.state.pendingEvent === null && !this.run.talking && !over);
+    const lairPanel = pendingPlace !== null && hexKey(pendingPlace) === hexKey(map.lair);
+    this.endTurnButton.setEnabled(pendingBattle === null && pendingShrine === null && (pendingPlace === null || lairPanel) && this.run.state.pendingEvent === null && !this.run.talking && !over);
     const data = getContext(this).data;
     const name = fillText(text.lineages.hudName, { name: hydra.name, generation: this.run.state.generation });
     this.nameText.setText([name, ...hydra.mutations.map((id) => mutationName(data, id))].join('  ·  ')).setVisible(hydra.name !== '');
     this.minimap.redraw();
+  }
+
+  private lairAction(id: string): void {
+    const { eggs } = this.run.state.lair;
+    const egg = eggs[Math.min(this.selectedEgg, eggs.length - 1)];
+    if (id === LAIR.rest) this.run.endTurn();
+    else if (id === LAIR.lay) this.run.layEgg();
+    else if (id === LAIR.next) {
+      this.selectedEgg = eggs.length > 0 ? (this.selectedEgg + 1) % eggs.length : 0;
+      this.refresh();
+    } else if (egg && (id === LAIR.defender || id === LAIR.scout)) this.run.hatchEgg(egg.id, id === LAIR.defender ? 'defender' : 'scout');
+  }
+
+  /** The lair's panel: the eggs (one looked at closely), the Broodlings, and what can be done with them. */
+  private lairView(): PlacePanelView {
+    const data = getContext(this).data;
+    const words = data.brood.texts;
+    const { state, rules } = this.run;
+    const { eggs, defenders, scouts } = state.lair;
+    const fill = (template: string, values: Record<string, string | number>) => template.replace(/\{(\w+)\}/g, (all, name: string) => String(values[name] ?? all));
+    this.selectedEgg = Math.max(0, Math.min(this.selectedEgg, eggs.length - 1));
+    const egg = eggs[this.selectedEgg];
+    const n = this.selectedEgg + 1;
+    const mutations = egg && egg.mutations.length > 0 ? egg.mutations.map((id) => mutationName(data, id)).join(', ') : words.noMutations;
+    const eggLine = !egg
+      ? words.noEggs
+      : egg.hatching
+        ? fill(words.eggHatching, { n, role: words.roles[egg.hatching.role], turns: Math.max(0, egg.hatching.onTurn - state.turn), mutations })
+        : fill(words.egg, { n, mutations });
+    const status = [eggs.length > 0 ? fill(words.eggs, { n: eggs.length }) : '', eggLine, fill(words.broodlings, { defenders, scouts: scouts.length })].filter((p) => p).join(' ');
+    const lay = canLayEgg(state, rules);
+    const hatch = egg ? canHatch(state, egg.id) : { can: false as const, why: 'noEgg' as const };
+    const cost = this.lootText(rules.brood.eggCost).replace(/\+/g, '');
+    const why = (check: LairCheck) => (check.can ? null : check.why === 'cost' ? data.text.event.cantAfford : check.why === 'notInLair' ? null : words[check.why]);
+    return {
+      kind: words.kind,
+      name: words.name,
+      text: words.text,
+      status,
+      result: this.placeResult?.text ?? null,
+      leave: data.text.place.leaveButton,
+      actions: [
+        { id: LAIR.lay, label: `${words.lay} (${cost})`, enabled: lay.can, why: why(lay) },
+        ...(eggs.length > 1 ? [{ id: LAIR.next, label: words.nextEgg, enabled: true, why: null }] : []),
+        { id: LAIR.defender, label: fill(words.hatchDefender, { n }), enabled: hatch.can, why: why(hatch) },
+        { id: LAIR.scout, label: fill(words.hatchScout, { n }), enabled: hatch.can, why: why(hatch) },
+        { id: LAIR.rest, label: words.rest, enabled: true, why: null },
+      ],
+    };
   }
 
   /** What the place panel shows for the place, threshold or event the hydra is at, or null when there is none. */
@@ -444,6 +533,8 @@ export class HudScene extends Phaser.Scene {
             }),
       };
     }
+
+    if (state.pendingPlace && hexKey(state.pendingPlace) === hexKey(state.map.lair)) return this.lairView();
 
     const place = pendingPlaceTile(state);
     if (place) {
