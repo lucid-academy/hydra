@@ -193,9 +193,10 @@ export class MapScene extends Phaser.Scene {
       this.scene.start(SceneKey.Generation);
       return;
     }
-    const { near, reveal, say, event, flags, conditions } = getContext(this).params;
+    const { near, reveal, say, event, flags, conditions, alert } = getContext(this).params;
     if (firstTime && flags.length > 0) this.run.flagsForTest(flags);
     if (firstTime && conditions.length > 0) this.run.conditionsForTest(conditions);
+    if (firstTime && alert !== null) this.run.alertForTest(alert);
     if (firstTime && near) this.run.placeNear(near);
     if (firstTime && reveal) this.run.revealAll();
     if (firstTime && event) this.run.eventForTest(event);

@@ -148,7 +148,7 @@ export class LineageKeeper {
       for (const m of params.modifiers) if (!available.includes(m)) console.warn(`?modifiers=${m} is unknown. Available: ${available.join(', ')}`);
       return params.modifiers.filter((m) => available.includes(m));
     }
-    const picked = modifierFor(this.profile, lineage);
+    const picked = modifierFor(this.profile, lineage, this.rules);
     return picked ? [picked] : [];
   }
 

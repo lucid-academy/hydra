@@ -47,6 +47,8 @@ export class HudScene extends Phaser.Scene {
   private info!: Phaser.GameObjects.Text;
   private alertFill!: Phaser.GameObjects.Rectangle;
   private alertValue!: Phaser.GameObjects.Text;
+  /** Marks of the Alert stages on the bar (order.json), by stage id. */
+  private alertMarks: Array<{ id: string; mark: Phaser.GameObjects.Rectangle }> = [];
   private endTurnButton!: Button;
   private minimap!: Minimap;
   /** The hydra's name, generation and mutations, at the bottom. */
@@ -89,6 +91,13 @@ export class HudScene extends Phaser.Scene {
     this.add.rectangle(alertX, 4, ALERT_BAR_WIDTH, 8, 0x000000).setOrigin(0, 0).setStrokeStyle(1, color(palette.order.gold));
     this.alertFill = this.add.rectangle(alertX + 1, 5, 0, 6, color(palette.order.orange)).setOrigin(0, 0);
     this.alertValue = this.add.text(alertX + ALERT_BAR_WIDTH + 4, 3, '', { ...mono, color: palette.order.gold });
+    // Where the Order starts doing more (GAME_DESIGN.md §8): a notch on the bar for each stage.
+    const { balance, order } = getContext(this).data;
+    this.alertMarks = order.alertStages.map((stage) => {
+      const share = (stage.at - balance.alert.min) / (balance.alert.max - balance.alert.min);
+      const x = alertX + Math.min(ALERT_BAR_WIDTH - 1, Math.round(ALERT_BAR_WIDTH * share));
+      return { id: stage.id, mark: this.add.rectangle(x, 2, 1, 12, color(palette.order.gold)).setOrigin(0.5, 0) };
+    });
 
     this.endTurnButton = new Button(
       this,
@@ -240,6 +249,11 @@ export class HudScene extends Phaser.Scene {
         case 'tunnelCooled':
           this.toast(text.hud.tunnelCooled, '#c8c0b0');
           break;
+        case 'alertStage': {
+          const stage = getContext(this).data.order.alertStages.find((s) => s.id === event.stageId);
+          if (stage) this.toast(stage.text, palette.order.orange);
+          break;
+        }
         case 'mutationGained': {
           const data = getContext(this).data;
           this.toast(fillText(text.lineages.mutationGained, { name: mutationName(data, event.id), text: mutationWords(data, event.id) }), MUTATION_COLOR);
@@ -354,6 +368,12 @@ export class HudScene extends Phaser.Scene {
     const share = (alert - balance.alert.min) / (balance.alert.max - balance.alert.min);
     this.alertFill.setSize(Math.round((ALERT_BAR_WIDTH - 2) * share), 6);
     this.alertValue.setText(String(Math.floor(alert)));
+    // A stage the Order has reached is marked in fire.
+    const { palette } = getContext(this).data;
+    for (const { id, mark } of this.alertMarks) {
+      const reached = this.run.state.order.stagesReached.includes(id);
+      mark.setFillStyle(color(reached ? palette.order.fire : palette.order.gold), reached ? 1 : 0.7);
+    }
     this.endTurnButton.setEnabled(pendingBattle === null && pendingShrine === null && pendingPlace === null && this.run.state.pendingEvent === null && !this.run.talking && !over);
     const data = getContext(this).data;
     const name = fillText(text.lineages.hudName, { name: hydra.name, generation: this.run.state.generation });

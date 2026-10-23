@@ -32,6 +32,8 @@ export interface LineageRules {
   dialogueIds: ReadonlySet<string>;
   /** Run modifiers the account can unlock, and how. */
   unlocks: ReadonlyArray<{ id: string; challenge: Challenge }>;
+  /** How often a generation gets a normal year, against weight 1 for each unlocked run modifier (world.json modifierDraw). */
+  normalYearWeight: number;
 }
 
 /** One hydra in the Book of Lineages. */

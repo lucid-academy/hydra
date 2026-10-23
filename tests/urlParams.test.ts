@@ -18,6 +18,7 @@ describe('parseUrlParams', () => {
       event: null,
       flags: [],
       conditions: [],
+      alert: null,
       ancestors: null,
       heads: [],
       ults: false,
@@ -29,13 +30,14 @@ describe('parseUrlParams', () => {
   });
 
   it('returns defaults when nothing is given', () => {
-    expect(parseUrlParams('')).toEqual({ seed: null, scene: null, debug: false, group: null, hp: null, speed: null, near: null, reveal: false, modifiers: [], zoom: null, say: null, event: null, flags: [], conditions: [], ancestors: null, heads: [], ults: false });
+    expect(parseUrlParams('')).toEqual({ seed: null, scene: null, debug: false, group: null, hp: null, speed: null, near: null, reveal: false, modifiers: [], zoom: null, say: null, event: null, flags: [], conditions: [], alert: null, ancestors: null, heads: [], ults: false });
     expect(parseUrlParams('?reveal=1').reveal).toBe(true);
     expect(parseUrlParams('?near=shrine').near).toBe('shrine');
     expect(parseUrlParams('?zoom=0.45').zoom).toBe(0.45);
     expect(parseUrlParams('?say=toadWelcome&event=titheBox')).toMatchObject({ say: 'toadWelcome', event: 'titheBox' });
     expect(parseUrlParams('?flags=hushedSongHeard, surveyChain,,hushedSongHeard').flags).toEqual(['hushedSongHeard', 'surveyChain']);
     expect(parseUrlParams('?conditions=warmed').conditions).toEqual(['warmed']);
+    expect(parseUrlParams('?alert=60').alert).toBe(60);
   });
 
   it('reads run modifiers as a list, without blanks or repeats', () => {
@@ -58,7 +60,7 @@ describe('parseUrlParams', () => {
 describe('testUrl', () => {
   it('a URL that starts elsewhere than the title or changes the run is a test, which never touches the saved game', () => {
     for (const query of ['', '?seed=7', '?seed=7&debug=1&speed=4&zoom=2', '?scene=title', '?scene=title&seed=3']) expect(testUrl(parseUrlParams(query)), query).toBe(false);
-    for (const query of ['?scene=map', '?scene=battle', '?near=shrine', '?event=titheBox', '?say=toadWelcome', '?flags=surveyChain', '?conditions=warmed', '?reveal=1', '?modifiers=wetYear', '?group=patrol', '?hp=3', '?ancestors=2', '?heads=tender', '?ults=1']) {
+    for (const query of ['?scene=map', '?scene=battle', '?near=shrine', '?event=titheBox', '?say=toadWelcome', '?flags=surveyChain', '?conditions=warmed', '?alert=60', '?reveal=1', '?modifiers=wetYear', '?group=patrol', '?hp=3', '?ancestors=2', '?heads=tender', '?ults=1']) {
       expect(testUrl(parseUrlParams(query)), query).toBe(true);
     }
     expect(parseUrlParams('?ancestors=2.7').ancestors).toBe(2);

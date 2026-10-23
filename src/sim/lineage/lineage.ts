@@ -69,9 +69,11 @@ export function heritageOf(profile: Profile, lineage: Lineage): Heritage {
 }
 
 /** The run modifier of the living hydra's world (GAME_DESIGN.md §9.6): one of those unlocked, at random; none before any is. */
-export function modifierFor(profile: Profile, lineage: Lineage): string | null {
+export function modifierFor(profile: Profile, lineage: Lineage, rules: LineageRules): string | null {
   if (profile.unlocked.length === 0) return null;
-  return new Rng((generationSeed(lineage) ^ 0x40d1f1) >>> 0).pick(profile.unlocked);
+  // A normal year (no modifier) is one more option in the draw (GAME_DESIGN.md §9.6).
+  const options = [...profile.unlocked.map((id) => ({ id: id as string | null, weight: 1 })), { id: null, weight: rules.normalYearWeight }];
+  return new Rng((generationSeed(lineage) ^ 0x40d1f1) >>> 0).weightedPick(options.filter((o) => o.weight > 0)).id;
 }
 
 /**
