@@ -10,7 +10,7 @@ import { Rng } from '../rng';
 import { gainMutation, mutationTotal } from './mutations';
 import { setFlags, storyMoment } from './story';
 import type { OrderUnit, RunEvent, RunRules, RunState, SurfaceState } from './types';
-import { addLoot, isNight, isWaiting, lookAround, raiseAlert, revealNearestHidden, tileOn } from './world';
+import { addLoot, isNight, isWaiting, lookAround, movementForTurn, raiseAlert, revealNearestHidden, tileOn } from './world';
 
 type ShrineObject = Extract<MapObject, { kind: 'flameShrine' }>;
 
@@ -135,7 +135,7 @@ export function canCrawl(state: RunState, rules: RunRules): boolean {
     state.hydra.layer === 'surface' &&
     !hasMist(state, state.hydra.position) &&
     (ahead === null || state.resources.moisture < ahead.moisture) &&
-    state.hydra.movementLeft === state.hydra.movementPerTurn
+    state.hydra.movementLeft >= movementForTurn(state, rules)
   );
 }
 

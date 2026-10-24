@@ -20,7 +20,10 @@ import {
   hasMist,
   isNight,
   moveHydra,
+  movementForTurn,
   pendingBattleSetup,
+  plannedJourney,
+  putMist,
   reachableHexes,
   sightNow,
   surfaceTurn,
@@ -321,6 +324,27 @@ describe('being Exposed', () => {
     expect([...reach.keys()].sort()).toEqual(hexNeighbors(hex(3, 0)).map(hexKey).sort());
     moveHydra(state, hex(4, 0), surfaceRules);
     expect(state.hydra.movementLeft).toBe(0);
+  });
+
+  it('a journey that starts with a crawl takes the rest of the turn there', () => {
+    const state = upThere();
+    state.hydra.position = hex(3, 0);
+    state.resources.moisture = 0;
+    putMist(state, [hex(5, 0)], 3, surfaceRules);
+    const journey = plannedJourney(state, hex(5, 0), surfaceRules)!;
+    expect(journey.path).toEqual([hex(4, 0), hex(5, 0)]);
+    expect(journey.turns).toEqual([0, 1]);
+  });
+
+  it('she can crawl on a turn whose movement a condition has changed', () => {
+    const state = upThere();
+    state.hydra.position = hex(3, 0);
+    state.resources.moisture = 0;
+    state.hydra.conditions.push({ id: 'salted', turnsLeft: 3 });
+    state.hydra.movementLeft = movementForTurn(state, surfaceRules);
+    expect(state.hydra.movementLeft).toBeLessThan(state.hydra.movementPerTurn);
+    moveHydra(state, hex(4, 0), surfaceRules);
+    expect(state.hydra.position).toEqual(hex(4, 0));
   });
 
   it('in mist again, she is covered', () => {
