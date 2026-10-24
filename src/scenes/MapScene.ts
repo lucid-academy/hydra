@@ -223,6 +223,7 @@ export class MapScene extends Phaser.Scene {
     if (firstTime && conditions.length > 0) this.run.conditionsForTest(conditions);
     if (firstTime && alert !== null) this.run.alertForTest(alert);
     if (firstTime && near) this.run.placeNear(near);
+    if (firstTime && surface && getContext(this).params.exposed) this.run.exposeForTest();
     if (firstTime && units.length > 0) this.run.unitsForTest(units);
     if (firstTime && reveal) this.run.revealAll();
     if (firstTime && event) this.run.eventForTest(event);

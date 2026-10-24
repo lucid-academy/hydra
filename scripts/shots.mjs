@@ -347,6 +347,23 @@ const SHOTS = [
     await page.waitForTimeout(900);
   } },
   { name: 'surface-phone', query: '?seed=123&scene=map&surface=1', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map', act: readThrough },
+  // A battle on the surface in mist: clouds round the body at the start; a Censer Priest swings, a Brazier Bearer sets a brazier down.
+  { name: 'battle-surface-start', query: '?seed=123&scene=battle&surface=1&group=shrineVigil&heads=mistBreather,screamer,glutton', viewport: DESKTOP, scene: 'battle' },
+  { name: 'battle-surface-fight', query: '?seed=123&scene=battle&surface=1&group=shrineVigil&heads=mistBreather,screamer,glutton&speed=3', viewport: DESKTOP, scene: 'battle', act: async (page) => {
+    await page.keyboard.press('Space');
+    await page.waitForFunction(() => (window.__hydra.battleSummary?.().tick ?? 0) > 20 * 19, null, { timeout: 60_000 });
+    await page.keyboard.press('Space');
+  } },
+  // A Brazier Bearer's braziers: dry ground round them, and no mist near them.
+  { name: 'battle-surface-brazier', query: '?seed=123&scene=battle&surface=1&group=brazierCrew&heads=biter,acidSpitter&speed=3', viewport: DESKTOP, scene: 'battle', act: async (page) => {
+    await page.keyboard.press('Space');
+    await page.waitForFunction(() => (window.__hydra.battleSummary?.().tick ?? 0) > 20 * 9, null, { timeout: 60_000 });
+    await page.keyboard.press('Space');
+  } },
+  // Exposed: no mist, and the board says the heads hit softer.
+  { name: 'battle-surface-exposed', query: '?seed=123&scene=battle&surface=1&exposed=1&group=censerWalk', viewport: DESKTOP, scene: 'battle', act: async (page) => {
+    await page.waitForTimeout(300);
+  } },
 ];
 
 /** Steps onto the Passage next to the hydra (?near=passage), and waits for its panel. */

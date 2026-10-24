@@ -52,6 +52,10 @@
     "crawl": true,
     "battleDamagePercent": -20
   },
+  "battle": {
+    "//": "A battle on the surface fought in mist (the hydra wasn't Exposed) starts with startClouds: count Mist clouds of radius, lasting seconds, fromBody hexes out from the body's edge, spread evenly round it. An Exposed battle starts with none.",
+    "startClouds": { "count": 3, "radius": 1, "seconds": 15, "fromBody": 1 }
+  },
   "flameShrines": {
     "//": "Flame Shrines of the Order (GAME_DESIGN.md §5.7). Stepping onto one means fighting its guard; winning puts it out. Putting one out changes the Alert by alertWhenPutOut and leaves mist that never fades for lastingMistRadius round it. The first shrine a hydra puts out gives one of mutations (mutations.json) with firstMutationChance, every later one with mutationChance. relight: afterTurns world turns later, a party (groupId, from enemies.json) sets out from the nearest camp or the castle, at movement points a turn, to light it again; when they do, the Alert changes by alert, the shrine burns, they guard it, and its mist fades like any other. TODO(design): the win (all shrines out) comes in M7.",
     "alertWhenPutOut": -10,

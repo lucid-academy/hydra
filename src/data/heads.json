@@ -147,9 +147,10 @@
     },
     "acidRain": {
       "displayName": "Acid Rain",
-      "description": "Acid falls on the whole board: every human is Corroded, and Mist turns to Acid Fog.",
+      "description": "Acid falls on the whole board: every human is Corroded, and Mist turns to Acid Fog. Every brazier goes out.",
       "target": "none", "cooldownSeconds": 60, "tags": ["acid"], "area": { "shape": "all" },
-      "effects": [{ "type": "status", "status": "corroded", "seconds": 6 }, { "type": "acidifyMist", "damagePerSecond": 3, "seconds": 6 }]
+      "effects": [{ "type": "status", "status": "corroded", "seconds": 6 }, { "type": "acidifyMist", "damagePerSecond": 3, "seconds": 6 }],
+      "specials": [{ "type": "putOutBraziers" }]
     },
 
     "fogBank": {
@@ -160,10 +161,11 @@
     },
     "douse": {
       "displayName": "Douse",
-      "description": "Puts out a torch for 10 s.",
+      "description": "Puts out a torch for 10 s. Braziers next to the target go out too.",
       "//": "TODO(design): the hex under it becomes water for 10 s, once the battle board has terrain.",
       "target": "enemy", "range": 3, "cooldownSeconds": 10, "tags": ["mist"],
-      "effects": [{ "type": "putOutTorch", "seconds": 10 }]
+      "effects": [{ "type": "putOutTorch", "seconds": 10 }],
+      "specials": [{ "type": "putOutBraziers", "radius": 1 }]
     },
     "drift": {
       "displayName": "Drift",
@@ -198,9 +200,9 @@
     },
     "bansheeWail": {
       "displayName": "Banshee Wail",
-      "description": "The whole board is Terrified for 4 s. Every burning stops.",
+      "description": "The whole board is Terrified for 4 s. Every burning stops. Censers crack.",
       "target": "none", "cooldownSeconds": 60, "tags": ["scream"], "area": { "shape": "all" },
-      "effects": [{ "type": "status", "status": "terrified", "seconds": 4 }]
+      "effects": [{ "type": "status", "status": "terrified", "seconds": 4 }, { "type": "crackCenser" }]
     },
 
     "gulp": {
@@ -211,10 +213,10 @@
     },
     "eatFire": {
       "displayName": "Eat Fire",
-      "description": "Eats a torch. It goes out for good, and the Glutton gets heartburn.",
+      "description": "Eats a torch. It goes out for good, and the Glutton gets heartburn. Braziers next to the target get eaten too.",
       "target": "enemy", "range": 2, "cooldownSeconds": 12, "tags": ["devour"],
       "effects": [{ "type": "putOutTorch", "seconds": 600 }],
-      "specials": [{ "type": "hurtSelf", "amount": 5 }]
+      "specials": [{ "type": "hurtSelf", "amount": 5 }, { "type": "putOutBraziers", "radius": 1 }]
     },
     "regurgitate": {
       "displayName": "Regurgitate",
@@ -268,9 +270,9 @@
     },
     "toss": {
       "displayName": "Toss",
-      "description": "Throws the held human up to 3 hexes. Into another human: both Stunned for 2 s.",
+      "description": "Throws the held human up to 3 hexes. Into another human: both Stunned for 2 s. Into a brazier: it goes out.",
       "target": "hex", "range": 8, "cooldownSeconds": 8, "needsHeld": true, "area": { "shape": "none" },
-      "specials": [{ "type": "toss", "hexes": 3, "collisionStatus": "stunned", "collisionSeconds": 2 }]
+      "specials": [{ "type": "toss", "hexes": 3, "collisionStatus": "stunned", "collisionSeconds": 2, "knocksOverBraziers": true }]
     },
     "greatSqueeze": {
       "displayName": "Great Squeeze",

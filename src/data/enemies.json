@@ -79,7 +79,17 @@
       "armor": 0,
       "stepSeconds": 0.9,
       "attack": { "damage": 3, "cooldownSeconds": 2.6, "range": 1 },
-      "behavior": "fighter"
+      "behavior": "fighter",
+      "censer": {
+        "//": "Every everySeconds, once he is near the fight, he stops and swings it for swingSeconds; whatever stops channelling (Screamer, Miracle, a stun) stops the swing, and Banshee Wail cracks the censer. The swing, within radius of him: Mist clouds lying wholly inside are gone and the rest has a hole for smokeSeconds; his brothers lose their statuses (but keepsStatuses: a neck holding a man doesn't care about smoke) and hit damageBoostPercent harder for boostSeconds.",
+        "everySeconds": 6,
+        "swingSeconds": 1.5,
+        "radius": 2,
+        "smokeSeconds": 3,
+        "damageBoostPercent": 25,
+        "boostSeconds": 5,
+        "keepsStatuses": ["seized"]
+      }
     },
     "brazierBearer": {
       "//": "TODO(design): M4, on the surface (§6.6). Sets down braziers that dry the ground round them (the body is slower on dry ground) and drive the Mist off.",
@@ -88,7 +98,17 @@
       "armor": 1,
       "stepSeconds": 1,
       "attack": { "damage": 4, "cooldownSeconds": 2.6, "range": 1 },
-      "behavior": "fighter"
+      "behavior": "fighter",
+      "braziers": {
+        "//": "He carries count braziers. Within fromBody hexes of the body's edge he sets one down where he stands, taking setDownSeconds (a channel, stopped like a swing of the censer), then waits everySeconds before the next. A lit brazier dries the ground within dryRadius (the body steps bodySlowMultiplier times slower on it) and keeps Mist off within mistRadius. Douse, Eat Fire, Acid Rain and a man thrown by Toss put braziers out (heads.json).",
+        "count": 2,
+        "fromBody": 2,
+        "setDownSeconds": 2,
+        "everySeconds": 8,
+        "dryRadius": 1,
+        "mistRadius": 2,
+        "bodySlowMultiplier": 1.5
+      }
     }
   },
   "encounterGroups": [

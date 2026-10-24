@@ -44,6 +44,8 @@ export const effectSchema = z.discriminatedUnion('type', [
   section({ type: z.literal('pull'), hexes: hexCount }),
   // The hit doesn't wake an Entranced target.
   section({ type: z.literal('keepEntranced') }),
+  // A Censer Priest's censer cracks: he swings it no more in this battle.
+  section({ type: z.literal('crackCenser') }),
 ]);
 
 export type EffectData = z.infer<typeof effectSchema>;
@@ -90,8 +92,10 @@ export const skillSpecialSchema = z.discriminatedUnion('type', [
   // The next regrowth gives this many heads (the head limit still holds).
   section({ type: z.literal('moreHeadsNextRegrowth'), heads: z.number().int().min(1) }),
   section({ type: z.literal('hurtSelf'), amount: z.number().positive() }),
-  // Throws the human this head holds towards the aimed hex.
-  section({ type: z.literal('toss'), hexes: hexCount, collisionStatus: id, collisionSeconds: seconds }),
+  // Throws the human this head holds towards the aimed hex. `knocksOverBraziers`: a brazier where it lands, or next to it, goes out.
+  section({ type: z.literal('toss'), hexes: hexCount, collisionStatus: id, collisionSeconds: seconds, knocksOverBraziers: z.boolean().optional() }),
+  // Braziers within `radius` of the aim go out; leave `radius` out for every brazier on the board.
+  section({ type: z.literal('putOutBraziers'), radius: hexCount.optional() }),
   // Grabs up to `count` humans in reach at once.
   section({ type: z.literal('seizeMany'), count: z.number().int().min(1), seconds, breakArmor: z.boolean() }),
   // Eats every human in reach under `hpShare` of their HP, for `seconds`; then sleeps.

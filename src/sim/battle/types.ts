@@ -41,7 +41,9 @@ export type Effect =
   /** The target is pulled `hexes` towards the body. */
   | { type: 'pull'; hexes: number }
   /** The target stays Entranced although this hit hurt it (Anointing). */
-  | { type: 'keepEntranced' };
+  | { type: 'keepEntranced' }
+  /** The target's censer cracks: no more swinging it in this battle (Banshee Wail). */
+  | { type: 'crackCenser' };
 
 /**
  * Who a skill is aimed at. `enemy`: a human in reach. `hex`: a hex in reach. `head`: one of the hydra's heads.
@@ -90,8 +92,10 @@ export type SkillSpecial =
   | { type: 'moreHeadsNextRegrowth'; heads: number }
   /** The skill's head loses this many HP (Eat Fire's heartburn). */
   | { type: 'hurtSelf'; amount: number }
-  /** Throws the human this head holds (Seized) onto the aimed hex; anyone it lands on and it get the status. */
-  | { type: 'toss'; hexes: number; collisionStatus: string; collisionTicks: number }
+  /** Throws the human this head holds (Seized) onto the aimed hex; anyone it lands on and it get the status. `knocksOverBraziers`: a brazier where it lands, or next to it, goes out. */
+  | { type: 'toss'; hexes: number; collisionStatus: string; collisionTicks: number; knocksOverBraziers: boolean }
+  /** Braziers within `radius` of the aim go out (null: every brazier on the board). */
+  | { type: 'putOutBraziers'; radius: number | null }
   /** Seizes up to `count` humans in reach at once, held by this head. */
   | { type: 'seizeMany'; count: number; ticks: number; breakArmor: boolean }
   /** Eats every human in reach under `hpShare` of their HP for a while, then sleeps. */
@@ -260,6 +264,46 @@ export interface EnemyTypeRules {
   collectTicks: number | null;
   /** A boss: shown by name with a big HP bar. */
   boss: boolean;
+  /** Censer Priest: swings his censer now and then (see CenserRules); null = has none. */
+  censer: CenserRules | null;
+  /** Brazier Bearer: sets braziers down near the body (see BrazierRules); null = carries none. */
+  braziers: BrazierRules | null;
+}
+
+/**
+ * A Censer Priest's censer (GAME_DESIGN.md §6.6). Every `everyTicks` he stops and swings it for `swingTicks`
+ * (a channel: whatever stops channelling stops the swing). When the swing is done, everything within `radius` of him:
+ * Mist clouds lying wholly inside are gone and the rest has a hole for `smokeTicks`; his brothers lose their statuses
+ * (except `keepsStatuses`) and hit `boostMultiplier` times harder for `boostTicks`.
+ */
+export interface CenserRules {
+  everyTicks: number;
+  swingTicks: number;
+  radius: number;
+  smokeTicks: number;
+  boostMultiplier: number;
+  boostTicks: number;
+  keepsStatuses: readonly string[];
+}
+
+/**
+ * A Brazier Bearer's braziers (§6.6). He carries `count`; within `fromBody` hexes of the body's edge he stops and sets
+ * one down for `setDownTicks` (a channel), then waits `everyTicks` before the next. A lit brazier dries the hexes within
+ * `dryRadius` (the body steps `bodySlowMultiplier` times slower on them) and keeps Mist off within `mistRadius`.
+ */
+export interface BrazierRules {
+  count: number;
+  fromBody: number;
+  setDownTicks: number;
+  everyTicks: number;
+  dryRadius: number;
+  mistRadius: number;
+  bodySlowMultiplier: number;
+}
+
+/** A battle on the surface (surface.json battle): fought in mist, it starts with clouds round the body. */
+export interface SurfaceBattleRules {
+  startClouds: { count: number; radius: number; ticks: number; fromBody: number };
 }
 
 /** Broodlings fighting for the lair (brood.json battle). */
@@ -306,6 +350,7 @@ export interface BattleRules extends BoardSize {
   hitMemoryTicks: number;
   broodling: AllyRules;
   experience: HeadExperienceRules;
+  surface: SurfaceBattleRules;
 }
 
 /** Head experience and levels (GAME_DESIGN.md §6.3): the battle uses the damage, the map the rest. */
@@ -408,6 +453,25 @@ export interface MistCloud {
   ownerHeadId?: string | null;
 }
 
+/** Censer smoke: no Mist within `radius` of `center` until `untilTick`. */
+export interface Smoke {
+  id: number;
+  center: Hex;
+  radius: number;
+  untilTick: number;
+}
+
+/** A lit brazier a Brazier Bearer set down: the ground round it is dry, and Mist won't lie near it. */
+export interface Brazier {
+  id: number;
+  at: Hex;
+  /** The Brazier Bearer who set it down. */
+  ownerId: number;
+  dryRadius: number;
+  mistRadius: number;
+  bodySlowMultiplier: number;
+}
+
 /** A puddle on the board (Acid Pool): humans in it get the status. */
 export interface Pool {
   id: number;
@@ -480,6 +544,16 @@ export interface Enemy extends Walker {
   /** Collector: ticks of counting done next to the body, and whether it has counted it all and is running. */
   collectProgress?: number;
   collected?: boolean;
+  /** Censer Priest or Brazier Bearer: what it is busy doing (swinging, setting a brazier down) and until when; null = nothing. */
+  channel?: { kind: 'censer' | 'brazier'; untilTick: number } | null;
+  /** It can't start its next swing or brazier before this tick. */
+  nextChannelTick?: number;
+  /** Censer Priest: his censer cracked (Banshee Wail). */
+  censerCracked?: boolean;
+  /** Brazier Bearer: braziers he still carries. */
+  braziersLeft?: number;
+  /** Blessed by a censer: hits `multiplier` times harder until `untilTick`. */
+  boost?: { multiplier: number; untilTick: number };
 }
 
 /** A Broodling fighting for the lair: it stands on a hex like a human, walks to the nearest one and bites. */
@@ -523,6 +597,10 @@ export type BattleEvent =
   | { type: 'escaped'; tick: number; enemyId: number; at: Hex }
   /** A Tithe Collector has counted what the hydra has and makes for the edge. */
   | { type: 'collected'; tick: number; enemyId: number; at: Hex }
+  /** A Censer Priest starts swinging, finishes a swing (`radius` round `at`), is stopped, or his censer cracks. */
+  | { type: 'censer'; tick: number; enemyId: number; what: 'started' | 'swung' | 'interrupted' | 'cracked'; at: Hex; radius: number }
+  /** A Brazier Bearer starts setting a brazier down, or one is lit on the board, or one goes out. */
+  | { type: 'brazier'; tick: number; what: 'settingDown' | 'lit' | 'out' | 'interrupted'; enemyId: number | null; brazierId: number | null; at: Hex }
   | { type: 'allyKilled'; tick: number; allyId: number; at: Hex }
   | { type: 'devoured'; tick: number; enemyId: number; headId: string | null; at: Hex }
   | { type: 'severed'; tick: number; headId: string; name: string; stumpId: number }
@@ -560,8 +638,13 @@ export interface BattleState {
   /** Burning stumps shut takes this many times as long (the hydra's mutations). */
   cauterizeMultiplier: number;
   clouds: MistCloud[];
+  /** Censer smoke keeping Mist off for a while. */
+  smokes: Smoke[];
+  braziers: Brazier[];
   pools: Pool[];
   beacons: Beacon[];
+  /** Heads hit this many times as hard in this battle (on the surface while Exposed: less). */
+  headDamageMultiplier: number;
   /** Heads that grew during this battle get ids from this counter. */
   nextId: number;
   /** Ultimate skills can be used (the hydra unlocked them). */

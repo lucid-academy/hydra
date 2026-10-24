@@ -27,7 +27,9 @@
 //   ?level=3      with ?scene=battle: the test battle's heads are this level
 //   ?ults=1       ultimate skills (key E) can be used in battle
 //   ?surface=1    with ?scene=map: the hydra starts up on the surface, on the first Passage (with ?near=, next to
-//                 the nearest of that kind up there: flameShrine, castle, settlement, find...)
+//                 the nearest of that kind up there: flameShrine, castle, settlement, find...); with ?scene=battle:
+//                 the test battle is fought up there, in mist
+//   ?exposed=1    with ?surface=1: no mist under the hydra (with ?scene=battle: an Exposed battle)
 //   ?night=1      with ?scene=map: the game starts on the first turn of the night
 // A URL with any of these but seed, debug, speed and zoom is a test: the saved game is neither loaded nor saved
 // (testUrl). ?seed= alone picks the world of a lineage started from the title.
@@ -84,6 +86,8 @@ export interface UrlParams {
   surface: boolean;
   /** Start at nightfall. */
   night: boolean;
+  /** On the surface, with no mist under her. */
+  exposed: boolean;
 }
 
 export function parseUrlParams(search: string): UrlParams {
@@ -124,6 +128,7 @@ export function parseUrlParams(search: string): UrlParams {
     ults: params.get('ults') === '1' || params.get('ults') === 'true',
     surface: params.get('surface') === '1' || params.get('surface') === 'true',
     night: params.get('night') === '1' || params.get('night') === 'true',
+    exposed: params.get('exposed') === '1' || params.get('exposed') === 'true',
   };
 }
 
@@ -153,6 +158,7 @@ export function testUrl(params: UrlParams): boolean {
     params.level !== null ||
     params.ults ||
     params.surface ||
-    params.night
+    params.night ||
+    params.exposed
   );
 }

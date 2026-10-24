@@ -271,6 +271,30 @@ export const enemiesSchema = section({
       collectSeconds: z.number().positive().optional(),
       // A boss: named over the board with a big HP bar.
       boss: z.boolean().optional(),
+      // Censer Priest: every everySeconds he stops and swings his censer for swingSeconds (Screamer, Miracle and anything
+      // that stops channelling stop it). Then, within radius of him: Mist clouds lying wholly inside are gone and the rest
+      // has a hole for smokeSeconds; his brothers lose their statuses (but keepsStatuses) and hit damageBoostPercent more for boostSeconds.
+      censer: section({
+        everySeconds: z.number().positive(),
+        swingSeconds: z.number().positive(),
+        radius: z.number().int().min(0),
+        smokeSeconds: z.number().positive(),
+        damageBoostPercent: z.number(),
+        boostSeconds: z.number().positive(),
+        keepsStatuses: z.array(z.string().min(1)).optional(),
+      }).optional(),
+      // Brazier Bearer: carries count braziers. Within fromBody hexes of the body's edge he sets one down where he stands
+      // (setDownSeconds, a channel), then waits everySeconds. A lit brazier dries the ground within dryRadius (the body steps
+      // bodySlowMultiplier times slower there) and keeps Mist off within mistRadius.
+      braziers: section({
+        count: z.number().int().min(0),
+        fromBody: z.number().int().min(0),
+        setDownSeconds: z.number().positive(),
+        everySeconds: z.number().positive(),
+        dryRadius: z.number().int().min(0),
+        mistRadius: z.number().int().min(0),
+        bodySlowMultiplier: z.number().min(1),
+      }).optional(),
     }),
   ),
   encounterGroups: z
@@ -764,6 +788,15 @@ export const textSchema = z
       collected: z.string().min(1),
       escaped: z.string().min(1),
       allyKilled: z.string().min(1),
+      '//m4': z.string().optional(),
+      censerSwung: z.string().min(1),
+      censerInterrupted: z.string().min(1),
+      censerCracked: z.string().min(1),
+      brazierLit: z.string().min(1),
+      brazierOut: z.string().min(1),
+      // {n}: how many percent softer the heads hit.
+      startExposed: z.string().min(1),
+      startInMist: z.string().min(1),
       // A head's level on its card, above level 1: {n}.
       level: z.string().min(1),
       skillFizzled: z.string().min(1),
@@ -1111,6 +1144,9 @@ export const surfaceSchema = section({
   }),
   dayNight: section({ dayTurns: z.number().int().min(1), nightTurns: z.number().int().min(0), nightSight: z.number().int().min(0) }),
   exposed: section({ bodyHp: z.number().int().min(0), alert: z.number(), crawl: z.boolean(), battleDamagePercent: z.number().min(-100) }),
+  battle: section({
+    startClouds: section({ count: z.number().int().min(0), radius: z.number().int().min(0), seconds: z.number().positive(), fromBody: z.number().int().min(1) }),
+  }),
   flameShrines: section({
     alertWhenPutOut: z.number(),
     lastingMistRadius: z.number().int().min(0),
