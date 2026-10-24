@@ -2,7 +2,7 @@
 
 import type { HeadExperienceRules, HeadRecord } from '../battle';
 import type { Hex } from '../hex';
-import type { HexMap, Loot, TerrainTable, UndergroundGeneratorSettings, Visibility } from '../map';
+import type { HexMap, Layer, Loot, SurfaceGeneratorSettings, SurfaceMap, TerrainTable, UndergroundGeneratorSettings, Visibility } from '../map';
 
 
 /** What a blessing of the Great Serpent changes (shrines.json). Missing = no change. */
@@ -41,6 +41,8 @@ export interface MutationEffects {
   echoRange?: number;
   /** Burning a stump shut in battle takes this many percent longer. */
   cauterizePercent?: number;
+  /** Exposed on the surface, she loses this many percent more body HP (negative: less). */
+  exposedDamagePercent?: number;
 }
 
 /** What a hydra hatches with (GAME_DESIGN.md §12), given by her lineage (sim/lineage). */
@@ -145,7 +147,11 @@ export type StoryTrigger =
   | 'eventOnly'
   /** A new generation hatches (Old Mother Toad greets the heiress), and an ancestress may speak through her sleep. */
   | 'newGeneration'
-  | 'ancestorInSleep';
+  | 'ancestorInSleep'
+  /** On the surface (GAME_DESIGN.md §5.6, §5.7): a Flame Shrine put out, one lit again, the hydra left without mist. */
+  | 'shrineOut'
+  | 'shrineRelit'
+  | 'exposed';
 
 /** What must be true for a dialogue or an event. Missing = anything goes. */
 export interface StoryConditions {
@@ -336,12 +342,14 @@ export interface OrderRules {
   siege: { perTurn: number };
 }
 
-export type OrderUnitKind = 'patrol' | 'messenger' | 'expedition' | 'greatBurning';
+/** relight: Torchbearers going to light a Flame Shrine again (GAME_DESIGN.md §5.7). */
+export type OrderUnitKind = 'patrol' | 'messenger' | 'expedition' | 'greatBurning' | 'relight';
 
-/** People of the Order walking the underground. */
+/** People of the Order walking the underground or the surface. */
 export interface OrderUnit {
   id: string;
   kind: OrderUnitKind;
+  layer: Layer;
   at: Hex;
   /** Its people: an encounter group (enemies.json), and the group's tier (how it is drawn). Empty for a messenger. */
   groupId: string;
@@ -358,6 +366,7 @@ export interface OrderUnit {
 export interface OrderSighting {
   unitId: string;
   kind: OrderUnitKind;
+  layer: Layer;
   tier: number;
   at: Hex;
   turn: number;
@@ -424,6 +433,95 @@ export interface BroodRules {
   lostDefenseBreaksShare: number;
 }
 
+// ---------------------------------------------------------------- the surface (GAME_DESIGN.md §5.6, §5.7; M4)
+
+/** Something lying on the surface (surface.json finds). */
+export interface FindRules {
+  loot: Loot;
+  /** Shows the nearest hidden threshold of the underground (GAME_DESIGN.md §9.3). */
+  revealsHiddenThreshold: boolean;
+}
+
+/** Mist, day and night, being Exposed, the Flame Shrines and the Order on the surface (surface.json). */
+export interface SurfaceRules {
+  generator: SurfaceGeneratorSettings;
+  /** Movement points it takes to climb up or go down a Passage. */
+  passageMovement: number;
+  /** Alert for each surface hex seen for the first time. */
+  alertPerHexDiscovered: number;
+  mist: {
+    /**
+     * Exhale Mist: costs `moisture`, covers the hydra's hex and those within `radius` (more with a head of a class in
+     * `radiusByClass`) with mist for `turns` turns of daylight.
+     */
+    exhale: { moisture: number; radius: number; radiusByClass: Readonly<Record<string, number>>; turns: number };
+    /** A step onto a hex without mist breathes mist onto it first, for `moisture`; null: she can't step there. */
+    breatheAhead: { moisture: number; turns: number } | null;
+    /** Mist lasts at most this many turns of daylight. */
+    maxTurns: number;
+    /** How much mist fades every world turn, by day and by night; a windy day fades it `windExtra` more. */
+    fade: { day: number; night: number; windExtra: number };
+    /** The chance that a day is windy (rolled at dawn). */
+    windChance: number;
+    /** Over water, mist fades this many times as fast; in a year of Drought (world.json runModifiers), `droughtFade` times. */
+    waterFade: number;
+    droughtFade: number;
+    /** A unit of the Order with a Censer Priest clears the mist this many hexes round it in the world turn (0: only its own hex). */
+    censerClears: number;
+    censerType: string;
+    /** At the start, mist lies this far round every Passage, for this many turns; the Passage's own hex never loses it. */
+    start: { radius: number; turns: number };
+  };
+  /** A day of `dayTurns` turns, then a night of `nightTurns`; at night sight is shorter by `nightSight`. */
+  dayNight: { dayTurns: number; nightTurns: number; nightSight: number };
+  /**
+   * No mist under the hydra at the end of a world turn: she is Exposed. She loses `bodyHp` (never below 1), the Alert
+   * rises by `alert`, she doesn't heal, and in battle her heads deal `battleDamagePercent` more (negative: less).
+   * With `crawl`, an Exposed hydra may still crawl one step a turn onto bare ground.
+   */
+  exposed: { bodyHp: number; alert: number; crawl: boolean; battleDamagePercent: number };
+  flameShrines: {
+    /** Putting one out changes the Alert by this much, and leaves mist that never fades this far round it. */
+    alertWhenPutOut: number;
+    lastingMistRadius: number;
+    /** The first shrine put out in a hydra's life gives one of `mutations` with `firstMutationChance`, every later one with `mutationChance`. */
+    mutations: readonly string[];
+    firstMutationChance: number;
+    mutationChance: number;
+    /** Turns after a shrine goes out until Torchbearers set out to light it again; how fast they walk; who they are; the Alert when it burns again. */
+    relight: { afterTurns: number; movement: number; groupId: string; alert: number };
+  };
+  order: {
+    /** How far the Order sees the hydra: in mist, and Exposed (shorter at night). */
+    sightInMist: number;
+    sight: number;
+    patrols: { firstOnTurn: number; maxByStage: readonly number[]; everyTurns: number; movement: number; chaseTurns: number; groups: readonly OrderGroupRules[] };
+  };
+  finds: Readonly<Record<string, FindRules>>;
+}
+
+/** The surface as this run has it: the map, what the hydra knows of it, the mist on it. */
+export interface SurfaceState {
+  map: SurfaceMap;
+  visibility: Visibility;
+  /** Mist on the surface: hex key → turns of daylight it has left (fractions too). Missing: none. */
+  mist: Record<string, number>;
+  /** Hexes whose mist never fades: hex key → what holds it there ('passage', or the hex key of a shrine put out). */
+  lastingMist: Record<string, string>;
+  /** The hydra was left without mist at the end of the last world turn (and hasn't found mist since). */
+  exposed: boolean;
+  /** Today is windy: mist fades faster (rolled at dawn). */
+  windy: boolean;
+  /** Flame Shrines put out (hex key) → the world turn on which Torchbearers set out to light it again. */
+  relights: Record<string, number>;
+  /** The world turn on which the next patrol may set out on the surface; null until the hydra first climbs up. */
+  nextPatrolTurn: number | null;
+  /** Shrines this hydra has put out. */
+  shrinesPutOut: number;
+  /** Random numbers for the surface's weather and the flames' mutations, apart from the rest. */
+  rngState: number;
+}
+
 export interface RunRules {
   movementPointsPerTurn: number;
   sightRangeHexes: number;
@@ -469,6 +567,7 @@ export interface RunRules {
   order: OrderRules;
   brood: BroodRules;
   experience: HeadExperienceRules;
+  surface: SurfaceRules;
 }
 
 export interface Hydra {
@@ -489,6 +588,8 @@ export interface Hydra {
   /** Body HP healed at the end of every turn. */
   regeneration: number;
   heads: HeadRecord[];
+  /** Which map she is on: the underground or the surface. `position` is a hex of that map. */
+  layer: Layer;
   /** Stumps burnt shut. Resting in the lair heals them, and they grow heads again. */
   scars: number;
   /** Blessings accepted so far (ids from shrines.json). */
@@ -523,8 +624,11 @@ export interface RunState {
   /** 0–100. Stored with fractions; show it rounded down. */
   alert: number;
   resources: Resources;
-  /** The encounter the hydra stepped on (or the Order's unit she met: `unitId`), until its battle is resolved. */
-  pendingBattle: { at: Hex; groupId: string; unitId?: string; defense?: boolean } | null;
+  /**
+   * The encounter the hydra stepped on (or the Order's unit she met: `unitId`, or the guard of a Flame Shrine), on the
+   * map she is on (`layer`), until its battle is resolved.
+   */
+  pendingBattle: { at: Hex; layer: Layer; groupId: string; unitId?: string; defense?: boolean } | null;
   /** The shrine the hydra stands at, until its blessing is accepted or refused. */
   pendingShrine: Hex | null;
   /** The place the hydra stands at, or the threshold it stands next to, while its panel is open. */
@@ -552,6 +656,7 @@ export interface RunState {
   /** The Order of the Eternal Flame: how alarmed it is, and who it has sent down. */
   order: OrderState;
   lair: LairState;
+  surface: SurfaceState;
 }
 
 export type RunEvent =
@@ -627,12 +732,39 @@ export type RunEvent =
   | { type: 'scoutKilled'; scoutId: string; at: Hex }
   /** A lost battle for the lair: eggs the Order broke. */
   | { type: 'eggsBroken'; count: number }
-  | { type: 'turnEnded'; turn: number };
+  | { type: 'turnEnded'; turn: number }
+  /** She stood on a Passage: its panel opened. */
+  | { type: 'passageReached'; at: Hex; layer: Layer }
+  /** She went up or down a Passage: now on `layer`. */
+  | { type: 'climbed'; layer: Layer; at: Hex }
+  /** Exhale Mist: mist now lies on these hexes (or was breathed ahead of her on the way: in `moved`). */
+  | { type: 'mistExhaled'; hexes: Hex[]; moisture: number }
+  /** Mist breathed ahead of her, step by step, on the way she walked. */
+  | { type: 'mistBreathed'; hexes: Hex[]; moisture: number }
+  /** No mist under her: Exposed, losing `bodyHp`. */
+  | { type: 'exposed'; bodyHp: number; alert: number }
+  /** In mist again. */
+  | { type: 'covered' }
+  | { type: 'nightFalls' }
+  /** Dawn of a new day; `windy`: mist fades faster today. */
+  | { type: 'dayBreaks'; windy: boolean }
+  /** Something picked up on the surface; `revealed`: the hidden threshold it showed, if any. */
+  | { type: 'findTaken'; at: Hex; findId: string; loot: Loot; revealed: Hex | null }
+  /** A Flame Shrine put out: the Alert changed by `alert`, and mist lies round it for good. */
+  | { type: 'shrineOut'; at: Hex; alert: number; left: number }
+  /** Torchbearers set out to light a Flame Shrine again. */
+  | { type: 'relightSent'; unitId: string; at: Hex; shrine: Hex }
+  /** They lit it: it burns again, guarded by them, and its mist fades from now on. */
+  | { type: 'shrineRelit'; at: Hex; alert: number }
+  /** The castle, shut. */
+  | { type: 'castleReached'; at: Hex };
 
 export interface Reachable {
   cost: number;
   /** Steps from the hydra's position (excluded) to the target (included). */
   path: Hex[];
+  /** On the surface: Moisture it takes to breathe mist ahead on the way. */
+  moisture?: number;
 }
 
 /** A travel plan: the way to a hex further than one turn, and the turn each step is taken in (0 = this turn). */

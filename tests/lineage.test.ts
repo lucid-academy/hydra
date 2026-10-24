@@ -36,7 +36,7 @@ function hatch(profile: Profile, lineage: Lineage): RunState {
 /** The hydra loses a battle against `groupId` at the first encounter of her map. */
 function slay(run: RunState, groupId: string): void {
   const tile = [...run.map.tiles.values()].find((t) => t.object?.kind === 'encounter')!;
-  run.pendingBattle = { at: tile.hex, groupId };
+  run.pendingBattle = { at: tile.hex, layer: 'underground', groupId };
   finishBattle(run, { outcome: 'lost', bodyHp: 0, heads: [], newScars: 0, nextId: run.nextId }, rules);
 }
 

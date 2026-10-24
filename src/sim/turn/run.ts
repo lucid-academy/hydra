@@ -5,16 +5,33 @@
 import type { BattleResult, BattleSetup } from '../battle';
 import { hexDistance, hexEquals, hexKey, hexNeighbors } from '../hex';
 import type { Hex } from '../hex';
-import { generateUnderground, hexesSeenFrom, updateVisibility } from '../map';
-import type { MapObject } from '../map';
+import { generateUnderground, updateVisibility } from '../map';
+import type { Layer, MapObject, Tile } from '../map';
 import { Rng } from '../rng';
 import { gainExperience } from './experience';
 import { applyBirthMutations, gainMutation, headMaxHp, mutationTotal, startingHeadCount } from './mutations';
 import { breakEggs, lairTurn, newLair, scoutsCaught } from './lair';
 import { meetOrderAt, newOrder, orderBlocks, orderTurn, sendMessenger, unitBeaten } from './order';
 import { eventArrived, meetEnemies, newStory, serpentOnTheWay, storyMoment } from './story';
+import { arriveOnSurface, breathCost, canCrawl, coverIfMisty, exposedNow, hasMist, newSurface, putMist, putOutShrine, surfaceTurn } from './surface';
 import type { BlessingEffects, Heritage, Journey, Reachable, RunEvent, RunRules, RunState } from './types';
-import { arriveAt, battleSilenced, coolTunnels, growHeads, lookAround, movementForTurn, raiseAlert, tickConditions, tileAt } from './world';
+import {
+  arriveAt,
+  battleSilenced,
+  coolTunnels,
+  growHeads,
+  isWaiting,
+  look,
+  lookAround,
+  mapOf,
+  movementForTurn,
+  raiseAlert,
+  tickConditions,
+  tileAt,
+  tileHere,
+  tileOn,
+  visibilityOf,
+} from './world';
 
 export interface RunOptions {
   /** Run modifiers (ids from world.json runModifiers) that shape this run's world. */
@@ -62,6 +79,7 @@ export function createRun(seed: number, rules: RunRules, options: RunOptions = {
       bodyMaxHp: rules.bodyMaxHp,
       regeneration: rules.healing.bodyHpPerTurn,
       heads,
+      layer: 'underground',
       scars: 0,
       blessings: [],
       conditions: [],
@@ -85,6 +103,7 @@ export function createRun(seed: number, rules: RunRules, options: RunOptions = {
     hotUntil: {},
     order: newOrder(seed, rules),
     lair: { eggs: [], defenders: 0, scouts: [], nextId: 1, eggHidden: false },
+    surface: newSurface(seed, map, rules),
   };
   if (heritage) {
     state.story.flags.push(...heritage.flags);
@@ -124,19 +143,20 @@ function placeMark(state: RunState, rules: RunRules): void {
   shrine.mark = rng.pick(marks);
 }
 
-/** The hydra is busy: a battle, a shrine or a panel waits for an answer, or it is dead. Nothing else can happen until then. */
-function isWaiting(state: RunState): boolean {
-  return state.over || state.pendingBattle !== null || state.pendingShrine !== null || state.pendingPlace !== null || state.pendingEvent !== null;
-}
-
 /** Objects the hydra stops at when it walks onto them, and can't walk through. */
 function stopsTheHydra(object: MapObject | null): boolean {
   return (
     object?.kind === 'encounter' ||
     (object?.kind === 'shrine' && !object.used) ||
     (object?.kind === 'place' && !object.visited) ||
-    (object?.kind === 'event' && !object.done)
+    (object?.kind === 'event' && !object.done) ||
+    (object?.kind === 'flameShrine' && object.burning)
   );
+}
+
+/** Objects she can't go onto at all: the castle (until M7), and the villages, mills, watchtowers and camps. */
+function closedToTheHydra(object: MapObject | null): boolean {
+  return object?.kind === 'castle' || object?.kind === 'settlement';
 }
 
 /**
@@ -162,7 +182,7 @@ export function plannedJourney(state: RunState, target: Hex, rules: RunRules): J
   let turn = 0;
   let left = state.hydra.movementLeft;
   for (const step of route.path) {
-    const cost = rules.terrain[tileAt(state, step)!.terrain].moveCost!;
+    const cost = rules.terrain[tileHere(state, step)!.terrain].moveCost!;
     while (cost > left) {
       // A step dearer than a whole turn (a slow hydra in salt) is still taken, with a fresh turn's movement.
       if (left === state.hydra.movementPerTurn) break;
@@ -175,35 +195,55 @@ export function plannedJourney(state: RunState, target: Hex, rules: RunRules): J
   return { ...route, turns };
 }
 
-/** The cheapest paths from the hydra to every known hex it can get to for at most `limit` movement. */
+/**
+ * The cheapest paths from the hydra to every known hex of her map she can get to for at most `limit` movement. On the
+ * surface she walks only in mist, or breathes mist ahead of her for Moisture (as much as she has); an Exposed hydra
+ * with none may crawl one step (surface.ts canCrawl).
+ */
 function cheapestPaths(state: RunState, rules: RunRules, limit: number): Map<string, Reachable> {
   const start = state.hydra.position;
-  const best = new Map<string, Reachable>([[hexKey(start), { cost: 0, path: [] }]]);
+  const surface = state.hydra.layer === 'surface';
+  const { tiles } = mapOf(state);
+  const visibility = visibilityOf(state);
+  const best = new Map<string, Reachable>([[hexKey(start), { cost: 0, path: [], moisture: 0 }]]);
   const frontier: Hex[] = [start];
   while (frontier.length > 0) {
     // Take the cheapest hex left (the first of equals): simpler to read than a priority queue, and quick enough here.
     let pick = 0;
-    for (let i = 1; i < frontier.length; i++) if (best.get(hexKey(frontier[i]!))!.cost < best.get(hexKey(frontier[pick]!))!.cost) pick = i;
+    for (let i = 1; i < frontier.length; i++) if (cheaper(best.get(hexKey(frontier[i]!))!, best.get(hexKey(frontier[pick]!))!)) pick = i;
     const current = frontier.splice(pick, 1)[0]!;
     const here = best.get(hexKey(current))!;
-    const tile = state.map.tiles.get(hexKey(current))!;
+    const tile = tiles.get(hexKey(current))!;
     if (!hexEquals(current, start) && (stopsTheHydra(tile.object) || orderBlocks(state, current))) continue;
     for (const next of hexNeighbors(current)) {
       const key = hexKey(next);
-      const nextTile = state.map.tiles.get(key);
-      if (!nextTile || !state.visibility.has(key)) continue;
+      const nextTile = tiles.get(key);
+      if (!nextTile || !visibility.has(key) || closedToTheHydra(nextTile.object)) continue;
       const stepCost = rules.terrain[nextTile.terrain].moveCost;
       if (stepCost === null) continue;
-      const cost = here.cost + stepCost;
+      let cost = here.cost + stepCost;
+      let moisture = here.moisture ?? 0;
+      if (surface) {
+        const breath = breathCost(state, next, rules);
+        if (breath !== null && moisture + breath <= state.resources.moisture) moisture += breath;
+        else if (hexEquals(current, start) && canCrawl(state, rules)) cost = Math.max(cost, state.hydra.movementLeft);
+        else continue;
+      }
       if (cost > limit) continue;
+      const step = { cost, path: [...here.path, next], moisture };
       const known = best.get(key);
-      if (known && known.cost <= cost) continue;
-      best.set(key, { cost, path: [...here.path, next] });
+      if (known && !cheaper(step, known)) continue;
+      best.set(key, step);
       frontier.push(next);
     }
   }
   best.delete(hexKey(start));
   return best;
+}
+
+/** A way that takes less movement, or as much and less Moisture. */
+function cheaper(a: Reachable, b: Reachable): boolean {
+  return a.cost < b.cost || (a.cost === b.cost && (a.moisture ?? 0) < (b.moisture ?? 0));
 }
 
 /**
@@ -215,47 +255,115 @@ export function moveHydra(state: RunState, target: Hex, rules: RunRules): RunEve
   if (!route) return [];
 
   const events: RunEvent[] = [];
+  const surface = state.hydra.layer === 'surface';
   const walked: Hex[] = [];
+  const breathed: Hex[] = [];
+  let moisture = 0;
   let discovered = 0;
   let stopped = false;
   for (const step of route.path) {
-    const tile = tileAt(state, step)!;
-    state.hydra.movementLeft -= rules.terrain[tile.terrain].moveCost!;
+    const tile = tileHere(state, step)!;
     walked.push(step);
-    const arrived = arriveAt(state, step, rules, events);
+    // On the surface, mist goes ahead of her: breathed onto the hex before she steps on it.
+    const ahead = rules.surface.mist.breatheAhead;
+    if (surface && !hasMist(state, step) && (!ahead || state.resources.moisture < ahead.moisture)) {
+      // Exposed with nothing to breathe: she crawls, and that takes the turn.
+      state.hydra.movementLeft = 0;
+    } else {
+      state.hydra.movementLeft -= rules.terrain[tile.terrain].moveCost!;
+      if (surface && ahead && !hasMist(state, step)) {
+        state.resources.moisture -= ahead.moisture;
+        moisture += ahead.moisture;
+        breathed.push(...putMist(state, [step], ahead.turns, rules));
+      }
+    }
+    const arrived = surface ? arriveOnSurface(state, step, rules, events) : arriveAt(state, step, rules, events);
     discovered += arrived.discovered;
     if (arrived.stop || meetOrderAt(state, step, rules, events) || eventArrived(state, step, rules, events)) {
       stopped = true;
       break;
     }
   }
-  if (!stopped) {
-    const object = tileAt(state, target)?.object;
-    if (object?.kind === 'place' && (rules.places[object.placeId]?.actions.length ?? 0) > 0) {
-      state.pendingPlace = target;
-      events.push({ type: 'placeReached', at: target, placeId: object.placeId, firstVisit: false });
-    }
-    // Home: the lair's panel opens, for the eggs.
-    if (object?.kind === 'lair') {
-      state.pendingPlace = target;
-      events.push({ type: 'lairOpened' });
-    }
-  }
+  if (!stopped) openPanelAt(state, target, rules, events);
 
   events.unshift({ type: 'moved', path: walked });
+  if (breathed.length > 0) events.push({ type: 'mistBreathed', hexes: breathed, moisture });
+  noticeDiscoveries(state, rules, discovered, walked, events);
+  battleAhead(state, rules, events);
+  return events;
+}
+
+/** Ending a move where there is something to deal with: a place's panel, the lair's, a Passage's. */
+function openPanelAt(state: RunState, at: Hex, rules: RunRules, events: RunEvent[]): void {
+  const object = tileHere(state, at)?.object;
+  if (object?.kind === 'place' && (rules.places[object.placeId]?.actions.length ?? 0) > 0) {
+    state.pendingPlace = at;
+    events.push({ type: 'placeReached', at, placeId: object.placeId, firstVisit: false });
+  }
+  // Home: the lair's panel opens, for the eggs.
+  if (object?.kind === 'lair') {
+    state.pendingPlace = at;
+    events.push({ type: 'lairOpened' });
+  }
+  if (object?.kind === 'passage') {
+    state.pendingPlace = at;
+    events.push({ type: 'passageReached', at, layer: state.hydra.layer });
+  }
+}
+
+/** New hexes seen raise the Alert a little; the story notices a biome entered for the first time. */
+function noticeDiscoveries(state: RunState, rules: RunRules, discovered: number, walked: readonly Hex[], events: RunEvent[]): void {
   if (discovered > 0) {
-    raiseAlert(state, discovered * rules.alertPerHexDiscovered, rules);
+    const each = state.hydra.layer === 'surface' ? rules.surface.alertPerHexDiscovered : rules.alertPerHexDiscovered;
+    raiseAlert(state, discovered * each, rules);
     events.push({ type: 'discovered', count: discovered });
   }
-  // The story notices a biome entered for the first time, and people of the Order never met before.
-  const newBiomes = [...new Set(walked.map((h) => tileAt(state, h)!.biome))].filter((b) => !state.story.biomesEntered.includes(b));
+  const newBiomes = [...new Set(walked.map((h) => tileHere(state, h)!.biome))].filter((b) => !state.story.biomesEntered.includes(b));
   state.story.biomesEntered.push(...newBiomes);
   if (newBiomes.length > 0) storyMoment(state, rules, 'newBiome', { biome: newBiomes[0] }, events);
-  if (state.pendingBattle) {
-    const fresh = meetEnemies(state, rules.encounterGroupMembers[state.pendingBattle.groupId] ?? []);
-    storyMoment(state, rules, 'enemyAhead', { newEnemyTypes: fresh }, events);
-    events.push({ type: 'battleStarted', at: state.pendingBattle.at });
-  }
+}
+
+/** A battle is about to start: the story notices people of the Order never met before. */
+function battleAhead(state: RunState, rules: RunRules, events: RunEvent[]): void {
+  if (!state.pendingBattle) return;
+  const fresh = meetEnemies(state, rules.encounterGroupMembers[state.pendingBattle.groupId] ?? []);
+  storyMoment(state, rules, 'enemyAhead', { newEnemyTypes: fresh }, events);
+  events.push({ type: 'battleStarted', at: state.pendingBattle.at });
+}
+
+// ---------------------------------------------------------------- Passages
+
+export type PassageCheck = { can: true } | { can: false; why: 'notOnPassage' | 'noMovement' };
+
+/** Can she go up (or down) the Passage she stands on, whose panel is open? */
+export function canUsePassage(state: RunState, rules: RunRules): PassageCheck {
+  if (state.over || tileHere(state, state.hydra.position)?.object?.kind !== 'passage') return { can: false, why: 'notOnPassage' };
+  if (state.hydra.movementLeft < rules.surface.passageMovement) return { can: false, why: 'noMovement' };
+  return { can: true };
+}
+
+/**
+ * Up (or down) the Passage she stands on, onto the same hex of the other map (GAME_DESIGN.md §5.1). The Passage keeps
+ * mist on its hex for good, so she always comes out in mist. Someone of the Order standing there: a battle.
+ */
+export function usePassage(state: RunState, rules: RunRules): RunEvent[] {
+  if (!canUsePassage(state, rules).can) return [];
+  const { hydra } = state;
+  const events: RunEvent[] = [];
+  state.pendingPlace = null;
+  hydra.movementLeft -= rules.surface.passageMovement;
+  // What she saw on the map she leaves, she now only remembers.
+  updateVisibility(visibilityOf(state), new Set());
+  const layer: Layer = hydra.layer === 'surface' ? 'underground' : 'surface';
+  hydra.layer = layer;
+  // The Order on the surface stirs once she has been seen up there.
+  if (layer === 'surface' && state.surface.nextPatrolTurn === null) state.surface.nextPatrolTurn = state.turn + rules.surface.order.patrols.firstOnTurn;
+  events.push({ type: 'climbed', layer, at: hydra.position });
+  coverIfMisty(state, events);
+  const discovered = lookAround(state, rules, events);
+  noticeDiscoveries(state, rules, discovered, [hydra.position], events);
+  meetOrderAt(state, hydra.position, rules, events);
+  battleAhead(state, rules, events);
   return events;
 }
 
@@ -265,16 +373,14 @@ export function moveHydra(state: RunState, target: Hex, rules: RunRules): RunEve
  * Anything else: nothing happens.
  */
 export function inspect(state: RunState, target: Hex, rules: RunRules): RunEvent[] {
-  if (isWaiting(state) || !state.visibility.has(hexKey(target))) return [];
-  const object = tileAt(state, target)?.object;
-  if (object?.kind === 'place' && hexEquals(target, state.hydra.position)) {
-    state.pendingPlace = target;
-    return [{ type: 'placeReached', at: target, placeId: object.placeId, firstVisit: false }];
+  if (isWaiting(state) || !visibilityOf(state).has(hexKey(target))) return [];
+  const object = tileHere(state, target)?.object;
+  if ((object?.kind === 'place' || object?.kind === 'lair' || object?.kind === 'passage') && hexEquals(target, state.hydra.position)) {
+    const events: RunEvent[] = [];
+    openPanelAt(state, target, rules, events);
+    return events;
   }
-  if (object?.kind === 'lair' && hexEquals(target, state.hydra.position)) {
-    state.pendingPlace = target;
-    return [{ type: 'lairOpened' }];
-  }
+  if (object?.kind === 'castle') return [{ type: 'castleReached', at: target }];
   if (object?.kind !== 'threshold' || object.state !== 'closed') return [];
 
   const events: RunEvent[] = [];
@@ -350,7 +456,7 @@ function applyBlessing(state: RunState, effects: BlessingEffects, rules: RunRule
   }
   if (effects.sight) {
     hydra.sightRange = Math.max(1, hydra.sightRange + effects.sight);
-    updateVisibility(state.visibility, hexesSeenFrom(state.map, hydra.position, hydra.sightRange, rules.terrain));
+    look(state, rules);
   }
   if (effects.bodyMaxHp) {
     const before = hydra.bodyMaxHp;
@@ -382,6 +488,8 @@ export function pendingBattleSetup(state: RunState, rules: RunRules): BattleSetu
     // In the battle for the lair, the Broodlings guarding it fight too.
     allies: pending.defense ? state.lair.defenders : 0,
     cauterizePercent: mutationTotal(state.hydra, rules, 'cauterizePercent'),
+    // On the surface the battle is fought in her mist, or out of it, Exposed (GAME_DESIGN.md §5.6).
+    surface: pending.layer === 'surface' ? { inMist: !exposedNow(state), damagePercent: exposedNow(state) ? rules.surface.exposed.battleDamagePercent : 0 } : undefined,
   };
 }
 
@@ -416,7 +524,7 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
     return lostBattle(state, pending, rules, broken > 0 ? [{ type: 'eggsBroken', count: broken }] : []);
   }
 
-  const tile = tileAt(state, pending.at);
+  const tile: Tile | undefined = tileOn(state, pending.layer, pending.at);
   if (tile?.object?.kind === 'encounter') tile.object = null;
   // Those who got away (Tithe Collectors) leave no Bones; they take their tithe instead.
   const escaped = result.tithesTaken ?? 0;
@@ -424,6 +532,8 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
   state.resources.bones += bones;
   const events: RunEvent[] = [{ type: 'battleWon', at: pending.at, bones, silenced }];
   gainExperience(state, result.kills ?? {}, rules, events);
+  // The guard of a Flame Shrine beaten: the flame goes out.
+  if (tile?.object?.kind === 'flameShrine' && !pending.unitId) putOutShrine(state, pending.at, rules, events);
   if (escaped > 0) events.push(takeTithe(state, escaped, rules));
   const unit = pending.unitId ? state.order.units.find((u) => u.id === pending.unitId) : undefined;
   if (unit) unitBeaten(state, unit, rules, events);
@@ -469,8 +579,9 @@ function lostBattle(state: RunState, pending: NonNullable<RunState['pendingBattl
  * Ending it in the lair is resting: everything heals fully, and burnt stumps heal and grow heads again.
  */
 export function endTurn(state: RunState, rules: RunRules): RunEvent[] {
-  // The lair's panel needs no answer: the turn can end with it open.
-  if (state.pendingPlace && hexEquals(state.pendingPlace, state.map.lair)) state.pendingPlace = null;
+  // The panels of the lair and of a Passage need no answer: the turn can end with them open.
+  const panel = state.pendingPlace ? tileHere(state, state.pendingPlace)?.object?.kind : undefined;
+  if (panel === 'lair' || panel === 'passage') state.pendingPlace = null;
   if (isWaiting(state)) return [];
   const { hydra } = state;
   const events: RunEvent[] = [];
@@ -478,10 +589,13 @@ export function endTurn(state: RunState, rules: RunRules): RunEvent[] {
   tickConditions(state, events);
   coolTunnels(state, events);
   hydra.movementLeft = movementForTurn(state, rules);
-  hydra.bodyHp = Math.min(hydra.bodyMaxHp, hydra.bodyHp + hydra.regeneration);
-  for (const head of hydra.heads) head.hp = Math.min(head.maxHp, head.hp + rules.healing.headHpPerTurn);
+  // Out of the mist, nothing heals (GAME_DESIGN.md §5.6).
+  if (!exposedNow(state)) {
+    hydra.bodyHp = Math.min(hydra.bodyMaxHp, hydra.bodyHp + hydra.regeneration);
+    for (const head of hydra.heads) head.hp = Math.min(head.maxHp, head.hp + rules.healing.headHpPerTurn);
+  }
 
-  if (hexEquals(hydra.position, state.map.lair)) {
+  if (hydra.layer === 'underground' && hexEquals(hydra.position, state.map.lair)) {
     hydra.bodyHp = hydra.bodyMaxHp;
     for (const head of hydra.heads) head.hp = head.maxHp;
     const healedScars = hydra.scars;
@@ -494,6 +608,7 @@ export function endTurn(state: RunState, rules: RunRules): RunEvent[] {
     serpentOnTheWay(state, rules, events);
   }
   lairTurn(state, rules, events);
+  surfaceTurn(state, rules, events);
   orderTurn(state, rules, events);
   scoutsCaught(state, events);
   events.push({ type: 'turnEnded', turn: state.turn });

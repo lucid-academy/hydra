@@ -4,7 +4,7 @@
 import { hexDistance, hexEquals, hexKey, hexNeighbors, hexesInRange } from '../hex';
 import type { Hex } from '../hex';
 import { hexesSeenFrom, updateVisibility } from '../map';
-import type { HexMap, Loot, MapObject, Tile } from '../map';
+import type { HexMap, Layer, LayerMap, Loot, MapObject, Tile, Visibility } from '../map';
 import { Rng } from '../rng';
 import { headMaxHp, mutationTotal } from './mutations';
 import type { HeardEcho, PlaceAction, RunEvent, RunRules, RunState } from './types';
@@ -27,13 +27,55 @@ function lastingTiles(map: HexMap): { thresholds: ThresholdTile[]; places: Place
   return found;
 }
 
+/** The hydra is busy: a battle, a shrine or a panel waits for an answer, or she is dead. Nothing else can happen until then. */
+export function isWaiting(state: RunState): boolean {
+  return state.over || state.pendingBattle !== null || state.pendingShrine !== null || state.pendingPlace !== null || state.pendingEvent !== null;
+}
+
+/** A hex of the underground. */
 export function tileAt(state: RunState, h: Hex): Tile | undefined {
   return state.map.tiles.get(hexKey(h));
 }
 
-/** Looks around from where the hydra stands. Returns how many hexes it saw for the first time. */
+/** The map of a layer: the hydra's, unless another is named. */
+export function mapOf(state: RunState, layer: Layer = state.hydra.layer): LayerMap {
+  return layer === 'surface' ? state.surface.map : state.map;
+}
+
+/** What the hydra knows of a layer's map: the one she is on, unless another is named. */
+export function visibilityOf(state: RunState, layer: Layer = state.hydra.layer): Visibility {
+  return layer === 'surface' ? state.surface.visibility : state.visibility;
+}
+
+export function tileOn(state: RunState, layer: Layer, h: Hex): Tile | undefined {
+  return mapOf(state, layer).tiles.get(hexKey(h));
+}
+
+/** A hex of the map the hydra is on. */
+export function tileHere(state: RunState, h: Hex): Tile | undefined {
+  return tileOn(state, state.hydra.layer, h);
+}
+
+/** Where the hydra is on this layer, or null when she is on the other one. */
+export function hydraOn(state: RunState, layer: Layer): Hex | null {
+  return state.hydra.layer === layer ? state.hydra.position : null;
+}
+
+/** How far the hydra sees now: on the surface at night, less (GAME_DESIGN.md §5.3). */
+export function sightNow(state: RunState, rules: RunRules): number {
+  const night = state.hydra.layer === 'surface' && isNight(state.turn, rules);
+  return Math.max(1, state.hydra.sightRange - (night ? rules.surface.dayNight.nightSight : 0));
+}
+
+/** Night on the surface (GAME_DESIGN.md §5.2): each day is dayTurns turns of daylight, then nightTurns of night. */
+export function isNight(turn: number, rules: RunRules): boolean {
+  const { dayTurns, nightTurns } = rules.surface.dayNight;
+  return (turn - 1) % (dayTurns + nightTurns) >= dayTurns;
+}
+
+/** Looks around from where the hydra stands, on her map. Returns how many hexes it saw for the first time. */
 export function look(state: RunState, rules: RunRules): number {
-  return updateVisibility(state.visibility, hexesSeenFrom(state.map, state.hydra.position, state.hydra.sightRange, rules.terrain));
+  return updateVisibility(visibilityOf(state), hexesSeenFrom(mapOf(state), state.hydra.position, sightNow(state, rules), rules.terrain));
 }
 
 /** Changes the Alert. A rise is faster or slower with the hydra's mutations (Bog-scented: slower). */
@@ -81,7 +123,7 @@ export function arriveAt(state: RunState, step: Hex, rules: RunRules, events: Ru
     tile.object = null;
     events.push({ type: 'hoardTaken', at: step, loot: object.loot });
   } else if (object?.kind === 'encounter') {
-    state.pendingBattle = { at: step, groupId: object.groupId };
+    state.pendingBattle = { at: step, layer: 'underground', groupId: object.groupId };
     return { stop: true, discovered };
   } else if (object?.kind === 'shrine' && !object.used) {
     state.pendingShrine = step;
@@ -121,6 +163,10 @@ export function growHeads(state: RunState, rules: RunRules, count: number, class
 /** Looks around and takes in the hints: landmarks seen from afar, draughts, echoes. Returns how many hexes it saw for the first time. */
 export function lookAround(state: RunState, rules: RunRules, events: RunEvent[]): number {
   const discovered = look(state, rules);
+  if (state.hydra.layer === 'surface') {
+    noteSightings(state);
+    return discovered;
+  }
   sightLandmarks(state, rules, events);
   feelDraughts(state, events);
   hearEchoes(state, rules, events);
@@ -133,16 +179,18 @@ export function lookAround(state: RunState, rules: RunRules, events: RunEvent[])
  * where they were last seen). A noted spot seen empty again is forgotten.
  */
 export function noteSightings(state: RunState): void {
-  const { order, visibility } = state;
+  const { order } = state;
+  const layer = state.hydra.layer;
+  const visibility = visibilityOf(state);
   const inSight = (h: Hex) => visibility.get(hexKey(h)) === 'visible';
   for (const unit of order.units) {
-    if (!inSight(unit.at)) continue;
-    const sighting = { unitId: unit.id, kind: unit.kind, tier: unit.tier, at: unit.at, turn: state.turn };
+    if (unit.layer !== layer || !inSight(unit.at)) continue;
+    const sighting = { unitId: unit.id, kind: unit.kind, layer, tier: unit.tier, at: unit.at, turn: state.turn };
     const i = order.sightings.findIndex((s) => s.unitId === unit.id);
     if (i >= 0) order.sightings[i] = sighting;
     else order.sightings.push(sighting);
   }
-  order.sightings = order.sightings.filter((s) => !inSight(s.at) || order.units.some((u) => u.id === s.unitId && hexEquals(u.at, s.at)));
+  order.sightings = order.sightings.filter((s) => s.layer !== layer || !inSight(s.at) || order.units.some((u) => u.id === s.unitId && u.layer === layer && hexEquals(u.at, s.at)));
 }
 
 /** Landmarks close enough are seen even through rock: their hex becomes known. */
@@ -217,7 +265,7 @@ export function openThreshold(tile: ThresholdTile): void {
 
 /** The threshold whose panel is open, if it is one. */
 export function pendingThreshold(state: RunState): ThresholdTile | null {
-  const tile = state.pendingPlace ? tileAt(state, state.pendingPlace) : undefined;
+  const tile = state.pendingPlace ? tileHere(state, state.pendingPlace) : undefined;
   return tile?.object?.kind === 'threshold' ? (tile as ThresholdTile) : null;
 }
 
@@ -371,7 +419,7 @@ export function coolTunnels(state: RunState, events: RunEvent[]): void {
 
 /** The place whose panel is open, if it is one. */
 export function pendingPlaceTile(state: RunState): PlaceTile | null {
-  const tile = state.pendingPlace ? tileAt(state, state.pendingPlace) : undefined;
+  const tile = state.pendingPlace ? tileHere(state, state.pendingPlace) : undefined;
   return tile?.object?.kind === 'place' ? (tile as PlaceTile) : null;
 }
 
@@ -416,10 +464,10 @@ export function leavePlace(state: RunState): RunEvent[] {
   return [];
 }
 
-/** The nearest hidden threshold opens, and the map shows where it is. */
-function revealNearestHidden(state: RunState, from: Hex, events: RunEvent[]): void {
+/** The nearest hidden threshold of the underground opens, and the map shows where it is (`from`: a hex of either map). */
+export function revealNearestHidden(state: RunState, from: Hex, events: RunEvent[]): Hex | null {
   const hidden = lastingTiles(state.map).thresholds.filter((t) => t.object.state === 'hidden');
-  if (hidden.length === 0) return;
+  if (hidden.length === 0) return null;
   const nearest = hidden.reduce((best, t) => (hexDistance(t.hex, from) < hexDistance(best.hex, from) ? t : best));
   openThreshold(nearest);
   for (const h of [nearest.hex, ...hexNeighbors(nearest.hex)]) {
@@ -427,6 +475,7 @@ function revealNearestHidden(state: RunState, from: Hex, events: RunEvent[]): vo
     if (state.map.tiles.has(key) && !state.visibility.has(key)) state.visibility.set(key, 'remembered');
   }
   events.push({ type: 'thresholdRevealed', at: nearest.hex, thresholdId: nearest.object.thresholdId });
+  return nearest.hex;
 }
 
 /** A current carries the hydra along its path; it lets go early before anything that would stop it. */

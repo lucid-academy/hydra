@@ -44,7 +44,7 @@ function shade(hex: string, amount: number): string {
 
 /** map_ground_<biome>_<terrain>: the hex face in the biome's colours, with a thin earth wall under its lower edges. */
 const drawGround: PlaceholderDrawer = (scene, key, width, height, _palette, data) => {
-  const [, biomeId, terrain] = /^map_ground_(.+)_(water|mud|roots|salt)$/.exec(key) ?? [];
+  const [, biomeId, terrain] = /^map_ground_(.+)_(water|mud|roots|salt|field|forest|hill)$/.exec(key) ?? [];
   const colors = data.biomes.biomes[biomeId ?? '']?.colors;
   if (!colors) throw new Error(`No biome colours for "${key}"`);
   const g = scene.make.graphics({}, false);
@@ -514,9 +514,9 @@ export const mapPlaceholderDrawers: Readonly<Record<string, PlaceholderDrawer>> 
   map_hydra: drawHydra,
 };
 
-/** Placeholders made from a biome's colours: map_ground_<biome>_<water|mud|roots> and map_rock_<biome>. */
+/** Placeholders made from a biome's colours: map_ground_<biome>_<terrain> and map_rock_<biome>. */
 export function mapPlaceholderFor(key: string): PlaceholderDrawer | undefined {
-  if (/^map_ground_.+_(water|mud|roots|salt)$/.test(key)) return drawGround;
+  if (/^map_ground_.+_(water|mud|roots|salt|field|forest|hill)$/.test(key)) return drawGround;
   if (/^map_rock_.+$/.test(key)) return drawRock;
   return undefined;
 }

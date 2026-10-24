@@ -21,6 +21,7 @@ import {
   inspect,
   layEgg,
   leavePlace,
+  mapOf,
   moveHydra,
   noteSightings,
   openSealed,
@@ -32,6 +33,7 @@ import {
   serpentInBattle,
   startCondition,
   storyDialogue,
+  visibilityOf,
   workThreshold,
 } from '../sim/turn';
 import type { BroodlingRole, Journey, OrderUnitKind, Reachable, RunEvent, RunRules, RunState, ShownDialogue, ShownLine, StoryFacts } from '../sim/turn';
@@ -180,7 +182,8 @@ export class RunController extends Phaser.Events.EventEmitter {
    * the battle for the lair with `allies` Broodlings guarding it.
    */
   startTestBattle(groupId: string, bodyHp: number | null = null, allies: number | null = null): void {
-    this.state.pendingBattle = allies !== null ? { at: this.state.map.lair, groupId, defense: true } : { at: hex(0, 0), groupId };
+    const layer = this.state.hydra.layer;
+    this.state.pendingBattle = allies !== null ? { at: this.state.map.lair, layer: 'underground', groupId, defense: true } : { at: hex(0, 0), layer, groupId };
     if (allies !== null) this.state.lair.defenders = allies;
     if (bodyHp !== null) this.state.hydra.bodyHp = Math.min(this.state.hydra.bodyMaxHp, bodyHp);
   }
@@ -257,18 +260,18 @@ export class RunController extends Phaser.Events.EventEmitter {
   /** For `?units=`: the Order's people of these kinds 2–3 hexes from the hydra, where she sees them. Testing only. */
   unitsForTest(kinds: readonly string[]): void {
     const { state, rules } = this;
-    const spots = [...state.map.tiles.values()].filter((t) => {
+    const spots = [...mapOf(state).tiles.values()].filter((t) => {
       const d = hexDistance(t.hex, state.hydra.position);
-      return d >= 2 && d <= 3 && t.object === null && rules.terrain[t.terrain].moveCost !== null && state.visibility.get(hexKey(t.hex)) === 'visible';
+      return d >= 2 && d <= 3 && t.object === null && rules.terrain[t.terrain].moveCost !== null && visibilityOf(state).get(hexKey(t.hex)) === 'visible';
     });
     for (const kind of kinds) {
       if (!['patrol', 'messenger', 'expedition', 'greatBurning'].includes(kind)) {
         console.warn(`?units=${kind}: not a kind of unit (patrol, messenger, expedition, greatBurning)`);
         continue;
       }
-      const spot = spots.find((t) => !orderUnitAt(state, t.hex));
+      const spot = spots.find((t) => !orderUnitAt(state, t.hex, state.hydra.layer));
       if (!spot) continue;
-      addOrderUnit(state, kind as OrderUnitKind, spot.hex, kind === 'messenger' ? '' : 'patrol', rules);
+      addOrderUnit(state, kind as OrderUnitKind, spot.hex, kind === 'messenger' ? '' : 'patrol', rules, state.hydra.layer);
     }
     noteSightings(state);
   }

@@ -16,9 +16,10 @@ import lineageJson from './lineage.json';
 import flagsJson from './flags.json';
 import orderJson from './order.json';
 import broodJson from './brood.json';
+import surfaceJson from './surface.json';
 import manifestJson from '../assets/manifest.json';
 import { battleProblems } from './battleChecks';
-import { balanceSchema, biomesSchema, broodSchema, combosSchema, dialoguesSchema, eventsSchema, flagsSchema, lineageSchema, mutationsSchema, orderSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, textSchema, worldSchema } from './schemas';
+import { balanceSchema, biomesSchema, broodSchema, combosSchema, dialoguesSchema, eventsSchema, flagsSchema, lineageSchema, mutationsSchema, orderSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, surfaceSchema, textSchema, worldSchema } from './schemas';
 import type {
   AssetManifest,
   Balance,
@@ -33,6 +34,7 @@ import type {
   MutationsData,
   OrderData,
   ShrinesData,
+  SurfaceData,
   EnemiesData,
   GameText,
   HeadsData,
@@ -59,6 +61,7 @@ export interface GameData {
   flags: FlagsData;
   order: OrderData;
   brood: BroodData;
+  surface: SurfaceData;
 }
 
 export function loadGameData(): GameData {
@@ -80,6 +83,7 @@ export function loadGameData(): GameData {
     flags: validateData('src/data/flags.json', flagsSchema, flagsJson),
     order: validateData('src/data/order.json', orderSchema, orderJson),
     brood: validateData('src/data/brood.json', broodSchema, broodJson),
+    surface: validateData('src/data/surface.json', surfaceSchema, surfaceJson),
   };
   checkCrossReferences(data);
   return data;
@@ -88,7 +92,7 @@ export function loadGameData(): GameData {
 /** Names that one data file borrows from another must exist there. */
 export function checkCrossReferences(
   data: Pick<GameData, 'heads' | 'combos'> &
-    Partial<Pick<GameData, 'balance' | 'enemies' | 'biomes' | 'manifest' | 'world' | 'dialogues' | 'events' | 'mutations' | 'lineage' | 'flags' | 'shrines' | 'order'>>,
+    Partial<Pick<GameData, 'balance' | 'enemies' | 'biomes' | 'manifest' | 'world' | 'dialogues' | 'events' | 'mutations' | 'lineage' | 'flags' | 'shrines' | 'order' | 'surface'>>,
 ): void {
   const statuses = Object.keys(data.combos.statuses);
   const problems: string[] = [];
@@ -120,6 +124,13 @@ export function checkCrossReferences(
   }
   if (data.balance && data.biomes && data.world) problems.push(...worldProblems(data.balance, data.biomes, data.world, data.heads));
   if (data.order && data.enemies && data.balance && data.mutations) problems.push(...orderProblems(data.order, data.enemies, data.balance, data.mutations));
+  if (data.surface && data.order && data.enemies && data.mutations) problems.push(...surfaceProblems(data.surface, data.order, data.enemies, data.mutations, data.heads));
+  if (data.surface && data.manifest) {
+    // The surface's buildings and finds need their map images.
+    const keys = ['map_castle', 'map_flame_shrine', 'map_flame_shrine_out', 'map_find', 'map_relight', ...['camp', ...data.surface.generator.settlements.map((p) => p.id)].map((id) => `map_settlement_${id}`)];
+    const missing = keys.filter((key) => !(key in data.manifest!.images));
+    if (missing.length > 0) problems.push(`  - src/assets/manifest.json: surface.json needs these images (use "file": null for a placeholder): ${missing.join(', ')}`);
+  }
   if (data.biomes && data.manifest) {
     // Every biome needs its map images (with "file": null the game draws a placeholder from the biome's colours).
     for (const [id, biome] of Object.entries(data.biomes.biomes)) {
@@ -302,14 +313,41 @@ function orderProblems(order: OrderData, enemies: EnemiesData, balance: Balance,
   return problems;
 }
 
+/** The surface (surface.json) names groups, enemy types, Alert stages, mutations and head classes that exist. */
+function surfaceProblems(surface: SurfaceData, order: OrderData, enemies: EnemiesData, mutations: MutationsData, heads: HeadsData): string[] {
+  const problems: string[] = [];
+  const where = (path: string, message: string) => problems.push(`  - src/data/surface.json, ${path}: ${message}`);
+  const groups = enemies.encounterGroups.map((g) => g.id);
+  const stages = order.alertStages.map((s) => s.id);
+  const checkGroup = (path: string, id: string) => {
+    if (!groups.includes(id)) where(path, `unknown encounter group "${id}"; known (from enemies.json): ${groups.join(', ')}`);
+  };
+  for (const [tier, list] of Object.entries(surface.generator.flameShrines.groupsByTier)) for (const id of Object.keys(list)) checkGroup(`generator.flameShrines.groupsByTier.${tier}`, id);
+  checkGroup('flameShrines.relight.group', surface.flameShrines.relight.group);
+  surface.order.patrols.groups.forEach((g, i) => {
+    checkGroup(`order.patrols.groups.${i}.group`, g.group);
+    if (g.fromStage !== undefined && !stages.includes(g.fromStage)) where(`order.patrols.groups.${i}.fromStage`, `unknown Alert stage "${g.fromStage}"; known (from order.json): ${stages.join(', ')}`);
+    if (g.minRing !== undefined) where(`order.patrols.groups.${i}.minRing`, 'the surface has no rings');
+  });
+  if (!surface.order.patrols.groups.some((g) => g.fromStage === undefined)) where('order.patrols.groups', 'needs at least one group without fromStage');
+  if (surface.order.patrols.maxByStage.length !== stages.length + 1) where('order.patrols.maxByStage', `needs ${stages.length + 1} numbers: one for no stage reached, then one for each of the ${stages.length} Alert stages`);
+  if (!(surface.mist.censerType in enemies.types)) where('mist.censerType', `unknown enemy type "${surface.mist.censerType}" (enemies.json)`);
+  const mutationIds = mutations.mutations.map((m) => m.id);
+  surface.flameShrines.mutations.forEach((id, i) => {
+    if (!mutationIds.includes(id)) where(`flameShrines.mutations.${i}`, `unknown mutation "${id}"; known (from mutations.json): ${mutationIds.join(', ')}`);
+  });
+  for (const id of Object.keys(surface.mist.exhale.radiusByClass)) if (!(id in heads.classes)) where('mist.exhale.radiusByClass', `unknown head class "${id}"; known: ${Object.keys(heads.classes).join(', ')}`);
+  return problems;
+}
+
 /** The rings (balance.json) and the world's places and thresholds (world.json) must use biomes, kinds and head classes that exist. */
 function worldProblems(balance: Balance, biomes: BiomesData, world: WorldData, heads: HeadsData): string[] {
   const problems: string[] = [];
   const gen = balance.undergroundGenerator;
-  const ringBiomes = Object.keys(biomes.biomes).filter((id) => id !== biomes.lairBiome);
+  const ringBiomes = Object.keys(biomes.biomes).filter((id) => id !== biomes.lairBiome && id !== biomes.surfaceBiome);
   const where = (file: string, path: string, message: string) => problems.push(`  - src/data/${file}, ${path}: ${message}`);
   const checkBiome = (file: string, path: string, id: string) => {
-    if (!ringBiomes.includes(id)) where(file, path, `unknown biome "${id}"; known (from biomes.json, the lair's swamp aside): ${ringBiomes.join(', ')}`);
+    if (!ringBiomes.includes(id)) where(file, path, `unknown biome "${id}"; known (from biomes.json, the lair's swamp and the surface aside): ${ringBiomes.join(', ')}`);
   };
   gen.rings.forEach((ring, k) => {
     ring.mainBiomes.forEach((id, b) => checkBiome('balance.json', `undergroundGenerator.rings.${k}.mainBiomes.${b}`, id));

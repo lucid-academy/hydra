@@ -254,7 +254,7 @@ describe('events', () => {
     const state = runWithEventSite();
     stepOnEvent(state, r2);
     chooseEventOption(state, r2, 0);
-    expect(state.pendingBattle).toEqual({ at: hex(2, 0), groupId: 'patrol' });
+    expect(state.pendingBattle).toEqual({ at: hex(2, 0), layer: 'underground', groupId: 'patrol' });
   });
 
   it('when nothing fits, the fallback event (the still pool) comes up again and again', () => {

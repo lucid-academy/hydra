@@ -16,6 +16,9 @@ export const terrain: TerrainTable = {
   roots: { moveCost: 2, blocksSight: false },
   salt: { moveCost: 3, blocksSight: false },
   rock: { moveCost: null, blocksSight: true },
+  field: { moveCost: 1, blocksSight: false },
+  forest: { moveCost: 2, blocksSight: true },
+  hill: { moveCost: 2, blocksSight: false },
 };
 
 export const testRules = { ...rules, terrain, movementPointsPerTurn: 5, sightRangeHexes: 2 };

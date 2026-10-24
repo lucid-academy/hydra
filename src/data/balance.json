@@ -27,6 +27,19 @@
     "rock": {
       "moveCost": null,
       "blocksSight": true
+    },
+    "field": {
+      "//": "TODO(design): M4, the surface's ground (surface.json). Water is the river there.",
+      "moveCost": 1,
+      "blocksSight": false
+    },
+    "forest": {
+      "moveCost": 2,
+      "blocksSight": true
+    },
+    "hill": {
+      "moveCost": 2,
+      "blocksSight": false
     }
   },
   "undergroundGenerator": {

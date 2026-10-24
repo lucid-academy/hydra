@@ -20,7 +20,7 @@ import type {
   StoryTrigger,
 } from './types';
 import { gainMutation } from './mutations';
-import { boreTunnel, growHeads, look, openThreshold, pendingThreshold, raiseAlert, startCondition, tileAt } from './world';
+import { boreTunnel, growHeads, look, mapOf, openThreshold, pendingThreshold, raiseAlert, startCondition, tileHere, visibilityOf } from './world';
 
 /** What happened just now, for the conditions of a dialogue (and the names in its lines). */
 export interface StoryFacts {
@@ -45,7 +45,7 @@ export function newStory(seed: number, lairBiome: string): StoryState {
 /** Do the conditions hold now? */
 export function conditionsHold(state: RunState, c: StoryConditions, facts: StoryFacts = {}): boolean {
   const { story, hydra } = state;
-  const here = tileAt(state, hydra.position);
+  const here = tileHere(state, hydra.position);
   const has = (flag: string) => story.flags.includes(flag);
   return (
     (c.rings === undefined || (here !== undefined && c.rings.includes(here.ring))) &&
@@ -124,7 +124,7 @@ function castDialogue(state: RunState, rules: RunRules, d: DialogueRules, facts:
   const fill = (text: string) =>
     text
       .replace(/\{(any|other|new)\}/g, (_, role: string) => cast.get(role)!.name)
-      .replace(/\{biome\}/g, story.biomeNames[facts.biome ?? tileAt(state, state.hydra.position)?.biome ?? ''] ?? '')
+      .replace(/\{biome\}/g, story.biomeNames[facts.biome ?? tileHere(state, state.hydra.position)?.biome ?? ''] ?? '')
       .replace(/\{name\}/g, state.hydra.name)
       .replace(/\{lineage\}/g, state.lineageName)
       .replace(/\{mother\}/g, facts.mother ?? '')
@@ -218,12 +218,14 @@ export function meetEnemies(state: RunState, types: readonly string[]): string[]
 
 /** The hydra steps on an event site: the event that fits best happens (or, if none does, the site is empty). */
 export function eventArrived(state: RunState, at: Hex, rules: RunRules, events: RunEvent[]): boolean {
-  const tile = tileAt(state, at);
+  const tile = tileHere(state, at);
   const object = tile?.object;
   if (object?.kind !== 'event' || object.done) return false;
   if (object.eventId === null) {
     const { story } = state;
-    const fitting = rules.story.events.filter((e) => !(e.once && story.seen.includes(e.id)) && conditionsHold(state, e.conditions));
+    // On the surface, only events that name its biome: the rest happen underground.
+    const fitsHere = (e: EventRules) => state.hydra.layer !== 'surface' || (e.conditions.biomes ?? []).includes(tile!.biome);
+    const fitting = rules.story.events.filter((e) => fitsHere(e) && !(e.once && story.seen.includes(e.id)) && conditionsHold(state, e.conditions));
     if (fitting.length === 0) {
       object.done = true;
       return false;
@@ -266,7 +268,7 @@ export function chooseEventOption(state: RunState, rules: RunRules, index: numbe
   const events: RunEvent[] = [];
   applyOutcome(state, rules, outcome, pending.at, events);
   pending.result = { text: outcome.text, choice: index, success };
-  const object = tileAt(state, pending.at)?.object;
+  const object = tileHere(state, pending.at)?.object;
   if (object?.kind === 'event') object.done = true;
   events.unshift({ type: 'eventResolved', at: pending.at, eventId: event.id, choice: index, success });
   return events;
@@ -285,9 +287,10 @@ function applyOutcome(state: RunState, rules: RunRules, o: EventOutcome, at: Hex
   if (o.headsHp !== 0) for (const head of hydra.heads) head.hp = Math.max(1, Math.min(head.maxHp, head.hp + o.headsHp));
   if (o.condition) startCondition(state, o.condition.id, o.condition.turns, rules, events);
   if (o.reveal > 0) {
+    const visibility = visibilityOf(state);
     for (const h of hexesInRange(hydra.position, o.reveal)) {
       const key = hexKey(h);
-      if (state.map.tiles.has(key) && !state.visibility.has(key)) state.visibility.set(key, 'remembered');
+      if (mapOf(state).tiles.has(key) && !visibility.has(key)) visibility.set(key, 'remembered');
     }
   }
   setFlags(state, o.setFlags);
@@ -298,7 +301,7 @@ function applyOutcome(state: RunState, rules: RunRules, o: EventOutcome, at: Hex
     events.push(tunnel ? { type: 'tunnelBored', at: tunnel.at, path: tunnel.path } : { type: 'boreFailed' });
   }
   if (o.battle) {
-    state.pendingBattle = { at, groupId: o.battle };
+    state.pendingBattle = { at, layer: state.hydra.layer, groupId: o.battle };
     const fresh = meetEnemies(state, rules.encounterGroupMembers[o.battle] ?? []);
     storyMoment(state, rules, 'enemyAhead', { newEnemyTypes: fresh }, events);
   }

@@ -66,6 +66,11 @@ export interface BattleSetup {
   allies?: number;
   /** Burning a stump shut takes this many percent longer (Fireproof Scales). */
   cauterizePercent?: number;
+  /**
+   * A battle on the surface (GAME_DESIGN.md §5.6, M4): `inMist`, the board starts with clouds of the hydra's mist;
+   * `damagePercent`, her heads deal this many percent more damage (negative: less; Exposed).
+   */
+  surface?: { inMist: boolean; damagePercent: number };
 }
 
 /** The two skills a head takes into battle: its own choice if it is still valid, otherwise its class's first two. */

@@ -243,7 +243,7 @@
   },
 
   "runModifiers": {
-    "//": "Modifiers that change the world (GAME_DESIGN.md §9.6). Each generation gets one of the modifiers the account has unlocked, at random (M6); for tests, the URL parameter ?modifiers=wetYear,oldWorkings turns them on. unlock: the challenge that unlocks it, and how it is told (TODO(design): Claude's first choice): reachRing (a hydra stands in this ring), battlesWon (one hydra wins this many battles), generation (a lineage gets this far), flag (a story flag from flags.json is known), turns (one hydra lives this many turns). waterShareBonus: share of water added in biomes that have water. moistureMultiplier: more Moisture sources. extraFungalPatches: patches of fungalBiome added to each ring where it is not the main biome. extraEncounters: encounters along the shaft.",
+    "//": "Modifiers that change the world (GAME_DESIGN.md §9.6). Each generation gets one of the modifiers the account has unlocked, at random (M6); for tests, the URL parameter ?modifiers=wetYear,oldWorkings turns them on. unlock: the challenge that unlocks it, and how it is told (TODO(design): Claude's first choice): reachRing (a hydra stands in this ring), battlesWon (one hydra wins this many battles), generation (a lineage gets this far), flag (a story flag from flags.json is known), turns (one hydra lives this many turns). waterShareBonus: share of water added in biomes that have water. moistureMultiplier: more Moisture sources. extraFungalPatches: patches of fungalBiome added to each ring where it is not the main biome. extraEncounters: encounters along the shaft. mistFadeMultiplier: on the surface, mist fades this many times as fast.",
     "wetYear": {
       "name": "Wet Year",
       "unlock": { "text": "Raise a second generation.", "generation": 2 },
@@ -263,6 +263,12 @@
       "unlock": { "text": "Reach the third ring.", "reachRing": 3 },
       "text": "An old shaft of the Order cuts straight through the outer rings. The Order still uses it, out of habit.",
       "extraEncounters": 3
+    },
+    "drought": {
+      "name": "Drought",
+      "unlock": { "text": "Put out a Flame Shrine.", "flag": "putOutFlame" },
+      "text": "A dry year. The mist on the surface burns off by noon, and the Order calls it a sign.",
+      "mistFadeMultiplier": 1.5
     }
   },
   "modifierDraw": {

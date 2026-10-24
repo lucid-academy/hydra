@@ -19,7 +19,7 @@ const xp = rules.experience;
 function beforeBattle(): RunState {
   const state = runOn(flatMap(4));
   state.order.nextPatrolTurn = 999;
-  state.pendingBattle = { at: hex(1, 0), groupId: 'patrol' };
+  state.pendingBattle = { at: hex(1, 0), layer: 'underground', groupId: 'patrol' };
   return state;
 }
 
