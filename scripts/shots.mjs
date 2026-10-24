@@ -233,6 +233,8 @@ const SHOTS = [
   { name: 'dialogue-heads', query: '?seed=123&scene=map&say=biomeOldCrypts', viewport: DESKTOP, scene: 'map', act: async (page) => readDialogueTo(page, 1) },
   { name: 'dialogue-serpent', query: '?seed=123&scene=map&say=serpentFirst', viewport: DESKTOP, scene: 'map', act: async (page) => readDialogueTo(page, 0) },
   { name: 'dialogue-choice', query: '?seed=123&scene=map&say=toadSerpent', viewport: DESKTOP, scene: 'map', act: async (page) => readDialogueTo(page, 99) },
+  // M3: the heads meet the Master of the Order, and the Serpent hints at what eating him gives.
+  { name: 'dialogue-master', query: '?seed=123&scene=map&say=firstMaster', viewport: DESKTOP, scene: 'map', act: async (page) => readDialogueTo(page, 3) },
   { name: 'dialogue-phone', query: '?seed=123&scene=map&say=afterFirstWin', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map', act: async (page) => readDialogueTo(page, 0) },
   { name: 'map-event-site', query: '?seed=123&scene=map&near=event', viewport: DESKTOP, scene: 'map' },
   { name: 'event-panel', query: '?seed=123&scene=map&event=noviceChecklist', viewport: DESKTOP, scene: 'map', act: stepOntoEvent },

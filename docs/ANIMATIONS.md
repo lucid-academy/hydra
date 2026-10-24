@@ -57,6 +57,29 @@ Teraz: jeden obrazek na typ, ruch w kodzie. Docelowo: klatki z PixelLab dla chod
 
 Torchbearer przy przypalaniu kikuta: na razie zwykły atak. Osobna animacja, jeśli przyjdzie z PixelLab.
 
+## Nowi ludzie Zakonu (M3): battle_enemy_crossbowman, battle_enemy_titheCollector, battle_enemy_knight, battle_enemy_masterOfTheOrder
+
+Te same animacje w kodzie co u ludzi wyżej (przestępowanie, podskok w kroku, wypad, mignięcie, śmierć). Rozmiary w `docs/ASSETS.md`. Do tego:
+
+| Animacja | Jak | Klatki | Rozmiar | fps | Zaczepienie | Kierunki | Stan |
+|---|---|---|---|---|---|---|---|
+| Strzał z kuszy (Crossbowman) | kod: wypad jak przy ciosie, choć cel stoi kilka heksów dalej; bez lecącego bełtu | – | 28×38 | – | stopy (dół środka) | w prawo, odbicie w lewo | jest |
+| Lecący bełt | kod: kreska przelatująca od kuszy do celu | – | | | | | później |
+| Liczenie (Tithe Collector) | kod: złoty pasek postępu pod stopami, gdy stoi przy tułowiu | – | | | | | jest |
+| Ucieczka z dziesięciną (Tithe Collector) | kod: odchodzi 20 px w bok od tułowia i znika w 0,7 s | – | | | | | jest |
+| Szarża (Knight) | kod: szybsze kroki, aż dojdzie do celu | – | 28×40 | – | stopy (dół środka) | | jest |
+| Szarża z pochyleniem (Knight) | kod: przechył do przodu w czasie szarży | – | | | | | później |
+| Atak (kusza, księga, miecz, pochodnia Mistrza) | klatki | 3–4 | jak obrazek | 10 | stopy (dół środka) | w prawo | później (PixelLab) |
+| Płomień pochodni Mistrza | kod: światło i blask jak u Torchbearera, w tym samym miejscu (`TORCH_FLAME`); po imporcie grafiki przesunę je na jego płomień | – | | | | | jest |
+
+## Broodling w bitwie: battle_broodling
+
+| Animacja | Jak | Klatki | Rozmiar | fps | Zaczepienie | Kierunki | Stan |
+|---|---|---|---|---|---|---|---|
+| Przestępowanie, podskok w kroku, wypad przy ugryzieniu, mignięcie przy trafieniu | kod: jak u ludzi Zakonu | – | 16×14 | – | stopy (8, 13) | w prawo, odbicie w lewo | jest |
+| Śmierć | kod: zanika i opada | – | | | | | jest |
+| Wicie się w spoczynku | kod: lekkie kołysanie na boki | – | | | | | później |
+
 ## Mapa
 
 | Animacja | Jak | Klatki | Rozmiar | fps | Zaczepienie | Kierunki | Stan |
@@ -71,3 +94,7 @@ Torchbearer przy przypalaniu kikuta: na razie zwykły atak. Osobna animacja, je�
 | Echo miejsca (map_echo) | kod: unosi się o 3 px i pulsuje (0,35–1, 0,9 s), znika, gdy hydra zobaczy źródło | – | 16×16 | – | środek, 16 px nad środkiem heksa | – | jest |
 | Wysoki punkt orientacyjny prześwituje | kod: przezroczystość 0,55, gdy zasłania hydrę, zamknięty próg, spotkanie albo kapliczkę | – | | – | | – | jest |
 | Prąd Undertow narysowany na wodzie | kod: smugi płynące wzdłuż drogi prądu | – | | | | | później |
+| Patrol, posłaniec, wyprawa, Great Burning idą po mapie (map_patrol, map_messenger, map_expedition, map_great_burning) | kod: przesuw z heksu na heks w turze świata; widać je tylko na heksach w zasięgu wzroku | – | jak w ASSETS | – | stopy (dół środka) | bez odbicia | jest |
+| Ślad „ostatnio widziani” | kod: przygaszony znak tam, gdzie hydra ostatnio widziała jednostkę Zakonu | – | | – | | – | jest |
+| Broodling zwiadowca idzie po mapie (map_broodling) | kod: jak jednostki Zakonu | – | 14×14 | – | stopy (dół środka) | odbity, gdy pilnuje leża | jest |
+| Jajo się wykluwa (map_egg) | kod: kiwa się ±8° (260 ms w każdą stronę) | – | 6×8 | – | dół środka | – | jest |
