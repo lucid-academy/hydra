@@ -165,6 +165,15 @@ function upThere(surface = fieldSurface(), movement = 5): RunState {
 const surfaceRules = { ...testRules, surface: rules.surface };
 
 describe('Passages', () => {
+  it('a new run knows the castle and the burning shrines up there from afar, and nothing else', () => {
+    const state = createRun(3, rules);
+    const known = [...state.surface.visibility.keys()].map((key) => state.surface.map.tiles.get(key)!.object?.kind);
+    expect(known.length).toBeGreaterThan(0);
+    expect(known.every((kind) => kind !== undefined && rules.surface.seenFromAfar.includes(kind))).toBe(true);
+    expect([...state.surface.visibility.values()].every((v) => v === 'remembered')).toBe(true);
+    expect(known.filter((kind) => kind === 'flameShrine')).toHaveLength(rules.surface.generator.flameShrines.count);
+  });
+
   it('a new run has mist round every Passage, and for good on the Passage itself', () => {
     const state = createRun(3, rules);
     for (const p of state.surface.map.passages) {

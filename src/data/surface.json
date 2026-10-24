@@ -27,6 +27,10 @@
   },
   "passageMovement": 1,
   "alertPerHexDiscovered": 0.05,
+  "seenFromAfar": {
+    "//": "TODO(design): things up there the hydra knows of from the start, without seeing them, because they stand out from far away (the castle on its hill, the shrines' flames burning day and night). They show on the map as remembered, dimmed, until she sees them. Kinds: castle, flameShrine, settlement, passage. An empty list: she finds everything by looking.",
+    "kinds": ["castle", "flameShrine"]
+  },
   "mist": {
     "//": "Mist on the map (GAME_DESIGN.md §5.6), counted in turns of daylight it has left. exhale: the Exhale Mist button, for moisture, covers her hex and those within radius (more with a head of a class in radiusByClass) for turns. breatheAhead: walking onto a hex without mist breathes mist onto it first, for moisture, lasting turns; null = no breathing on the way. maxTurns: mist never holds more than this. fade: turns of mist lost every world turn by day and by night; a windy day loses windExtra more (windChance: the chance of a windy day, rolled at dawn). waterFade: over the river mist fades this many times as fast. censerClears: a unit of the Order with a Censer Priest (censerType) clears mist this many hexes round it as it walks (0 = only its own hex). start: at the start, mist lies this far round every Passage for this many turns; the Passage's own hex always has mist. The Drought's faster fading is in world.json runModifiers.",
     "exhale": { "moisture": 3, "radius": 1, "radiusByClass": { "mistBreather": 2 }, "turns": 3 },

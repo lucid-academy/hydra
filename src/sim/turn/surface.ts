@@ -40,6 +40,10 @@ export function newSurface(seed: number, underground: HexMap, rules: RunRules): 
     shrinesPutOut: 0,
     rngState: new Rng((seed ^ 0x6d157) >>> 0).getState(),
   };
+  // What stands out from far away is known before she ever sees it.
+  for (const tile of map.tiles.values()) {
+    if (tile.object && rules.surface.seenFromAfar.includes(tile.object.kind)) surface.visibility.set(hexKey(tile.hex), 'remembered');
+  }
   const { start } = rules.surface.mist;
   for (const p of map.passages) {
     surface.lastingMist[hexKey(p)] = PASSAGE;
