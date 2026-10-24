@@ -232,6 +232,9 @@ try {
     if (after.inBattle) throw new Error('Still in battle after pressing Continue');
     if (end.outcome === 'won') {
       won++;
+      // Every head left after a won battle has gathered experience.
+      if (after.heads.some((h) => h.xp === 0)) throw new Error(`A head gained no experience in a won battle: ${JSON.stringify(after.heads)}`);
+      log(`heads after the battle: ${after.heads.map((h) => `${h.classId} lv ${h.level} (${h.xp} xp)`).join(', ')}`);
       continue;
     }
     // Losing a fight is part of the game: the generation screen, then her heiress on a new map.

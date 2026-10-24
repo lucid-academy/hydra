@@ -4,6 +4,14 @@
   "regrowSeconds": 8,
   "startingHeads": ["biter", "acidSpitter", "mistBreather"],
   "hatchlingClassPool": ["biter", "acidSpitter", "mistBreather", "screamer", "glutton", "spare", "strangler", "tender", "lantern"],
+  "experience": {
+    "//": "TODO(design): head experience and levels (GAME_DESIGN.md §6.3), working values written by Claude for M3. Every head alive after a won battle gets perBattleWon; a head also gets perKill for each human it killed or ate. experienceForLevel: the experience a head needs, counted from the start, for level 2, 3, 4 and so on (the list's length + 1 is the top level). Every level above 1 gives the head this many percent more max HP and damage. Hatchling heads start at level 1. Specializations at levels 3 and 5 come later, with the talent tree.",
+    "perBattleWon": 10,
+    "perKill": 5,
+    "experienceForLevel": [20, 50, 90, 140],
+    "maxHpPercentPerLevel": 10,
+    "damagePercentPerLevel": 10
+  },
   "classes": {
     "biter": {
       "displayName": "Biter",

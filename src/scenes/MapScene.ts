@@ -1079,6 +1079,7 @@ export class MapScene extends Phaser.Scene {
         eggs: this.run.state.lair.eggs.length,
         defenders: this.run.state.lair.defenders,
         scouts: this.run.state.lair.scouts.length,
+        heads: hydra.heads.map((h) => ({ classId: h.classId, level: h.level, xp: h.xp ?? 0 })),
       };
     });
   }

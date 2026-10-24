@@ -15,6 +15,7 @@ import {
   enemyArmor,
   healHead,
   hurtEnemy,
+  levelDamageMultiplier,
   random,
   rememberHit,
   seize,
@@ -124,7 +125,7 @@ function landOn(state: BattleState, head: BattleHead, skill: SkillRules, enemy: 
   const hit: HitContext = { head, tags: skill.tags, hitDamage: 0, power, keepEntranced: false };
   if (aimed && skill.hitMultiplier > 0) {
     const attack = rules.headClasses[head.classId]!.attack;
-    const raw = Math.max(1, attack.damage * skill.hitMultiplier * power - enemyArmor(enemy, rules));
+    const raw = Math.max(1, attack.damage * levelDamageMultiplier(head, rules) * skill.hitMultiplier * power - enemyArmor(enemy, rules));
     hit.hitDamage = hurtEnemy(state, enemy, raw, 'head', head.id, rules, false);
   }
   for (const effect of skill.effects) {

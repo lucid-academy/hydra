@@ -101,8 +101,8 @@ describe('a mutation gained in her life', () => {
     const grown = { id: 'h99', name: 'New', classId: 'biter', level: 1, hp: classMaxHp, maxHp: classMaxHp };
     finishBattle(state, { outcome: 'won', bodyHp: 50, heads: [...heads, grown], newScars: 0, nextId: 100 }, testRules);
     expect(state.hydra.heads.find((h) => h.id === 'h99')!.maxHp).toBe(Math.round(classMaxHp * 1.2));
-    // Heads she already had keep what the battle left them.
-    expect(state.hydra.heads.slice(0, 3)).toEqual(heads);
+    // Heads she already had keep what the battle left them (and gain experience for it).
+    expect(state.hydra.heads.slice(0, 3)).toEqual(heads.map((h) => ({ ...h, xp: testRules.experience.perBattleWon })));
   });
 
   it('Bog-scented: the Alert rises slower', () => {

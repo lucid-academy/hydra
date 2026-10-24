@@ -155,6 +155,17 @@ export const headsSchema = section({
   regrowSeconds: z.number().positive(),
   startingHeads: z.array(z.string()).min(1),
   hatchlingClassPool: z.array(z.string()).min(1),
+  experience: section({
+    perBattleWon: z.number().min(0),
+    perKill: z.number().min(0),
+    // Experience needed for level 2, 3, 4…, counted from the start: each more than the one before.
+    experienceForLevel: z
+      .array(z.number().positive())
+      .min(1)
+      .refine((list) => list.every((n, i) => i === 0 || n > list[i - 1]!), 'each level must need more experience than the one before'),
+    maxHpPercentPerLevel: z.number().min(0),
+    damagePercentPerLevel: z.number().min(0),
+  }),
   classes: z.record(
     z.string(),
     section({
@@ -660,6 +671,8 @@ export const textSchema = z
       messengerEaten: z.string().min(1),
       // After a messenger got away (order.json escaped): {n} the Alert gained.
       messengerEscaped: z.string().min(1),
+      // A head went up a level: {name}, {level}.
+      headLevelled: z.string().min(1),
       // Which way something lies from the hydra, as on the screen (north is up).
       directions: section({
         north: z.string().min(1),
@@ -737,6 +750,8 @@ export const textSchema = z
       collected: z.string().min(1),
       escaped: z.string().min(1),
       allyKilled: z.string().min(1),
+      // A head's level on its card, above level 1: {n}.
+      level: z.string().min(1),
       skillFizzled: z.string().min(1),
       // The combo codex: {n} combos found of {total}.
       codexButton: z.string().min(1),

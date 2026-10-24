@@ -310,6 +310,9 @@ export class HudScene extends Phaser.Scene {
           if (stage) this.toast(stage.text, palette.order.orange);
           break;
         }
+        case 'headLevelled':
+          this.toast(fill(text.hud.headLevelled, { name: event.name, level: event.level }), palette.underground.bioluminescence);
+          break;
         case 'titheTaken': {
           const { tithe } = getContext(this).data.order;
           const list = this.lootText(event).replace(/\+/g, '') || tithe.nothing;

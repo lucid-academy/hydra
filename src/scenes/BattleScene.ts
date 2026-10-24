@@ -259,7 +259,8 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.battle = createBattle(this.withTestHeads(setup, params.scene === SceneKey.Battle ? params.heads : [], params.ults), run.battleRules);
+    const test = params.scene === SceneKey.Battle;
+    this.battle = createBattle(this.withTestHeads(setup, test ? params.heads : [], test ? params.level : null, params.ults), run.battleRules);
     this.aiming = null;
     this.serpentLine = (params.say ? run.serpentLineForTest(params.say) : null) ?? run.serpentLine();
     this.combosSeen = [];
@@ -325,17 +326,23 @@ export class BattleScene extends Phaser.Scene {
 
   /**
    * ?ults=1 unlocks ultimate skills; with ?scene=battle, ?heads=strangler,lantern gives the test battle these heads
-   * (so classes that don't grow on the map yet can be tried).
+   * (so classes that don't grow on the map yet can be tried), and ?level=3 makes its heads that level.
    */
-  private withTestHeads(setup: BattleSetup, classes: readonly string[], ults: boolean): BattleSetup {
+  private withTestHeads(setup: BattleSetup, classes: readonly string[], level: number | null, ults: boolean): BattleSetup {
     const rules = this.run.battleRules;
     const valid = classes.filter((c) => c in rules.headClasses).slice(0, rules.maxHeads);
-    if (valid.length === 0) return { ...setup, ultimatesUnlocked: ults };
-    const heads: HeadRecord[] = valid.map((classId, i) => {
-      const { maxHp } = rules.headClasses[classId]!;
-      return { id: `t${i + 1}`, name: rules.headNames[i % rules.headNames.length]!, classId, level: 1, hp: maxHp, maxHp };
-    });
-    return { ...setup, heads, ultimatesUnlocked: ults };
+    const heads: readonly HeadRecord[] =
+      valid.length === 0
+        ? setup.heads
+        : valid.map((classId, i) => {
+            const { maxHp } = rules.headClasses[classId]!;
+            return { id: `t${i + 1}`, name: rules.headNames[i % rules.headNames.length]!, classId, level: 1, hp: maxHp, maxHp };
+          });
+    if (level === null) return { ...setup, heads, ultimatesUnlocked: ults };
+    // A head of that level, as it would have grown on the map (heads.json experience).
+    const grow = 1 + ((level - 1) * rules.experience.maxHpPercentPerLevel) / 100;
+    const levelled = heads.map((h) => ({ ...h, level, maxHp: Math.round(h.maxHp * grow), hp: Math.round(h.hp * grow) }));
+    return { ...setup, heads: levelled, ultimatesUnlocked: ults };
   }
 
   // ------------------------------------------------------------ board
@@ -509,6 +516,7 @@ export class BattleScene extends Phaser.Scene {
         maxCards: this.run.battleRules.maxHeads,
         classColors: Object.fromEntries(Object.entries(heads.classes).map(([id, c]) => [id, c.color])),
         classNames: Object.fromEntries(Object.entries(heads.classes).map(([id, c]) => [id, c.displayName])),
+        levelText: getContext(this).data.text.battle.level,
       },
       (headId, add) => this.selectHead(headId, add),
     );

@@ -305,6 +305,21 @@ export interface BattleRules extends BoardSize {
   /** How long a hit is remembered on an enemy, for combos that need several heads. */
   hitMemoryTicks: number;
   broodling: AllyRules;
+  experience: HeadExperienceRules;
+}
+
+/** Head experience and levels (GAME_DESIGN.md §6.3): the battle uses the damage, the map the rest. */
+export interface HeadExperienceRules {
+  /** Every head alive after a won battle gets this much. */
+  perBattleWon: number;
+  /** And this much more for each human it killed or ate. */
+  perKill: number;
+  /** Experience needed for level 2, 3, 4…, counted from the start; the list's length + 1 is the top level. */
+  experienceForLevel: readonly number[];
+  /** Every level above 1: this many percent more max HP… */
+  maxHpPercentPerLevel: number;
+  /** …and damage. */
+  damagePercentPerLevel: number;
 }
 
 // ---------------------------------------------------------------- state
@@ -315,6 +330,8 @@ export interface HeadRecord {
   name: string;
   classId: string;
   level: number;
+  /** Experience gathered so far (missing: none yet). */
+  xp?: number;
   hp: number;
   maxHp: number;
   /** The two skills (of its class's three) this head takes into battle, for keys Q and W. Missing = the first two. */
@@ -538,6 +555,8 @@ export interface BattleState {
   allies: Ally[];
   /** Tithe Collectors that got away with the tithe. */
   tithesTaken: number;
+  /** Humans each head killed or ate in this battle, by head id (for its experience). */
+  kills: Record<string, number>;
   /** Burning stumps shut takes this many times as long (the hydra's mutations). */
   cauterizeMultiplier: number;
   clouds: MistCloud[];
