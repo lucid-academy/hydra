@@ -1,6 +1,6 @@
 # Handoff: stan prac nad Hydrą
 
-Stan na 2026-10-21 (M5 i M6 zbudowane i wdrożone, czekają na playtest Piotra; M2a buduje osobny wątek). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
+Stan na 2026-10-24 (M3 zbudowany i wdrożony, czeka na playtest Piotra; wcześniej M5, M6 i M2a, też bez playtestu). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
 
 - Gra: https://lucid-academy.github.io/hydra/
 - Repo: https://github.com/lucid-academy/hydra (na serwerze `/root/Hydra`)
@@ -9,13 +9,14 @@ Stan na 2026-10-21 (M5 i M6 zbudowane i wdrożone, czekają na playtest Piotra; 
 
 ## 1. Etap
 
-- Zrobione: **M0, M1, M1b, M2b, M2c, Wygląd mapy (HD), M5, M6** (sekcja 15 w `GAME_DESIGN.md`).
+- Zrobione: **M0, M1, M1b, M2b, M2c, Wygląd mapy (HD), M5, M6, M2a, M3** (sekcja 15 w `GAME_DESIGN.md`).
+- **M3** (Zakon kontratakuje): plan zatwierdzony przez Piotra 2026-10-23 na karcie „Buduj z polecanymi” (dokument Claude „Hydra M3: Zakon kontratakuje”, https://claude.ai/artifact/NeZGXw7XaQeAHkwstVnXvE; decyzje w `GAME_DESIGN.md` §4, §8, §12, §15), zbudowany i wdrożony 2026-10-23/24 (PR #8–#16), czeka na playtest (opis w sekcji 2). Wątek M3 przejął pliki bitwy po M2a.
 - **M5** (eventy, mini questy, dialogi) wdrożony 2026-10-21 i czeka na playtest Piotra (opis w sekcji 2).
 - **M6** (pokolenia): plan zatwierdzony przez Piotra 2026-10-21 na karcie „Buduj z propozycjami” (dokument Claude „Hydra M6: pokolenia”, https://claude.ai/artifact/FAibVmNwcvBZQBJjLif4LV), zbudowany i wdrożony tego samego dnia, czeka na playtest (opis w sekcji 2).
-- **M2a** (głowy i balans bitwy) od 2026-10-21 buduje równolegle osobny wątek projektu Hydra. Ma na wyłączność pliki bitwy: `src/sim/battle/`, `BattleScene.ts`, `src/ui/HeadCards.ts`, `heads.json`, `combos.json`, `enemies.json`, `battleRules.ts`, grafiki `battle_*`, `tests/battle*`. Wspólne pliki (`text.json`, `schemas.ts`, `manifest.json`, dokumenty) oba wątki tylko uzupełniają we własnych częściach.
+- **M2a** (głowy i balans bitwy) zbudował osobny wątek projektu Hydra; jest na main od 2026-10-23 (opis w sekcji „M2a” na końcu pliku).
 - **M2c** (świat do odkrywania) jest wdrożony 2026-10-04 i czeka na playtest Piotra. Playtest M2b nie przyszedł; M2c zmienił mapę na tyle, że lepiej grać od razu w M2c.
 - 2026-10-03 Piotr zmienił sposób pracy: grafika będzie z GPT, animacje najpierw w kodzie. Zasady są już w `CLAUDE.md`. Plan grafiki (sekcja 3.2) Piotr zatwierdził tego samego dnia i potok jest zbudowany. Wieczorem przyszła cała pierwsza partia (21 obrazków) i jest w grze; **czeka na uwagi Piotra**.
-- Następne etapy: M2a (w budowie w osobnym wątku), M3, M4, M7 (kolejność Piotra z 2026-10-04, `GAME_DESIGN.md` §15). Każdy zaczyna się od planu i OK Piotra. Projekt 9 głów (M2a) jest zatwierdzony (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13).
+- Następne etapy: M4, M7 (kolejność Piotra z 2026-10-04, `GAME_DESIGN.md` §15). Każdy zaczyna się od planu i OK Piotra. Projekt 9 głów (M2a) jest zatwierdzony (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13).
 - **Wygląd mapy (HD), od 2026-10-05:** Piotr wybrał na karcie przejście na HD pixel art (`GAME_DESIGN.md` §13, §15). Mapa, bitwa i napisy w HD (opis w sekcji 3.2, „Wygląd mapy w HD”). Mapę Piotr ocenił 2026-10-06: „wygląda naprawdę lepiej”. Od 2026-10-21 HD jest jedynym trybem (etap zakończony); uwagi Piotra do bitwy i napisów wciąż mile widziane.
 - **Zmiana kierunku, 2026-10-04:** Hydra to teraz fabularny roguelite z naciskiem na odkrywanie świata, mini questy i kilka zakończeń; bitwy rzadsze, ale ważne (`GAME_DESIGN.md` §1, §2, §4, §15).
 
@@ -69,7 +70,18 @@ Stan na 2026-10-21 (M5 i M6 zbudowane i wdrożone, czekają na playtest Piotra; 
 - Zapis gry: `src/save/` (format z numerem wersji, testy w `tests/save.test.ts`), klucze localStorage `hydra.profile.v1` (rody) i `hydra.run.v1` (run żyjącej hydry, cały `RunState`). Run zapisuje się po każdej komendzie (z opóźnieniem 150 ms) i przy ukryciu strony; bitwa przerwana zamknięciem karty zaczyna się od nowa. Zmiana kształtu `RunState` albo profilu wymaga podbicia `RUN_FORMAT` / `PROFILE_FORMAT` w `src/save/format.ts`: stary zapis jest wtedy pomijany (dziedziczka wykluwa się od nowa). Sceną rodu i zapisu zarządza `src/scenes/LineageKeeper.ts`.
 - Adresy testowe (`testUrl` w `src/urlParams.ts`) grają w pamięci: nie wczytują ani nie nadpisują zapisu. Nowe parametry: `?ancestors=N` (N martwych przodkiń, każda z jedną mutacją), `?scene=generation`, `?scene=book`, `?near=mark`. Smoke przechodzi przez śmierć, nowe pokolenie, przeładowanie z Continue, New Lineage i Księgę.
 
-**Narzędzia.** `npm run smoke` gra sama jak gracz: mapa, bitwy, śmierć i nowe pokolenie, zapis i Continue, kapliczki; z `-- phone` na ekranie telefonu. `npm run balance` rozgrywa setki automatycznych bitew, wynik w `docs/BALANCE.md`. `npm run shots` robi zrzuty do `docs/screens/`. `npm run art` wstawia do gry obrazki z `art/raw/` (opis w `docs/ASSETS.md`). Parametry URL są w `README.md`.
+**M3 (2026-10-23/24): Zakon kontratakuje** (plan zatwierdzony przez Piotra 2026-10-23, warianty pierwsze w pytaniach A–D, plus „zwykły rok”; decyzje w `GAME_DESIGN.md`).
+- Alert z progami 25, 50, 75, 100 (znaczniki na pasku, komunikat przy każdym), liczby w nowym `src/data/order.json`. Bitwa podnosi Alert o 2 (było 5), posłaniec, który dobiegnie do Passage, o 8. Do losowania modyfikatora pokolenia doszedł „zwykły rok”.
+- Zakon na mapie (`src/sim/turn/order.ts`, rysuje `src/scenes/mapOrder.ts`, własny strumień losowania `order.rngState`): patrole schodzą przez Passage (pierwszy w 4. turze, częściej z każdym progiem), wędrują między komorami i gonią hydrę, gdy ją zobaczą; gdzie hydra ostatnio widziała jednostkę, zostaje przygaszony ślad „N turns ago”. Po każdej bitwie posłaniec biegnie do najbliższego Passage; wejście na niego to zjedzenie (Bones, Alert −3). Od progu 50 wyprawy idą na leże (co 10 tur); wyprawa w pustym leżu obozuje i co turę zabija Broodlinga albo rozbija jajo. Przy 100 Great Burning: Mistrz Zakonu w lektyce idzie na leże; zjedzony daje jedną z dwóch mutacji tylko od bossa (Fireproof Scales: przypalanie trwa o 50% dłużej; Ash-tongued: szybsza regeneracja, ale Alert rośnie o 15% szybciej) i zaczyna lekki akt 2 (ta sama mapa, Alert od zera, Zakon zaczyna od nowa z bonusem do patroli).
+- Leże (`src/sim/turn/lair.ts`, `src/data/brood.json`): panel leża z jajami (koszt 6 Bones i 10 Muck, do 6), wykluwanie na rozkaz w 3 tury na obrońcę albo zwiadowcę (zwiadowca chodzi po mapie i odsłania ją, Zakon go łapie), ukrycie jaja u Old Mother Toad. Hydra zaczyna z 1 jajem. Jajo bierze połowę mutacji matki w chwili zniesienia.
+- Śmierć i ród: ekran pokolenia pokazuje jaja z ich mutacjami, gracz wybiera, z którego wykluje się dziedziczka. Bez jaj ród wymiera, chyba że Ropucha ma ukryte (Miraculous Intervention); można też zakończyć ród. `PROFILE_FORMAT` 2 (stare profile przechodzą same), `RUN_FORMAT` 5.
+- Bitwa (`src/sim/battle/`): obrona leża z Broodlingami walczącymi obok hydry (ile przeżyje, tyle wraca do leża; przegrana rozbija połowę jaj). Nowi ludzie od progu 75: Crossbowman (strzela z 4 heksów, 10 bełtów, w Mist widzi tylko obok siebie), Tithe Collector (podchodzi, liczy 4 s i ucieka krawędzią; jeśli ucieknie, zabiera 10% zasobów i zostawia pokwitowanie), Knight (pancerz 4, szarża: szybsze kroki i pierwszy cios ×2, nie zna strachu), Master of the Order (boss z paskiem HP, przypala kikuty, odporny na strach i światła Lanterna). Grupy tylko dla Zakonu: crossbowLine, titheVisit, knightsVigil, greatBurning.
+- Doświadczenie i poziomy głów (`heads.json` „experience”, `src/sim/turn/experience.ts`): każda głowa żywa po wygranej bitwie dostaje 10, za każdego zabitego albo zjedzonego człowieka 5 więcej; poziomy 2–5 przy 20, 50, 90, 140; każdy poziom to +10% max HP i +10% obrażeń. Karta głowy w bitwie pokazuje „Lv N”, mapa ogłasza awans. Specjalizacje z poziomów 3 i 5 czekają na drzewko talentów.
+- Treść: kwestie głów przy pierwszym spotkaniu każdego nowego typu (przy Mistrzu odzywa się Wąż), komunikaty Zakonu, prompty do GPT na 11 nowych grafik (`docs/ART_PROMPTS.md`, sekcja „M3”), `docs/ASSETS.md` i `docs/ANIMATIONS.md`.
+- Do testów: `?scene=map&alert=55`, `?scene=map&units=patrol,messenger`, `?scene=generation&ancestors=2&eggs=0&hidden=1`, `?scene=battle&group=greatBurning&allies=2`, `?scene=battle&level=3` (`README.md`).
+- `npm run balance:runs`: bot gra 50 całych runów i zapisuje do `docs/BALANCE_RUNS.md`, kiedy Alert mija progi i ile heksów hydra zna przy pierwszej wyprawie.
+
+**Narzędzia.** `npm run smoke` gra sama jak gracz: mapa, bitwy, śmierć i nowe pokolenie, zapis i Continue, kapliczki; z `-- phone` na ekranie telefonu. `npm run balance` rozgrywa setki automatycznych bitew, wynik w `docs/BALANCE.md`; `npm run balance:runs` gra całe runy na mapie, wynik w `docs/BALANCE_RUNS.md`. `npm run shots` robi zrzuty do `docs/screens/`. `npm run art` wstawia do gry obrazki z `art/raw/` (opis w `docs/ASSETS.md`). Parametry URL są w `README.md`.
 
 **Zasady pracy (2026-10-03).** Nowe sekcje w `CLAUDE.md`: Notatki decyzji, Grafika z GPT, Animacje, Sekrety. Cała historia repo przejrzana: nie ma w niej kluczy, haseł ani tokenów.
 
@@ -206,6 +218,11 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 ## 4. Otwarte pytania
 
 **Czekają na Piotra:**
+00. Playtest M3: patrole i posłańcy, wyprawy i obrona leża, jaja i Broodlingi, wybór jaja po śmierci, ukryte jajo, nowi wrogowie, Great Burning, poziomy głów. Pytania M3 (decyzje robocze, `TODO(design)` w danych):
+    - §8 chce 40–80 znanych heksów przed pierwszą wyprawą, a przy wzroku 3 bot zna wtedy ok. 250 (`docs/BALANCE_RUNS.md`): zmienić cel w dokumencie czy podnieść Alert za odkrywanie?
+    - jajo bierze mutacje w chwili zniesienia, więc mutacja zdobyta później przechodzi tylko przez jaja zniesione po niej; po wyborze jednego jaja reszta przepada; Hidden Egg nie wymaga, żeby „rodowi szło dobrze”; hydra zaczyna z 1 jajem;
+    - zwiadowcy nie podnoszą Alertu; wszystkie liczby nowych wrogów, Mistrza i poziomów są robocze;
+    - bot nie zginął w żadnym ze 50 runów (120 tur): głowy rosną w poziomach szybciej, niż Zakon przybiera na sile.
 0. Playtest M5 i M6: dialogi, eventy, mini questy, pokolenia, ekran pokolenia, Księga Rodów, zapis. Uwagi do bitwy i napisów w HD (`?scene=battle`).
 1. Wrażenia z playtestu M2b: mapa, kapliczki, leże, nowe biomy.
 2. Nowa tekstura soli do Salt Mines (Piotr wybrał nowy obrazek, prompt już przyciemniony). Malowane portrety głów już są (sekcja 3.2).
@@ -232,27 +249,27 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 - HD zmieniło mapę, bitwę i napisy (krój „Księga”); HUD, panele, karty głów i ekran tytułowy mają poza tym ten sam układ i kolory co dotąd. Ekran tytułowy wciąż zastępczy. Malowanie przy ruchu na telefonie niezmierzone.
 - Grafika z GPT jest na terenie i obiektach mapy, na hydrze (tułów, głowa Bitera, hydra na mapie), na Man-at-Arms i oddziale pierwszego stopnia. Zastępcze, rysowane w kodzie: Headhunter, Torchbearer, oddziały drugiego i trzeciego stopnia, przejście na powierzchnię, ekran tytułowy. Stara szara głowa (barwiona) zostaje dla Acid Spittera i Mist Breathera do czasu ich obrazków, więc na brązowym tułowiu wyglądają obco.
 - M2c: modyfikatory i „świat dnia” tylko z URL (świat dnia odłożony decyzją z 2026-10-04). Prąd Undertow nie jest narysowany na wodzie. Old Crypts bez własnego miejsca. Zewnętrzny brzeg świata przy płaskich bokach mapy idzie po jej sześciokącie. Wydajność na telefonie niezmierzona (1261 heksów rysowanych naraz). Ok. 1% światów losuje się drugi raz, bo w pierwszym pierścieniu zabrakło kapliczki.
-- M6: każde pokolenie losuje jeden modyfikator z odblokowanych, więc przy jednym odblokowanym (Wet Year) każdy świat jest mokry; do decyzji, czy dodać „zwykły rok” jako opcję. Bitwa przerwana zamknięciem karty zaczyna się od nowa. Mutacje działające w bitwie (np. Fireproof Scales) czekają na M2a, jaja, ukryte jajo i wymarcie rodu na M3, księga zaklęć rodu na zaklęcia. Przodkini i dziedziczka nie mają portretów.
+- M6: bitwa przerwana zamknięciem karty zaczyna się od nowa. Księga zaklęć rodu czeka na zaklęcia. Przodkini i dziedziczka nie mają portretów.
+- M3: nowi ludzie Zakonu, Broodling, jaja i jednostki Zakonu na mapie są rysowane w kodzie (prompty gotowe). Bełt kusznika nie leci przez planszę, kusznik tylko robi wypad. Posłańców bot balansu nie goni, więc ucieka ich ok. 80%. Mapa nie pokazuje poziomów głów (tylko karty w bitwie). Bez komnat leża, Lineage Grimoire, głębszej warstwy, Censer Priesta i Brazier Bearera (poza M3).
 - Seed widać tylko z `?debug=1`. Menu pauzy, w którym miał być (§9), jeszcze nie ma.
 - Świadomie odłożone na późniejsze etapy:
   - Spell Caches czekają na umiejętności głów (M2a);
   - przejścia na powierzchnię są zamknięte (M4);
-  - Moisture i Bones tylko się zbiera, wydawanie od M3;
-  - Alert tylko rośnie: bez progów, patroli, posłańców i wypraw (M3);
+  - Moisture tylko się zbiera (Bones i Muck idą na jaja od M3);
   - nie ma odwrotu z bitwy;
-  - umiejętności Q/W/E, doświadczenie, specjalizacje, przypadłości, klasy Screamer, Glutton, The Spare, Strangler, Tender i Lantern oraz combosy poza trzema pierwszymi przyjdą z M2a;
+  - specjalizacje, drzewko talentów i przypadłości głów;
 - M5: głos Węża przy odpoczynku jest tylko w kwestiach Ropuchy; maska Hushed nic jeszcze nie daje (`TODO(design)`); kamień eventu i portrety jeńców, Mistrzów Zakonu i przodków czekają na grafikę; kwestie znają tylko trzy klasy głów, które są w grze.
 - Balans (`docs/BALANCE.md`): najsilniejsza grupa (Pyre Procession) pokonuje hydrę bez rozkazów w 63% bitew, a przy sensownych rozkazach w 6%. Wszystkie liczby są robocze.
 
 ## 6. Następne kroki
 
-0. Uwagi Piotra z playtestu M5 i M6. M2a buduje osobny wątek (jego pliki w sekcji 1); po zmianie `RunState` podbić `RUN_FORMAT`.
+0. Uwagi Piotra z playtestu M3, M5, M6 i M2a. Po zmianie kształtu `RunState` albo profilu podbić `RUN_FORMAT` / `PROFILE_FORMAT`.
 1. Poczekać na odpowiedzi Piotra (sekcja 4).
 2. Dalej z `docs/ANIMATIONS.md` (stan „do zrobienia”): oddech i drgnięcie tułowia, ścięcie głowy. Kolejne grafiki: reszta Zakonu po uwagach do próby (Zakon jak rycerze z okładki, z herbem złotego płomienia zamiast lwa; wzór dla GPT: `hydra-grafika/wzory/zakon-z-okladki.png` w plikach projektu), przejście na powierzchnię, tło tytułu.
 3. Głowy i tułów w stylu okładki (sekcja 3.2, „Próba hydry i Zakonu w grze”): próba jest w grze od 2026-10-06, Piotr napisał „ok”. Prompty na pozostałe osiem głów, Headhuntera, Torchbearera i dwa większe oddziały są w `docs/ART_PROMPTS.md` od 2026-10-06, a ich wzory (portrety, pixelowy tułów, Biter, Man-at-Arms, oddział) w plikach projektu, `hydra-grafika/wzory/`; w manifeście są już miejsca na głowy. Przy imporcie: rozmiar głowy w manifeście z obrazka, `JAW_OVERLAP_BY_CLASS` z linii pyska, `TORCH_FLAME` z płomienia Torchbearera. Palety na razie nie ma (decyzja z 2026-10-06, sekcja 3.2).
 4. Gdy Piotr napisze, że wrzucił grafiki: `git pull`, `npm run art`, obejrzeć wynik w grze, wdrożyć, pokazać.
 5. Zatwierdzone decyzje od razu wpisywać do `GAME_DESIGN.md`, a budować w swoim etapie.
-6. Kolejność etapów z `GAME_DESIGN.md` §15: M2a, M3, M4, M7.
+6. Kolejność etapów z `GAME_DESIGN.md` §15: M4 (powierzchnia), potem M7. Każdy zaczyna się od planu i OK Piotra.
 
 ## M2a: głowy i combosy (wątek „Głowy i balans bitwy”, od 2026-10-21)
 
@@ -266,6 +283,6 @@ Zrobione:
 - Do testów: `?scene=battle&heads=strangler,lantern,tender` (głowy bitwy testowej), `?ults=1` (ulty pod E).
 - `npm run balance`: trzeci gracz „focus + skills” i tabela klas (trzecia głowa startowej hydry zamieniana na każdą klasę). Glutton leczył Body prawie do zera strat, więc `devourHeal` 15 → 8.
 
-Nie zrobione (brak projektu albo czeka na Piotra): doświadczenie i poziomy (§16: od czego rosną głowy), specjalizacje, drzewko talentów, przypadłości; skąd hydra dostaje ulty (zaklęcia, kapliczki). Efekty na wrogów, których jeszcze nie ma (kusznik, kosze żarowe, rycerze), są w danych jako `TODO(design)`. Nowe klasy mają szarą głowę barwioną kolorem klasy do czasu obrazków.
+Nie zrobione (brak projektu albo czeka na Piotra): specjalizacje (doświadczenie i poziomy doszły w M3), drzewko talentów, przypadłości; skąd hydra dostaje ulty (zaklęcia, kapliczki). Efekty na wrogów, których jeszcze nie ma (kusznik, kosze żarowe, rycerze), są w danych jako `TODO(design)`. Nowe klasy mają szarą głowę barwioną kolorem klasy do czasu obrazków.
 
 Wniosek z balansu: gracz używający umiejętności wygrywa prawie wszystko (pyreProcession 97% → 100%, strata HP Body 132 → 90). Do wyrównania razem z nowymi wrogami (M3) albo po playteście.
