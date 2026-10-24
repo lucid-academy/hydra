@@ -11,6 +11,7 @@
     "test": "vitest run",
     "shots": "node scripts/shots.mjs",
     "balance": "node scripts/balance.mjs",
+    "balance:runs": "node scripts/runBalance.mjs",
     "smoke": "node scripts/smoke.mjs",
     "art": "node scripts/art.mjs"
   },
