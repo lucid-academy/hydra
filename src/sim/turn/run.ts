@@ -181,8 +181,11 @@ export function plannedJourney(state: RunState, target: Hex, rules: RunRules): J
   const turns: number[] = [];
   let turn = 0;
   let left = state.hydra.movementLeft;
-  for (const step of route.path) {
-    const cost = rules.terrain[tileHere(state, step)!.terrain].moveCost!;
+  // An Exposed hydra's crawl onto bare ground takes the rest of the turn (surface.ts canCrawl).
+  const crawls = state.hydra.layer === 'surface' && canCrawl(state, rules);
+  for (const [i, step] of route.path.entries()) {
+    const terrainCost = rules.terrain[tileHere(state, step)!.terrain].moveCost!;
+    const cost = i === 0 && crawls && !hasMist(state, step) ? Math.max(terrainCost, left) : terrainCost;
     while (cost > left) {
       // A step dearer than a whole turn (a slow hydra in salt) is still taken, with a fresh turn's movement.
       if (left === state.hydra.movementPerTurn) break;
