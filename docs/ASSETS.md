@@ -408,3 +408,47 @@ In HD the game draws soft shadows, lines and soft Mist patches in code instead, 
 | Used in | the map: an event site (M5); it disappears once the event is done |
 
 A lone standing stone, leaning a little, with a coiled serpent spiral carved into its face and glowing faintly teal, moss and a few pale mushrooms at its foot. It must say "something happens here" without saying what. Placeholder drawn in code until the art arrives; the game adds a faint teal light at the spiral.
+
+## The surface (M4)
+
+The land above the caves (GAME_DESIGN.md §5.6, §5.7): fields, woods, hills, villages and the Order's castle under the open sky. The same slanted view and rules as the underground map above (feet at the bottom middle, light from the upper left, transparent background). Everything is drawn **in daylight**: at night the game darkens the whole picture itself. All of it is drawn in code for now (`src/assets/surfacePlaceholders.ts`); prompts are in `docs/ART_PROMPTS.md`, section "M4: powierzchnia".
+
+### Surface textures: texture_ground_surface_<field|forest|hill|water>, texture_rock_surface
+
+The same kind of textures as the underground ones (see "Terrain textures" above: 96×67 each, a 96×96 square squashed to the camera angle). The surface biome is `surface` in `src/data/biomes.json`, and its grounds are `field` (most of it), `forest`, `hill` and `water`. The map is painted from them, and the battle board up there from the texture of the ground the fight stood on. Without them the game paints speckled ground from the biome's colours (`grounds` in biomes.json). Woods get their trees from `map_tree`, standing on top, so the forest texture is only the forest floor. `map_ground_surface_*`, `map_rock_surface` and `battle_tile_surface_*` are listed in the manifest like every biome's, but the painted ground replaces them.
+
+### Surface map objects
+
+| Key | Size | What |
+|---|---|---|
+| map_castle | 56×52 | The Castle of the Eternal Flame: a keep between two towers, the gate shut, red banners, the cathedral's spire behind with the Eternal Flame in a bowl on top. Its light shines **46 px above the feet** (92 px in the HD picture). |
+| map_flame_shrine | 22×34 | A Flame Shrine, burning: a pillar on a plinth, a bowl with a tall flame, a red pennant. Its light shines **27 px above the feet** (54 px in HD). Its guard (`map_encounter_*`) stands beside it, 12 px to the right and 2 px in front, so keep the shrine narrow. |
+| map_flame_shrine_out | 22×26 | The same shrine put out by the hydra: the bowl cold and wet, no flame, mist spilling over it. Shorter, because the flame is gone. No light. |
+| map_settlement_camp | 32×26 | A camp of the Order: two tents, a flagpole, a campfire in front. The fire's light is **4 px above the feet**. |
+| map_settlement_village | 38×28 | A village: three cottages huddled together, shutters closed, a fence, a well. |
+| map_settlement_mill | 32×32 | A watermill: a house and its wheel (the water is the map's). |
+| map_settlement_watchtower | 18×38 | A watchtower of the Order on four legs, a bell, the ladder pulled up. |
+| map_tree | 18×26 | One tree of the woods. A forest hex scatters a few of them, so it must look good repeated and overlapping. |
+| map_find | 16×12 | Something lying about to take (a sack, a pot, rope). It disappears once taken. |
+| map_relight | 26×30 | Torchbearers going to light a shrine again (§5.7): two lay brothers, a lit torch, a ladder. They walk the map like a patrol. |
+| map_passage_down | 32×22 | A Passage seen from the surface: a dark crack in the ground between mossy stones, mist rising out of it. It lies flat; under the ground the same Passage is `map_passage`. |
+
+All: 1 frame, anchor at the feet (bottom middle), transparent background (magenta `#FF00FF` in the GPT image).
+
+### Surface battles: battle_enemy_censerPriest, battle_enemy_brazierBearer, battle_brazier
+
+| | |
+|---|---|
+| Size | 30×40 (Censer Priest), 28×38 (Brazier Bearer), 16×22 (brazier) px |
+| Frames | 1 (the game makes them bob, hop, lunge, swing and stoop) |
+| Anchor | feet, at the bottom middle |
+| Background | transparent |
+| Used in | battles on the surface (GAME_DESIGN.md §6.6) |
+
+Same look, angle and facing as the Order's soldiers above (facing right, gear on the right side).
+
+- **battle_enemy_censerPriest:** a priest in a long cream-white robe with a red stole, tonsured, swinging a bronze censer on a chain, smoke pouring out. While he swings it the game rocks him ±12°.
+- **battle_enemy_brazierBearer:** a broad lay brother in a brown habit and leather apron, carrying an iron basket of glowing coals in front of him. Setting it down, the game lowers him 2 px.
+- **battle_brazier:** the basket set down on the board: an iron basket of coals on three legs, small flames. Its light and glow shine **16 px above the feet** (32 px in HD; `BRAZIER_LIGHT.flameY` in `src/scenes/BattleScene.ts`). Put out, it tips over and fades.
+
+The incense smoke, the ring of smoke after a swing, the dried ground round a brazier and the gaps they make in the mist are drawn in code and are not art to replace.

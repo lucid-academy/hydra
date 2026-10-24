@@ -456,6 +456,9 @@ export class MapScene extends Phaser.Scene {
         return `map_settlement_${object.settlementId}`;
       case 'find':
         return object.looted ? null : 'map_find';
+      case 'passage':
+        // Up here a Passage is a crack in the ground; below, a shaft of light from one.
+        return this.onSurface ? 'map_passage_down' : 'map_passage';
       default:
         return `map_${object.kind}`;
     }

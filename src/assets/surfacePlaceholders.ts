@@ -224,7 +224,23 @@ const tree = drawer((g, cx, b) => {
   for (let i = 0; i < 6; i++) px(g, '#4e6a34', cx + rng.int(-5, 3), b - 10 - rng.int(0, 13), 2, 1);
 });
 
+/** A way down, as seen from above: a dark crack in the ground between mossy stones, mist rising out of it. */
+const passageDown = drawer((g, cx, b) => {
+  px(g, OUTLINE, cx - 11, b - 9, 22, 8);
+  px(g, '#0a0c0a', cx - 9, b - 8, 18, 6); // the crack
+  px(g, '#050605', cx - 5, b - 7, 10, 4);
+  for (const [x, w] of [[-14, 6], [9, 5], [-4, 7]] as const) {
+    px(g, OUTLINE, cx + x, b - (x === -4 ? 3 : 7), w, 4);
+    px(g, STONE, cx + x + 1, b - (x === -4 ? 2 : 6), w - 2, 2);
+    px(g, '#4e6a34', cx + x + 1, b - (x === -4 ? 3 : 7), w - 3, 1); // moss
+  }
+  px(g, '#e4ece6', cx - 2, b - 12, 3, 2, 0.6); // mist rising
+  px(g, '#e4ece6', cx, b - 15, 3, 2, 0.45);
+  px(g, '#e4ece6', cx - 1, b - 19, 2, 2, 0.3);
+});
+
 export const surfacePlaceholderDrawers: Readonly<Record<string, PlaceholderDrawer>> = {
+  map_passage_down: passageDown,
   map_castle: castle,
   map_settlement_camp: camp,
   map_flame_shrine: flameShrine,

@@ -98,3 +98,19 @@ Te same animacje w kodzie co u ludzi wyżej (przestępowanie, podskok w kroku, w
 | Ślad „ostatnio widziani” | kod: przygaszony znak tam, gdzie hydra ostatnio widziała jednostkę Zakonu | – | | – | | – | jest |
 | Broodling zwiadowca idzie po mapie (map_broodling) | kod: jak jednostki Zakonu | – | 14×14 | – | stopy (dół środka) | odbity, gdy pilnuje leża | jest |
 | Jajo się wykluwa (map_egg) | kod: kiwa się ±8° (260 ms w każdą stronę) | – | 6×8 | – | dół środka | – | jest |
+
+## Powierzchnia (M4)
+
+| Animacja | Jak | Klatki | Rozmiar | fps | Zaczepienie | Kierunki | Stan |
+|---|---|---|---|---|---|---|---|
+| Machanie kadzielnicą (Censer Priest) | kod: kołysanie ±12° na stopach, póki trwa machanie (pasek postępu pod stopami) | – | 30×40 | – | stopy (dół środka) | w prawo, odbicie w lewo | jest |
+| Kółko dymu po machnięciu | kod: dziesięć kłębów rozchodzi się z kapłana na promień rozwiewania i znika w 0,9 s | – | | | | | jest |
+| Stawianie kosza (Brazier Bearer) | kod: przysiad o 2 px, póki stawia kosz (pasek postępu pod stopami) | – | 28×38 | – | stopy (dół środka) | w prawo, odbicie w lewo | jest |
+| Migotanie kosza żarowego (battle_brazier) | kod: blask i światło pulsują nierówno (±12%) | – | 16×22 | – | stopy (dół środka) | – | jest |
+| Kosz gaśnie | kod: przewraca się o 70° i znika w 0,5 s, z kłębem dymu | – | | | | | jest |
+| Machanie i stawianie z klatek | klatki | 3–4 | jak obrazek | 8 | stopy (dół środka) | w prawo | później (PixelLab) |
+| Płomień kosza z klatek | klatki: 2–3 klatki samych płomieni | 2–3 | 16×22 | 8 | stopy (dół środka) | – | później |
+| Chmury mgły na mapie | kod: każda chmura dryfuje 3 px w bok i wraca (ok. 2,6 s), gęstsza, im dłużej jeszcze potrwa | – | | – | środek heksa | – | jest |
+| Dzień i noc na mapie | kod: w nocy cały obraz ciemnieje i sinieje (`SURFACE_AMBIENT` w `src/scenes/mapLight.ts`), więc ognie i światło wokół hydry widać wyraźniej | – | | – | | – | jest |
+| Torchbearerzy idą rozpalić kapliczkę (map_relight) | kod: jak patrole, z heksu na heks w turze świata | – | 26×30 | – | stopy (dół środka) | bez odbicia | jest |
+| Płomień kapliczki i zamku | kod: światło stoi w miejscu | – | | | | | później (migotanie) |

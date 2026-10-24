@@ -1414,3 +1414,259 @@ Request: one game sprite on the flat magenta background, standing on the bottom 
 Subject: the mouth of an old mine shaft dug by the Order: two timber props and a beam across the top, cut dead straight, unlike anything else down here; two iron rails on wooden sleepers running in between them; a small brass lantern of the Order (#d9a93b) hanging on the right prop, long out. It stands up like a doorway.
 Size: in the game it is only 30 by 30 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
 ```
+
+## M4: powierzchnia
+
+Powierzchnia to kraina nad jaskiniami: pola, lasy, wzgórza, wsie i zamek Zakonu, pod otwartym niebem. Wszystko z tej sekcji jest już w grze jako grafika zastępcza rysowana w kodzie, więc kolejność jest dowolna. Specyfikacja (rozmiary, punkt zaczepienia, gdzie gra stawia światło) jest w `docs/ASSETS.md`.
+
+- Stały blok stylu opisuje ciemne podziemia, więc każdy prompt z tej sekcji dopisuje, że to powierzchnia w dziennym świetle. Noc gra robi sama, przyciemniając obraz, więc wszystko rysujemy w dzień.
+- Tekstury to pięć kwadratów, tak jak w podziemiach: pole, las, wzgórze, woda i skała. Drzewa stoją na heksach lasu osobno (`map_tree`).
+- Do obiektów na mapie dołącz oddział z jednym zbrojnym (`oddzial-pixel.png`), a do ludzi w bitwie pixelowego Man-at-Arms (`man-at-arms-pixel.png`), oba z `hydra-grafika/wzory/`, żeby piksele wyszły tej samej wielkości.
+- Ogień zamku, kapliczki, obozu i kosza żarowego świeci w grze. Po imporcie przesunę światło na narysowany płomień.
+
+### `texture_ground_surface_field.png`: pole i łąka (najczęstszy grunt na powierzchni)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: a seamless square ground texture that fills the whole picture edge to edge (no magenta, no border). Seen straight from above, completely flat: no perspective, no horizon, ignore the camera angle for this one. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: rough pasture and fallow fields of the countryside: short, dull green grass (around #66763a) with patches of dry yellowish grass (#8a8a4a), a few spots of bare brown earth (#5a4a30), a few tiny white and yellow wildflowers and small grey stones. Even detail spread over the whole square, nothing big in the middle, low contrast, so the hydra and the Order stay readable on top of it.
+Size: drawn as pixel art about 96 by 96 pixels, so keep the shapes chunky: details 2 to 6 pixels big.
+```
+
+### `texture_ground_surface_forest.png`: las (dno lasu; drzewa gra stawia osobno)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: a seamless square ground texture that fills the whole picture edge to edge (no magenta, no border). Seen straight from above, completely flat: no perspective, no horizon, ignore the camera angle for this one. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: the floor of an old, dark wood seen from above: dark green moss (around #324a26) and brown fallen leaves (#5a4a2a), small ferns, a few twigs and thin roots, one or two tiny pale toadstools. Draw no trees and no tree trunks: the game puts the trees on top. Even detail spread over the whole square, nothing big in the middle, low contrast, so the hydra and the Order stay readable on top of it.
+Size: drawn as pixel art about 96 by 96 pixels, so keep the shapes chunky: details 2 to 6 pixels big.
+```
+
+### `texture_ground_surface_hill.png`: wzgórze
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: a seamless square ground texture that fills the whole picture edge to edge (no magenta, no border). Seen straight from above, completely flat: no perspective, no horizon, ignore the camera angle for this one. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: a dry, stony hillside: thin brownish grass (around #7e7250), patches of bare earth, scattered grey stones and small rocks, a few tufts of dark heather. Even detail spread over the whole square, nothing big in the middle, low contrast, so the hydra and the Order stay readable on top of it.
+Size: drawn as pixel art about 96 by 96 pixels, so keep the shapes chunky: details 2 to 6 pixels big.
+```
+
+### `texture_ground_surface_water.png`: woda (staw, rzeka)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: a seamless square ground texture that fills the whole picture edge to edge (no magenta, no border). Seen straight from above, completely flat: no perspective, no horizon, ignore the camera angle for this one. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: the still water of a pond or a slow river in the countryside: grey-blue water (around #3a5a68) with a few pale ripples and the dull glint of a grey sky, a few small dark lily pads and floating leaves. Even detail spread over the whole square, nothing big in the middle, low contrast, so the hydra and the Order stay readable on top of it.
+Size: drawn as pixel art about 96 by 96 pixels, so keep the shapes chunky: details 2 to 6 pixels big.
+```
+
+### `texture_rock_surface.png`: skała na powierzchni
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: a seamless square rock texture that fills the whole picture edge to edge (no magenta, no border). Seen straight from above, completely flat: no perspective, no horizon, ignore the camera angle for this one. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: bare, weathered grey rock of the hills above the caves (around #6a6258), with cracks, pale yellow-green and rusty orange specks of lichen and a little dry grass in the cracks. It must read as one solid mass of stone, not as separate stones or tiles. The game uses it for the tops of rock outcrops and, darkened, for their sides.
+Size: drawn as pixel art about 96 by 96 pixels, so keep the shapes chunky: cracks and patches 2 to 8 pixels big.
+```
+
+### `map_castle.png`: zamek Zakonu z Wiecznym Płomieniem
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, standing on the bottom edge of the picture. The game draws the ground under it, so draw no floor, no ground and no shadow: its lowest pixels are where it touches the ground. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw this in THE SAME style, with the same size of pixels, the same dark outline, the same colours and the same view, so they clearly belong together. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: the Castle of the Eternal Flame, the seat of the Order: a tall square keep of pale grey stone between two round towers with battlements, a shut gate of dark wood with a gold flame (#d9a93b) over it, red banners (#9e2323) bearing a gold flame on the towers. Behind the keep rises the spire of the cathedral, and on its very top a wide stone bowl holding the Eternal Flame (fire #ffcf5c in the middle, orange #e0702a at the edges), the brightest thing in the picture: the game adds its light. Stern, solemn, a little too proud of itself. A dark outline all around.
+Size: in the game it is only about 112 by 104 pixels, so the biggest thing on the map but still small: one clear silhouette, the flame on top must be easy to spot from afar.
+```
+
+### `map_flame_shrine.png`: kapliczka Płomienia, płonąca
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, standing on the bottom edge of the picture. The game draws the ground under it, so draw no floor, no ground and no shadow: its lowest pixels are where it touches the ground. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw this in THE SAME style, with the same size of pixels, the same dark outline, the same colours and the same view, so they clearly belong together. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: a Flame Shrine of the Order, standing by a road: a slim pillar of pale stone on a stepped plinth, a bronze bowl on top with a tall flame burning in it (fire #ffcf5c in the middle, orange #e0702a at the edges), and a small banner-red pennant (#9e2323) with a gold flame hanging from an iron arm. The flame is the brightest thing; the game adds a warm light around it. Tall and narrow. A dark outline all around.
+Size: in the game it is only about 44 by 68 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
+```
+
+### `map_flame_shrine_out.png`: kapliczka Płomienia zgaszona przez hydrę
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, standing on the bottom edge of the picture. The game draws the ground under it, so draw no floor, no ground and no shadow: its lowest pixels are where it touches the ground. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw this in THE SAME style, with the same size of pixels, the same dark outline, the same colours and the same view, so they clearly belong together. Draw it right after the burning shrine, in the same conversation: it is THE SAME shrine. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: the same Flame Shrine after the hydra put it out: the same pillar and plinth, the bronze bowl cold, black and wet, no flame at all, the pennant torn and hanging limp, and pale greenish mist (#a9b8a8) spilling over the rim of the bowl and down the pillar. Quiet and a little sad, in the Order's eyes. A dark outline all around.
+Size: in the game it is only about 44 by 52 pixels, so keep it simple and bold: it is shorter than the burning shrine, because there is no flame.
+```
+
+### `map_settlement_camp.png`: obóz Zakonu
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, standing on the bottom edge of the picture. The game draws the ground under it, so draw no floor, no ground and no shadow: its lowest pixels are where it touches the ground. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw this in THE SAME style, with the same size of pixels, the same dark outline, the same colours and the same view, so they clearly belong together. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: a field camp of the Order: two canvas tents (off-white with red stripes), a tall pole with a banner-red flag (#9e2323) bearing a gold flame (#d9a93b), a rack of spears and, in front, low on the ground, a small campfire (orange #e0702a, fire #ffcf5c): the game adds its light there. A dark outline all around.
+Size: in the game it is only about 64 by 52 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
+```
+
+### `map_settlement_village.png`: wieś
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, standing on the bottom edge of the picture. The game draws the ground under it, so draw no floor, no ground and no shadow: its lowest pixels are where it touches the ground. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw this in THE SAME style, with the same size of pixels, the same dark outline, the same colours and the same view, so they clearly belong together. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: a small, poor village of the people who live under the Order: three humble cottages huddled together, thatched roofs (straw #9a8048), whitewashed walls with dark timber, every shutter closed, a small gold flame painted over one door, a low wattle fence and a well. Nothing glows. A dark outline all around.
+Size: in the game it is only about 76 by 56 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
+```
+
+### `map_settlement_mill.png`: młyn wodny
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, standing on the bottom edge of the picture. The game draws the ground under it, so draw no floor, no ground and no shadow: its lowest pixels are where it touches the ground. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw this in THE SAME style, with the same size of pixels, the same dark outline, the same colours and the same view, so they clearly belong together. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: a watermill: a small house of stone and timber with a big wooden water wheel on its right side, a sack of flour by the door. The game draws the water, so draw only the house and the wheel; the bottom of the wheel touches the bottom of the picture. A dark outline all around.
+Size: in the game it is only about 64 by 64 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
+```
+
+### `map_settlement_watchtower.png`: wieża strażnicza Zakonu
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, standing on the bottom edge of the picture. The game draws the ground under it, so draw no floor, no ground and no shadow: its lowest pixels are where it touches the ground. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw this in THE SAME style, with the same size of pixels, the same dark outline, the same colours and the same view, so they clearly belong together. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: a watchtower of the Order: a tall, narrow wooden tower on four braced legs with a small roofed platform on top, a little bronze alarm bell hanging under the roof, a banner-red pennant with a gold flame, and the ladder pulled up and hanging beside the platform. Tall and narrow. A dark outline all around.
+Size: in the game it is only about 36 by 76 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
+```
+
+### `map_tree.png`: drzewo (las na powierzchni)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, standing on the bottom edge of the picture. The game draws the ground under it, so draw no floor, no ground and no shadow: its lowest pixels are where it touches the ground. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw this in THE SAME style, with the same size of pixels, the same dark outline, the same colours and the same view, so they clearly belong together. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: one old broadleaf tree of the woods above: a round, dense, dark green crown (#324a26, a little lighter #4a6a34 on the upper left) on a short dark trunk. Several of them stand together on every forest hex, so keep it plain: no fruit, no birds, nothing special. A dark outline all around.
+Size: in the game it is only about 36 by 52 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
+```
+
+### `map_find.png`: coś leży (łup do zabrania)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, standing on the bottom edge of the picture. The game draws the ground under it, so draw no floor, no ground and no shadow: its lowest pixels are where it touches the ground. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw this in THE SAME style, with the same size of pixels, the same dark outline, the same colours and the same view, so they clearly belong together. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: things somebody left lying about in the open: a fat grain sack, a clay pot and a coil of rope. Small and low, wider than tall. A dark outline all around.
+Size: in the game it is only about 32 by 24 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
+```
+
+### `map_relight.png`: Torchbearerzy idą rozpalić kapliczkę
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, standing on the bottom edge of the picture. The game draws the ground under it, so draw no floor, no ground and no shadow: its lowest pixels are where it touches the ground. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw this in THE SAME style, with the same size of pixels, the same dark outline, the same colours and the same view, so they clearly belong together. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: Torchbearers of the Order on their way to light a shrine again: two lay brothers in plain brown wool habits (#6b4a2a) with rope belts and tonsured heads, walking a little to the right. The front one holds a burning torch high (fire #ffcf5c, orange #e0702a), the brightest thing in the picture; the one behind carries a wooden ladder on his shoulder. Dead serious about it. A dark outline all around.
+Size: in the game it is only about 52 by 60 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
+```
+
+### `map_passage_down.png`: zejście do podziemi widziane z góry
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, of something lying flat on the ground, seen from the game's angle (so round things look like wide ovals). The game draws the ground itself: draw only the thing, no ground tile, no hexagon, no shadow around it. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw this in THE SAME style, with the same size of pixels, the same dark outline, the same colours and the same view, so they clearly belong together. This is the land ABOVE the caves, under the open sky, drawn in plain daylight on an overcast day (the game darkens it at night): here the colours are those of a grey, damp countryside, muted and a little cold: grass green #66763a, dark wood green #324a26, dry hill brown #7e7250, grey-blue water #3a5a68, grey stone #6a6258; the Order's red, gold and fire stay as above.
+Subject: a way down into the caves, as seen from the surface: a dark, jagged crack in the ground between a few mossy grey stones, pitch black inside, with thin wisps of pale greenish mist (#a9b8a8) rising out of it. Wider than tall. A dark outline around the stones.
+Size: in the game it is only about 64 by 44 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
+```
+
+### `battle_enemy_censerPriest.png`: Censer Priest, kapłan z kadzielnicą (rozwiewa mgłę)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art Man-at-Arms from the game: draw another member of THE SAME Order in the same style (the same size of pixels, the same dark outline, the same view, the same warm colours), so they clearly belong together.
+Subject: a Censer Priest of the Order of the Eternal Flame: a priest, not a soldier, standing, seen from the side and a little from above, facing RIGHT. A long cream-white robe (#e0d8c4) with a red stole (#c23a2a) embroidered with small gold flames, a tonsured head (bald crown, a ring of hair), a calm, pious and slightly smug face, sandals. In his right hand, in front of him, he swings a bronze censer on a long chain, with thick curls of pale grey-brown incense smoke (#a89c86) pouring out of it: the smoke that drives the hydra's mist away. No weapon and no armour. Feet on the ground at the bottom middle of the picture. A dark outline all around. No ground and no shadow: the game adds them.
+Size: in the game he is only about 60 by 80 pixels, a man next to a hydra body about 288 pixels wide, so keep it bold: one clear silhouette. The white robe and the censer with its smoke must read at that size.
+```
+
+### `battle_enemy_brazierBearer.png`: Brazier Bearer, brat z koszem żarowym (suszy arenę)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art Man-at-Arms from the game: draw another member of THE SAME Order in the same style (the same size of pixels, the same dark outline, the same view, the same warm colours), so they clearly belong together.
+Subject: a Brazier Bearer of the Order of the Eternal Flame: a big, broad lay brother, standing, seen from the side and a little from above, facing RIGHT. A dark brown habit (#5a4030) with the sleeves rolled up, a heavy leather apron with a small gold flame (#d9a93b) on it, thick leather gloves, a leather cap. He carries in front of him, by its two handles, a heavy iron brazier basket full of glowing coals (orange #e0702a, fire #ffcf5c), the brightest thing in the picture. Sweaty and dutiful. Feet on the ground at the bottom middle of the picture. A dark outline all around. No ground and no shadow: the game adds them.
+Size: in the game he is only about 56 by 76 pixels, a man next to a hydra body about 288 pixels wide, so keep it bold: one clear silhouette. The glowing basket must read at that size.
+```
+
+### `battle_brazier.png`: kosz żarowy postawiony na arenie
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite on the flat magenta background, standing on the bottom edge of the picture. The game draws the ground under it, so draw no floor, no ground and no shadow: its lowest pixels are where it touches the ground. Draw it right after the Brazier Bearer, in the same conversation: it is the basket he carries, now set down.
+Subject: a brazier standing on the battle ground: a round iron basket full of glowing coals on three thin iron legs, small flames licking up from the coals (fire #ffcf5c in the middle, orange #e0702a at the edges). The flames are the brightest thing; the game adds a flickering light and dries the ground around it. A dark outline all around.
+Size: in the game it is only about 32 by 44 pixels, so keep it simple and bold: a clear silhouette and a few big shapes, no fine detail.
+```
