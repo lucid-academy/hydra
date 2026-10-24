@@ -1131,6 +1131,7 @@ export const surfaceSchema = section({
   }),
   passageMovement: z.number().int().min(0),
   alertPerHexDiscovered: z.number().min(0),
+  seenFromAfar: section({ kinds: z.array(z.enum(['castle', 'flameShrine', 'settlement', 'passage'])) }),
   mist: section({
     exhale: section({ moisture: z.number().int().min(0), radius: z.number().int().min(0), radiusByClass: z.record(z.string(), z.number().int().min(0)), turns: turnsOfMist }),
     breatheAhead: section({ moisture: z.number().int().min(0), turns: turnsOfMist }).nullable(),

@@ -2,7 +2,7 @@
 
 import type { HeadExperienceRules, HeadRecord } from '../battle';
 import type { Hex } from '../hex';
-import type { HexMap, Layer, Loot, SurfaceGeneratorSettings, SurfaceMap, TerrainTable, UndergroundGeneratorSettings, Visibility } from '../map';
+import type { HexMap, Layer, Loot, MapObject, SurfaceGeneratorSettings, SurfaceMap, TerrainTable, UndergroundGeneratorSettings, Visibility } from '../map';
 
 
 /** What a blessing of the Great Serpent changes (shrines.json). Missing = no change. */
@@ -449,6 +449,8 @@ export interface SurfaceRules {
   passageMovement: number;
   /** Alert for each surface hex seen for the first time. */
   alertPerHexDiscovered: number;
+  /** Kinds of things up there she knows of from the start: their hexes are remembered before she sees them. */
+  seenFromAfar: readonly MapObject['kind'][];
   mist: {
     /**
      * Exhale Mist: costs `moisture`, covers the hydra's hex and those within `radius` (more with a head of a class in

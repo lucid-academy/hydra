@@ -228,6 +228,7 @@ export function surfaceRulesFrom(data: GameData): SurfaceRules {
     generator,
     passageMovement: surface.passageMovement,
     alertPerHexDiscovered: surface.alertPerHexDiscovered,
+    seenFromAfar: surface.seenFromAfar.kinds,
     mist: {
       exhale: { moisture: mist.exhale.moisture, radius: mist.exhale.radius, radiusByClass: mist.exhale.radiusByClass, turns: mist.exhale.turns },
       breatheAhead: mist.breatheAhead && { moisture: mist.breatheAhead.moisture, turns: mist.breatheAhead.turns },
