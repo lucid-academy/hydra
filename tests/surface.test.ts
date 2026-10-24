@@ -13,6 +13,7 @@ import {
   canExhale,
   createRun,
   endTurn,
+  eventArrived,
   exhaleMist,
   exhaleRadius,
   finishBattle,
@@ -362,8 +363,9 @@ describe('Flame Shrines', () => {
     expect(events).toContainEqual({ type: 'shrineOut', at: shrineAt, alert: rules.surface.flameShrines.alertWhenPutOut, left: 0 });
     for (const h of hexesInRange(shrineAt, rules.surface.flameShrines.lastingMistRadius)) expect(state.surface.lastingMist[hexKey(h)]).toBe(hexKey(shrineAt));
     expect(state.surface.relights[hexKey(shrineAt)]).toBe(state.turn + rules.surface.flameShrines.relight.afterTurns);
-    // The first flame she puts out leaves a mark on her.
+    // The first flame she puts out leaves a mark on her; and the world remembers it (the Drought unlocks).
     expect(state.hydra.mutations.some((m) => rules.surface.flameShrines.mutations.includes(m))).toBe(true);
+    expect(state.story.flags).toContain('putOutFlame');
     // Mist that never fades: she can end turns here.
     endTurn(state, surfaceRules);
     expect(state.surface.exposed).toBe(false);
@@ -422,5 +424,27 @@ describe('the save', () => {
     expect(read.state.surface.map.tiles).toEqual(state.surface.map.tiles);
     expect(read.state.surface.mist).toEqual(state.surface.mist);
     expect(read.state.surface.visibility).toBeInstanceOf(Map);
+  });
+});
+
+describe('the story up there', () => {
+  it('the first climb is remarked on, and the event sites up there hold only events of the surface', () => {
+    const state = createRun(3, rules);
+    const passage = state.surface.map.passages[0]!;
+    state.hydra.position = passage;
+    state.hydra.movementLeft = 5;
+    state.pendingPlace = passage;
+    usePassage(state, rules);
+    expect(state.story.dialogues.map((d) => d.id)).toContainEqual(expect.stringMatching(/^biomeSurface/));
+
+    const surfaceEvents = data.events.events.filter((e) => e.conditions?.biomes?.includes(data.biomes.surfaceBiome)).map((e) => e.id);
+    expect(surfaceEvents.length).toBeGreaterThanOrEqual(3);
+    for (const tile of state.surface.map.tiles.values()) {
+      if (tile.object?.kind !== 'event') continue;
+      state.hydra.position = tile.hex;
+      expect(eventArrived(state, tile.hex, rules, [])).toBe(true);
+      expect(surfaceEvents).toContain(state.pendingEvent?.eventId);
+      state.pendingEvent = null;
+    }
   });
 });

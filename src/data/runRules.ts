@@ -248,6 +248,7 @@ export function surfaceRulesFrom(data: GameData): SurfaceRules {
       mutations: flameShrines.mutations,
       firstMutationChance: flameShrines.firstMutationChance,
       mutationChance: flameShrines.mutationChance,
+      setFlags: flameShrines.setFlags ?? [],
       relight: { afterTurns: flameShrines.relight.afterTurns, movement: flameShrines.relight.movement, groupId: flameShrines.relight.group, alert: flameShrines.relight.alert },
     },
     order: {

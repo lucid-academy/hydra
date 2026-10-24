@@ -707,6 +707,115 @@
       ]
     },
     {
+      "id": "biomeSurfaceMist",
+      "//": "M4: the surface (GAME_DESIGN.md §5.6, §5.7).",
+      "trigger": "newBiome",
+      "priority": 10,
+      "conditions": { "biomes": ["surface"], "headClasses": ["mistBreather"] },
+      "lines": [
+        { "speaker": "head:mistBreather", "text": "So much... light... Everyone, breathe out. Slowly." },
+        { "speaker": "head:any", "text": "Why?" },
+        { "speaker": "head:mistBreather", "text": "Up here... they can see us... unless we are weather." }
+      ]
+    },
+    {
+      "id": "biomeSurface",
+      "trigger": "newBiome",
+      "priority": 9,
+      "conditions": { "biomes": ["surface"] },
+      "lines": [
+        { "speaker": "head:any", "text": "That is a great deal of ceiling." },
+        { "speaker": "head:other", "text": "It is not a ceiling. It is the sky." },
+        { "speaker": "head:any", "text": "Who holds it up?" },
+        { "speaker": "head:other", "text": "Nobody. It stays up there out of spite." }
+      ]
+    },
+    {
+      "id": "firstExposed",
+      "trigger": "exposed",
+      "priority": 6,
+      "lines": [
+        { "speaker": "head:any", "text": "I can see my own shadow." },
+        { "speaker": "head:other", "text": "Then they can see us too." },
+        { "speaker": "head:any", "text": "Everyone? From everywhere?" },
+        { "speaker": "head:other", "text": "From the castle, mostly. They have a man for it." }
+      ]
+    },
+    {
+      "id": "exposedSunburn",
+      "trigger": "exposed",
+      "priority": 4,
+      "lines": [
+        { "speaker": "head:biter", "text": "My scales are warm. I do not like warm." },
+        { "speaker": "head:acidSpitter", "text": "Sunlight. It dries out exactly the parts of us we need." }
+      ]
+    },
+    {
+      "id": "firstShrineOut",
+      "trigger": "shrineOut",
+      "priority": 8,
+      "lines": [
+        { "speaker": "head:any", "text": "It went out." },
+        { "speaker": "head:other", "text": "They said the Flame never sleeps." },
+        { "speaker": "head:any", "text": "It is not asleep. It is out." },
+        { "speaker": "serpent", "text": "One light fewer, child. Up there the dark has to be made by hand." }
+      ]
+    },
+    {
+      "id": "shrineOutForms",
+      "trigger": "shrineOut",
+      "priority": 6,
+      "lines": [
+        { "speaker": "head:any", "text": "Another one out." },
+        { "speaker": "head:acidSpitter", "text": "They will light it again. They have a form for it." },
+        { "speaker": "head:any", "text": "Then we will put it out again." },
+        { "speaker": "head:acidSpitter", "text": "They have a form for that too." }
+      ]
+    },
+    {
+      "id": "shrineRelit",
+      "trigger": "shrineRelit",
+      "priority": 5,
+      "lines": [
+        { "speaker": "head:any", "text": "They lit it again." },
+        { "speaker": "head:other", "text": "With a ladder, a tinderbox and four men to hold the ladder." },
+        { "speaker": "head:any", "text": "And there goes our mist." }
+      ]
+    },
+    {
+      "id": "firstCenserPriest",
+      "trigger": "enemyAhead",
+      "priority": 7,
+      "conditions": { "newEnemyTypes": ["censerPriest"] },
+      "lines": [
+        { "speaker": "head:any", "text": "That one is swinging a pot on a chain." },
+        { "speaker": "head:other", "text": "A censer. The smoke is holy. It clears mist, doubt and fear." },
+        { "speaker": "head:any", "text": "Then somebody interrupt him. Loudly." }
+      ]
+    },
+    {
+      "id": "firstBrazierBearer",
+      "trigger": "enemyAhead",
+      "priority": 7,
+      "conditions": { "newEnemyTypes": ["brazierBearer"] },
+      "lines": [
+        { "speaker": "head:any", "text": "That one has brought a fire in a basket." },
+        { "speaker": "head:other", "text": "He sets them down round us. Where they burn, the mud dries." },
+        { "speaker": "head:any", "text": "He is drying our mud. On purpose." },
+        { "speaker": "head:other", "text": "He was ordained for it. It is a whole ministry." }
+      ]
+    },
+    {
+      "id": "afterSurfaceWin",
+      "trigger": "afterBattle",
+      "priority": 4,
+      "conditions": { "biomes": ["surface"], "won": true },
+      "lines": [
+        { "speaker": "head:any", "text": "We won. In daylight." },
+        { "speaker": "head:other", "text": "Do not get used to it." }
+      ]
+    },
+    {
       "id": "dreamAdvice",
       "trigger": "ancestorInSleep",
       "priority": -1,

@@ -239,6 +239,7 @@ function generationProblems(data: GameData): string[] {
     for (const id of c?.mutations ?? []) if (!mutations.includes(id)) where(file, `${path}.mutations`, `unknown mutation "${id}" (mutations.json)`);
     for (const id of c?.motherKilledBy ?? []) if (!enemyTypes.includes(id)) where(file, `${path}.motherKilledBy`, `unknown enemy type "${id}" (enemies.json)`);
   };
+  if (data.surface) checkFlags('surface.json', 'flameShrines.setFlags', data.surface.flameShrines.setFlags);
   data.dialogues.dialogues.forEach((d, i) => {
     const path = `dialogues.${i} (${d.id})`;
     checkConditions('dialogues.json', `${path}.conditions`, d.conditions);

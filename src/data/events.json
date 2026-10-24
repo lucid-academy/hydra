@@ -281,6 +281,58 @@
     },
 
     {
+      "id": "scarecrowOfTheOrder",
+      "//": "M4: events on the surface name its biome (conditions.biomes); the others happen only underground.",
+      "title": "A Scarecrow in a Tabard",
+      "conditions": { "biomes": ["surface"] },
+      "text": "In the middle of a field stands a scarecrow in the tabard of the Order. Someone has painted on a stern face. The crows have not been told.",
+      "choices": [
+        { "text": "Eat it.", "outcome": { "text": "Straw and a tabard. The heads agree it was the most honest member of the Order they have met.", "muck": 6 } },
+        { "text": "Put its hat on The Spare.", "needsHead": "spare", "outcome": { "text": "The Spare wears it all day. A patrol passes at a distance and salutes.", "alert": -6 } },
+        { "text": "Leave it on watch.", "outcome": { "text": "It keeps watch over the field. It has never caught anything, and it is not about to start." } }
+      ]
+    },
+    {
+      "id": "villageWell",
+      "title": "The Village Well",
+      "conditions": { "biomes": ["surface"] },
+      "text": "A well at the edge of a village, a bucket on a rope, and a sign: BLESSED BY THE ORDER. DO NOT SPIT.",
+      "choices": [
+        { "text": "Drink it dry.", "outcome": { "text": "The heads drink in turns, then all at once. The village will want to know where its water went.", "moisture": 12, "alert": 4 } },
+        { "text": "Spit in it.", "needsHead": "acidSpitter", "outcome": { "text": "The Acid Spitter reads the sign twice, then spits. The Order will have to come and bless it all over again, and it has better things to do.", "alert": -5 } },
+        { "text": "Leave it.", "outcome": { "text": "You leave it. The sign seems disappointed." } }
+      ]
+    },
+    {
+      "id": "pilgrimsOnTheRoad",
+      "title": "Pilgrims on the Road",
+      "conditions": { "biomes": ["surface"] },
+      "text": "Three pilgrims walk to a Flame Shrine with lanterns and a hymn. They have not seen you. The hymn has a verse about you, and it is not flattering.",
+      "choices": [
+        { "text": "Eat them.", "outcome": { "text": "The hymn stops in the middle of the verse. The shrine will wait for its pilgrims a long time.", "bones": 6, "alert": 6 } },
+        { "text": "Breathe mist over the road.", "needsHead": "mistBreather", "outcome": { "text": "They walk into the mist and come out at the river, lanterns out. They agree it was a sign.", "alert": -6 } },
+        {
+          "text": "Hum along.",
+          "chance": 0.5,
+          "success": { "text": "The heads hum the tune. The pilgrims hurry on, and swear afterwards that the hills were singing.", "alert": -3 },
+          "failure": { "text": "One head sings the words. The pilgrims drop their lanterns and run for the castle.", "alert": 8 }
+        }
+      ]
+    },
+    {
+      "id": "emptyField",
+      "title": "A Field",
+      "priority": -10,
+      "once": false,
+      "conditions": { "biomes": ["surface"] },
+      "text": "A ploughed field under the open sky. Nothing happens here, which up here is called farming.",
+      "choices": [
+        { "text": "Lie in the furrows.", "outcome": { "text": "Warm earth. The heads lie very still and pretend to be a hedge.", "bodyHp": 10 } },
+        { "text": "Dig.", "outcome": { "text": "Turnips, mostly. And worms, which are better.", "muck": 4 } }
+      ]
+    },
+
+    {
       "id": "stillPool",
       "title": "A Still Pool",
       "priority": -10,
