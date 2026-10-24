@@ -8,7 +8,7 @@ import { generateSurface } from '../map';
 import type { HexMap, MapObject } from '../map';
 import { Rng } from '../rng';
 import { gainMutation, mutationTotal } from './mutations';
-import { storyMoment } from './story';
+import { setFlags, storyMoment } from './story';
 import type { OrderUnit, RunEvent, RunRules, RunState, SurfaceState } from './types';
 import { addLoot, isNight, isWaiting, lookAround, raiseAlert, revealNearestHidden, tileOn } from './world';
 
@@ -252,6 +252,7 @@ export function putOutShrine(state: RunState, at: Hex, rules: RunRules, events: 
   }
   surface.relights[key] = state.turn + flameShrines.relight.afterTurns;
   surface.shrinesPutOut += 1;
+  setFlags(state, flameShrines.setFlags);
   events.push({ type: 'shrineOut', at, alert: flameShrines.alertWhenPutOut, left: shrinesBurning(state) });
   coverIfMisty(state, events);
 

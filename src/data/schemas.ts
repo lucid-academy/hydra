@@ -1154,6 +1154,8 @@ export const surfaceSchema = section({
     mutations: z.array(z.string().min(1)),
     firstMutationChance: share,
     mutationChance: share,
+    // Flags (flags.json) set when one is put out.
+    setFlags: z.array(z.string().min(1)).optional(),
     relight: section({ afterTurns: z.number().int().min(0), movement: z.number().int().min(1), group: z.string().min(1), alert: z.number() }),
   }),
   order: section({

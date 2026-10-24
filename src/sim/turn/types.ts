@@ -488,6 +488,8 @@ export interface SurfaceRules {
     mutations: readonly string[];
     firstMutationChance: number;
     mutationChance: number;
+    /** Flags set when one goes out (putOutFlame unlocks the Drought). */
+    setFlags: readonly string[];
     /** Turns after a shrine goes out until Torchbearers set out to light it again; how fast they walk; who they are; the Alert when it burns again. */
     relight: { afterTurns: number; movement: number; groupId: string; alert: number };
   };

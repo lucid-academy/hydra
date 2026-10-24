@@ -308,7 +308,7 @@ function applyOutcome(state: RunState, rules: RunRules, o: EventOutcome, at: Hex
   if (o.dialogue) storyDialogue(state, rules, o.dialogue, events);
 }
 
-function setFlags(state: RunState, flags: readonly string[]): void {
+export function setFlags(state: RunState, flags: readonly string[]): void {
   for (const flag of flags) if (!state.story.flags.includes(flag)) state.story.flags.push(flag);
 }
 
