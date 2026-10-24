@@ -5,7 +5,7 @@ Made by `npm run balance` from the numbers in `src/data/`. Run it again after ch
 200 automatic battles per row, each with a fresh hydra (Biter, Acid Spitter, Mist Breather) and 200 body HP.
 
 - **no orders:** the hydra is left alone, heads pick their own targets.
-- **focus fire:** every head that can reach attacks the same enemy (Torchbearers first, then Headhunters). A stand-in for a careful player.
+- **focus fire:** every head that can reach attacks the same enemy (Torchbearers and Tithe Collectors first, then Headhunters). A stand-in for a careful player.
 - **focus + skills:** focus fire, and every head uses its Q and W skills as soon as they are ready. A stand-in for a player who uses skills (a real player aims them better).
 
 "Heads severed", "Stumps burnt", "Combos" and "Body HP lost" are averages per battle.
@@ -27,6 +27,18 @@ Made by `npm run balance` from the numbers in `src/data/`. Run it again after ch
 | pyreProcession | Man-at-Arms, Man-at-Arms, Man-at-Arms, Torchbearer, Torchbearer, Headhunter | no orders | 32% | 69% | 50 s | 5.3 | 1.4 | 14.8 | 182.8 |
 | pyreProcession | Man-at-Arms, Man-at-Arms, Man-at-Arms, Torchbearer, Torchbearer, Headhunter | focus fire | 86% | 14% | 67 s | 4.5 | 0.0 | 36.3 | 144.4 |
 | pyreProcession | Man-at-Arms, Man-at-Arms, Man-at-Arms, Torchbearer, Torchbearer, Headhunter | focus + skills | 100% | 1% | 54 s | 2.2 | 0.0 | 32.9 | 79.2 |
+| crossbowLine | Man-at-Arms, Man-at-Arms, Crossbowman, Crossbowman | no orders | 94% | 6% | 51 s | 3.3 | 0.0 | 17.0 | 104.8 |
+| crossbowLine | Man-at-Arms, Man-at-Arms, Crossbowman, Crossbowman | focus fire | 100% | 1% | 51 s | 2.4 | 0.0 | 16.3 | 89.2 |
+| crossbowLine | Man-at-Arms, Man-at-Arms, Crossbowman, Crossbowman | focus + skills | 100% | 0% | 36 s | 1.7 | 0.0 | 11.5 | 57.1 |
+| titheVisit | Tithe Collector, Man-at-Arms, Man-at-Arms, Crossbowman | no orders | 99% | 2% | 46 s | 2.3 | 0.0 | 12.9 | 79.7 |
+| titheVisit | Tithe Collector, Man-at-Arms, Man-at-Arms, Crossbowman | focus fire | 100% | 0% | 52 s | 2.2 | 0.0 | 16.7 | 81.0 |
+| titheVisit | Tithe Collector, Man-at-Arms, Man-at-Arms, Crossbowman | focus + skills | 100% | 0% | 30 s | 1.2 | 0.0 | 9.9 | 46.6 |
+| knightsVigil | Knight of the Eternal Flame, Man-at-Arms, Torchbearer, Crossbowman | no orders | 57% | 43% | 56 s | 4.0 | 0.2 | 16.8 | 157.2 |
+| knightsVigil | Knight of the Eternal Flame, Man-at-Arms, Torchbearer, Crossbowman | focus fire | 87% | 14% | 53 s | 3.3 | 0.0 | 19.6 | 126.3 |
+| knightsVigil | Knight of the Eternal Flame, Man-at-Arms, Torchbearer, Crossbowman | focus + skills | 99% | 2% | 39 s | 2.0 | 0.0 | 17.3 | 79.7 |
+| greatBurning | Master of the Order, Knight of the Eternal Flame, Man-at-Arms, Man-at-Arms, Torchbearer, Crossbowman | no orders | 0% | 100% | 23 s | 3.1 | 1.5 | 2.7 | 200.0 |
+| greatBurning | Master of the Order, Knight of the Eternal Flame, Man-at-Arms, Man-at-Arms, Torchbearer, Crossbowman | focus fire | 3% | 98% | 27 s | 4.8 | 0.2 | 11.1 | 199.4 |
+| greatBurning | Master of the Order, Knight of the Eternal Flame, Man-at-Arms, Man-at-Arms, Torchbearer, Crossbowman | focus + skills | 43% | 57% | 42 s | 4.9 | 0.0 | 30.4 | 178.1 |
 
 ## The head classes
 
