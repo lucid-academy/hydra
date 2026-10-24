@@ -197,7 +197,9 @@ export class RunController extends Phaser.Events.EventEmitter {
    */
   startTestBattle(groupId: string, bodyHp: number | null = null, allies: number | null = null): void {
     const layer = this.state.hydra.layer;
-    this.state.pendingBattle = allies !== null ? { at: this.state.map.lair, layer: 'underground', groupId, defense: true } : { at: hex(0, 0), layer, groupId };
+    // Up there it is fought where she stands (in mist or not); underground anywhere.
+    const at = layer === 'surface' ? this.state.hydra.position : hex(0, 0);
+    this.state.pendingBattle = allies !== null ? { at: this.state.map.lair, layer: 'underground', groupId, defense: true } : { at, layer, groupId };
     if (allies !== null) this.state.lair.defenders = allies;
     if (bodyHp !== null) this.state.hydra.bodyHp = Math.min(this.state.hydra.bodyMaxHp, bodyHp);
   }
@@ -319,6 +321,13 @@ export class RunController extends Phaser.Events.EventEmitter {
     state.resources.moisture = Math.max(state.resources.moisture, 20);
     state.surface.nextPatrolTurn ??= state.turn + this.rules.surface.order.patrols.firstOnTurn;
     lookAround(state, this.rules, []);
+  }
+
+  /** For `?exposed=1`: no mist under her where she stands on the surface. Testing only. */
+  exposeForTest(): void {
+    const key = hexKey(this.state.hydra.position);
+    delete this.state.surface.mist[key];
+    delete this.state.surface.lastingMist[key];
   }
 
   /** For `?night=1`: the game starts on the first turn of the night. Testing only. */

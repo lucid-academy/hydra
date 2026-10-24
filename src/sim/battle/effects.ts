@@ -6,7 +6,7 @@ import { HEX_DIRECTIONS, hexAdd, hexDistance, hexEquals, hexKey } from '../hex';
 import type { Hex } from '../hex';
 import { Rng } from '../rng';
 import { angleDifference, bodyDistance, hexAngle, isOnBoard } from './board';
-import type { Ally, Beacon, BattleHead, BattleRules, BattleState, ComboRules, ComboTrigger, Effect, Enemy, HitSource, MistCloud, StatusRules } from './types';
+import type { Ally, Beacon, BattleHead, BattleRules, BattleState, Brazier, ComboRules, ComboTrigger, Effect, Enemy, HitSource, MistCloud, StatusRules } from './types';
 
 // ---------------------------------------------------------------- randomness
 
@@ -96,6 +96,11 @@ function countKill(state: BattleState, headId: string): void {
 /** A head hits this many times harder for its level (heads.json experience). */
 export function levelDamageMultiplier(head: BattleHead, rules: BattleRules): number {
   return 1 + ((head.level - 1) * rules.experience.damagePercentPerLevel) / 100;
+}
+
+/** How hard a head hits in this battle: its level, and the battle's own multiplier (Exposed on the surface). */
+export function headDamageMultiplier(state: BattleState, head: BattleHead, rules: BattleRules): number {
+  return levelDamageMultiplier(head, rules) * state.headDamageMultiplier;
 }
 
 /** A head that kills heals itself if it has a Frenzy going. */
@@ -204,7 +209,10 @@ export function applyStatus(
     return false;
   }
   enemy.statuses.push({ id: statusId, untilTick, nextDamageTick: state.tick + rules.ticksPerSecond, sourceHeadId, then: null });
-  if (!status.canChannel) enemy.cauterizingStumpId = null;
+  if (!status.canChannel) {
+    enemy.cauterizingStumpId = null;
+    interruptChannel(state, enemy, rules);
+  }
   state.events.push({ type: 'status', tick: state.tick, enemyId: enemy.id, status: statusId, at: enemy.hex });
   return true;
 }
@@ -221,6 +229,17 @@ export function endStatuses(state: BattleState, enemy: Enemy, rules: BattleRules
     }
     if (status.then) applyStatus(state, enemy, status.then.status, rules, status.then.ticks);
   }
+}
+
+/** A swing of the censer or a brazier being set down stops half-way; the next one has to wait its full time. */
+export function interruptChannel(state: BattleState, enemy: Enemy, rules: BattleRules): void {
+  const channel = enemy.channel;
+  if (!channel) return;
+  enemy.channel = null;
+  const type = rules.enemyTypes[enemy.typeId]!;
+  enemy.nextChannelTick = state.tick + (channel.kind === 'censer' ? (type.censer?.everyTicks ?? 0) : (type.braziers?.everyTicks ?? 0));
+  if (channel.kind === 'censer') state.events.push({ type: 'censer', tick: state.tick, enemyId: enemy.id, what: 'interrupted', at: enemy.hex, radius: type.censer?.radius ?? 0 });
+  else state.events.push({ type: 'brazier', tick: state.tick, what: 'interrupted', enemyId: enemy.id, brazierId: null, at: enemy.hex });
 }
 
 export function releaseHold(head: BattleHead): void {
@@ -245,7 +264,14 @@ export function seize(state: BattleState, head: BattleHead, enemy: Enemy, status
 
 // ---------------------------------------------------------------- things on the board
 
+/** Mist can't lie here now: censer smoke, or a lit brazier near enough. */
+export function isClearOfMist(state: BattleState, h: Hex): boolean {
+  return state.smokes.some((s) => hexDistance(s.center, h) <= s.radius) || state.braziers.some((b) => hexDistance(b.at, h) <= b.mistRadius);
+}
+
+/** The clouds lying on this hex (none where smoke or a brazier keeps the Mist off). */
 export function cloudsOver(state: BattleState, h: Hex): MistCloud[] {
+  if (isClearOfMist(state, h)) return [];
   return state.clouds.filter((cloud) => hexDistance(cloud.center, h) <= cloud.radius);
 }
 
@@ -278,6 +304,25 @@ export function createMistCloud(
   return cloud;
 }
 
+/** The ground here is dried by a brazier: the brazier that slows the body most, or null. */
+export function dryingBrazier(state: BattleState, h: Hex): Brazier | null {
+  let best: Brazier | null = null;
+  for (const brazier of state.braziers) {
+    if (hexDistance(brazier.at, h) > brazier.dryRadius) continue;
+    if (!best || brazier.bodySlowMultiplier > best.bodySlowMultiplier) best = brazier;
+  }
+  return best;
+}
+
+/** Braziers within `radius` of `at` go out (radius null: all of them). Returns how many. */
+export function putOutBraziers(state: BattleState, at: Hex | null, radius: number | null): number {
+  const out = state.braziers.filter((b) => radius === null || (at !== null && hexDistance(b.at, at) <= radius));
+  if (out.length === 0) return 0;
+  state.braziers = state.braziers.filter((b) => !out.includes(b));
+  for (const brazier of out) state.events.push({ type: 'brazier', tick: state.tick, what: 'out', enemyId: null, brazierId: brazier.id, at: brazier.at });
+  return out.length;
+}
+
 /** Who a beacon draws to itself right now. */
 export function drawnBy(state: BattleState, beacon: Beacon, enemy: Enemy, rules: BattleRules): boolean {
   if (beacon.skipsTypes.includes(enemy.typeId)) return false;
@@ -299,6 +344,7 @@ export function beaconFor(state: BattleState, enemy: Enemy, rules: BattleRules):
 /** One tick of things on the board and of statuses: clouds fade, soak and burn; pools corrode; statuses wear off and hurt. */
 export function updateEffects(state: BattleState, rules: BattleRules): void {
   state.clouds = state.clouds.filter((cloud) => state.tick < cloud.untilTick);
+  state.smokes = state.smokes.filter((smoke) => state.tick < smoke.untilTick);
   state.pools = state.pools.filter((pool) => state.tick < pool.untilTick);
   state.beacons = state.beacons.filter((beacon) => state.tick < beacon.untilTick);
 
@@ -306,7 +352,7 @@ export function updateEffects(state: BattleState, rules: BattleRules): void {
     const acidDue = isAcid(state, cloud) && state.tick >= cloud.nextAcidTick;
     if (acidDue) cloud.nextAcidTick = state.tick + rules.ticksPerSecond;
     for (const enemy of [...state.enemies]) {
-      if (hexDistance(cloud.center, enemy.hex) > cloud.radius) continue;
+      if (hexDistance(cloud.center, enemy.hex) > cloud.radius || isClearOfMist(state, enemy.hex)) continue;
       if (rules.mistCloud.appliesStatus !== null) applyStatus(state, enemy, rules.mistCloud.appliesStatus, rules);
       if (acidDue) hurtEnemy(state, enemy, cloud.acidDamagePerSecond, 'mist', null, rules);
     }
@@ -514,7 +560,7 @@ export function applyEffect(state: BattleState, enemy: Enemy, effect: Effect, hi
       let any = false;
       const ticks = scaled(effect.ticks, hit.power, rules.statuses[effect.status]);
       for (const other of [...state.enemies]) {
-        if (clouds.some((cloud) => hexDistance(cloud.center, other.hex) <= cloud.radius)) any = applyStatus(state, other, effect.status, rules, ticks) || any;
+        if (clouds.some((cloud) => hexDistance(cloud.center, other.hex) <= cloud.radius) && !isClearOfMist(state, other.hex)) any = applyStatus(state, other, effect.status, rules, ticks) || any;
       }
       return any;
     }
@@ -531,6 +577,13 @@ export function applyEffect(state: BattleState, enemy: Enemy, effect: Effect, hi
     case 'keepEntranced':
       hit.keepEntranced = true;
       return hasStatus(enemy, 'entranced');
+    case 'crackCenser': {
+      if (!alive || !rules.enemyTypes[enemy.typeId]!.censer || enemy.censerCracked) return false;
+      enemy.censerCracked = true;
+      enemy.channel = null;
+      state.events.push({ type: 'censer', tick: state.tick, enemyId: enemy.id, what: 'cracked', at: enemy.hex, radius: 0 });
+      return true;
+    }
   }
 }
 
@@ -587,8 +640,8 @@ export function shove(
   return moved;
 }
 
-/** Throws the enemy towards `to`, up to `hexes` hexes. Anyone it lands on and it get the status. */
-export function toss(state: BattleState, enemy: Enemy, to: Hex, hexes: number, collisionStatus: string, collisionTicks: number | null, rules: BattleRules): void {
+/** Throws the enemy towards `to`, up to `hexes` hexes. Anyone it lands on and it get the status. Returns where it lands. */
+export function toss(state: BattleState, enemy: Enemy, to: Hex, hexes: number, collisionStatus: string, collisionTicks: number | null, rules: BattleRules): Hex {
   const start = enemy.hex;
   let at = start;
   for (let i = 0; i < hexes && !hexEquals(at, to); i++) {
@@ -607,6 +660,7 @@ export function toss(state: BattleState, enemy: Enemy, to: Hex, hexes: number, c
     at = next;
   }
   if (!hexEquals(at, start)) placeBySlide(state, enemy, start, at);
+  return at;
 }
 
 function placeBySlide(state: BattleState, enemy: Enemy, from: Hex, to: Hex): void {

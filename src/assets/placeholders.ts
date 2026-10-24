@@ -206,10 +206,12 @@ const drawBattleHead: PlaceholderDrawer = (scene, key, width, height) => {
  * Feet at the bottom middle of the image; what they carry is held on the right.
  */
 /** What a soldier carries, and how he is dressed beyond his tabard: a plume on the helmet, a wide hat (no helmet). */
-type SoldierGear = 'sword' | 'axe' | 'torch' | 'crossbow' | 'ledger';
+type SoldierGear = 'sword' | 'axe' | 'torch' | 'crossbow' | 'ledger' | 'censer' | 'brazier';
 interface SoldierLook {
   plume?: string;
   hat?: boolean;
+  /** Bareheaded, with a tonsure (lay brothers and priests). */
+  tonsure?: boolean;
 }
 
 function battleSoldier(tabard: string, emblem: string, gear: SoldierGear, heavy: boolean, look: SoldierLook = {}): PlaceholderDrawer {
@@ -238,7 +240,7 @@ function battleSoldier(tabard: string, emblem: string, gear: SoldierGear, heavy:
       g.fillStyle(0x111111);
       g.fillRect(cx - 7, feet - 31, 14, 2);
       g.fillRect(cx - 4, feet - 35, 8, 4);
-    } else if (gear === 'torch' && !heavy) {
+    } else if ((gear === 'torch' && !heavy) || look.tonsure) {
       g.fillStyle(color('#c9a27a')); // a lay brother: no helmet, a tonsure
       g.fillCircle(cx, feet - 27, 4);
       g.fillStyle(color('#6b5530'));
@@ -270,6 +272,22 @@ function battleSoldier(tabard: string, emblem: string, gear: SoldierGear, heavy:
       g.fillRect(hand - 1, feet - 21, 6, 8); // the ledger, open
       g.fillStyle(0x6b4a2a);
       g.fillRect(hand + 1, feet - 21, 1, 8);
+    } else if (gear === 'censer') {
+      g.fillStyle(0x8d8d8d);
+      g.fillRect(hand, feet - 22, 1, 9); // the chain
+      g.fillStyle(color('#b08a3a'));
+      g.fillCircle(hand, feet - 11, 3); // the censer
+      g.fillStyle(color('#d8d0c0'));
+      g.fillRect(hand + 2, feet - 17, 2, 2); // smoke
+      g.fillRect(hand + 4, feet - 20, 2, 2);
+    } else if (gear === 'brazier') {
+      g.fillStyle(0x3a3a3e);
+      g.fillRect(hand, feet - 30, 2, 22); // the pole
+      g.fillRect(hand - 3, feet - 34, 8, 4); // the iron basket
+      g.fillStyle(color(palette.order.orange));
+      g.fillRect(hand - 2, feet - 36, 6, 2); // coals
+      g.fillStyle(color(palette.order.fire));
+      g.fillRect(hand, feet - 38, 2, 2);
     } else if (gear === 'axe') {
       g.fillStyle(0x6b4a2a);
       g.fillRect(hand, feet - 33, 2, 24);
@@ -287,6 +305,28 @@ function battleSoldier(tabard: string, emblem: string, gear: SoldierGear, heavy:
     g.destroy();
   };
 }
+
+/** A brazier standing on the battle board: an iron basket of coals on three legs. */
+const drawBrazier: PlaceholderDrawer = (scene, key, width, height, palette) => {
+  const g = scene.make.graphics({}, false);
+  const cx = Math.floor(width / 2);
+  const feet = height - 1;
+  g.fillStyle(0x2a2a2e);
+  g.fillRect(cx - 5, feet - 9, 2, 9); // legs
+  g.fillRect(cx + 3, feet - 9, 2, 9);
+  g.fillRect(cx - 1, feet - 8, 2, 8);
+  g.fillStyle(0x101010);
+  g.fillRect(cx - 7, feet - 15, 14, 7); // the basket
+  g.fillStyle(0x4a4a50);
+  g.fillRect(cx - 6, feet - 14, 12, 5);
+  g.fillStyle(color(palette.order.orange));
+  g.fillRect(cx - 5, feet - 17, 10, 3); // coals
+  g.fillStyle(color(palette.order.fire));
+  g.fillRect(cx - 2, feet - 21, 4, 4); // flame
+  g.fillRect(cx + 2, feet - 19, 2, 2);
+  g.generateTexture(key, width, height);
+  g.destroy();
+};
 
 /** A Broodling standing on the battle board: a small bronze hatchling, mouth open, facing right. */
 const drawBroodlingInBattle: PlaceholderDrawer = (scene, key, width, height) => {
@@ -364,6 +404,9 @@ export const placeholderDrawers: Readonly<Record<string, PlaceholderDrawer>> = {
   battle_enemy_titheCollector: battleSoldier('#2e2a40', '#d9c890', 'ledger', false, { hat: true }),
   battle_enemy_knight: battleSoldier('#d8d4c8', '#c23a2a', 'sword', true, { plume: '#c23a2a' }),
   battle_enemy_masterOfTheOrder: battleSoldier('#8a1a12', '#f0c040', 'torch', true, { plume: '#f0c040' }),
+  battle_enemy_censerPriest: battleSoldier('#e0d8c4', '#c23a2a', 'censer', false, { tonsure: true }),
+  battle_enemy_brazierBearer: battleSoldier('#5a4030', '#d9a93b', 'brazier', false),
+  battle_brazier: drawBrazier,
   battle_broodling: drawBroodlingInBattle,
   battle_stump: battleDot('#8a2a2a', '#3a0d0d'),
   battle_scar: battleDot('#2a2220', '#111111'),

@@ -57,6 +57,8 @@ export function battleRulesFrom(data: GameData): BattleRules {
         return { type: 'pull', hexes: e.hexes };
       case 'keepEntranced':
         return { type: 'keepEntranced' };
+      case 'crackCenser':
+        return { type: 'crackCenser' };
     }
   };
 
@@ -87,7 +89,9 @@ export function battleRulesFrom(data: GameData): BattleRules {
       case 'hurtSelf':
         return { type: 'hurtSelf', amount: s.amount };
       case 'toss':
-        return { type: 'toss', hexes: s.hexes, collisionStatus: s.collisionStatus, collisionTicks: ticks(s.collisionSeconds) };
+        return { type: 'toss', hexes: s.hexes, collisionStatus: s.collisionStatus, collisionTicks: ticks(s.collisionSeconds), knocksOverBraziers: s.knocksOverBraziers ?? false };
+      case 'putOutBraziers':
+        return { type: 'putOutBraziers', radius: s.radius ?? null };
       case 'seizeMany':
         return { type: 'seizeMany', count: s.count, ticks: ticks(s.seconds), breakArmor: s.breakArmor };
       case 'bottomless':
@@ -175,6 +179,28 @@ export function battleRulesFrom(data: GameData): BattleRules {
           charge: e.charge ? { stepMultiplier: e.charge.stepMultiplier, firstHitMultiplier: e.charge.firstHitMultiplier } : null,
           collectTicks: e.collectSeconds !== undefined ? ticks(e.collectSeconds) : null,
           boss: e.boss ?? false,
+          censer: e.censer
+            ? {
+                everyTicks: ticks(e.censer.everySeconds),
+                swingTicks: ticks(e.censer.swingSeconds),
+                radius: e.censer.radius,
+                smokeTicks: ticks(e.censer.smokeSeconds),
+                boostMultiplier: 1 + e.censer.damageBoostPercent / 100,
+                boostTicks: ticks(e.censer.boostSeconds),
+                keepsStatuses: e.censer.keepsStatuses ?? [],
+              }
+            : null,
+          braziers: e.braziers
+            ? {
+                count: e.braziers.count,
+                fromBody: e.braziers.fromBody,
+                setDownTicks: ticks(e.braziers.setDownSeconds),
+                everyTicks: ticks(e.braziers.everySeconds),
+                dryRadius: e.braziers.dryRadius,
+                mistRadius: e.braziers.mistRadius,
+                bodySlowMultiplier: e.braziers.bodySlowMultiplier,
+              }
+            : null,
         },
       ]),
     ),
@@ -252,5 +278,13 @@ export function battleRulesFrom(data: GameData): BattleRules {
       attack: { damage: brood.battle.attack.damage, cooldownTicks: ticks(brood.battle.attack.cooldownSeconds), range: brood.battle.attack.range },
     },
     experience: experienceRulesFrom(data),
+    surface: {
+      startClouds: {
+        count: data.surface.battle.startClouds.count,
+        radius: data.surface.battle.startClouds.radius,
+        ticks: ticks(data.surface.battle.startClouds.seconds),
+        fromBody: data.surface.battle.startClouds.fromBody,
+      },
+    },
   };
 }

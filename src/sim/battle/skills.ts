@@ -14,8 +14,9 @@ import {
   devourEnemy,
   enemyArmor,
   healHead,
+  headDamageMultiplier,
   hurtEnemy,
-  levelDamageMultiplier,
+  putOutBraziers,
   random,
   rememberHit,
   seize,
@@ -125,7 +126,7 @@ function landOn(state: BattleState, head: BattleHead, skill: SkillRules, enemy: 
   const hit: HitContext = { head, tags: skill.tags, hitDamage: 0, power, keepEntranced: false };
   if (aimed && skill.hitMultiplier > 0) {
     const attack = rules.headClasses[head.classId]!.attack;
-    const raw = Math.max(1, attack.damage * levelDamageMultiplier(head, rules) * skill.hitMultiplier * power - enemyArmor(enemy, rules));
+    const raw = Math.max(1, attack.damage * headDamageMultiplier(state, head, rules) * skill.hitMultiplier * power - enemyArmor(enemy, rules));
     hit.hitDamage = hurtEnemy(state, enemy, raw, 'head', head.id, rules, false);
   }
   for (const effect of skill.effects) {
@@ -230,9 +231,15 @@ function doSpecial(
       const held = state.enemies.find((e) => e.id === head.holdingId);
       if (!held || !aimHex) return false;
       breakHold(state, head, rules);
-      toss(state, held, aimHex, special.hexes, special.collisionStatus, special.collisionTicks, rules);
+      const landed = toss(state, held, aimHex, special.hexes, special.collisionStatus, special.collisionTicks, rules);
+      // Thrown into a brazier, or next to one, it knocks it over.
+      if (special.knocksOverBraziers) putOutBraziers(state, landed, 1);
       return true;
     }
+    case 'putOutBraziers':
+      // A skill isn't wasted for want of a brazier: putting them out comes on top of what it does.
+      putOutBraziers(state, aimHex, special.radius);
+      return true;
     case 'seizeMany': {
       const inReach = state.enemies
         .filter((e) => bodyDistance(state.body.center, e.hex) <= skill.range)

@@ -34,15 +34,18 @@ import {
   createBattle,
   enemyCan,
   hasStatus,
+  dryingBrazier,
   isAcid,
+  isClearOfMist,
   isOnBoard,
   skillCooldown,
   skillInSlot,
   stepBattle,
 } from '../sim/battle';
-import type { Ally, BattleEvent, BattleHead, BattleSetup, BattleState, Enemy, HeadRecord, MistCloud, SkillAim, Walker } from '../sim/battle';
+import type { Ally, BattleEvent, BattleHead, BattleSetup, BattleState, Brazier, Enemy, HeadRecord, MistCloud, SkillAim, Walker } from '../sim/battle';
 import { hexDistance, hexKey, hexToPixel, pixelToHex } from '../sim/hex';
 import type { Hex, HexLayout } from '../sim/hex';
+import { tileOn } from '../sim/turn';
 import type { ShownLine } from '../sim/turn';
 import { exposeBattleSummary, markReady } from '../testHooks';
 import { Button } from '../ui/Button';
@@ -69,6 +72,8 @@ const PANEL_TOP = 316;
 /** Screen position of the board's middle hex, where the body starts. */
 const LAYOUT: HexLayout = { columnWidth: HEX_COLUMN_WIDTH, rowHeight: HEX_ROW_HEIGHT, originX: 320, originY: 170 };
 const SPEEDS = [1, 0.5] as const;
+/** A battle on the surface: whether it is fought in mist or Exposed, in the top bar from here (screen units). */
+const SURFACE_LINE_X = 352;
 /** A boss's name in the top bar starts here, and his HP bar after it is this wide (screen units). */
 const BOSS_BAR = { x: 86, width: 90 } as const;
 const DEFAULT_TEST_GROUP = 'burningDetail';
@@ -129,6 +134,15 @@ const MARK_LINE = { rounding: 3, glowWidth: 4, glowAlpha: 0.2, width: 1.25 } as 
 const SHADOW = { soldier: 24, broodling: 14, body: { width: 176, height: 100, below: 12 } } as const;
 /** A cloud of Mist is soft patches this wide, one on each hex it covers, and soft puffs this big over them (screen units). */
 const MIST_PATCH = 70;
+/**
+ * Censer smoke (M4): a grey-brown haze over the hexes it clears, fading as it ends; the swing itself is a ring of puffs
+ * going out. Ground a brazier dried: a dusty orange patch on each hex. A brazier glows and lights the board like a torch.
+ */
+const SMOKE = { tint: '#a89c86', alpha: 0.32, ringMs: 900 } as const;
+const DRY = { tint: '#b07a40', alpha: 0.32 } as const;
+const BRAZIER_LIGHT = { radius: 70, strength: 0.38, flicker: 0.12, glowSize: 40, glowAlpha: 0.55, flameY: 16 } as const;
+/** A Censer Priest swinging sways this many degrees; a Brazier Bearer setting one down stoops this many pixels. */
+const CHANNEL_LOOK = { swingDegrees: 12, stoop: 2 } as const;
 const MIST_PUFF = { width: 34, height: 16 } as const;
 /**
  * Light: a soft light over the middle of the board (darker towards the edges); a burning torch lights this far
@@ -174,6 +188,14 @@ interface AllyView {
   feet: Point;
 }
 
+/** A lit brazier on the board, with its glow and its shadow. */
+interface BrazierView {
+  sprite: Phaser.GameObjects.Image;
+  glow: Phaser.GameObjects.Image;
+  shadow: Phaser.GameObjects.Image;
+  phase: number;
+}
+
 interface EnemyView {
   sprite: Phaser.GameObjects.Image;
   shadow: Phaser.GameObjects.Image;
@@ -209,6 +231,9 @@ export class BattleScene extends Phaser.Scene {
   private light!: MapLight;
   private bodyShadow!: Phaser.GameObjects.Image;
   private mistTiles = new Map<string, Phaser.GameObjects.Image>();
+  /** Dusty patches on ground a brazier dried, one per hex (hidden elsewhere). */
+  private dryTiles = new Map<string, Phaser.GameObjects.Image>();
+  private braziers = new Map<number, BrazierView>();
   /** Puffs of each cloud, by cloudKey (so a cloud moved by Drift gets new puffs where it is now). */
   private mistPuffs = new Map<string, Phaser.GameObjects.Image[]>();
   private bodySprite!: Phaser.GameObjects.Image;
@@ -250,6 +275,8 @@ export class BattleScene extends Phaser.Scene {
     if (!run || (!run.state.pendingBattle && params.scene === SceneKey.Battle)) {
       // ?scene=battle: a test battle without walking to an encounter.
       run = run ?? startNewRun(this);
+      if (params.surface) run.surfaceForTest();
+      if (params.surface && params.exposed) run.exposeForTest();
       run.startTestBattle(params.group ?? DEFAULT_TEST_GROUP, params.hp, params.allies);
     }
     this.run = run;
@@ -273,6 +300,8 @@ export class BattleScene extends Phaser.Scene {
     this.finished = false;
     this.slowdownLeft = 0;
     this.mistTiles = new Map();
+    this.dryTiles = new Map();
+    this.braziers = new Map();
     this.mistPuffs = new Map();
     this.heads = new Map();
     this.enemies = new Map();
@@ -285,7 +314,7 @@ export class BattleScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(color(data.palette.underground.black));
     // The board looks like the place of the encounter: its biome, and water if it was fought in water.
     const pending = run.state.pendingBattle!;
-    const tile = run.state.map.tiles.get(hexKey(pending.at));
+    const tile = tileOn(run.state, pending.layer, pending.at);
     const biome = tile?.biome ?? data.biomes.lairBiome;
     this.createBoard(biome, tile?.terrain ?? 'mud');
 
@@ -305,6 +334,14 @@ export class BattleScene extends Phaser.Scene {
     this.setUpInput();
     this.syncSprites();
     this.draw(0);
+    if (setup.surface) {
+      // A battle on the surface says in the top bar how it is fought: in the mist, or Exposed with the heads hitting softer.
+      const { text } = data;
+      const line = setup.surface.inMist ? text.battle.startInMist : text.battle.startExposed.replace('{n}', String(Math.round(Math.abs(setup.surface.damagePercent))));
+      this.add
+        .text(SURFACE_LINE_X, 3, line, { fontFamily: FONT.text, fontSize: '10px', color: setup.surface.inMist ? '#e4ece6' : '#ffcf5c' })
+        .setDepth(DEPTH.ui + 1);
+    }
     exposeBattleSummary(() => ({
       tick: this.battle.tick,
       outcome: this.battle.outcome,
@@ -366,6 +403,8 @@ export class BattleScene extends Phaser.Scene {
       // Mist as soft patches that run into each other; marks are lines (drawMarks).
       const patch = this.add.image(p.x, p.y, LIGHT_TEXTURE).setScale(MIST_PATCH / LIGHT_TEXTURE_SIZE).setDepth(DEPTH.mark).setVisible(false);
       this.mistTiles.set(hexKey(h), patch);
+      const dry = this.add.image(p.x, p.y, LIGHT_TEXTURE).setScale(MIST_PATCH / LIGHT_TEXTURE_SIZE).setTint(color(DRY.tint)).setDepth(DEPTH.mark).setVisible(false);
+      this.dryTiles.set(hexKey(h), dry);
     }
     if (painted) this.drawGrid();
     // A few glowing spores in the dark around the board.
@@ -938,6 +977,14 @@ export class BattleScene extends Phaser.Scene {
       this.enemies.set(enemy.id, { sprite, shadow, glow, lungeUntil: 0, lungeTo: feet, phase: enemy.id * 2.3, feet });
     }
 
+    const brazierIds = new Set(this.battle.braziers.map((b) => b.id));
+    for (const [id, view] of this.braziers) {
+      if (brazierIds.has(id)) continue;
+      this.putOut(view);
+      this.braziers.delete(id);
+    }
+    for (const brazier of this.battle.braziers) if (!this.braziers.has(brazier.id)) this.braziers.set(brazier.id, this.brazierView(brazier));
+
     const stumpIds = new Set(this.battle.stumps.map((s) => s.id));
     for (const [id, sprite] of this.stumpSprites) {
       if (stumpIds.has(id)) continue;
@@ -964,9 +1011,54 @@ export class BattleScene extends Phaser.Scene {
           const puff = !this.hasArt('battle_mist_puff')
             ? this.add.image(p.x, p.y - 10, LIGHT_TEXTURE).setScale(MIST_PUFF.width / LIGHT_TEXTURE_SIZE, MIST_PUFF.height / LIGHT_TEXTURE_SIZE)
             : this.add.image(p.x, p.y - 10, 'battle_mist_puff');
-          return puff.setDepth(DEPTH.mist).setAlpha(0).setData('x0', p.x);
+          return puff.setDepth(DEPTH.mist).setAlpha(0).setData('x0', p.x).setData('hex', hexKey(h));
         });
       this.mistPuffs.set(cloudKey(cloud), puffs);
+    }
+  }
+
+  private brazierView(brazier: Brazier): BrazierView {
+    const feet = this.hexFeet(brazier.at);
+    const sprite = this.add.image(feet.x, feet.y, 'battle_brazier').setOrigin(0.5, 1).setDepth(DEPTH.standing + feet.y / 1000);
+    const shadow = this.softShadow(SHADOW.broodling).setPosition(feet.x, feet.y);
+    const glow = this.add
+      .image(feet.x, feet.y - BRAZIER_LIGHT.flameY, LIGHT_TEXTURE)
+      .setScale(BRAZIER_LIGHT.glowSize / LIGHT_TEXTURE_SIZE)
+      .setTint(color(getContext(this).data.palette.order.orange))
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(DEPTH.glow);
+    return { sprite, glow, shadow, phase: brazier.id * 1.3 };
+  }
+
+  /** A brazier that went out tips over and fades, with a puff of smoke. */
+  private putOut(view: BrazierView): void {
+    view.glow.destroy();
+    this.smokeRing({ x: view.sprite.x, y: view.sprite.y - 8 }, 0);
+    this.tweens.add({ targets: view.sprite, angle: 70, alpha: 0, duration: 500, onComplete: () => view.sprite.destroy() });
+    this.tweens.add({ targets: view.shadow, alpha: 0, duration: 500, onComplete: () => view.shadow.destroy() });
+  }
+
+  /** Puffs of censer smoke going out from `at` over `radius` hexes (0: one puff on the spot). */
+  private smokeRing(at: Point, radius: number): void {
+    const count = radius === 0 ? 1 : 10;
+    const reach = radius * TILE.width;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const puff = this.add
+        .image(at.x, at.y, LIGHT_TEXTURE)
+        .setScale(MIST_PUFF.width / LIGHT_TEXTURE_SIZE, MIST_PUFF.height / LIGHT_TEXTURE_SIZE)
+        .setTint(color(SMOKE.tint))
+        .setAlpha(0.7)
+        .setDepth(DEPTH.mist);
+      this.tweens.add({
+        targets: puff,
+        x: at.x + Math.cos(angle) * reach,
+        y: at.y + Math.sin(angle) * reach * 0.55 - (radius === 0 ? 12 : 0),
+        alpha: 0,
+        duration: SMOKE.ringMs,
+        ease: 'Quad.easeOut',
+        onComplete: () => puff.destroy(),
+      });
     }
   }
 
@@ -1041,7 +1133,10 @@ export class BattleScene extends Phaser.Scene {
     const rules = this.run.battleRules;
     if (hasStatus(enemy, 'entranced')) y += 3;
     const reeling = hop === 0 && !enemyCan(enemy, 'canWalk', rules) && !enemyCan(enemy, 'canAttack', rules) && !hasStatus(enemy, 'entranced');
-    view.sprite.setAngle(reeling ? Math.sin(now / 120 + view.phase) * 6 : 0);
+    const channel = enemy.channel ?? null;
+    if (channel?.kind === 'brazier') y += CHANNEL_LOOK.stoop;
+    const swinging = channel?.kind === 'censer' ? Math.sin(now / 110 + view.phase) * CHANNEL_LOOK.swingDegrees : 0;
+    view.sprite.setAngle(reeling ? Math.sin(now / 120 + view.phase) * 6 : swinging);
     if (now < view.lungeUntil) {
       x += Math.sign(view.lungeTo.x - x) * 3;
       y += Math.sign(view.lungeTo.y - y) * 2;
@@ -1179,12 +1274,14 @@ export class BattleScene extends Phaser.Scene {
     const { palette } = getContext(this).data;
     const rules = this.run.battleRules;
     const cover = new Map<string, { alpha: number; acid: boolean }>();
+    // Censer smoke and braziers keep the Mist off their hexes.
+    const cleared = new Set(boardHexes(rules).filter((h) => isClearOfMist(this.battle, h)).map(hexKey));
     for (const cloud of this.battle.clouds) {
       const acid = isAcid(this.battle, cloud);
       // Thins out over its last second.
       const fade = Math.max(0, Math.min(1, (cloud.untilTick - this.battle.tick) / rules.ticksPerSecond));
       for (const h of boardHexes(rules)) {
-        if (hexDistance(h, cloud.center) > cloud.radius) continue;
+        if (hexDistance(h, cloud.center) > cloud.radius || cleared.has(hexKey(h))) continue;
         const prev = cover.get(hexKey(h));
         cover.set(hexKey(h), { alpha: Math.max(prev?.alpha ?? 0, fade), acid: (prev?.acid ?? false) || acid });
       }
@@ -1193,13 +1290,25 @@ export class BattleScene extends Phaser.Scene {
         puff
           .setX((puff.getData('x0') as number) + drift)
           .setTint(color(acid ? palette.underground.bioluminescence : palette.mist))
-          .setAlpha((acid ? 0.55 : 0.45) * fade);
+          .setAlpha(cleared.has(puff.getData('hex') as string) ? 0 : (acid ? 0.55 : 0.45) * fade);
       });
+    }
+    // Where censer smoke hangs: a grey-brown haze, thinning over its last second.
+    const smoke = new Map<string, number>();
+    for (const s of this.battle.smokes) {
+      const fade = Math.max(0, Math.min(1, (s.untilTick - this.battle.tick) / rules.ticksPerSecond));
+      for (const h of boardHexes(rules)) if (hexDistance(h, s.center) <= s.radius) smoke.set(hexKey(h), Math.max(smoke.get(hexKey(h)) ?? 0, fade));
     }
     for (const [key, tile] of this.mistTiles) {
       const c = cover.get(key);
-      tile.setVisible(c !== undefined);
+      const haze = smoke.get(key);
+      tile.setVisible(c !== undefined || haze !== undefined);
       if (c) tile.setTint(color(c.acid ? palette.underground.bioluminescence : palette.mist)).setAlpha((c.acid ? 0.35 : 0.28) * c.alpha);
+      else if (haze !== undefined) tile.setTint(color(SMOKE.tint)).setAlpha(SMOKE.alpha * haze);
+    }
+    for (const [key, tile] of this.dryTiles) {
+      const [q, r] = key.split(',').map(Number);
+      tile.setVisible(dryingBrazier(this.battle, { q: q!, r: r! }) !== null).setAlpha(DRY.alpha);
     }
   }
 
@@ -1268,6 +1377,11 @@ export class BattleScene extends Phaser.Scene {
       const p = this.hexCenter(beacon.at);
       lights.push({ x: p.x, y: p.y - 18, radius: 70, color: 0xcfe8ff, strength: 0.35 });
     }
+    for (const view of this.braziers.values()) {
+      const flicker = 1 - BRAZIER_LIGHT.flicker * (0.5 + 0.5 * Math.sin(now / 80 + view.phase) * Math.sin(now / 41 + view.phase * 2));
+      view.glow.setAlpha(BRAZIER_LIGHT.glowAlpha * flicker);
+      lights.push({ x: view.glow.x, y: view.glow.y, radius: BRAZIER_LIGHT.radius, color: color(palette.order.orange), strength: BRAZIER_LIGHT.strength * flicker });
+    }
     for (const cloud of this.battle.clouds) {
       if (!isAcid(this.battle, cloud)) continue;
       const c = this.hexCenter(cloud.center);
@@ -1295,6 +1409,8 @@ export class BattleScene extends Phaser.Scene {
       // One small square per status above the HP bar; grey = torch out.
       const marks = enemy.statuses.map((s) => color(combos.statuses[s.id]?.color ?? '#ffffff'));
       if (this.battle.tick < enemy.torchOutUntilTick) marks.push(0x777777);
+      // Blessed by a censer: a gold mark.
+      if (enemy.boost && this.battle.tick < enemy.boost.untilTick) marks.push(color(getContext(this).data.palette.order.gold));
       marks.forEach((fill, i) => {
         const x = Math.round(view.feet.x - 9 + i * 5);
         const y = Math.round(top - 6);
@@ -1306,6 +1422,12 @@ export class BattleScene extends Phaser.Scene {
       if (enemy.cauterizingStumpId !== null) {
         const stump = this.battle.stumps.find((s) => s.id === enemy.cauterizingStumpId);
         if (stump) hpBar(g, view.feet.x, view.feet.y + 3, 18, stump.cauterizeProgress / cauterizeTicksFor(this.battle, enemy, rules), 0xffa030);
+      }
+      // A swing of the censer or a brazier being set down: how far along it is (stop it before it fills).
+      if (enemy.channel) {
+        const type = rules.enemyTypes[enemy.typeId]!;
+        const total = enemy.channel.kind === 'censer' ? (type.censer?.swingTicks ?? 1) : (type.braziers?.setDownTicks ?? 1);
+        hpBar(g, view.feet.x, view.feet.y + 3, 18, 1 - (enemy.channel.untilTick - this.battle.tick) / total, color(SMOKE.tint));
       }
       // A Tithe Collector counting what the hydra has.
       const collectTicks = rules.enemyTypes[enemy.typeId]!.collectTicks;
@@ -1456,6 +1578,21 @@ export class BattleScene extends Phaser.Scene {
         case 'rummage': {
           const view = this.heads.get(event.headId);
           if (view) this.floatText({ x: view.x, y: view.y - 24 }, text.battle.rummage[event.find] ?? event.find, '#d28fa4');
+          break;
+        }
+        case 'censer': {
+          const at = this.enemies.get(event.enemyId)?.feet ?? this.hexFeet(event.at);
+          if (event.what === 'swung') {
+            this.smokeRing({ x: at.x, y: at.y - 10 }, event.radius);
+            this.floatText({ x: at.x, y: at.y - 50 }, text.battle.censerSwung, palette.order.gold);
+          } else if (event.what === 'interrupted') this.floatText({ x: at.x, y: at.y - 50 }, text.battle.censerInterrupted, '#e3d6b4', '9px');
+          else if (event.what === 'cracked') this.floatText({ x: at.x, y: at.y - 50 }, text.battle.censerCracked, '#e3d6b4');
+          break;
+        }
+        case 'brazier': {
+          const at = this.hexFeet(event.at);
+          if (event.what === 'lit') this.floatText({ x: at.x, y: at.y - 40 }, text.battle.brazierLit, palette.order.orange, '9px');
+          else if (event.what === 'out') this.floatText({ x: at.x, y: at.y - 40 }, text.battle.brazierOut, '#c6e04a', '9px');
           break;
         }
         default:

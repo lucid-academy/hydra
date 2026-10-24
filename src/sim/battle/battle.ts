@@ -20,14 +20,17 @@ import {
   canCauterize,
   createMistCloud,
   devourEnemy,
+  dryingBrazier,
+  endStatuses,
   enemyArmor,
   enemyCan,
   enemyFlees,
   enemyStepTicks,
+  headDamageMultiplier,
   healHead,
   hurtEnemy,
+  interruptChannel,
   isInMist,
-  levelDamageMultiplier,
   random,
   randomPick,
   rememberHit,
@@ -39,7 +42,7 @@ import {
 } from './effects';
 import type { HitContext } from './effects';
 import { skillBlock, skillInSlot, useSkill } from './skills';
-import type { Ally, BattleCommand, BattleHead, BattleOutcome, BattleRules, BattleState, Enemy, HeadAttackRules, HeadRecord, Stump } from './types';
+import type { Ally, BattleCommand, BattleHead, BattleOutcome, BattleRules, BattleState, BrazierRules, CenserRules, Enemy, HeadAttackRules, HeadRecord, MistCloud, Stump } from './types';
 
 /**
  * Where the first neck leaves the body; the others follow evenly around it. It points north-east, at a hex,
@@ -134,8 +137,25 @@ export function createBattle(setup: BattleSetup, rules: BattleRules): BattleStat
       ...(type.charge ? { charging: true } : {}),
       ...(type.shots !== null ? { shotsLeft: type.shots } : {}),
       ...(type.behavior === 'collector' ? { collectProgress: 0, collected: false } : {}),
+      ...(type.censer ? { channel: null, nextChannelTick: 0, censerCracked: false } : {}),
+      ...(type.braziers ? { channel: null, nextChannelTick: 0, braziersLeft: type.braziers.count } : {}),
     };
   });
+  let nextId = Math.max(setup.firstFreeId, setup.enemies.length + 1);
+
+  // On the surface, in mist: the battle starts with clouds of it round the body, spread evenly.
+  const clouds: MistCloud[] = [];
+  if (setup.surface?.inMist) {
+    const start = rules.surface.startClouds;
+    const ring = boardHexes(rules).filter((h) => bodyDistance(BOARD_MIDDLE, h) === start.fromBody);
+    const first = rng.next() * Math.PI * 2;
+    for (let i = 0; i < start.count; i++) {
+      const angle = first + (i / start.count) * Math.PI * 2;
+      const at = minBy(ring, (h) => angleDifference(hexAngle(BOARD_MIDDLE, h), angle));
+      if (!at || clouds.some((c) => hexEquals(c.center, at))) continue;
+      clouds.push({ id: nextId++, center: at, radius: start.radius, untilTick: start.ticks, acidUntilTick: 0, acidDamagePerSecond: 0, nextAcidTick: 0, ownerHeadId: null });
+    }
+  }
 
   // Broodlings stand round the body, spread evenly, on hexes the Order hasn't taken.
   const taken = new Set(enemies.map((e) => hexKey(e.hex)));
@@ -176,10 +196,13 @@ export function createBattle(setup: BattleSetup, rules: BattleRules): BattleStat
     tithesTaken: 0,
     kills: {},
     cauterizeMultiplier: Math.max(0.1, 1 + (setup.cauterizePercent ?? 0) / 100),
-    clouds: [],
+    clouds,
+    smokes: [],
+    braziers: [],
     pools: [],
     beacons: [],
-    nextId: Math.max(setup.firstFreeId, setup.enemies.length + 1),
+    headDamageMultiplier: Math.max(0, 1 + (setup.surface?.damagePercent ?? 0) / 100),
+    nextId,
     ultimatesUnlocked: setup.ultimatesUnlocked ?? false,
     nextRegrowthHeads: null,
     lastSkill: null,
@@ -265,10 +288,13 @@ function moveBody(state: BattleState, rules: BattleRules): void {
     (c) => hexDistance(c, target) === closer && canBodyStandAt(c, rules) && bodyHexes(c).every((h) => !taken.has(hexKey(h))),
   );
   if (!next) return; // blocked: wait until the way is clear
+  // Ground dried by a brazier slows the body down.
+  let slow = 1;
+  for (const h of bodyHexes(next)) slow = Math.max(slow, dryingBrazier(state, h)?.bodySlowMultiplier ?? 1);
   body.stepFrom = body.center;
   body.center = next;
   body.stepStartTick = state.tick;
-  body.stepEndTick = state.tick + rules.bodyStepTicks;
+  body.stepEndTick = state.tick + Math.round(rules.bodyStepTicks * slow);
 }
 
 /** The hex a head is at: the human it holds, or its enemy's hex while it bites (melee), otherwise its own side of the body. */
@@ -403,7 +429,7 @@ function pickHeadTarget(state: BattleState, head: BattleHead, rules: BattleRules
 function headAttackLands(state: BattleState, head: BattleHead, target: Enemy, attack: HeadAttackRules, rules: BattleRules): void {
   const at = target.hex;
   const hit: HitContext = { head, tags: attack.tags, hitDamage: 0, power: 1, keepEntranced: false };
-  if (attack.damage > 0) hit.hitDamage = hurtEnemy(state, target, Math.max(1, attack.damage * levelDamageMultiplier(head, rules) - enemyArmor(target, rules)), 'head', head.id, rules, false);
+  if (attack.damage > 0) hit.hitDamage = hurtEnemy(state, target, Math.max(1, attack.damage * headDamageMultiplier(state, head, rules) - enemyArmor(target, rules)), 'head', head.id, rules, false);
   if (!state.enemies.includes(target)) {
     // Killed by the bite: a Glutton eats what it killed.
     if (attack.devourHeal > 0) afterMeal(state, target, attack.devourHeal, head, rules);
@@ -465,6 +491,7 @@ function updateEnemy(state: BattleState, enemy: Enemy, rules: BattleRules): void
   const beacon = beaconFor(state, enemy, rules);
   if (beacon) {
     enemy.cauterizingStumpId = null;
+    interruptChannel(state, enemy, rules);
     if (hexDistance(enemy.hex, beacon.at) <= 1) {
       if (beacon.kneel) applyStatus(state, enemy, 'entranced', rules, rules.ticksPerSecond);
       if (beacon.takesTorches && type.cauterizeTicks !== null) enemy.torchOutUntilTick = Number.MAX_SAFE_INTEGER;
@@ -480,6 +507,9 @@ function updateEnemy(state: BattleState, enemy: Enemy, rules: BattleRules): void
     return;
   }
 
+  if (type.censer && tendCenser(state, enemy, type.censer, rules)) return;
+  if (type.braziers && tendBraziers(state, enemy, type.braziers, rules)) return;
+
   if (type.behavior === 'collector' && type.collectTicks !== null) {
     collectTithe(state, enemy, type.collectTicks, canWalk, rules);
     return;
@@ -492,8 +522,9 @@ function updateEnemy(state: BattleState, enemy: Enemy, rules: BattleRules): void
     if (target) {
       if (enemy.cooldown <= 0) {
         enemy.cooldown = type.attack.cooldownTicks;
-        // A charging knight's first blow lands harder.
-        const damage = type.attack.damage * (enemy.charging && type.charge ? type.charge.firstHitMultiplier : 1);
+        // A charging knight's first blow lands harder, and so does a blow blessed by a censer.
+        const blessed = enemy.boost && state.tick < enemy.boost.untilTick ? enemy.boost.multiplier : 1;
+        const damage = type.attack.damage * (enemy.charging && type.charge ? type.charge.firstHitMultiplier : 1) * blessed;
         enemy.charging = type.charge ? false : undefined;
         if (enemy.shotsLeft !== undefined && enemy.shotsLeft > 0) enemy.shotsLeft -= 1;
         if (target.kind === 'body') damageBody(state, damage, enemy.id);
@@ -504,6 +535,73 @@ function updateEnemy(state: BattleState, enemy: Enemy, rules: BattleRules): void
     }
   }
   if (canWalk) walk(state, enemy, attackSpots(state, enemy, rules), rules);
+}
+
+/**
+ * A Censer Priest swings his censer when it is ready and there is something for its smoke to do: Mist or a brother
+ * with a status within reach of it, or the body close by. He stands still while swinging. Returns true if he spent
+ * this tick on it.
+ */
+function tendCenser(state: BattleState, enemy: Enemy, censer: CenserRules, rules: BattleRules): boolean {
+  if (enemy.censerCracked) return false;
+  const channel = enemy.channel;
+  if (channel?.kind === 'censer') {
+    if (state.tick < channel.untilTick) return true;
+    enemy.channel = null;
+    enemy.nextChannelTick = state.tick + censer.everyTicks;
+    swingCenser(state, enemy, censer, rules);
+    return true;
+  }
+  if (state.tick < (enemy.nextChannelTick ?? 0) || !enemyCan(enemy, 'canChannel', rules)) return false;
+  const near = (h: Hex) => hexDistance(h, enemy.hex) <= censer.radius;
+  const work =
+    bodyDistance(state.body.center, enemy.hex) <= censer.radius ||
+    boardHexes(rules).some((h) => near(h) && isInMist(state, h)) ||
+    state.enemies.some((e) => near(e.hex) && e.statuses.some((s) => !censer.keepsStatuses.includes(s.id)));
+  if (!work) return false;
+  enemy.channel = { kind: 'censer', untilTick: state.tick + censer.swingTicks };
+  state.events.push({ type: 'censer', tick: state.tick, enemyId: enemy.id, what: 'started', at: enemy.hex, radius: censer.radius });
+  return true;
+}
+
+/** The swing lands: the Mist goes, his brothers' statuses come off, and they hit harder for a while. */
+function swingCenser(state: BattleState, enemy: Enemy, censer: CenserRules, rules: BattleRules): void {
+  const at = enemy.hex;
+  state.clouds = state.clouds.filter((cloud) => hexDistance(cloud.center, at) + cloud.radius > censer.radius);
+  state.smokes.push({ id: state.nextId++, center: at, radius: censer.radius, untilTick: state.tick + censer.smokeTicks });
+  const cleansed = (s: Enemy['statuses'][number]) => !censer.keepsStatuses.includes(s.id);
+  for (const brother of [...state.enemies]) {
+    if (hexDistance(brother.hex, at) > censer.radius) continue;
+    // The smoke takes the statuses off for good: nothing comes after them (Wrung Out).
+    for (const status of brother.statuses) if (cleansed(status)) status.then = null;
+    endStatuses(state, brother, rules, cleansed);
+    brother.boost = { multiplier: censer.boostMultiplier, untilTick: state.tick + censer.boostTicks };
+  }
+  state.events.push({ type: 'censer', tick: state.tick, enemyId: enemy.id, what: 'swung', at, radius: censer.radius });
+}
+
+/**
+ * A Brazier Bearer near the body stops and sets a brazier down where he stands (not on the dry ground of another),
+ * then waits a while before the next. Returns true if he spent this tick on it.
+ */
+function tendBraziers(state: BattleState, enemy: Enemy, braziers: BrazierRules, rules: BattleRules): boolean {
+  const channel = enemy.channel;
+  if (channel?.kind === 'brazier') {
+    if (state.tick < channel.untilTick) return true;
+    enemy.channel = null;
+    enemy.nextChannelTick = state.tick + braziers.everyTicks;
+    enemy.braziersLeft = Math.max(0, (enemy.braziersLeft ?? 0) - 1);
+    const brazier = { id: state.nextId++, at: enemy.hex, ownerId: enemy.id, dryRadius: braziers.dryRadius, mistRadius: braziers.mistRadius, bodySlowMultiplier: braziers.bodySlowMultiplier };
+    state.braziers.push(brazier);
+    state.events.push({ type: 'brazier', tick: state.tick, what: 'lit', enemyId: enemy.id, brazierId: brazier.id, at: brazier.at });
+    return true;
+  }
+  if ((enemy.braziersLeft ?? 0) <= 0 || state.tick < (enemy.nextChannelTick ?? 0) || !enemyCan(enemy, 'canChannel', rules)) return false;
+  if (bodyDistance(state.body.center, enemy.hex) > braziers.fromBody) return false;
+  if (state.braziers.some((b) => hexDistance(b.at, enemy.hex) <= b.dryRadius + braziers.dryRadius)) return false;
+  enemy.channel = { kind: 'brazier', untilTick: state.tick + braziers.setDownTicks };
+  state.events.push({ type: 'brazier', tick: state.tick, what: 'settingDown', enemyId: enemy.id, brazierId: null, at: enemy.hex });
+  return true;
 }
 
 /**
