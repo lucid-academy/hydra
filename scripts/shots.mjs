@@ -321,6 +321,8 @@ const SHOTS = [
   // The surface (M4).
   { name: 'surface-start', query: '?seed=123&scene=map&surface=1&debug=1', viewport: DESKTOP, scene: 'map', act: readThrough },
   { name: 'surface-world', query: '?seed=123&scene=map&surface=1&reveal=1&zoom=0.45', viewport: DESKTOP, scene: 'map', act: readThrough },
+  // Without reveal: what she knows on climbing up, the castle and the burning shrines seen from afar.
+  { name: 'surface-afar', query: '?seed=123&scene=map&surface=1&zoom=0.45', viewport: DESKTOP, scene: 'map', act: readThrough },
   { name: 'surface-shrine', query: '?seed=123&scene=map&surface=1&near=flameShrine', viewport: DESKTOP, scene: 'map', act: readThrough },
   { name: 'surface-castle-night', query: '?seed=123&scene=map&surface=1&near=castle&night=1', viewport: DESKTOP, scene: 'map', act: readThrough },
   { name: 'surface-village', query: '?seed=123&scene=map&surface=1&near=village', viewport: DESKTOP, scene: 'map', act: readThrough },
