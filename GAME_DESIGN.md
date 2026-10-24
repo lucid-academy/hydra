@@ -540,7 +540,7 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 
 **M3: Zakon kontratakuje.** Alert z progami, patrole i posłańcy na mapie, wyprawy, obrona leża, jaja i Broodlingi, Great Burning jako boss aktu. Plan zatwierdzony przez Piotra 2026-10-23 (dokument Claude „Hydra M3: Zakon kontratakuje”). Do tego: wybór jaja po śmierci, Hidden Egg i wymarcie rodu (§12), nowi wrogowie od progu 75 (§6.6), akt 2 w lekkiej wersji (§4) oraz doświadczenie i poziomy głów, pozostałe z M2a. Bez komnat leża, Lineage Grimoire, głębszej warstwy podziemi, Censer Priesta i Brazier Bearera.
 
-**M4: powierzchnia.** Passages, Mist, dzień i noc, kapliczki Płomienia (gaszenie, trwała mgła, ponowne rozpalanie przez Zakon), stan Exposed.
+**M4: powierzchnia.** Passages, Mist, dzień i noc, kapliczki Płomienia (gaszenie, trwała mgła, ponowne rozpalanie przez Zakon), stan Exposed. Plan i pytania A–F: dokument Claude „Hydra M4: powierzchnia” (2026-10-24). Piotr napisał „Kontynuuj co możesz samemu, później odpowiem na pytania”, więc etap jest zbudowany na odpowiedziach polecanych przez Claude, z liczbami w `src/data/surface.json` (`TODO(design)`); decyzje trafią tu po odpowiedziach Piotra (§16).
 
 **M5: eventy, mini questy i dialogi.** Wszystkie trzy systemy (dialogi z malowanymi portretami i głosem Węża) i pierwsza porcja treści.
 
@@ -554,4 +554,11 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 - **Odrost (pomysł Piotra po playteście M1b):** nowe głowy są mniejsze i na początku zadają połowę obrażeń, żeby odrost nie dawał od razu siły. Głowy potem rosną, i dlatego z czasem hydra jest mocna. Do ustalenia: od czego rosną (doświadczenie z walk, błogosławieństwa, czas). Decyzja Piotra z 2026-10-23: jeszcze nie wprowadzamy; najpierw gra z pełnym składem klas.
 - **Zakończenia:** które i jak się do nich dochodzi? Propozycja Claude: obudzić Węża (z Wakers), nastroić pieśń na nowo i zająć miejsce Hushed, pójść za grzybnią poza świat Węża, zgasić Wieczny Płomień.
 - **Odblokowania klas głów:** na razie w puli są wszystkie dziewięć (§6.4, decyzja z 2026-10-23). Które klasy zamknąć za odblokowaniami konta (§12) i jak je zdobywać? Propozycja Claude: sześć pierwszych od startu, a Strangler, Tender i Lantern do odblokowania.
+- **M4, pytania A–F** (dokument „Hydra M4: powierzchnia”; gra działa na wariancie 1, do zmiany w danych):
+  - A. Ruch po powierzchni: krok na goły heks obok mgły za 2 Moisture, mgła „toczy się” przed hydrą (wariant 2: mgłę robi tylko Exhale Mist).
+  - B. Hydra bez mgły i Moisture: heks Passage zawsze ma mgłę, a utknięta hydra pełznie 1 heks na turę (wariant 2: bez ratunku).
+  - C. 5 kapliczek; zgaszenie daje Alert −10, trwałą mgłę w promieniu 2 i mutację z pierwszego płomienia, z kolejnych szansę 1 na 4; zamek zamknięty do M7 (wariant 2: 3 kapliczki, mutacja z każdej).
+  - D. Zakon w podziemiach dalej przy Passages i szybie, jak w M3 (wariant 2: schodzi z powierzchni Passage'em).
+  - E. Censer Priest i Brazier Bearer na powierzchni od początku, w podziemiach od progu Alertu 75 (wariant 2: tylko na powierzchni).
+  - F. Wsie, młyny i wieże są w M4 tylko widokami; najazdy i jeńcy w osobnym etapie (wariant 2: najazdy już w M4).
 - **Świat dnia:** jeden seed dziennie, ten sam dla wszystkich graczy, jak w Spelunky. Czy go chcemy i kiedy? Propozycja Claude: później, np. po M5, bo łatwo go dodać.
