@@ -63,6 +63,10 @@ export const balanceSchema = section({
     roots: terrainRulesSchema,
     salt: terrainRulesSchema,
     rock: terrainRulesSchema,
+    // The surface's ground (M4).
+    field: terrainRulesSchema,
+    forest: terrainRulesSchema,
+    hill: terrainRulesSchema,
   }),
   undergroundGenerator: section({
     lairRadius: z.number().int().min(1),
@@ -300,11 +304,14 @@ export const enemiesSchema = section({
   }
 });
 
-/** Kinds of open ground a biome can have (rock is wherever the caves are not). */
-export const GROUND_TYPES = ['water', 'mud', 'roots', 'salt'] as const;
+/** Kinds of open ground a biome can have (rock is wherever the caves are not). Field, forest and hill are the surface's. */
+export const GROUND_TYPES = ['water', 'mud', 'roots', 'salt', 'field', 'forest', 'hill'] as const;
+const SURFACE_GROUND: readonly string[] = ['field', 'forest', 'hill'];
 
 export const biomesSchema = section({
   lairBiome: z.string().min(1),
+  // The land above (M4): laid out by surface.json, not by the rings.
+  surfaceBiome: z.string().min(1),
   biomes: z.record(
     z.string(),
     section({
@@ -320,17 +327,22 @@ export const biomesSchema = section({
   if (!(data.lairBiome in data.biomes)) {
     ctx.addIssue({ code: 'custom', path: ['lairBiome'], message: `unknown biome "${data.lairBiome}"; known: ${Object.keys(data.biomes).join(', ')}` });
   }
-  if (Object.keys(data.biomes).length < 2) ctx.addIssue({ code: 'custom', path: ['biomes'], message: 'needs the lair biome and at least one other' });
+  if (!(data.surfaceBiome in data.biomes)) {
+    ctx.addIssue({ code: 'custom', path: ['surfaceBiome'], message: `unknown biome "${data.surfaceBiome}"; known: ${Object.keys(data.biomes).join(', ')}` });
+  }
+  if (Object.keys(data.biomes).length < 3) ctx.addIssue({ code: 'custom', path: ['biomes'], message: 'needs the lair biome, the surface and at least one other' });
   for (const [id, biome] of Object.entries(data.biomes)) {
     const sum = Object.values(biome.ground).reduce((a, b) => a + (b ?? 0), 0);
     if (Math.abs(sum - 1) > 0.001) ctx.addIssue({ code: 'custom', path: ['biomes', id, 'ground'], message: `shares must add up to 1 (now ${sum})` });
+    const above = Object.keys(biome.ground).filter((g) => SURFACE_GROUND.includes(g));
+    if (id !== data.surfaceBiome && above.length > 0) ctx.addIssue({ code: 'custom', path: ['biomes', id, 'ground'], message: `${above.join(', ')}: only the surface has this ground` });
   }
 });
 
 /** What a blessing can change (see shrines.json). */
 export const BLESSING_EFFECTS = ['movement', 'sight', 'bodyMaxHp', 'regeneration', 'alert', 'muck', 'moisture'] as const;
 /** What a mutation can change (see mutations.json). */
-export const MUTATION_EFFECTS = ['movement', 'sight', 'bodyMaxHp', 'regeneration', 'headMaxHpPercent', 'startingHeads', 'alertPercent', 'findsPercent', 'echoRange', 'cauterizePercent'] as const;
+export const MUTATION_EFFECTS = ['movement', 'sight', 'bodyMaxHp', 'regeneration', 'headMaxHpPercent', 'startingHeads', 'alertPercent', 'findsPercent', 'echoRange', 'cauterizePercent', 'exposedDamagePercent'] as const;
 
 export const shrinesSchema = section({
   blessings: z
@@ -585,6 +597,7 @@ export const worldSchema = section({
     wetYear: section({ ...named, unlock: unlockSchema, waterShareBonus: share, moistureMultiplier: z.number().positive() }),
     myceliumBloom: section({ ...named, unlock: unlockSchema, extraFungalPatches: intRange(0), fungalBiome: z.string().min(1) }),
     oldWorkings: section({ ...named, unlock: unlockSchema, extraEncounters: z.number().int().min(0) }),
+    drought: section({ ...named, unlock: unlockSchema, mistFadeMultiplier: z.number().positive() }),
   }),
   modifierDraw: section({ normalYearWeight: z.number().min(0) }),
 }).superRefine((world, ctx) => {
@@ -818,7 +831,7 @@ export const textSchema = z
 
 // ---------------------------------------------------------------- story: dialogues.json and events.json
 
-const STORY_TRIGGERS = ['afterBattle', 'newBiome', 'enemyAhead', 'restInLair', 'serpentOnTheWay', 'serpentInBattle', 'eventOnly', 'newGeneration', 'ancestorInSleep'] as const;
+const STORY_TRIGGERS = ['afterBattle', 'newBiome', 'enemyAhead', 'restInLair', 'serpentOnTheWay', 'serpentInBattle', 'eventOnly', 'newGeneration', 'ancestorInSleep', 'shrineOut', 'shrineRelit', 'exposed'] as const;
 const flagList = z.array(z.string().min(1));
 const storyConditionsSchema = section({
   rings: z.array(z.number().int().min(0)).optional(),
@@ -1055,6 +1068,126 @@ export const broodSchema = section({
   }),
 });
 
+// ---------------------------------------------------------------- the surface: surface.json (M4)
+
+const turnsOfMist = z.number().min(0);
+const namedText = section({ name: text, text });
+export const SETTLEMENT_SITES = ['river', 'hill', 'field'] as const;
+export const surfaceSchema = section({
+  generator: section({
+    castle: section({ fromEdge: z.number().int().min(1), hillRadius: z.number().int().min(0) }),
+    forest: section({ share, smoothing: z.number().int().min(0) }),
+    hills: section({ share, smoothing: z.number().int().min(0) }),
+    crags: section({ count: intRange(0), size: intRange(1) }),
+    river: section({ winding: z.number().min(0) }),
+    flameShrines: section({
+      count: z.number().int().min(1),
+      minApart: z.number().int().min(1),
+      minFromPassage: z.number().int().min(1),
+      minFromCastle: z.number().int().min(1),
+      tierByCastleDistance: z.array(z.number().int().min(1)),
+      // Tier ("1", "2", …) → encounter groups (enemies.json) by weight.
+      groupsByTier: z.record(z.string().regex(/^[1-9]$/, 'expected a tier: "1", "2", "3"'), weights),
+    }),
+    camps: section({ count: z.number().int().min(0), minFromPassage: z.number().int().min(1), minFromCastle: z.number().int().min(1) }),
+    settlements: z.array(section({ id: z.string().min(1), count: z.number().int().min(0), by: z.enum(SETTLEMENT_SITES) })),
+    finds: section({ count: z.number().int().min(0), minFromPassage: z.number().int().min(0) }),
+    eventSites: z.number().int().min(0),
+    spacing: z.number().int().min(1),
+  }),
+  passageMovement: z.number().int().min(0),
+  alertPerHexDiscovered: z.number().min(0),
+  mist: section({
+    exhale: section({ moisture: z.number().int().min(0), radius: z.number().int().min(0), radiusByClass: z.record(z.string(), z.number().int().min(0)), turns: turnsOfMist }),
+    breatheAhead: section({ moisture: z.number().int().min(0), turns: turnsOfMist }).nullable(),
+    maxTurns: turnsOfMist,
+    fade: section({ day: turnsOfMist, night: turnsOfMist, windExtra: turnsOfMist }),
+    windChance: share,
+    waterFade: z.number().min(0),
+    censerClears: z.number().int().min(0),
+    censerType: z.string().min(1),
+    start: section({ radius: z.number().int().min(0), turns: turnsOfMist }),
+  }),
+  dayNight: section({ dayTurns: z.number().int().min(1), nightTurns: z.number().int().min(0), nightSight: z.number().int().min(0) }),
+  exposed: section({ bodyHp: z.number().int().min(0), alert: z.number(), crawl: z.boolean(), battleDamagePercent: z.number().min(-100) }),
+  flameShrines: section({
+    alertWhenPutOut: z.number(),
+    lastingMistRadius: z.number().int().min(0),
+    // Mutation ids (mutations.json).
+    mutations: z.array(z.string().min(1)),
+    firstMutationChance: share,
+    mutationChance: share,
+    relight: section({ afterTurns: z.number().int().min(0), movement: z.number().int().min(1), group: z.string().min(1), alert: z.number() }),
+  }),
+  order: section({
+    sightInMist: z.number().int().min(0),
+    sight: z.number().int().min(0),
+    patrols: section({
+      firstOnTurn: z.number().int().min(1),
+      maxByStage: z.array(z.number().int().min(0)).min(1),
+      everyTurns: z.number().int().min(1),
+      movement: z.number().int().min(1),
+      chaseTurns: z.number().int().min(0),
+      groups: z.array(orderGroupSchema).min(1),
+    }),
+  }),
+  finds: entries(
+    section({
+      name: text,
+      text,
+      weight: z.number().min(0),
+      unique: z.boolean().optional(),
+      loot: lootSchema,
+      revealsHiddenThreshold: z.boolean().optional(),
+    }),
+  ),
+  // What the castle, the Passages, camps, shrines and each settlement of generator.settlements are called and say.
+  places: entries(namedText),
+  texts: section({
+    climbUp: text,
+    goDown: text,
+    climbedUp: text,
+    wentDown: text,
+    exhaleMist: text,
+    // {moisture}
+    exhaleCost: text,
+    exhaled: text,
+    noMoisture: text,
+    notOnSurface: text,
+    // {n}: body HP lost.
+    exposed: text,
+    covered: text,
+    nightFalls: text,
+    dayBreaks: text,
+    windyDay: text,
+    day: text,
+    night: text,
+    // {n}: shrines still burning.
+    shrinesBurning: text,
+    // {left}: shrines still burning.
+    shrineOut: text,
+    allShrinesOut: text,
+    relightSent: text,
+    shrineRelit: text,
+    crawl: text,
+    // {n}: Moisture.
+    breathAhead: text,
+    // {n}: percent of damage the heads deal.
+    exposedInBattle: text,
+  }),
+}).superRefine((s, ctx) => {
+  const ids = s.generator.settlements.map((p) => p.id);
+  for (const id of ['castle', 'passage', 'camp', 'flameShrine', 'flameShrineOut', ...ids]) {
+    if (!(id in s.places)) ctx.addIssue({ code: 'custom', path: ['places'], message: `needs the name and text of "${id}"` });
+  }
+  if (ids.includes('camp')) ctx.addIssue({ code: 'custom', path: ['generator', 'settlements'], message: '"camp" is placed by generator.camps' });
+  const tiers = s.generator.flameShrines.tierByCastleDistance.length + 1;
+  for (let tier = 1; tier <= tiers; tier++) {
+    if (!s.generator.flameShrines.groupsByTier[String(tier)]) ctx.addIssue({ code: 'custom', path: ['generator', 'flameShrines', 'groupsByTier'], message: `needs groups for tier ${tier} (there are ${tiers} tiers: one more than numbers in tierByCastleDistance)` });
+  }
+  if (!Object.values(s.finds).some((f) => f.weight > 0) && s.generator.finds.count > 0) ctx.addIssue({ code: 'custom', path: ['finds'], message: 'needs at least one find with a weight above 0' });
+});
+
 export const FLAG_SCOPES = ['life', 'lineage', 'world'] as const;
 export const flagsSchema = section({
   flags: entries(section({ scope: z.enum(FLAG_SCOPES), about: z.string().min(1) })),
@@ -1095,3 +1228,4 @@ export type LineageData = z.infer<typeof lineageSchema>;
 export type FlagsData = z.infer<typeof flagsSchema>;
 export type OrderData = z.infer<typeof orderSchema>;
 export type BroodData = z.infer<typeof broodSchema>;
+export type SurfaceData = z.infer<typeof surfaceSchema>;

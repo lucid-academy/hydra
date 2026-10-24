@@ -6,3 +6,4 @@ export * from './mutations';
 export * from './order';
 export * from './lair';
 export * from './experience';
+export * from './surface';

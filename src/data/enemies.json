@@ -71,6 +71,24 @@
       "behavior": "torchbearer",
       "immuneTo": ["terrified", "entranced"],
       "boss": true
+    },
+    "censerPriest": {
+      "//": "TODO(design): M4, on the surface (GAME_DESIGN.md §6.6). Swings his censer: its smoke clears the Mist round him, takes statuses off his brothers and makes them hit harder. On the map, the smoke of a unit with a Censer Priest clears the mist round it (surface.json mist.censerClears).",
+      "displayName": "Censer Priest",
+      "maxHp": 60,
+      "armor": 0,
+      "stepSeconds": 0.9,
+      "attack": { "damage": 3, "cooldownSeconds": 2.6, "range": 1 },
+      "behavior": "fighter"
+    },
+    "brazierBearer": {
+      "//": "TODO(design): M4, on the surface (§6.6). Sets down braziers that dry the ground round them (the body is slower on dry ground) and drive the Mist off.",
+      "displayName": "Brazier Bearer",
+      "maxHp": 90,
+      "armor": 1,
+      "stepSeconds": 1,
+      "attack": { "damage": 4, "cooldownSeconds": 2.6, "range": 1 },
+      "behavior": "fighter"
     }
   },
   "encounterGroups": [
@@ -82,6 +100,15 @@
     { "id": "crossbowLine", "tier": 2, "weight": 1, "orderOnly": true, "members": ["manAtArms", "manAtArms", "crossbowman", "crossbowman"] },
     { "id": "titheVisit", "tier": 2, "weight": 1, "orderOnly": true, "members": ["titheCollector", "manAtArms", "manAtArms", "crossbowman"] },
     { "id": "knightsVigil", "tier": 3, "weight": 1, "orderOnly": true, "members": ["knight", "manAtArms", "torchbearer", "crossbowman"] },
-    { "id": "greatBurning", "tier": 3, "weight": 1, "orderOnly": true, "members": ["masterOfTheOrder", "knight", "manAtArms", "manAtArms", "torchbearer", "crossbowman"] }
+    { "id": "greatBurning", "tier": 3, "weight": 1, "orderOnly": true, "members": ["masterOfTheOrder", "knight", "manAtArms", "manAtArms", "torchbearer", "crossbowman"] },
+    { "id": "fieldPatrol", "tier": 1, "weight": 1, "orderOnly": true, "members": ["manAtArms", "manAtArms", "headhunter"] },
+    { "id": "censerWalk", "tier": 1, "weight": 1, "orderOnly": true, "members": ["censerPriest", "manAtArms", "manAtArms", "torchbearer"] },
+    { "id": "brazierCrew", "tier": 2, "weight": 1, "orderOnly": true, "members": ["brazierBearer", "manAtArms", "manAtArms", "torchbearer"] },
+    { "id": "knightsRide", "tier": 3, "weight": 1, "orderOnly": true, "members": ["knight", "manAtArms", "censerPriest", "crossbowman"] },
+    { "id": "shrineWatch", "tier": 1, "weight": 1, "orderOnly": true, "members": ["manAtArms", "manAtArms", "torchbearer", "censerPriest"] },
+    { "id": "shrineVigil", "tier": 2, "weight": 1, "orderOnly": true, "members": ["manAtArms", "headhunter", "torchbearer", "censerPriest", "brazierBearer"] },
+    { "id": "shrineBastion", "tier": 3, "weight": 1, "orderOnly": true, "members": ["knight", "manAtArms", "crossbowman", "censerPriest", "brazierBearer"] },
+    { "id": "relightDetail", "tier": 1, "weight": 1, "orderOnly": true, "members": ["torchbearer", "torchbearer", "manAtArms", "censerPriest"] },
+    { "id": "censerProcession", "tier": 2, "weight": 1, "orderOnly": true, "members": ["censerPriest", "manAtArms", "manAtArms", "torchbearer"] }
   ]
 }

@@ -277,7 +277,7 @@ export class LineageKeeper {
       }
       if (hidden && i === 0) hideEgg(lineage, eggMutations(state.hydra.mutations, [], this.runRules.brood.inheritedShare, rng));
       state.turn = rng.int(4, 30);
-      const encounters = [...state.map.tiles.values()].flatMap((t) => (t.object?.kind === 'encounter' ? [{ at: t.hex, groupId: t.object.groupId }] : []));
+      const encounters = [...state.map.tiles.values()].flatMap((t) => (t.object?.kind === 'encounter' ? [{ at: t.hex, layer: 'underground' as const, groupId: t.object.groupId }] : []));
       if (encounters.length > 0) {
         state.pendingBattle = rng.pick(encounters);
         finishBattle(state, { outcome: 'lost', bodyHp: 0, heads: [], newScars: 0, nextId: state.nextId }, this.runRules);

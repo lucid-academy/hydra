@@ -8,7 +8,7 @@ import { hexesSeenFrom } from '../map';
 import { Rng } from '../rng';
 import { waysFrom, pathTo } from './order';
 import type { BroodlingRole, Egg, LairState, RunEvent, RunRules, RunState, Scout } from './types';
-import { tileAt } from './world';
+import { hydraOn, tileAt } from './world';
 
 /** The lair a hydra hatches into: her mother's eggs (startingEggs of them), each with its share of her mutations. */
 export function newLair(state: RunState, rules: RunRules): LairState {
@@ -43,7 +43,8 @@ export function eggMutations(mutations: readonly string[], eggs: readonly Egg[],
 }
 
 function inTheLair(state: RunState): boolean {
-  return hexEquals(state.hydra.position, state.map.lair);
+  const hydra = hydraOn(state, 'underground');
+  return hydra !== null && hexEquals(hydra, state.map.lair);
 }
 
 export type LairCheck = { can: true } | { can: false; why: 'notInLair' | 'cost' | 'full' | 'noEgg' | 'alreadyHatching' | 'alreadyHidden' };
@@ -133,7 +134,8 @@ function hatchReady(state: RunState, events: RunEvent[]): void {
  * Broodling).
  */
 function scoutAhead(state: RunState, scout: Scout, rules: RunRules, events: RunEvent[]): void {
-  const ways = waysFrom(state, rules, scout.at, null, (h) => !hexEquals(h, state.hydra.position));
+  const hydra = hydraOn(state, 'underground');
+  const ways = waysFrom(state, rules, scout.at, null, (h) => !(hydra && hexEquals(h, hydra)), 'underground');
   let goal: { at: Hex; cost: number } | null = null;
   for (const way of ways.values()) {
     if (state.visibility.has(hexKey(way.at))) continue;
@@ -160,7 +162,7 @@ function scoutAhead(state: RunState, scout: Scout, rules: RunRules, events: RunE
 export function scoutsCaught(state: RunState, events: RunEvent[]): void {
   const { lair, order } = state;
   for (const scout of [...lair.scouts]) {
-    if (!order.units.some((u) => u.kind !== 'messenger' && hexDistance(u.at, scout.at) <= 1)) continue;
+    if (!order.units.some((u) => u.layer === 'underground' && u.kind !== 'messenger' && hexDistance(u.at, scout.at) <= 1)) continue;
     lair.scouts = lair.scouts.filter((s) => s !== scout);
     events.push({ type: 'scoutKilled', scoutId: scout.id, at: scout.at });
   }

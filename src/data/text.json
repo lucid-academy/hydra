@@ -193,7 +193,8 @@
       "alertPercent": "Alert gain {n}%",
       "findsPercent": "Muck and Moisture found {n}%",
       "echoRange": "Echoes heard {n} hexes further",
-      "cauterizePercent": "Stumps take {n}% longer to burn shut"
+      "cauterizePercent": "Stumps take {n}% longer to burn shut",
+      "exposedDamagePercent": "Exposed: {n}% body HP lost"
     }
   }
 }

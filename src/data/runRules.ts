@@ -1,8 +1,8 @@
 // Picks the values the strategic-map simulation needs out of the data files.
 
-import type { BiomeSettings, PlaceSettings, UndergroundGeneratorSettings } from '../sim/map';
+import type { BiomeSettings, PlaceSettings, SurfaceGeneratorSettings, UndergroundGeneratorSettings } from '../sim/map';
 import type { LineageRules } from '../sim/lineage';
-import type { EventOutcome, OrderGroupRules, OrderRules, PlaceAction, RunRules, StoryRules } from '../sim/turn';
+import type { EventOutcome, OrderGroupRules, OrderRules, PlaceAction, RunRules, StoryRules, SurfaceRules } from '../sim/turn';
 import { experienceRulesFrom } from './battleRules';
 import type { GameData } from './index';
 import type { Balance, EventsData, OrderData } from './schemas';
@@ -43,7 +43,7 @@ export function generatorSettingsFrom(data: GameData): UndergroundGeneratorSetti
   return {
     radius: balance.map.undergroundRadius,
     lairBiome: biome(biomes.lairBiome),
-    biomes: Object.fromEntries(Object.keys(biomes.biomes).map((id) => [id, biome(id)])),
+    biomes: Object.fromEntries(Object.keys(biomes.biomes).filter((id) => id !== biomes.surfaceBiome).map((id) => [id, biome(id)])),
     lairRadius: gen.lairRadius,
     lairExits: gen.lairExits,
     ringCenterOffset: gen.ringCenterOffset,
@@ -114,7 +114,16 @@ export function runRulesFrom(data: GameData): RunRules {
     sightRangeHexes: map.sightRangeHexes,
     landmarkSightRange: map.landmarkSightRange,
     echoRange: map.echoRange,
-    terrain: { water: terrainRule(terrain.water), mud: terrainRule(terrain.mud), roots: terrainRule(terrain.roots), salt: terrainRule(terrain.salt), rock: terrainRule(terrain.rock) },
+    terrain: {
+      water: terrainRule(terrain.water),
+      mud: terrainRule(terrain.mud),
+      roots: terrainRule(terrain.roots),
+      salt: terrainRule(terrain.salt),
+      rock: terrainRule(terrain.rock),
+      field: terrainRule(terrain.field),
+      forest: terrainRule(terrain.forest),
+      hill: terrainRule(terrain.hill),
+    },
     alertMin: alert.min,
     alertMax: alert.max,
     alertPerHexDiscovered: alert.perHexDiscovered,
@@ -183,6 +192,77 @@ export function runRulesFrom(data: GameData): RunRules {
       lostDefenseBreaksShare: data.brood.lostDefense.eggsBrokenShare,
     },
     experience: experienceRulesFrom(data),
+    surface: surfaceRulesFrom(data),
+  };
+}
+
+/** The surface (surface.json), with every field filled in. */
+export function surfaceRulesFrom(data: GameData): SurfaceRules {
+  const { surface, world } = data;
+  const gen = surface.generator;
+  const finds = Object.entries(surface.finds);
+  const generator: SurfaceGeneratorSettings = {
+    radius: data.balance.map.undergroundRadius,
+    biome: data.biomes.surfaceBiome,
+    castle: { fromEdge: gen.castle.fromEdge, hillRadius: gen.castle.hillRadius },
+    forest: { share: gen.forest.share, smoothing: gen.forest.smoothing },
+    hills: { share: gen.hills.share, smoothing: gen.hills.smoothing },
+    crags: { count: gen.crags.count, size: gen.crags.size },
+    river: { winding: gen.river.winding },
+    flameShrines: {
+      count: gen.flameShrines.count,
+      minApart: gen.flameShrines.minApart,
+      minFromPassage: gen.flameShrines.minFromPassage,
+      minFromCastle: gen.flameShrines.minFromCastle,
+      tierByCastleDistance: gen.flameShrines.tierByCastleDistance,
+      groupsByTier: Object.fromEntries(Object.entries(gen.flameShrines.groupsByTier).map(([tier, w]) => [Number(tier), weighted(w)])),
+    },
+    camps: { count: gen.camps.count, minFromPassage: gen.camps.minFromPassage, minFromCastle: gen.camps.minFromCastle },
+    settlements: gen.settlements.map((p) => ({ id: p.id, count: p.count, by: p.by })),
+    finds: { count: gen.finds.count, minFromPassage: gen.finds.minFromPassage, pool: finds.filter(([, f]) => f.weight > 0).map(([id, f]) => ({ id, weight: f.weight, unique: f.unique === true })) },
+    eventSites: gen.eventSites,
+    spacing: gen.spacing,
+  };
+  const { mist, dayNight, exposed, flameShrines, order } = surface;
+  return {
+    generator,
+    passageMovement: surface.passageMovement,
+    alertPerHexDiscovered: surface.alertPerHexDiscovered,
+    mist: {
+      exhale: { moisture: mist.exhale.moisture, radius: mist.exhale.radius, radiusByClass: mist.exhale.radiusByClass, turns: mist.exhale.turns },
+      breatheAhead: mist.breatheAhead && { moisture: mist.breatheAhead.moisture, turns: mist.breatheAhead.turns },
+      maxTurns: mist.maxTurns,
+      fade: { day: mist.fade.day, night: mist.fade.night, windExtra: mist.fade.windExtra },
+      windChance: mist.windChance,
+      waterFade: mist.waterFade,
+      droughtFade: world.runModifiers.drought.mistFadeMultiplier,
+      censerClears: mist.censerClears,
+      censerType: mist.censerType,
+      start: { radius: mist.start.radius, turns: mist.start.turns },
+    },
+    dayNight: { dayTurns: dayNight.dayTurns, nightTurns: dayNight.nightTurns, nightSight: dayNight.nightSight },
+    exposed: { bodyHp: exposed.bodyHp, alert: exposed.alert, crawl: exposed.crawl, battleDamagePercent: exposed.battleDamagePercent },
+    flameShrines: {
+      alertWhenPutOut: flameShrines.alertWhenPutOut,
+      lastingMistRadius: flameShrines.lastingMistRadius,
+      mutations: flameShrines.mutations,
+      firstMutationChance: flameShrines.firstMutationChance,
+      mutationChance: flameShrines.mutationChance,
+      relight: { afterTurns: flameShrines.relight.afterTurns, movement: flameShrines.relight.movement, groupId: flameShrines.relight.group, alert: flameShrines.relight.alert },
+    },
+    order: {
+      sightInMist: order.sightInMist,
+      sight: order.sight,
+      patrols: {
+        firstOnTurn: order.patrols.firstOnTurn,
+        maxByStage: order.patrols.maxByStage,
+        everyTurns: order.patrols.everyTurns,
+        movement: order.patrols.movement,
+        chaseTurns: order.patrols.chaseTurns,
+        groups: order.patrols.groups.map((g) => ({ groupId: g.group, weight: g.weight, minRing: 0, fromStage: g.fromStage ?? null })),
+      },
+    },
+    finds: Object.fromEntries(finds.map(([id, f]) => [id, { loot: { muck: f.loot.muck ?? 0, moisture: f.loot.moisture ?? 0, bones: f.loot.bones ?? 0 }, revealsHiddenThreshold: f.revealsHiddenThreshold === true }])),
   };
 }
 

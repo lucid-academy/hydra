@@ -11,7 +11,7 @@ import type { Lineage, Profile } from '../sim/lineage';
 import type { RunState } from '../sim/turn';
 
 export const PROFILE_FORMAT = 2;
-export const RUN_FORMAT = 5;
+export const RUN_FORMAT = 6;
 
 /** The run of the living hydra, with whose it is (a lineage's number and the hydra's generation). */
 export interface SavedRun {
@@ -102,6 +102,8 @@ export function readRun(text: string | null): SavedRun | null {
     const state = saved.state;
     if (!isObject(state) || !isObject(state.map) || !(state.map.tiles instanceof Map) || !(state.visibility instanceof Map)) return null;
     if (!isObject(state.hydra) || !Array.isArray(state.hydra.heads) || !isObject(state.story) || typeof state.turn !== 'number') return null;
+    // The surface (M4): its own map and what the hydra knows of it.
+    if (!isObject(state.surface) || !isObject(state.surface.map) || !(state.surface.map.tiles instanceof Map) || !(state.surface.visibility instanceof Map)) return null;
     return { lineage: saved.lineage, generation: saved.generation, state: state as unknown as RunState };
   } catch {
     return null;

@@ -1,6 +1,7 @@
 import type { Hex } from '../hex';
 
-export const TERRAIN_TYPES = ['water', 'mud', 'roots', 'salt', 'rock'] as const;
+/** Underground ground (water, mud, roots, salt), rock, and the surface's own ground (field, forest, hill). Water is both. */
+export const TERRAIN_TYPES = ['water', 'mud', 'roots', 'salt', 'rock', 'field', 'forest', 'hill'] as const;
 export type TerrainType = (typeof TERRAIN_TYPES)[number];
 export type GroundType = Exclude<TerrainType, 'rock'>;
 
@@ -30,7 +31,7 @@ export type MapObject =
    * mark instead: `mark`, a mutation (mutations.json) for the hydra and her heiresses.
    */
   | { kind: 'shrine'; blessingId: string; used: boolean; mark?: string }
-  /** A way up to the surface (sealed until the surface exists). */
+  /** A way between the underground and the surface: on both maps, at the same hex (GAME_DESIGN.md §5.1). */
   | { kind: 'passage' }
   /**
    * A crossing between two rings, on a hex of the rock band between them (thresholds in world.json).
@@ -50,18 +51,35 @@ export type MapObject =
    */
   | { kind: 'place'; placeId: string; visited: boolean; used: string[]; readyOnTurn: Record<string, number>; carryPath: Hex[] | null }
   /** Something happens here (an event, GAME_DESIGN.md §10): which one is decided when the hydra arrives. */
-  | { kind: 'event'; eventId: string | null; done: boolean };
+  | { kind: 'event'; eventId: string | null; done: boolean }
+  /**
+   * A Flame Shrine on the surface (GAME_DESIGN.md §5.7): while it burns, its guard (an encounter group, and the group's
+   * tier) stands on it, and walking onto it is a battle. Put out, it holds nothing.
+   */
+  | { kind: 'flameShrine'; burning: boolean; groupId: string; tier: number }
+  /** The castle with the cathedral of the Eternal Flame (shut until the last assault, M7). */
+  | { kind: 'castle' }
+  /** A village, a mill, a watchtower or a camp of the Order (surface.json settlements). Camps send the Order out. */
+  | { kind: 'settlement'; settlementId: string }
+  /** Something lying on the surface (surface.json finds): picked up by walking over it. */
+  | { kind: 'find'; findId: string; looted: boolean };
 
 export type ObjectKind = MapObject['kind'];
 
-/** Which part of the underground a hex lies in. */
-export type Region = 'lair' | 'ring' | 'band' | 'outside';
+/** Which part of the underground a hex lies in, or the surface. */
+export type Region = 'lair' | 'ring' | 'band' | 'outside' | 'surface';
+
+/** The two maps of the world (GAME_DESIGN.md §5.1), joined by the Passages. */
+export type Layer = 'underground' | 'surface';
 
 export interface Tile {
   readonly hex: Hex;
   /** Which biome (from biomes.json) this hex belongs to. */
   readonly biome: string;
-  /** 0 = the lair's swamp, 1–3 = the rings. A band of rock counts to the ring inside it, the rock outside the world to the last ring. */
+  /**
+   * 0 = the lair's swamp, 1–3 = the rings. A band of rock counts to the ring inside it, the rock outside the world to the
+   * last ring. 0 on the surface.
+   */
   readonly ring: number;
   readonly region: Region;
   terrain: TerrainType;
@@ -111,12 +129,27 @@ export interface WorldLayout {
   readonly orderShaft: Hex | null;
 }
 
-export interface HexMap {
+/** What the maps of both layers have: every hex, and what is on it. */
+export interface LayerMap {
   readonly radius: number;
   /** Every hex of the map, keyed by hexKey(). */
   readonly tiles: Map<string, Tile>;
+}
+
+/** The underground. */
+export interface HexMap extends LayerMap {
   readonly lair: Hex;
   readonly layout: WorldLayout;
+}
+
+/** The surface (GAME_DESIGN.md §5.6, §9), on the same hexes as the underground below it. */
+export interface SurfaceMap extends LayerMap {
+  readonly castle: Hex;
+  /** The Passages, where they come out (the same hexes as below). */
+  readonly passages: readonly Hex[];
+  /** Camps of the Order, where it sets out from besides the castle. */
+  readonly camps: readonly Hex[];
+  readonly shrines: readonly Hex[];
 }
 
 /** A layout with nothing in it, for maps made by hand (tests). */

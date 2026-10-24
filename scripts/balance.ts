@@ -48,7 +48,7 @@ function play(groupId: string, policy: Policy, battles: number, headClasses: rea
   for (let seed = 1; seed <= battles; seed++) {
     // The same start as in the game: a fresh hydra with its starting heads walks into this group.
     const run = createRun(seed, runRules);
-    run.pendingBattle = { at: hex(0, 0), groupId };
+    run.pendingBattle = { at: hex(0, 0), layer: 'underground', groupId };
     const setup = pendingBattleSetup(run, runRules)!;
     if (headClasses) {
       setup.heads = headClasses.map((classId, i) => {

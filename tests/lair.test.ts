@@ -79,7 +79,7 @@ describe('Broodlings', () => {
   it('a scout next to the Order\'s people is caught', () => {
     const state = lairRun();
     state.lair.scouts = [{ id: 's9', at: hex(5, 0) }];
-    const unit: OrderUnit = { id: 'o1', kind: 'patrol', at: hex(5, -1), groupId: 'patrol', tier: 1, goal: hex(5, -1), chase: 0, trail: null };
+    const unit: OrderUnit = { id: 'o1', kind: 'patrol', at: hex(5, -1), groupId: 'patrol', tier: 1, goal: hex(5, -1), chase: 0, trail: null, layer: 'underground' };
     state.order.units.push(unit);
     // The scout is surrounded by ground already known, so it stays put.
     for (const key of state.map.tiles.keys()) state.visibility.set(key, 'remembered');

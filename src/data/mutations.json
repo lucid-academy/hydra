@@ -64,6 +64,22 @@
       "bossOnly": true,
       "text": "The Master's last sermon is still in there somewhere. The heads heal faster for it, and the Order can smell him on her.",
       "effects": { "regeneration": 4, "alertPercent": 15 }
+    },
+    {
+      "id": "smokeCured",
+      "name": "Smoke-cured",
+      "//": "Only from putting out a Flame Shrine (surface.json flameShrines mutations); a marking shrine never offers it (bossOnly). exposedDamagePercent: an Exposed hydra loses this many percent more body HP (negative: less).",
+      "bossOnly": true,
+      "text": "A hide cured in the smoke of the Order's own flame. The sun still dislikes it, but has trouble getting a grip.",
+      "effects": { "exposedDamagePercent": -50 }
+    },
+    {
+      "id": "emberEyed",
+      "name": "Ember-eyed",
+      "//": "Only from putting out a Flame Shrine (surface.json flameShrines mutations).",
+      "bossOnly": true,
+      "text": "One head looked into the flame as it went out, and kept some of it. It sees further, and is seen further.",
+      "effects": { "sight": 1, "alertPercent": 10 }
     }
   ]
 }

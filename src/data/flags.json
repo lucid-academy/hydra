@@ -17,6 +17,7 @@
     "surveyDone": { "scope": "world", "about": "\"The Subterranean Survey\", step 2: the surveyors were dealt with." },
     "surveyStamped": { "scope": "world", "about": "\"The Subterranean Survey\", step 3: the hydra is officially surveyed." },
     "ninefoldFriend": { "scope": "lineage", "about": "The Ninefold Camp counts this lineage as a friend." },
-    "angeredOneCoil": { "scope": "lineage", "about": "This lineage has angered the One Coil." }
+    "angeredOneCoil": { "scope": "lineage", "about": "This lineage has angered the One Coil." },
+    "putOutFlame": { "scope": "world", "about": "A Flame Shrine of the Order has been put out on the surface (unlocks the Drought)." }
   }
 }

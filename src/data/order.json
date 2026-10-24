@@ -23,7 +23,8 @@
       { "group": "huntingParty", "weight": 2, "minRing": 2 },
       { "group": "burningDetail", "weight": 2, "minRing": 2 },
       { "group": "crossbowLine", "weight": 2, "fromStage": "newEnemies" },
-      { "group": "titheVisit", "weight": 2, "fromStage": "newEnemies" }
+      { "group": "titheVisit", "weight": 2, "fromStage": "newEnemies" },
+      { "group": "censerProcession", "weight": 1, "fromStage": "newEnemies" }
     ]
   },
   "messengers": {
@@ -52,7 +53,8 @@
     "groups": [
       { "group": "burningDetail", "weight": 2 },
       { "group": "pyreProcession", "weight": 1 },
-      { "group": "knightsVigil", "weight": 2, "fromStage": "newEnemies" }
+      { "group": "knightsVigil", "weight": 2, "fromStage": "newEnemies" },
+      { "group": "brazierCrew", "weight": 1, "fromStage": "newEnemies" }
     ]
   },
   "greatBurning": {

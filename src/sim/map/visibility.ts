@@ -3,13 +3,13 @@
 
 import { hasLineOfSight, hexKey, hexesInRange } from '../hex';
 import type { Hex } from '../hex';
-import type { HexMap, TerrainTable } from './types';
+import type { LayerMap, TerrainTable } from './types';
 
 export type VisibilityState = 'visible' | 'remembered';
 export type Visibility = Map<string, VisibilityState>;
 
 /** Keys of hexes seen from `from` within `range`, with rock blocking sight. */
-export function hexesSeenFrom(map: HexMap, from: Hex, range: number, terrain: TerrainTable): Set<string> {
+export function hexesSeenFrom(map: LayerMap, from: Hex, range: number, terrain: TerrainTable): Set<string> {
   const blocksSight = (h: Hex): boolean => {
     const tile = map.tiles.get(hexKey(h));
     return !tile || terrain[tile.terrain].blocksSight;

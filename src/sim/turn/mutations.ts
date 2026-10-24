@@ -35,7 +35,9 @@ function applyLasting(state: RunState, effects: MutationEffects, rules: RunRules
   }
   if (effects.sight) {
     hydra.sightRange = Math.max(1, hydra.sightRange + effects.sight);
-    updateVisibility(state.visibility, hexesSeenFrom(state.map, hydra.position, hydra.sightRange, rules.terrain));
+    // What she sees on the map she is on (the run's own state for the underground, its surface for the surface).
+    const here = hydra.layer === 'surface' ? state.surface : state;
+    updateVisibility(here.visibility, hexesSeenFrom(here.map, hydra.position, hydra.sightRange, rules.terrain));
   }
   if (effects.bodyMaxHp) {
     const before = hydra.bodyMaxHp;

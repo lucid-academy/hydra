@@ -26,7 +26,7 @@ function chamber(hexes: Hex[]) {
 
 /** Puts one of the Order's units on the map by hand. */
 function place(state: RunState, kind: OrderUnit['kind'], at: Hex, groupId = 'patrol'): OrderUnit {
-  const unit: OrderUnit = { id: `o${state.order.nextUnitId++}`, kind, at, groupId: kind === 'messenger' ? '' : groupId, tier: 1, goal: null, chase: 0, trail: null };
+  const unit: OrderUnit = { id: `o${state.order.nextUnitId++}`, kind, at, groupId: kind === 'messenger' ? '' : groupId, tier: 1, goal: null, chase: 0, trail: null, layer: 'underground' };
   state.order.units.push(unit);
   return unit;
 }
@@ -98,7 +98,7 @@ describe('patrols', () => {
     const events = endTurn(state, rules);
     expect(unit.at).toEqual(state.hydra.position);
     // She is in her lair: it is the battle for the lair.
-    expect(state.pendingBattle).toEqual({ at: state.hydra.position, groupId: 'patrol', unitId: unit.id, defense: true });
+    expect(state.pendingBattle).toEqual({ at: state.hydra.position, layer: 'underground', groupId: 'patrol', unitId: unit.id, defense: true });
     expect(events.map((e) => e.type)).toContain('orderAttacked');
     expect(events.at(-2)?.type === 'battleStarted' || events.some((e) => e.type === 'battleStarted')).toBe(true);
   });
@@ -119,7 +119,7 @@ describe('patrols', () => {
     const unit = place(state, 'patrol', hex(2, 0));
     expect(reachableHexes(state, rules).get(hexKey(hex(3, 0)))?.path).not.toContainEqual(hex(2, 0));
     moveHydra(state, hex(2, 0), rules);
-    expect(state.pendingBattle).toEqual({ at: hex(2, 0), groupId: 'patrol', unitId: unit.id });
+    expect(state.pendingBattle).toEqual({ at: hex(2, 0), layer: 'underground', groupId: 'patrol', unitId: unit.id });
   });
 
   it('beaten, are gone, and a messenger runs for the Passage', () => {
@@ -258,7 +258,7 @@ describe('expeditions', () => {
     state.hydra.position = hex(-3, 0);
     const unit = place(state, 'expedition', state.map.lair, 'burningDetail');
     moveHydra(state, state.map.lair, rules);
-    expect(state.pendingBattle).toEqual({ at: state.map.lair, groupId: 'burningDetail', unitId: unit.id, defense: true });
+    expect(state.pendingBattle).toEqual({ at: state.map.lair, layer: 'underground', groupId: 'burningDetail', unitId: unit.id, defense: true });
   });
 
   it('beaten, are followed by the next one after a while', () => {
@@ -274,13 +274,13 @@ describe('expeditions', () => {
     const state = quietRun();
     state.lair.defenders = 3;
     const unit = place(state, 'patrol', hex(1, 0));
-    state.pendingBattle = { at: state.map.lair, groupId: 'patrol', unitId: unit.id, defense: true };
+    state.pendingBattle = { at: state.map.lair, layer: 'underground', groupId: 'patrol', unitId: unit.id, defense: true };
     expect(pendingBattleSetup(state, rules)?.allies).toBe(3);
     finishBattle(state, { ...won(state), alliesLeft: 1 }, rules);
     expect(state.lair.defenders).toBe(1);
     // Away from the lair they stay at home.
     const away = place(state, 'patrol', hex(3, 0));
-    state.pendingBattle = { at: hex(3, 0), groupId: 'patrol', unitId: away.id };
+    state.pendingBattle = { at: hex(3, 0), layer: 'underground', groupId: 'patrol', unitId: away.id };
     expect(pendingBattleSetup(state, rules)?.allies).toBe(0);
   });
 
@@ -288,7 +288,7 @@ describe('expeditions', () => {
     const state = quietRun();
     state.lair.eggs = [1, 2, 3, 4].map((n) => ({ id: `e${n}`, mutations: [], hatching: null }));
     const unit = place(state, 'patrol', hex(1, 0));
-    state.pendingBattle = { at: state.map.lair, groupId: 'patrol', unitId: unit.id, defense: true };
+    state.pendingBattle = { at: state.map.lair, layer: 'underground', groupId: 'patrol', unitId: unit.id, defense: true };
     const events = finishBattle(state, { outcome: 'lost', bodyHp: 0, heads: [], newScars: 0, nextId: state.nextId }, rules);
     expect(state.lair.eggs).toHaveLength(4 - Math.ceil(4 * rules.brood.lostDefenseBreaksShare));
     expect(events.map((e) => e.type)).toEqual(['eggsBroken', 'hydraDied']);
@@ -299,7 +299,7 @@ describe('the Tithe Collector', () => {
   it('who got away takes his share of everything, and the escaped leave no Bones', () => {
     const state = quietRun();
     state.resources = { muck: 55, moisture: 20, bones: 9 };
-    state.pendingBattle = { at: hex(2, 0), groupId: 'titheVisit' };
+    state.pendingBattle = { at: hex(2, 0), layer: 'underground', groupId: 'titheVisit' };
     const events = finishBattle(state, { ...won(state), tithesTaken: 1 }, rules);
     const share = (n: number) => Math.floor((n * rules.order.tithePercent) / 100);
     const bones = (rules.encounterGroupMembers.titheVisit!.length - 1) * rules.bonesPerEnemy;
@@ -334,7 +334,7 @@ describe('the Great Burning', () => {
 
     burning!.at = hex(1, 0);
     state.hydra.position = hex(2, 0);
-    state.pendingBattle = { at: hex(1, 0), groupId: burning!.groupId, unitId: burning!.id };
+    state.pendingBattle = { at: hex(1, 0), layer: 'underground', groupId: burning!.groupId, unitId: burning!.id };
     const events = finishBattle(state, won(state), rules);
     expect(events).toContainEqual({ type: 'actBegins', act: 2 });
     expect(state.order.act).toBe(2);
