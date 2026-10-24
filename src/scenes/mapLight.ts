@@ -9,6 +9,8 @@ import * as Phaser from 'phaser';
 
 /** One pixel of the light per this many screen units; the light's grey where nothing shines (0x80 leaves colours as they are). */
 const LIGHT = { cell: 2, ambient: 0x6c6c72 };
+/** The surface's light where nothing shines (M4): daylight, a little warm, and the night, dark and blue. */
+export const SURFACE_AMBIENT = { day: 0x84827a, night: 0x3e4660 } as const;
 
 /** The round light: white in the middle, fading out to nothing at the edge. Not a power of two (Phaser would repeat it). */
 export const LIGHT_TEXTURE = 'map_soft_light';
@@ -84,11 +86,11 @@ export class MapLight {
       .setBlendMode(twiceMultiply(scene));
   }
 
-  /** Draws the light again, from these lights. */
-  draw(lights: readonly Light[]): void {
+  /** Draws the light again, from these lights, over `ambient` where nothing shines. */
+  draw(lights: readonly Light[], ambient: number = LIGHT.ambient): void {
     const texture = this.texture;
     texture.clear();
-    texture.fill(LIGHT.ambient, 1);
+    texture.fill(ambient, 1);
     for (const light of lights) {
       texture.stamp(LIGHT_TEXTURE, undefined, (light.x - this.area.x) / LIGHT.cell, (light.y - this.area.y) / LIGHT.cell, {
         scale: (light.radius * 2) / LIGHT_TEXTURE_SIZE / LIGHT.cell,

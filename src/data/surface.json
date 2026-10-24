@@ -108,6 +108,8 @@
   },
   "texts": {
     "//": "What the game says on the surface. {n}: a number; {left}: shrines still burning; {moisture}: Moisture it costs.",
+    "wayUp": "A way up",
+    "wayDown": "A way down",
     "climbUp": "Climb up",
     "goDown": "Go down",
     "climbedUp": "The hydra squeezes up through the Passage. There is a great deal of sky up here, and none of it is on her side.",
@@ -131,6 +133,11 @@
     "shrineRelit": "A Flame Shrine burns again. Its mist starts to thin.",
     "crawl": "No mist ahead and no Moisture to breathe it: she can only crawl one step.",
     "breathAhead": "{n} Moisture to breathe mist on the way",
-    "exposedInBattle": "Exposed: the heads deal {n}% damage."
+    "exposedInBattle": "Exposed: the heads deal {n}% damage.",
+    "noMovement": "Not enough movement left this turn.",
+    "patrolOut": "A patrol of the Order sets out from {where}, to look for whatever is breathing all this fog.",
+    "inMist": "In mist",
+    "exposedNow": "Exposed",
+    "windy": "windy"
   }
 }

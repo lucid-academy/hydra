@@ -40,7 +40,14 @@
       "displayName": "The Surface",
       "decorations": ["pebbles", "sprout", "reeds"],
       "ground": { "field": 0.6, "forest": 0.25, "hill": 0.1, "water": 0.05 },
-      "colors": { "ground": "#5d6a34", "detail": "#7d8a44", "water": "#3a5a68", "rock": "#6a6258", "glow": "#f0c060" }
+      "colors": {
+        "ground": "#5d6a34",
+        "detail": "#7d8a44",
+        "water": "#3a5a68",
+        "rock": "#6a6258",
+        "glow": "#f0c060",
+        "grounds": { "field": "#66763a", "forest": "#324a26", "hill": "#7e7250", "water": "#3a5a68" }
+      }
     },
     "fungalDeeps": {
       "displayName": "Fungal Deeps",

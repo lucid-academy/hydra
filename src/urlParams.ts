@@ -26,6 +26,9 @@
 //   ?heads=strangler,lantern,tender  with ?scene=battle: the test battle's heads, by class (heads.json)
 //   ?level=3      with ?scene=battle: the test battle's heads are this level
 //   ?ults=1       ultimate skills (key E) can be used in battle
+//   ?surface=1    with ?scene=map: the hydra starts up on the surface, on the first Passage (with ?near=, next to
+//                 the nearest of that kind up there: flameShrine, castle, settlement, find...)
+//   ?night=1      with ?scene=map: the game starts on the first turn of the night
 // A URL with any of these but seed, debug, speed and zoom is a test: the saved game is neither loaded nor saved
 // (testUrl). ?seed= alone picks the world of a lineage started from the title.
 
@@ -77,6 +80,10 @@ export interface UrlParams {
   level: number | null;
   /** Ultimate skills can be used in battle. */
   ults: boolean;
+  /** Start on the surface. */
+  surface: boolean;
+  /** Start at nightfall. */
+  night: boolean;
 }
 
 export function parseUrlParams(search: string): UrlParams {
@@ -115,6 +122,8 @@ export function parseUrlParams(search: string): UrlParams {
     heads: (params.get('heads') ?? '').split(',').map((h) => h.trim()).filter((h) => h !== ''),
     level: positive('level') === null ? null : Math.floor(positive('level')!),
     ults: params.get('ults') === '1' || params.get('ults') === 'true',
+    surface: params.get('surface') === '1' || params.get('surface') === 'true',
+    night: params.get('night') === '1' || params.get('night') === 'true',
   };
 }
 
@@ -142,6 +151,8 @@ export function testUrl(params: UrlParams): boolean {
     params.hidden ||
     params.heads.length > 0 ||
     params.level !== null ||
-    params.ults
+    params.ults ||
+    params.surface ||
+    params.night
   );
 }

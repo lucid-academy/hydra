@@ -15,12 +15,15 @@ import {
   dialogueShown,
   doPlaceAction,
   endTurn,
+  exhaleMist,
   finishBattle,
   hatchEgg,
   hideEgg,
   inspect,
+  isNight,
   layEgg,
   leavePlace,
+  lookAround,
   mapOf,
   moveHydra,
   noteSightings,
@@ -33,6 +36,7 @@ import {
   serpentInBattle,
   startCondition,
   storyDialogue,
+  usePassage,
   visibilityOf,
   workThreshold,
 } from '../sim/turn';
@@ -95,6 +99,16 @@ export class RunController extends Phaser.Events.EventEmitter {
 
   workThreshold(): void {
     this.publish(workThreshold(this.state, this.rules));
+  }
+
+  /** Up or down the Passage whose panel is open. */
+  usePassage(): void {
+    this.publish(usePassage(this.state, this.rules));
+  }
+
+  /** Exhale Mist, on the surface. */
+  exhaleMist(): void {
+    this.publish(exhaleMist(this.state, this.rules));
   }
 
   layEgg(): void {
@@ -194,20 +208,26 @@ export class RunController extends Phaser.Events.EventEmitter {
    * area around it. Testing only; it skips the walk (and the Alert it would cost).
    */
   placeNear(kind: string): void {
-    const { map, hydra } = this.state;
+    const { hydra } = this.state;
+    const map = mapOf(this.state);
+    const from = hydra.layer === 'surface' ? (this.state.surface.map.passages[0] ?? hydra.position) : this.state.map.lair;
     const matches = (object: MapObject | null): boolean =>
       object?.kind === kind ||
+      (object?.kind === 'settlement' && object.settlementId === kind) ||
+      (object?.kind === 'find' && object.findId === kind) ||
       (object?.kind === 'place' && object.placeId === kind) ||
       (object?.kind === 'threshold' && object.thresholdId === kind) ||
       (kind === 'mark' && object?.kind === 'shrine' && object.mark !== undefined);
-    const objects = [...map.tiles.values()].filter((t) => matches(t.object)).sort((a, b) => hexDistance(a.hex, map.lair) - hexDistance(b.hex, map.lair));
+    const objects = [...map.tiles.values()].filter((t) => matches(t.object)).sort((a, b) => hexDistance(a.hex, from) - hexDistance(b.hex, from));
     for (const target of objects) {
       const spot = hexNeighbors(target.hex)
         .map((h) => map.tiles.get(hexKey(h)))
         .find((t) => t && t.object === null && this.rules.terrain[t.terrain].moveCost !== null);
       if (!spot) continue;
       hydra.position = spot.hex;
-      updateVisibility(this.state.visibility, hexesSeenFrom(map, spot.hex, hydra.sightRange, this.rules.terrain));
+      updateVisibility(visibilityOf(this.state), hexesSeenFrom(map, spot.hex, hydra.sightRange, this.rules.terrain));
+      // Up there, in a little mist, so the test starts where she could stand.
+      if (hydra.layer === 'surface') this.state.surface.mist[hexKey(spot.hex)] = this.rules.surface.mist.exhale.turns;
       return;
     }
   }
@@ -230,7 +250,8 @@ export class RunController extends Phaser.Events.EventEmitter {
       console.warn(`?event=${id} is not an event in events.json`);
       return;
     }
-    const { map, hydra } = this.state;
+    const { hydra } = this.state;
+    const map = mapOf(this.state);
     const spot = hexNeighbors(hydra.position)
       .map((h) => map.tiles.get(hexKey(h)))
       .find((t) => t && t.object === null && this.rules.terrain[t.terrain].moveCost !== null);
@@ -281,9 +302,28 @@ export class RunController extends Phaser.Events.EventEmitter {
     this.state.alert = Math.min(this.rules.alertMax, Math.max(this.rules.alertMin, alert));
   }
 
-  /** For `?reveal=1`: every hex becomes known (seen before), to look at the whole map. Testing only. */
+  /** For `?reveal=1`: every hex of her map becomes known (seen before), to look at the whole map. Testing only. */
   revealAll(): void {
-    for (const key of this.state.map.tiles.keys()) if (!this.state.visibility.has(key)) this.state.visibility.set(key, 'remembered');
+    const visibility = visibilityOf(this.state);
+    for (const key of mapOf(this.state).tiles.keys()) if (!visibility.has(key)) visibility.set(key, 'remembered');
+  }
+
+  /** For `?surface=1`: the hydra starts up on the surface, on the first Passage. Testing only. */
+  surfaceForTest(): void {
+    const { state } = this;
+    const passage = state.surface.map.passages[0];
+    if (!passage) return;
+    state.hydra.position = passage;
+    state.hydra.layer = 'surface';
+    // Moisture to breathe mist with, as if she had gathered some below.
+    state.resources.moisture = Math.max(state.resources.moisture, 20);
+    state.surface.nextPatrolTurn ??= state.turn + this.rules.surface.order.patrols.firstOnTurn;
+    lookAround(state, this.rules, []);
+  }
+
+  /** For `?night=1`: the game starts on the first turn of the night. Testing only. */
+  nightForTest(): void {
+    while (!isNight(this.state.turn, this.rules)) this.state.turn++;
   }
 
   private publish(events: RunEvent[]): void {

@@ -1,19 +1,21 @@
-// Strategic map: the underground seen from a slant (like the battle board), drawn from the run state.
+// Strategic map: the underground or the surface (the map the hydra is on) seen from a slant (like the battle board),
+// drawn from the run state. Going up or down a Passage starts the scene again on the other map.
 // The ground painted as one surface in each biome's look (mapGround.ts, GAME_DESIGN.md §13), rock raised into blocks,
 // under soft darkness and light (mapLight.ts), decorations in clumps, and things standing on their hexes:
 // the lair, encounters, shrines, places, thresholds and finds. Hints float over known hexes: draughts near hidden
 // thresholds, and echoes at the edge of the known map. Drag to look around; tap a highlighted hex to move there,
 // a closed threshold to go and deal with it, and the place the hydra stands on to open its panel.
-// Things cast soft shadows, and one line goes around where the hydra can go.
+// Things cast soft shadows, and one line goes around where the hydra can go. On the surface, mist lies over the ground
+// and the light follows the day and the night.
 
 import * as Phaser from 'phaser';
 import { GLOWING_DECORATIONS, MAP_COLUMN_WIDTH, MAP_FEET_BELOW_HEX_CENTER, MAP_GATE_FEET_BELOW_HEX_CENTER, MAP_ROW_HEIGHT } from '../assets/mapArt';
 import type { DecorationKind } from '../assets/mapArt';
 import { hex, hexDistance, hexEquals, hexKey, hexNeighbors, hexToPixel, pixelToHex } from '../sim/hex';
 import type { Hex, HexLayout } from '../sim/hex';
-import type { MapObject, Tile } from '../sim/map';
+import type { Layer, LayerMap, MapObject, Tile, Visibility } from '../sim/map';
 import { Rng } from '../sim/rng';
-import { encountersRevealed, knownDraughts } from '../sim/turn';
+import { encountersRevealed, isNight, knownDraughts, mapOf, mistAt, visibilityOf } from '../sim/turn';
 import type { RunEvent } from '../sim/turn';
 import { SCREEN } from '../scaling';
 import { exposeInspectable, exposeMapBusy, exposeReachable, exposeRunSummary, markReady } from '../testHooks';
@@ -21,7 +23,7 @@ import { color, getContext } from './context';
 import { hexOutlines, roundCorners } from './hexOutline';
 import { MapGround } from './mapGround';
 import { OrderTokens } from './mapOrder';
-import { LIGHT_TEXTURE, LIGHT_TEXTURE_SIZE, MapLight, SHADOW_TEXTURE, SHADOW_TEXTURE_WIDTH, makeSoftTextures } from './mapLight';
+import { LIGHT_TEXTURE, LIGHT_TEXTURE_SIZE, MapLight, SHADOW_TEXTURE, SHADOW_TEXTURE_WIDTH, SURFACE_AMBIENT, makeSoftTextures } from './mapLight';
 import type { Light } from './mapLight';
 import { lineages } from './LineageKeeper';
 import { getRun, startNewRun } from './RunController';
@@ -105,6 +107,8 @@ const FLAT_DECORATIONS: readonly DecorationKind[] = ['puddle'];
  */
 const LIGHTS = {
   hydra: { radius: 120, color: 0xf4f6e4, strength: 0.24 },
+  /** In daylight on the surface the hydra gives hardly any light of her own. */
+  hydraInDaylight: 0.04,
   glowReach: 2.2,
   glowStrength: 0.5,
   whispered: { radius: 24, strength: 0.3 },
@@ -130,6 +134,16 @@ const PLACE_GLOWS: Readonly<Record<string, { tint: string; scale: number; alpha:
 
 /** Decorations come in clumps around an anchor hex (a ring of mushrooms, a heap of bones), not sprinkled evenly. */
 const CLUMP = { pieces: [3, 7] as const, perChamberHexes: 9, loneChance: 0.12, favouriteShare: 0.7 };
+/** On the surface: trees on every forest hex (from, to), and how often an open hex gets a lone decoration. */
+const SURFACE_DECOR = { trees: [2, 3] as const, loneChance: 0.18 };
+/**
+ * Mist on the surface (GAME_DESIGN.md §5.6): a soft cloud over each hex that has it, more opaque the longer it lasts
+ * (`alpha` from thin to thick), drifting a little; the size of a cloud, times a hex's width.
+ */
+const MIST = { size: 2.1, tint: '#e4ece6', alpha: [0.3, 0.68] as const, drift: 3, driftMs: 2600 } as const;
+
+/** The map the last map scene showed, so going up or down a Passage fades the new one in. */
+let shownLayer: Layer | null = null;
 
 /** A light over something: its picture, how bright it is when seen, and the light it casts on the ground around it. */
 type Glow = { image: Phaser.GameObjects.Image; alpha: number; groundY: number; radius: number; color: number };
@@ -147,6 +161,8 @@ interface HexView {
   shadows: Phaser.GameObjects.Image[];
   /** The object's shadow, and for a place the wider patch it stands on. */
   objectShadows: Phaser.GameObjects.Image[];
+  /** People standing by the object: the guard of a burning Flame Shrine. */
+  objectExtras: Phaser.GameObjects.Image[];
   /** An encounter out of sight that the mycelium tells about. */
   whispered: boolean;
 }
@@ -181,8 +197,12 @@ export class MapScene extends Phaser.Scene {
   private echoes = new Map<string, Phaser.GameObjects.Image>();
   /** Glows over hexes of a Cinder Bore that still burn, by hex key. */
   private heat = new Map<string, Glow>();
-  /** The Order's people walking the underground. */
+  /** The Order's people walking the map. */
   private order!: OrderTokens;
+  /** The map drawn: the one the hydra was on when the scene started. */
+  private layer: Layer = 'underground';
+  /** Clouds of mist over the surface, by hex key. */
+  private mist = new Map<string, Phaser.GameObjects.Image>();
 
   constructor() {
     super(SceneKey.Map);
@@ -196,7 +216,9 @@ export class MapScene extends Phaser.Scene {
       this.scene.start(SceneKey.Generation);
       return;
     }
-    const { near, reveal, say, event, flags, conditions, alert, units } = getContext(this).params;
+    const { near, reveal, say, event, flags, conditions, alert, units, surface, night } = getContext(this).params;
+    if (firstTime && surface) this.run.surfaceForTest();
+    if (firstTime && night) this.run.nightForTest();
     if (firstTime && flags.length > 0) this.run.flagsForTest(flags);
     if (firstTime && conditions.length > 0) this.run.conditionsForTest(conditions);
     if (firstTime && alert !== null) this.run.alertForTest(alert);
@@ -205,7 +227,9 @@ export class MapScene extends Phaser.Scene {
     if (firstTime && reveal) this.run.revealAll();
     if (firstTime && event) this.run.eventForTest(event);
     if (firstTime && say) this.run.sayForTest(say, lineages(this).motherFacts());
+    this.layer = this.run.state.hydra.layer;
     this.views = new Map();
+    this.mist = new Map();
     this.draughts = new Map();
     this.echoes = new Map();
     this.heat = new Map();
@@ -216,6 +240,10 @@ export class MapScene extends Phaser.Scene {
     this.showingBiomeName = false;
     this.leaving = false;
     this.cameras.main.setBackgroundColor(color(getContext(this).data.palette.underground.black));
+    // Coming up or down a Passage, the new map fades in.
+    this.cameras.main.resetFX();
+    if (shownLayer !== null && shownLayer !== this.layer) this.cameras.main.fadeIn(300, 5, 9, 10);
+    shownLayer = this.layer;
 
     makeSoftTextures(this);
     this.drawMap();
@@ -226,7 +254,7 @@ export class MapScene extends Phaser.Scene {
       shadow: (x, feetY, width) => this.contactShadow(x, feetY, width),
       hintDepth: DEPTH.hint,
       words: { lastSeen: words.lastSeen, lastSeenOne: words.lastSeenOne, lastSeenNow: words.lastSeenNow },
-    });
+    }, this.layer);
     this.token = this.add.image(0, 0, 'map_hydra').setOrigin(0.5, 1);
     this.tokenShadow = this.contactShadow(0, 0, this.token.width);
     this.placeToken(this.run.state.hydra.position);
@@ -257,10 +285,23 @@ export class MapScene extends Phaser.Scene {
 
   // ------------------------------------------------------------ building the map
 
+  /** The map drawn, and what the hydra knows of it. */
+  private get shown(): LayerMap {
+    return mapOf(this.run.state, this.layer);
+  }
+
+  private get known(): Visibility {
+    return visibilityOf(this.run.state, this.layer);
+  }
+
+  private get onSurface(): boolean {
+    return this.layer === 'surface';
+  }
+
   private drawMap(): void {
-    const clumps = this.planClumps();
+    const clumps = this.onSurface ? new Map<string, DecorationKind[]>() : this.planClumps();
     const { data } = getContext(this);
-    this.ground = new MapGround(this, this.run.state.map, data, LAYOUT, this.run.state.seed, {
+    this.ground = new MapGround(this, this.shown, data, LAYOUT, this.run.state.seed, {
       ground: DEPTH.ground,
       darkness: DEPTH.darkness,
       standing: (y) => this.standingDepth(y),
@@ -279,7 +320,7 @@ export class MapScene extends Phaser.Scene {
       .setOrigin(0, 1)
       .setDepth(DEPTH.hint)
       .setVisible(false);
-    for (const tile of this.run.state.map.tiles.values()) {
+    for (const tile of this.shown.tiles.values()) {
       const { x, y } = hexToPixel(LAYOUT, tile.hex);
       const view: HexView = {
         tile,
@@ -291,9 +332,13 @@ export class MapScene extends Phaser.Scene {
         objectGlows: [],
         shadows: [],
         objectShadows: [],
+        objectExtras: [],
         whispered: false,
       };
-      if (tile.terrain !== 'rock' && !tile.object) this.decorate(view, x, y, clumps.get(hexKey(tile.hex)));
+      if (tile.terrain !== 'rock' && !tile.object) {
+        if (this.onSurface) this.decorateSurface(view, x, y);
+        else this.decorate(view, x, y, clumps.get(hexKey(tile.hex)));
+      }
       this.views.set(hexKey(tile.hex), view);
       this.syncObject(view);
     }
@@ -371,6 +416,24 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
+  /** On the surface: trees in the woods, now and then something lying in a field, reeds by the river. */
+  private decorateSurface(view: HexView, x: number, y: number): void {
+    const biome = getContext(this).data.biomes.biomes[view.tile.biome];
+    const rng = new Rng(this.hexSeed(view.tile.hex));
+    const put = (key: string, px: number, py: number, shadow: boolean): void => {
+      const prop = this.add.image(px, py, key).setOrigin(0.5, 1).setDepth(this.standingDepth(py));
+      view.props.push(prop);
+      if (shadow) view.shadows.push(this.contactShadow(px, py, prop.width));
+    };
+    if (view.tile.terrain === 'forest') {
+      for (let i = rng.int(SURFACE_DECOR.trees[0], SURFACE_DECOR.trees[1]); i > 0; i--) put('map_tree', x + rng.int(-9, 9), y + rng.int(-4, 6), true);
+      return;
+    }
+    if (!biome || biome.decorations.length === 0 || !rng.chance(SURFACE_DECOR.loneChance)) return;
+    const kind = view.tile.terrain === 'water' ? 'reeds' : rng.pick(biome.decorations.filter((k) => k !== 'reeds'));
+    if (kind) put(`map_deco_${kind}`, x + rng.int(-9, 9), y + rng.int(-4, 5), !FLAT_DECORATIONS.includes(kind));
+  }
+
   /** Image key of an object as it is now, or null when nothing is drawn (a hidden threshold looks like plain rock). */
   private objectKey(object: MapObject | null): string | null {
     if (!object) return null;
@@ -386,6 +449,12 @@ export class MapScene extends Phaser.Scene {
         return `map_place_${object.placeId}`;
       case 'event':
         return object.done ? null : 'map_event';
+      case 'flameShrine':
+        return object.burning ? 'map_flame_shrine' : 'map_flame_shrine_out';
+      case 'settlement':
+        return `map_settlement_${object.settlementId}`;
+      case 'find':
+        return object.looted ? null : 'map_find';
       default:
         return `map_${object.kind}`;
     }
@@ -395,12 +464,15 @@ export class MapScene extends Phaser.Scene {
   private syncObject(view: HexView): void {
     const object = view.tile.object;
     const key = this.objectKey(object);
-    if (key === view.objectKey) return;
+    // A shrine lit again may have a guard of another tier.
+    const drawn = object?.kind === 'flameShrine' && object.burning ? `${key}#${object.tier}` : key;
+    if (drawn === view.objectKey) return;
     view.object?.destroy();
     for (const shadow of view.objectShadows.splice(0)) shadow.destroy();
     for (const glow of view.objectGlows.splice(0)) glow.image.destroy();
+    for (const extra of view.objectExtras.splice(0)) extra.destroy();
     view.object = null;
-    view.objectKey = key;
+    view.objectKey = drawn;
     if (!object || !key) return;
 
     const { palette } = getContext(this).data;
@@ -427,7 +499,8 @@ export class MapScene extends Phaser.Scene {
     if (object.kind === 'shrine' && !object.used) light('#7fe0d6', 0.9, 0.55, 40);
     if (object.kind === 'event') light(EVENT_GLOW, 0.4, 0.35, 12);
     if (object.kind === 'moisture') light('#7fd0e0', object.rich ? 0.7 : 0.5, 0.45, 6);
-    if (object.kind === 'passage') light('#d0e4dc', 0.8, 0.35, 8);
+    // Under the sky a Passage is only a crack; its glow is for the dark.
+    if (object.kind === 'passage' && !this.onSurface) light('#d0e4dc', 0.8, 0.35, 8);
     if (object.kind === 'encounter' && object.tier >= 3) view.objectGlows.push(this.glow(x + 12, feet - 18, palette.order.orange, 0.6, 0.6, feet));
     if (object.kind === 'threshold' && object.thresholdId === 'smoulderingSeam') light(palette.order.orange, 0.6, 0.5, 8);
     if (object.kind === 'threshold' && object.thresholdId === 'sealedDoor') light(EVENT_GLOW, 0.45, 0.3, 14);
@@ -435,6 +508,15 @@ export class MapScene extends Phaser.Scene {
       const glow = PLACE_GLOWS[object.placeId];
       if (glow) light(glow.tint, glow.scale, glow.alpha, glow.height);
     }
+    if (object.kind === 'flameShrine' && object.burning) {
+      light(palette.order.fire, 0.9, 0.65, 27);
+      // Its guard stands beside it, a step in front.
+      const guard = this.add.image(x + 12, feet + 2, `map_encounter_${Math.min(3, object.tier)}`).setOrigin(0.5, 1).setDepth(this.standingDepth(feet + 2));
+      view.objectExtras.push(guard);
+      view.objectShadows.push(this.contactShadow(guard.x, guard.y, guard.width));
+    }
+    if (object.kind === 'castle') light(palette.order.fire, 0.8, 0.55, 46);
+    if (object.kind === 'settlement' && object.settlementId === 'camp') light(palette.order.orange, 0.5, 0.5, 4);
   }
 
   /** A light at (x, y), over something whose feet are at `groundY`. */
@@ -471,8 +553,8 @@ export class MapScene extends Phaser.Scene {
 
   /** Brings every hex in line with the run state: what is known, what changed, where the hydra can go, and the hints. */
   private refresh(): void {
-    const { visibility } = this.run.state;
-    const whispered = encountersRevealed(this.run.state, this.run.rules);
+    const visibility = this.known;
+    const whispered = !this.onSurface && encountersRevealed(this.run.state, this.run.rules);
     this.ground.update(visibility);
     for (const [key, view] of this.views) {
       const state = visibility.get(key);
@@ -496,6 +578,7 @@ export class MapScene extends Phaser.Scene {
           .setTint(ghost ? WHISPERED_TINT : spent ? SPENT_TINT : tint)
           .setAlpha(ghost ? WHISPERED_ALPHA : 1);
       }
+      for (const extra of view.objectExtras) extra.setVisible(known).setTint(tint);
       for (const shadow of view.objectShadows) shadow.setVisible(known);
       for (const glow of view.objectGlows) glow.image.setVisible(known && !spent).setAlpha(state === 'remembered' ? glow.alpha * 0.4 : glow.alpha);
     }
@@ -504,6 +587,7 @@ export class MapScene extends Phaser.Scene {
     this.drawReach(reachable);
     this.drawJourney();
     this.refreshHints();
+    this.refreshMist();
     this.order.sync(this.run.state);
     this.drawLights();
     this.seeThroughTallPlaces();
@@ -537,8 +621,8 @@ export class MapScene extends Phaser.Scene {
     for (const view of this.views.values()) {
       const object = view.tile.object;
       if (!object || !view.object?.visible) continue;
-      if (object.kind === 'place' && view.object.height >= SEE_THROUGH.minHeight) tall.push(view.object);
-      else if (object.kind === 'encounter' || object.kind === 'shrine' || (object.kind === 'threshold' && object.state === 'closed')) behind.push(view.object);
+      if ((object.kind === 'place' || object.kind === 'castle' || object.kind === 'settlement') && view.object.height >= SEE_THROUGH.minHeight) tall.push(view.object);
+      else if (object.kind === 'encounter' || object.kind === 'shrine' || object.kind === 'flameShrine' || (object.kind === 'threshold' && object.state === 'closed')) behind.push(view.object);
     }
     this.ground.seeThrough(
       behind.map((image) => ({ bounds: image.getBounds(), depth: image.depth })),
@@ -559,7 +643,8 @@ export class MapScene extends Phaser.Scene {
     line.clear().setVisible(true);
     over.clear().setVisible(true);
     if (keys.length === 0) return;
-    const { map, hydra } = this.run.state;
+    const { hydra } = this.run.state;
+    const map = this.shown;
     const hexes = [hydra.position, ...keys.map((key) => map.tiles.get(key)!.hex)];
     const colour = color(getContext(this).data.palette.underground.bioluminescence);
     glow.lineStyle(REACH_LINE.glowWidth, colour, REACH_LINE.glowAlpha);
@@ -640,7 +725,8 @@ export class MapScene extends Phaser.Scene {
 
   /** Draws the light again: the hydra's, every glow in sight or remembered, and the encounters the mycelium tells about. */
   private drawLights(): void {
-    const lights: Light[] = [{ x: this.token.x, y: this.token.y, ...LIGHTS.hydra }];
+    const daylight = this.onSurface && !isNight(this.run.state.turn, this.run.rules);
+    const lights: Light[] = [{ x: this.token.x, y: this.token.y, ...LIGHTS.hydra, strength: daylight ? LIGHTS.hydraInDaylight : LIGHTS.hydra.strength }];
     for (const view of this.views.values()) {
       for (const glow of [...view.propGlows, ...view.objectGlows]) {
         if (!glow.image.visible) continue;
@@ -652,12 +738,55 @@ export class MapScene extends Phaser.Scene {
       lights.push({ x: glow.image.x, y: glow.groundY, radius: glow.radius * LIGHTS.glowReach, color: glow.color, strength: glow.alpha * LIGHTS.glowStrength });
     }
     lights.push(...this.order.lights());
-    this.light.draw(lights);
+    this.light.draw(lights, this.ambient());
+  }
+
+  /** The light where nothing shines: the underground's own; on the surface, the day's or the night's. */
+  private ambient(): number | undefined {
+    if (!this.onSurface) return undefined;
+    return isNight(this.run.state.turn, this.run.rules) ? SURFACE_AMBIENT.night : SURFACE_AMBIENT.day;
+  }
+
+  /** Clouds of mist over the known surface hexes that have it, thicker the longer it will last. */
+  private refreshMist(): void {
+    if (!this.onSurface) return;
+    const { state, rules } = this.run;
+    const visibility = this.known;
+    const wanted = new Set<string>();
+    const most = rules.surface.mist.maxTurns;
+    for (const tile of this.shown.tiles.values()) {
+      const key = hexKey(tile.hex);
+      const turns = mistAt(state, tile.hex, rules);
+      if (turns <= 0 || !visibility.has(key)) continue;
+      wanted.add(key);
+      const alpha = MIST.alpha[0] + (MIST.alpha[1] - MIST.alpha[0]) * Math.min(1, turns / most);
+      let cloud = this.mist.get(key);
+      if (!cloud) {
+        const { x, y } = hexToPixel(LAYOUT, tile.hex);
+        cloud = this.add
+          .image(x, y, LIGHT_TEXTURE)
+          .setTint(color(MIST.tint))
+          .setScale((MIST.size * MAP_COLUMN_WIDTH) / LIGHT_TEXTURE_SIZE, (MIST.size * MAP_COLUMN_WIDTH * 0.7) / LIGHT_TEXTURE_SIZE)
+          .setDepth(DEPTH.light - 1)
+          .setAlpha(0);
+        const seed = Math.abs(tile.hex.q * 7 + tile.hex.r * 13) % 7;
+        this.tweens.add({ targets: cloud, x: x + MIST.drift, duration: MIST.driftMs + seed * 200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: seed * 150 });
+        this.mist.set(key, cloud);
+      }
+      this.tweens.add({ targets: cloud, alpha, duration: 400 });
+    }
+    for (const [key, cloud] of this.mist) {
+      if (wanted.has(key)) continue;
+      this.tweens.killTweensOf(cloud);
+      this.mist.delete(key);
+      this.tweens.add({ targets: cloud, alpha: 0, duration: 400, onComplete: () => cloud.destroy() });
+    }
   }
 
   /** Draughts drift over hexes next to hidden thresholds; echoes pulse where they were heard, until their source is seen. */
   private refreshHints(): void {
     const { state } = this.run;
+    if (this.onSurface) return;
     const draughtKeys = new Set<string>();
     for (const h of knownDraughts(state)) {
       const key = hexKey(h);
@@ -717,8 +846,8 @@ export class MapScene extends Phaser.Scene {
   /** The first time the hydra sees a biome other than its own swamp, the biome's name comes up. */
   private announceNewBiomes(): void {
     const { biomes } = getContext(this).data;
-    const { map, visibility } = this.run.state;
-    for (const [key, state] of visibility) {
+    const map = this.shown;
+    for (const [key, state] of this.known) {
       if (state !== 'visible') continue;
       const biomeId = map.tiles.get(key)!.biome;
       if (this.run.knownBiomes.has(biomeId)) continue;
@@ -775,6 +904,10 @@ export class MapScene extends Phaser.Scene {
         },
       });
     };
+    if (events.some((e) => e.type === 'climbed')) {
+      this.changeLayer();
+      return;
+    }
     for (const event of events) {
       if (event.type === 'moved') for (const h of event.path) step(h, STEP_DURATION_MS, SLITHER.sway, SLITHER.stretch);
       if (event.type === 'carried') for (const h of event.path) step(h, CARRIED_STEP_MS, SLITHER.carriedSway, 0);
@@ -838,6 +971,19 @@ export class MapScene extends Phaser.Scene {
     this.journeyTurns.setVisible(false);
   }
 
+  /** Up or down a Passage: the screen fades, and the scene starts again on the other map. */
+  private changeLayer(): void {
+    this.leaving = true;
+    this.animating = true;
+    this.run.animating = true;
+    this.cameras.main.fadeOut(250, 5, 9, 10);
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+      this.run.animating = false;
+      this.scene.stop(SceneKey.Hud);
+      this.scene.restart();
+    });
+  }
+
   private startBattle(): void {
     this.cameras.main.flash(250, 158, 35, 35);
     this.time.delayedCall(250, () => {
@@ -864,7 +1010,7 @@ export class MapScene extends Phaser.Scene {
     let minY = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
-    for (const tile of this.run.state.map.tiles.values()) {
+    for (const tile of this.shown.tiles.values()) {
       const { x, y } = hexToPixel(LAYOUT, tile.hex);
       minX = Math.min(minX, x);
       maxX = Math.max(maxX, x);
@@ -906,13 +1052,17 @@ export class MapScene extends Phaser.Scene {
 
   // ------------------------------------------------------------ input
 
-  /** Can a tap on this hex open something: a closed threshold the hydra knows, or the place it stands on? */
+  /** Can a tap on this hex open something: a closed threshold the hydra knows, the castle, or the place it stands on? */
   private inspectable(h: Hex): boolean {
-    const { map, visibility, hydra } = this.run.state;
+    const { hydra } = this.run.state;
     const key = hexKey(h);
-    const object = map.tiles.get(key)?.object;
-    if (!visibility.has(key)) return false;
-    return (object?.kind === 'threshold' && object.state === 'closed') || ((object?.kind === 'place' || object?.kind === 'lair') && hexEquals(h, hydra.position));
+    const object = this.shown.tiles.get(key)?.object;
+    if (!this.known.has(key)) return false;
+    return (
+      (object?.kind === 'threshold' && object.state === 'closed') ||
+      object?.kind === 'castle' ||
+      ((object?.kind === 'place' || object?.kind === 'lair' || object?.kind === 'passage') && hexEquals(h, hydra.position))
+    );
   }
 
   private setUpInput(): void {
@@ -992,7 +1142,9 @@ export class MapScene extends Phaser.Scene {
 
   /** A known hex the hydra could walk on, under the pointer or just in front (as in pointedHex), for a journey. */
   private knownGround(pointer: Phaser.Input.Pointer): Hex | undefined {
-    const { map, visibility, hydra } = this.run.state;
+    const { hydra } = this.run.state;
+    const map = this.shown;
+    const visibility = this.known;
     const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
     const tapped = pixelToHex(LAYOUT, world.x, world.y);
     return [tapped, hex(tapped.q, tapped.r + 1), hex(tapped.q - 1, tapped.r + 1)].find((h) => {
@@ -1022,7 +1174,8 @@ export class MapScene extends Phaser.Scene {
 
   private exposeTestHooks(): void {
     exposeReachable(() => {
-      const { map, visibility } = this.run.state;
+      const map = this.shown;
+      const visibility = this.known;
       return [...this.run.reachable().entries()].map(([key, { cost }]) => {
         const tile = map.tiles.get(key)!;
         const around = [tile.hex, ...hexNeighbors(tile.hex)].flatMap((h) => [h, ...hexNeighbors(h)]);
@@ -1039,8 +1192,8 @@ export class MapScene extends Phaser.Scene {
       });
     });
     exposeInspectable(() => {
-      const { map, hydra } = this.run.state;
-      return [...map.tiles.values()]
+      const { hydra } = this.run.state;
+      return [...this.shown.tiles.values()]
         .filter((t) => this.inspectable(t.hex))
         .map((t) => ({
           ...this.onScreen(t.hex),
@@ -1051,7 +1204,7 @@ export class MapScene extends Phaser.Scene {
     });
     exposeMapBusy(() => this.animating || this.run.animating || this.cameras.main.panEffect.isRunning);
     exposeRunSummary(() => {
-      const { turn, resources, alert, pendingBattle, pendingShrine, pendingPlace, pendingEvent, visibility, hydra, echoes, draughtsFelt, story, generation } = this.run.state;
+      const { turn, resources, alert, pendingBattle, pendingShrine, pendingPlace, pendingEvent, visibility, hydra, echoes, draughtsFelt, story, generation, surface } = this.run.state;
       return {
         hydraName: hydra.name,
         generation,
@@ -1080,6 +1233,10 @@ export class MapScene extends Phaser.Scene {
         defenders: this.run.state.lair.defenders,
         scouts: this.run.state.lair.scouts.length,
         heads: hydra.heads.map((h) => ({ classId: h.classId, level: h.level, xp: h.xp ?? 0 })),
+        layer: hydra.layer,
+        exposed: surface.exposed,
+        surfaceExplored: surface.visibility.size,
+        shrinesPutOut: surface.shrinesPutOut,
       };
     });
   }
