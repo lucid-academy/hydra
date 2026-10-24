@@ -250,7 +250,7 @@ Reszta Zakonu z próby, w stylu Man-at-Arms. Do postaci w bitwie dołącz pixelo
 
 - Pochodnia Torchbearera to jedyny jasny ogień na planszy: gra świeci z jej płomienia. Gdzie jest płomień, ustawię po imporcie.
 - Oddziały na mapie: im silniejszy, tym więcej ludzi i większa chorągiew. Drugi stopień to Man-at-Arms i Headhunter, trzeci to jeszcze Torchbearer z płonącą pochodnią.
-- Pozostałe typy Zakonu (§6.6) dostaną prompty, gdy wejdą do gry ich zasady.
+- Crossbowman, Tithe Collector, Knight i Mistrz Zakonu mają prompty w sekcji „M3”; Censer Priest i Brazier Bearer dostaną je w M4.
 
 ### `battle_enemy_headhunter.png`: Headhunter, łowca głów (topór)
 
@@ -302,6 +302,157 @@ Background: one flat, solid magenta #FF00FF everywhere around the subject, with 
 Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw a bigger marker of THE SAME kind, with the same size of pixels, the same colours and the same view.
 Subject: three people of the Order of the Eternal Flame beside a tall wooden pole with a big banner-red flag (#9e2323) bearing a gold flame (#d9a93b): the Man-at-Arms with his sword, a Headhunter with a big two-handed axe and a Torchbearer in a brown habit holding a burning torch high, its flame (fire #ffcf5c, orange #e0702a) the brightest thing in the picture. They stand side by side in front of the pole, facing the viewer at an angle, in the game's three-quarter view from above, lit from the upper left. Their feet and the foot of the pole stand on the ground along the bottom of the picture. A dark outline all around. No ground and no shadow: the game adds them.
 Size: on the map the whole marker is only about 88 by 80 pixels, so keep it bold: one clear silhouette. The big red flag and the torch must be easy to spot from afar.
+```
+
+## M3: nowi ludzie Zakonu, Broodlingi i jednostki Zakonu na mapie
+
+Wszystko z tej sekcji jest już w grze jako grafika zastępcza rysowana w kodzie, więc można to robić w dowolnej kolejności. Specyfikacja (rozmiary, punkt zaczepienia) jest w `docs/ASSETS.md`.
+
+- Do postaci w bitwie dołącz pixelowego Man-at-Arms (`man-at-arms-pixel.png` w `hydra-grafika/wzory/`), do Broodlinga tułów hydry z bitwy, do jednostek na mapie oddział z jednym zbrojnym (`oddzial-pixel.png`), a do Broodlinga na mapie i jajka hydrę z mapy.
+- Mistrz Zakonu to boss: może być trochę wyższy od reszty. Płomień jego pochodni ustawię po imporcie, tak jak u Torchbearera.
+- Latarnia patrolu, pochodnie wyprawy i ogień Great Burning świecą w grze, więc mają być wyraźne.
+
+### `battle_enemy_crossbowman.png`: Crossbowman, kusznik (strzela z daleka)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art Man-at-Arms from the game: draw another member of THE SAME Order in the same style (the same size of pixels, the same dark outline, the same view, the same warm colours), so they clearly belong together.
+Subject: a Crossbowman of the Order of the Eternal Flame, standing and aiming, seen from the side and a little from above, facing RIGHT. Lighter than the Man-at-Arms: a padded quilted jack in dull brown under a short banner-red tabard (#9e2323) with a small gold flame (#d9a93b), an open steel cap with a brim (the face shows: narrow, squinting, dead serious), leather boots. He holds a heavy wooden crossbow level at chest height, pointing right, a bolt loaded; a quiver of bolts hangs at his hip. Feet on the ground at the bottom middle of the picture. A dark outline all around. No ground and no shadow: the game adds them.
+Size: in the game he is only about 56 by 76 pixels, a man next to a hydra body about 288 pixels wide, so keep it bold: one clear silhouette. The crossbow held level must read at that size: he must not be mistaken for the Man-at-Arms.
+```
+
+### `battle_enemy_titheCollector.png`: Tithe Collector, poborca dziesięciny (z księgą)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art Man-at-Arms from the game: draw another member of THE SAME Order in the same style (the same size of pixels, the same dark outline, the same view, the same warm colours), so they clearly belong together.
+Subject: a Tithe Collector of the Order of the Eternal Flame: a clerk, not a soldier, standing very straight, seen from the side and a little from above, facing RIGHT. Thin and tall. A long dark violet-black robe (#2a1f2e, shaded #140f17) buttoned to the chin, a wide-brimmed black hat, a white collar, a small gold flame pinned at the chest. In his right hand, held out towards the enemy, a big open ledger with cream pages (#e8dcb8); a quill tucked behind his ear and a fat purse of coins and a ring of keys at his belt. He has no weapon at all and needs none. Prim, unbothered and dead serious, as if auditing a monster were routine. Feet on the ground at the bottom middle of the picture. A dark outline all around. No ground and no shadow: the game adds them.
+Size: in the game he is only about 52 by 80 pixels, so keep it bold: one clear silhouette. The dark robe, the wide hat and the pale open ledger must read at that size.
+```
+
+### `battle_enemy_knight.png`: Knight of the Eternal Flame, rycerz (szarża, nie zna strachu)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art Man-at-Arms from the game: draw another member of THE SAME Order in the same style (the same size of pixels, the same dark outline, the same view, the same warm colours), so they clearly belong together.
+Subject: a Knight of the Eternal Flame, the Order's heavy elite, standing ready to charge, seen from the side and a little from above, facing RIGHT. Full plate armour in pale steel (#c8ccd0, shaded #6e747a) with gilded edges (#d9a93b), a closed great helm with a narrow eye slit and a tall red plume (#9e2323), a white surcoat with a red flame on the chest, a long white cape. He holds a long sword in both hands, point forward and low, as if about to run at the enemy. Broad, heavy and calm, the biggest soldier on the board. Feet on the ground at the bottom middle of the picture. A dark outline all around. No ground and no shadow: the game adds them.
+Size: in the game he is only about 56 by 80 pixels, so keep it bold: one clear silhouette. The white-and-steel plate and the red plume must read at that size: he is the one bright, pale figure among the red soldiers.
+```
+
+### `battle_enemy_masterOfTheOrder.png`: Master of the Order, Mistrz Zakonu (boss Great Burning)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art Man-at-Arms from the game: draw another member of THE SAME Order in the same style (the same size of pixels, the same dark outline, the same view, the same warm colours), so they clearly belong together.
+Subject: a Master of the Order of the Eternal Flame, the boss who leads the Great Burning, standing tall, seen from the side and a little from above, facing RIGHT. Deep crimson robes (#7a1414, shaded #3e0a0a) over gilded plate (#d9a93b, shaded #8a6a22), a tall gold helm crested with a stylised flame, a heavy gold chain with a flame pendant, a long crimson cape. In his right hand, raised high in front of him towards the enemy, a great ceremonial torch of gold whose big flame (fire #ffcf5c in the middle, orange #e0702a at the edges) is the brightest thing in the picture. Old, gaunt and utterly certain. Feet on the ground at the bottom middle of the picture. A dark outline all around. No ground and no shadow: the game adds them.
+Size: in the game he is about 56 by 80 pixels, and may be a little taller than the other soldiers (up to about 96), so keep it bold: one clear silhouette. The gold, the crimson and the big flame must make him read as the most important man on the board at a glance.
+```
+
+### `battle_broodling.png`: Broodling, młode hydry w bitwie
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art hydra body from the battle: draw a tiny hatchling of THE SAME hydra, with the same size of pixels, the same colours and the same view.
+Subject: a Broodling, a hatchling of the swamp hydra: a small, plump serpent body in a little coil with ONE small head on a short neck, mouth open showing tiny teeth, as if hissing bravely, facing RIGHT, seen in the game's three-quarter view from above, lit from the upper left. The same old bronze scales as the big hydra (#342513, #64461f, #907246) in a near-black net (#120e08), a pale cream belly (#c1b18e), still wet and glistening, a small glowing yellow-green eye (#c6e04a). Brave and far too small, never cute in a toy-like way. It rests on the ground at the bottom middle of the picture. A dark outline all around. No water, no ground, no shadow: the game adds them.
+Size: in the game it is only about 32 by 28 pixels, about the size of a soldier's boot, so: one clear, bold silhouette; the open mouth and the glowing eye must read.
+```
+
+### `map_patrol.png`: patrol Zakonu na mapie (idzie)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw another marker of THE SAME kind, with the same size of pixels, the same colours and the same view.
+Subject: a patrol of the Order of the Eternal Flame walking the underground: two soldiers in banner-red tabards (#9e2323) with small gold flames (#d9a93b) and steel helmets, one behind the other, on the march, facing a little to the right. The front one carries a wooden pole over his shoulder with a lit lantern hanging from its end (warm fire #ffcf5c behind the glass), at the top right of the picture. No banner: they are on the move. In the game's three-quarter view from above, lit from the upper left. Their feet stand on the ground along the bottom of the picture. A dark outline all around. No ground and no shadow: the game adds them.
+Size: on the map the whole marker is only about 52 by 60 pixels, so keep it bold: one clear silhouette. The lantern must be easy to spot: the game adds its light around it.
+```
+
+### `map_messenger.png`: posłaniec Zakonu na mapie (biegnie do Passage)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw another marker of THE SAME kind, with the same size of pixels, the same colours and the same view.
+Subject: a messenger of the Order of the Eternal Flame running: one young man mid-stride, leaning forward, facing right, in a short banner-red tabard (#9e2323) with a small gold flame (#d9a93b), no helmet, a leather satchel bouncing at his hip and a white folded letter with a red seal held up in his hand. In a terrible hurry and dead serious about it. In the game's three-quarter view from above, lit from the upper left. His back foot touches the ground at the bottom of the picture. A dark outline all around. No ground and no shadow: the game adds them.
+Size: on the map he is only about 28 by 44 pixels, so keep it bold: one clear silhouette. The running pose and the white letter must read at that size.
+```
+
+### `map_expedition.png`: wyprawa Zakonu na mapie (idzie na leże)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw another marker of THE SAME kind, with the same size of pixels, the same colours and the same view.
+Subject: an expedition of the Order of the Eternal Flame marching on the hydra's lair: four soldiers in banner-red tabards (#9e2323) and steel helmets in a tight group, on the march, facing a little to the right, under a big banner-red flag on a tall pole bearing a gold flame (#d9a93b). The two at the sides hold lit torches high (fire #ffcf5c, orange #e0702a). Bigger, busier and more threatening than a patrol. In the game's three-quarter view from above, lit from the upper left. Their feet stand on the ground along the bottom of the picture. A dark outline all around. No ground and no shadow: the game adds them.
+Size: on the map the whole marker is only about 80 by 76 pixels, so keep it bold: one clear silhouette. The big flag and the two torches must be easy to spot from afar.
+```
+
+### `map_great_burning.png`: Great Burning na mapie (Mistrz w lektyce)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art marker of one soldier with a banner from the game's map: draw another marker of THE SAME kind, with the same size of pixels, the same colours and the same view.
+Subject: the Great Burning, the Order's crusade against the hydra: four soldiers in banner-red tabards with lit torches carry on their shoulders a gilded chair (#d9a93b) under a small red canopy; in the chair sits a Master of the Order in crimson robes and a tall gold helm crested with a flame, holding a great burning torch high. Above them all, a big red flag with a gold flame. The tallest and grandest thing the Order brings, solemn and absurd at once. In the game's three-quarter view from above, lit from the upper left. The bearers' feet stand on the ground along the bottom of the picture. A dark outline all around. No ground and no shadow: the game adds them.
+Size: on the map the whole marker is only about 80 by 104 pixels, so keep it bold: one clear silhouette. The Master high up in his gilded chair and the fire must read from afar.
+```
+
+### `map_broodling.png`: Broodling na mapie (zwiadowca i strażnik leża)
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Attached is the pixel-art hydra from the game's map: draw a tiny hatchling of THE SAME hydra, with the same size of pixels, the same colours and the same view.
+Subject: a Broodling, a hatchling of the swamp hydra, as a small game piece: a little coil of bronze serpent body with ONE small head on a short neck raised and looking to the right, a small glowing yellow-green eye (#c6e04a). Old bronze scales (#342513, #64461f, #907246) in a near-black net (#120e08), a pale cream belly (#c1b18e), still wet. In the game's three-quarter view from above, lit from the upper left. It rests on the ground at the bottom middle of the picture. A dark outline all around. No water, no ground, no shadow: the game adds them.
+Size: on the map it is only about 28 by 28 pixels, so: one clear, bold silhouette, the head and the glowing eye readable.
+```
+
+### `map_egg.png`: jajo hydry w leżu
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: one game sprite, centred, on the flat magenta background. Draw it to match the game's bronze swamp hydra (attach the pixel-art hydra from the map if you have it).
+Subject: one hydra egg: an upright oval egg, pale greenish cream (#c9c8a8, shaded #6b6853) with dark bronze speckles (#64461f), a faint yellow-green glow (#c6e04a) showing through the shell from inside, a little wet and glistening. Seen in the game's three-quarter view from above, lit from the upper left. It stands on the bottom middle of the picture. A dark outline all around. No nest, no ground, no shadow: the game adds them.
+Size: on the map it is only about 12 by 16 pixels, so keep it very simple: an oval, a few speckles and the glow.
 ```
 
 ## Pierwsza partia: 5 obrazków

@@ -56,6 +56,15 @@ describe('story conditions', () => {
 });
 
 describe('dialogues', () => {
+  it('the heads remark on each of the Order\'s new people the first time they meet one', () => {
+    for (const [type, id] of [['crossbowman', 'firstCrossbowman'], ['titheCollector', 'firstTitheCollector'], ['knight', 'firstKnight'], ['masterOfTheOrder', 'firstMaster']]) {
+      const state = runWithEventSite();
+      const events: RunEvent[] = [];
+      storyMoment(state, rules, 'enemyAhead', { newEnemyTypes: [type!] }, events);
+      expect(events.flatMap((e) => (e.type === 'dialogueQueued' ? [e.id] : [])), type).toEqual([id]);
+    }
+  });
+
   it('picks the highest priority that fits, and says each one once', () => {
     const r = withStory(rules, { dialogues: [dialogue({ id: 'low' }), dialogue({ id: 'high', priority: 5 }), dialogue({ id: 'never', priority: 9, conditions: { flags: ['x'] } })] });
     const state = runWithEventSite();

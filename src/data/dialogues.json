@@ -196,6 +196,52 @@
       ]
     },
     {
+      "id": "firstCrossbowman",
+      "trigger": "enemyAhead",
+      "priority": 6,
+      "conditions": { "newEnemyTypes": ["crossbowman"] },
+      "lines": [
+        { "speaker": "head:any", "text": "That one is pointing a plank at us." },
+        { "speaker": "head:other", "text": "A crossbow. He does not have to come close." },
+        { "speaker": "head:any", "text": "That is cheating. Somebody tell him that is cheating." }
+      ]
+    },
+    {
+      "id": "firstTitheCollector",
+      "trigger": "enemyAhead",
+      "priority": 7,
+      "conditions": { "newEnemyTypes": ["titheCollector"] },
+      "lines": [
+        { "speaker": "head:any", "text": "There is a man with a book. He is counting our Muck." },
+        { "speaker": "head:other", "text": "Out loud. With a quill." },
+        { "speaker": "head:any", "text": "If he gets away, a tenth of everything goes with him. Do not let him get away." }
+      ]
+    },
+    {
+      "id": "firstKnight",
+      "trigger": "enemyAhead",
+      "priority": 8,
+      "conditions": { "newEnemyTypes": ["knight"] },
+      "lines": [
+        { "speaker": "head:any", "text": "That one is shiny all over." },
+        { "speaker": "head:other", "text": "A Knight of the Eternal Flame. They charge, and they are afraid of nothing." },
+        { "speaker": "head:any", "text": "Not even of us?" },
+        { "speaker": "head:other", "text": "He has been told about us. He came anyway." }
+      ]
+    },
+    {
+      "id": "firstMaster",
+      "trigger": "enemyAhead",
+      "priority": 9,
+      "conditions": { "newEnemyTypes": ["masterOfTheOrder"] },
+      "lines": [
+        { "speaker": "head:any", "text": "They are carrying a man in a chair." },
+        { "speaker": "head:other", "text": "The Master of the Order. He has come to burn us personally." },
+        { "speaker": "head:any", "text": "Personally. That is almost flattering." },
+        { "speaker": "serpent", "text": "Eat him, child. What he carries will be yours." }
+      ]
+    },
+    {
       "id": "aheadHighAlert",
       "trigger": "enemyAhead",
       "priority": 2,
