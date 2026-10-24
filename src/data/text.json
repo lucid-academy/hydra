@@ -29,6 +29,7 @@
     "lastSeenNow": "this turn",
     "messengerEaten": "+{bones} Bones. Alert {alert}.",
     "messengerEscaped": "Alert +{n}.",
+    "headLevelled": "{name} is now level {level}. It will not stop mentioning it.",
     "directions": {
       "north": "north",
       "northEast": "north-east",
@@ -107,6 +108,7 @@
     "collected": "Counted. Itemised.",
     "escaped": "Gone, with the tithe.",
     "allyKilled": "A Broodling is lost.",
+    "level": "Lv {n}",
     "skillFizzled": "Nothing happens.",
     "codexButton": "Codex",
     "codexTitle": "Combos",

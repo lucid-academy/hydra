@@ -1,6 +1,6 @@
 // Shapes of a run on the strategic map: the rules it is played by (from the data files), its state, and its events.
 
-import type { HeadRecord } from '../battle';
+import type { HeadExperienceRules, HeadRecord } from '../battle';
 import type { Hex } from '../hex';
 import type { HexMap, Loot, TerrainTable, UndergroundGeneratorSettings, Visibility } from '../map';
 
@@ -468,6 +468,7 @@ export interface RunRules {
   story: StoryRules;
   order: OrderRules;
   brood: BroodRules;
+  experience: HeadExperienceRules;
 }
 
 export interface Hydra {
@@ -619,6 +620,7 @@ export type RunEvent =
   | { type: 'eggHidden'; eggId: string; mutations: string[] }
   /** A Tithe Collector got away from the battle with this much. */
   | { type: 'titheTaken'; muck: number; moisture: number; bones: number }
+  | { type: 'headLevelled'; headId: string; name: string; level: number }
   | { type: 'hatched'; eggId: string; role: BroodlingRole; scoutId: string | null }
   /** A scout walked `path` in the world turn. */
   | { type: 'scoutMoved'; scoutId: string; path: Hex[] }

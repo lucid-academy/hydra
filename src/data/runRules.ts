@@ -3,6 +3,7 @@
 import type { BiomeSettings, PlaceSettings, UndergroundGeneratorSettings } from '../sim/map';
 import type { LineageRules } from '../sim/lineage';
 import type { EventOutcome, OrderGroupRules, OrderRules, PlaceAction, RunRules, StoryRules } from '../sim/turn';
+import { experienceRulesFrom } from './battleRules';
 import type { GameData } from './index';
 import type { Balance, EventsData, OrderData } from './schemas';
 
@@ -181,6 +182,7 @@ export function runRulesFrom(data: GameData): RunRules {
       scouts: { movement: data.brood.scouts.movement, sight: data.brood.scouts.sight },
       lostDefenseBreaksShare: data.brood.lostDefense.eggsBrokenShare,
     },
+    experience: experienceRulesFrom(data),
   };
 }
 

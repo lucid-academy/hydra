@@ -98,6 +98,8 @@ declare global {
         eggs: number;
         defenders: number;
         scouts: number;
+        /** The heads: class, level and experience. */
+        heads: Array<{ classId: string; level: number; xp: number }>;
       };
     };
   }

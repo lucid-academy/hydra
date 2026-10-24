@@ -1,4 +1,4 @@
-// Row of head cards along the bottom of the battle screen: name, class, HP and how charged its attack is
+// Row of head cards along the bottom of the battle screen: name, class and level, HP and how charged its attack is
 // (the thin bar fills up and turns bright when the next attack is ready, like weapons in FTL).
 // Tapping a card selects that head (same as keys 1–9); with Ctrl or Shift held it is added to the selected heads.
 
@@ -16,6 +16,7 @@ const HP_COLOR = 0x5f9a4a;
 const HP_LOW_COLOR = 0xc0392b;
 const CHARGE_COLOR = 0x8a7a45;
 const CHARGE_READY_COLOR = 0xffe27a;
+const LEVEL_COLOR = '#e0c890';
 
 export interface HeadCardsStyle {
   x: number;
@@ -23,6 +24,8 @@ export interface HeadCardsStyle {
   width: number;
   classColors: Readonly<Record<string, string>>;
   classNames: Readonly<Record<string, string>>;
+  /** How a level above 1 is written after the class, with {n} for the level. */
+  levelText: string;
   maxCards: number;
 }
 
@@ -31,6 +34,7 @@ export interface HeadCardInfo {
   id: string;
   name: string;
   classId: string;
+  level: number;
   hp: number;
   maxHp: number;
   /** 0 = just attacked, 1 = the next attack is ready. */
@@ -109,17 +113,21 @@ export class HeadCards {
       bg.on('pointerup', (pointer: Phaser.Input.Pointer) => this.onSelect(head.id, wantsToAdd(pointer)));
       const stripe = this.scene.add.rectangle(x, top, 3, CARD_HEIGHT, classColor).setOrigin(0, 0);
       const name = this.scene.add.text(x + 5, top + 2, `${i + 1} ${head.name}`, { fontFamily: FONT.text, fontSize: '10px', color: '#e8f0e0', fixedWidth: textWidth });
+      // A level above 1 sits at the right end of the class line, so a long class name never hides it.
+      const level = this.scene.add
+        .text(x + this.cardWidth - 4, top + 14, head.level > 1 ? this.style.levelText.replace('{n}', String(head.level)) : '', { fontFamily: FONT.text, fontSize: '9px', color: LEVEL_COLOR })
+        .setOrigin(1, 0);
       const cls = this.scene.add.text(x + 5, top + 14, this.style.classNames[head.classId] ?? head.classId, {
         fontFamily: FONT.text,
         fontSize: '9px',
         color: '#9fb0a0',
-        fixedWidth: textWidth,
+        fixedWidth: Math.max(1, textWidth - (level.width > 0 ? level.width + 3 : 0)),
       });
       const hpBack = this.scene.add.rectangle(x + 5, top + 25, barWidth, 5, 0x000000).setOrigin(0, 0);
       const hp = this.scene.add.rectangle(x + 5, top + 25, barWidth, 5, HP_COLOR).setOrigin(0, 0);
       const chargeBack = this.scene.add.rectangle(x + 5, top + 33, barWidth, 2, 0x000000).setOrigin(0, 0);
       const charge = this.scene.add.rectangle(x + 5, top + 33, 0, 2, CHARGE_COLOR).setOrigin(0, 0);
-      const parts = [bg, stripe, name, cls, hpBack, hp, chargeBack, charge];
+      const parts = [bg, stripe, name, cls, level, hpBack, hp, chargeBack, charge];
       for (const part of parts) part.setScrollFactor(0).setDepth(DEPTH);
       this.objects.push(...parts);
       this.cards.set(head.id, { bg, hp, charge });

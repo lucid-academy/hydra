@@ -1,9 +1,21 @@
 // Converts heads.json, enemies.json and balance.json into the rules the battle simulation uses
 // (seconds become ticks; distances are already in hexes), plus statuses and combos from combos.json.
 
-import type { BattleRules, Effect, RummageFind, SkillArea, SkillRules, SkillSpecial } from '../sim/battle';
+import type { BattleRules, Effect, HeadExperienceRules, RummageFind, SkillArea, SkillRules, SkillSpecial } from '../sim/battle';
 import type { EffectData, SkillSpecialData } from './battleSchemas';
 import type { GameData } from './index';
+
+/** Head experience and levels, used by both the battle (damage) and the map (experience, HP). */
+export function experienceRulesFrom(data: GameData): HeadExperienceRules {
+  const xp = data.heads.experience;
+  return {
+    perBattleWon: xp.perBattleWon,
+    perKill: xp.perKill,
+    experienceForLevel: xp.experienceForLevel,
+    maxHpPercentPerLevel: xp.maxHpPercentPerLevel,
+    damagePercentPerLevel: xp.damagePercentPerLevel,
+  };
+}
 
 export function battleRulesFrom(data: GameData): BattleRules {
   const { balance, heads, enemies, combos, brood } = data;
@@ -239,5 +251,6 @@ export function battleRulesFrom(data: GameData): BattleRules {
       stepTicks: ticks(brood.battle.stepSeconds),
       attack: { damage: brood.battle.attack.damage, cooldownTicks: ticks(brood.battle.attack.cooldownSeconds), range: brood.battle.attack.range },
     },
+    experience: experienceRulesFrom(data),
   };
 }

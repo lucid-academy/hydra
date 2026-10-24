@@ -66,6 +66,7 @@ export function hurtEnemy(
   if (enemy.hp <= 0) {
     removeEnemy(state, enemy, rules);
     state.events.push({ type: 'enemyKilled', tick: state.tick, enemyId: enemy.id, at: enemy.hex });
+    if (typeof attackerId === 'string') countKill(state, attackerId);
     if (rules && typeof attackerId === 'string') rewardKill(state, attackerId, rules);
   } else if (wake && rules) {
     wakeUp(state, enemy, rules);
@@ -87,6 +88,16 @@ export function removeEnemy(state: BattleState, enemy: Enemy, rules?: BattleRule
   void rules;
 }
 
+/** A human killed or eaten counts towards the head's experience (only heads count; Broodlings learn nothing). */
+function countKill(state: BattleState, headId: string): void {
+  if (state.heads.some((h) => h.id === headId)) state.kills[headId] = (state.kills[headId] ?? 0) + 1;
+}
+
+/** A head hits this many times harder for its level (heads.json experience). */
+export function levelDamageMultiplier(head: BattleHead, rules: BattleRules): number {
+  return 1 + ((head.level - 1) * rules.experience.damagePercentPerLevel) / 100;
+}
+
 /** A head that kills heals itself if it has a Frenzy going. */
 function rewardKill(state: BattleState, headId: string, rules: BattleRules): void {
   const head = state.heads.find((h) => h.id === headId);
@@ -102,6 +113,7 @@ export function devourEnemy(state: BattleState, enemy: Enemy, healAmount: number
   const at = enemy.hex;
   removeEnemy(state, enemy, rules);
   state.events.push({ type: 'enemyKilled', tick: state.tick, enemyId: enemy.id, at });
+  if (head) countKill(state, head.id);
   afterMeal(state, enemy, healAmount, head, rules);
 }
 

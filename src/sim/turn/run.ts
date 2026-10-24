@@ -8,6 +8,7 @@ import type { Hex } from '../hex';
 import { generateUnderground, hexesSeenFrom, updateVisibility } from '../map';
 import type { MapObject } from '../map';
 import { Rng } from '../rng';
+import { gainExperience } from './experience';
 import { applyBirthMutations, gainMutation, headMaxHp, mutationTotal, startingHeadCount } from './mutations';
 import { breakEggs, lairTurn, newLair, scoutsCaught } from './lair';
 import { meetOrderAt, newOrder, orderBlocks, orderTurn, sendMessenger, unitBeaten } from './order';
@@ -385,7 +386,8 @@ export function pendingBattleSetup(state: RunState, rules: RunRules): BattleSetu
 }
 
 /**
- * Applies a finished battle: new head line-up, body HP, scars; if won, the encounter is cleared and its people give Bones.
+ * Applies a finished battle: new head line-up, body HP, scars; if won, the encounter is cleared, its people give Bones
+ * and the heads gain experience.
  * The Order hears every battle (the Alert rises), except near the Silent Bell.
  */
 export function finishBattle(state: RunState, result: BattleResult, rules: RunRules): RunEvent[] {
@@ -421,6 +423,7 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
   const bones = Math.max(0, (rules.encounterGroupMembers[pending.groupId]?.length ?? 0) - escaped) * rules.bonesPerEnemy;
   state.resources.bones += bones;
   const events: RunEvent[] = [{ type: 'battleWon', at: pending.at, bones, silenced }];
+  gainExperience(state, result.kills ?? {}, rules, events);
   if (escaped > 0) events.push(takeTithe(state, escaped, rules));
   const unit = pending.unitId ? state.order.units.find((u) => u.id === pending.unitId) : undefined;
   if (unit) unitBeaten(state, unit, rules, events);

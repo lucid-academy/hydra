@@ -276,6 +276,8 @@ const SHOTS = [
     await page.waitForTimeout(6000);
     await page.keyboard.press('Space');
   } },
+  // Heads of level 3: the level on their cards, and they bite harder.
+  { name: 'battle-veterans', query: '?seed=123&scene=battle&level=3&heads=biter,acidSpitter,mistBreather,screamer,glutton,spare,strangler,tender,lantern', viewport: DESKTOP, scene: 'battle' },
   { name: 'battle-tithe', query: '?seed=123&scene=battle&group=titheVisit', viewport: DESKTOP, scene: 'battle', act: async (page) => {
     await page.keyboard.press('Space');
     await page.waitForTimeout(7000);

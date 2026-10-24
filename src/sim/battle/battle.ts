@@ -27,6 +27,7 @@ import {
   healHead,
   hurtEnemy,
   isInMist,
+  levelDamageMultiplier,
   random,
   randomPick,
   rememberHit,
@@ -168,6 +169,7 @@ export function createBattle(setup: BattleSetup, rules: BattleRules): BattleStat
     enemies,
     allies,
     tithesTaken: 0,
+    kills: {},
     cauterizeMultiplier: Math.max(0.1, 1 + (setup.cauterizePercent ?? 0) / 100),
     clouds: [],
     pools: [],
@@ -396,7 +398,7 @@ function pickHeadTarget(state: BattleState, head: BattleHead, rules: BattleRules
 function headAttackLands(state: BattleState, head: BattleHead, target: Enemy, attack: HeadAttackRules, rules: BattleRules): void {
   const at = target.hex;
   const hit: HitContext = { head, tags: attack.tags, hitDamage: 0, power: 1, keepEntranced: false };
-  if (attack.damage > 0) hit.hitDamage = hurtEnemy(state, target, Math.max(1, attack.damage - enemyArmor(target, rules)), 'head', head.id, rules, false);
+  if (attack.damage > 0) hit.hitDamage = hurtEnemy(state, target, Math.max(1, attack.damage * levelDamageMultiplier(head, rules) - enemyArmor(target, rules)), 'head', head.id, rules, false);
   if (!state.enemies.includes(target)) {
     // Killed by the bite: a Glutton eats what it killed.
     if (attack.devourHeal > 0) afterMeal(state, target, attack.devourHeal, head, rules);
@@ -791,6 +793,8 @@ export interface BattleResult {
   alliesLeft?: number;
   /** Tithe Collectors that got away with the tithe (missing: none). */
   tithesTaken?: number;
+  /** Humans each head killed or ate, by head id (missing: none). */
+  kills?: Readonly<Record<string, number>>;
 }
 
 /** What goes back to the map. Stumps still waiting to regrow do so right away. */
@@ -801,11 +805,12 @@ export function battleResult(state: BattleState, rules: BattleRules): BattleResu
   return {
     outcome: state.outcome,
     bodyHp: Math.max(0, state.body.hp),
-    heads: state.heads.map(({ id, name, classId, level, hp, maxHp, skills }) => ({ id, name, classId, level, hp, maxHp, skills: [...skills] })),
+    heads: state.heads.map(({ id, name, classId, level, xp, hp, maxHp, skills }) => ({ id, name, classId, level, ...(xp !== undefined ? { xp } : {}), hp, maxHp, skills: [...skills] })),
     newScars,
     nextId: state.nextId,
     alliesLeft: state.allies.length,
     tithesTaken: state.tithesTaken,
+    kills: { ...state.kills },
   };
 }
 
