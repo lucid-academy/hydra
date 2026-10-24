@@ -1,6 +1,6 @@
 # Handoff: stan prac nad Hydrą
 
-Stan na 2026-10-24 (M3 zbudowany i wdrożony, czeka na playtest Piotra; wcześniej M5, M6 i M2a, też bez playtestu). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
+Stan na 2026-10-24 (M4 zbudowany na polecanych odpowiedziach i wdrożony, czeka na odpowiedzi i playtest Piotra; M3, M5, M6 i M2a też czekają na playtest). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
 
 - Gra: https://lucid-academy.github.io/hydra/
 - Repo: https://github.com/lucid-academy/hydra (na serwerze `/root/Hydra`)
@@ -9,14 +9,15 @@ Stan na 2026-10-24 (M3 zbudowany i wdrożony, czeka na playtest Piotra; wcześni
 
 ## 1. Etap
 
-- Zrobione: **M0, M1, M1b, M2b, M2c, Wygląd mapy (HD), M5, M6, M2a, M3** (sekcja 15 w `GAME_DESIGN.md`).
+- Zrobione: **M0, M1, M1b, M2b, M2c, Wygląd mapy (HD), M5, M6, M2a, M3, M4** (sekcja 15 w `GAME_DESIGN.md`).
+- **M4** (powierzchnia): plan w dokumencie Claude „Hydra M4: powierzchnia” (https://claude.ai/artifact/Cru1wkA4zam1mXDK5tfarA). Piotr napisał 2026-10-24 „Kontynuuj co możesz samemu, później odpowiem na pytania”, więc etap jest zbudowany na wariancie 1 w pytaniach A–F (`GAME_DESIGN.md` §15, §16), zanim Piotr odpowiedział. Wdrożony 2026-10-24 (PR #18–#20), czeka na odpowiedzi i playtest (opis w sekcji 2). Decyzje trafią do `GAME_DESIGN.md` po odpowiedziach.
 - **M3** (Zakon kontratakuje): plan zatwierdzony przez Piotra 2026-10-23 na karcie „Buduj z polecanymi” (dokument Claude „Hydra M3: Zakon kontratakuje”, https://claude.ai/artifact/NeZGXw7XaQeAHkwstVnXvE; decyzje w `GAME_DESIGN.md` §4, §8, §12, §15), zbudowany i wdrożony 2026-10-23/24 (PR #8–#16), czeka na playtest (opis w sekcji 2). Wątek M3 przejął pliki bitwy po M2a.
 - **M5** (eventy, mini questy, dialogi) wdrożony 2026-10-21 i czeka na playtest Piotra (opis w sekcji 2).
 - **M6** (pokolenia): plan zatwierdzony przez Piotra 2026-10-21 na karcie „Buduj z propozycjami” (dokument Claude „Hydra M6: pokolenia”, https://claude.ai/artifact/FAibVmNwcvBZQBJjLif4LV), zbudowany i wdrożony tego samego dnia, czeka na playtest (opis w sekcji 2).
 - **M2a** (głowy i balans bitwy) zbudował osobny wątek projektu Hydra; jest na main od 2026-10-23 (opis w sekcji „M2a” na końcu pliku).
 - **M2c** (świat do odkrywania) jest wdrożony 2026-10-04 i czeka na playtest Piotra. Playtest M2b nie przyszedł; M2c zmienił mapę na tyle, że lepiej grać od razu w M2c.
 - 2026-10-03 Piotr zmienił sposób pracy: grafika będzie z GPT, animacje najpierw w kodzie. Zasady są już w `CLAUDE.md`. Plan grafiki (sekcja 3.2) Piotr zatwierdził tego samego dnia i potok jest zbudowany. Wieczorem przyszła cała pierwsza partia (21 obrazków) i jest w grze; **czeka na uwagi Piotra**.
-- Następne etapy: M4, M7 (kolejność Piotra z 2026-10-04, `GAME_DESIGN.md` §15). Każdy zaczyna się od planu i OK Piotra. Projekt 9 głów (M2a) jest zatwierdzony (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13).
+- Następny etap: M7 (kolejność Piotra z 2026-10-04, `GAME_DESIGN.md` §15). Każdy zaczyna się od planu i OK Piotra. Projekt 9 głów (M2a) jest zatwierdzony (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13).
 - **Wygląd mapy (HD), od 2026-10-05:** Piotr wybrał na karcie przejście na HD pixel art (`GAME_DESIGN.md` §13, §15). Mapa, bitwa i napisy w HD (opis w sekcji 3.2, „Wygląd mapy w HD”). Mapę Piotr ocenił 2026-10-06: „wygląda naprawdę lepiej”. Od 2026-10-21 HD jest jedynym trybem (etap zakończony); uwagi Piotra do bitwy i napisów wciąż mile widziane.
 - **Zmiana kierunku, 2026-10-04:** Hydra to teraz fabularny roguelite z naciskiem na odkrywanie świata, mini questy i kilka zakończeń; bitwy rzadsze, ale ważne (`GAME_DESIGN.md` §1, §2, §4, §15).
 
@@ -81,7 +82,19 @@ Stan na 2026-10-24 (M3 zbudowany i wdrożony, czeka na playtest Piotra; wcześni
 - Do testów: `?scene=map&alert=55`, `?scene=map&units=patrol,messenger`, `?scene=generation&ancestors=2&eggs=0&hidden=1`, `?scene=battle&group=greatBurning&allies=2`, `?scene=battle&level=3` (`README.md`).
 - `npm run balance:runs`: bot gra 50 całych runów i zapisuje do `docs/BALANCE_RUNS.md`, kiedy Alert mija progi i ile heksów hydra zna przy pierwszej wyprawie.
 
-**Narzędzia.** `npm run smoke` gra sama jak gracz: mapa, bitwy, śmierć i nowe pokolenie, zapis i Continue, kapliczki; z `-- phone` na ekranie telefonu. `npm run balance` rozgrywa setki automatycznych bitew, wynik w `docs/BALANCE.md`; `npm run balance:runs` gra całe runy na mapie, wynik w `docs/BALANCE_RUNS.md`. `npm run shots` robi zrzuty do `docs/screens/`. `npm run art` wstawia do gry obrazki z `art/raw/` (opis w `docs/ASSETS.md`). Parametry URL są w `README.md`.
+**M4 (2026-10-24): powierzchnia** (zbudowana na wariancie 1 pytań A–F, zanim Piotr odpowiedział; liczby w `src/data/surface.json` z `TODO(design)`).
+- Druga mapa nad podziemiami, tej samej wielkości (`src/sim/map/generateSurface.ts`, stan w `state.surface`, warstwa w `hydra.layer`; heksy przez `tileOn`, `mapOf`, `visibilityOf`). Każdy Passage ma swój heks na obu mapach. Zamek z katedrą na wzgórzu po drugiej stronie niż pierwszy Passage, 5 kapliczek Płomienia (siła straży rośnie bliżej zamku), 2 obozy, 3 wsie, młyn, 2 wieże, las, wzgórza, skałki i rzeka; znaleziska (jedno pokazuje ukryty próg w podziemiach) i 2 miejsca eventów. Walidator na 1000 seedach w `tests/surface.test.ts`.
+- Passage: przycisk Climb up / Go down w panelu (1 punkt ruchu); każda warstwa ma własną widoczność. Zamek i płonące kapliczki widać z daleka (od początku są „remembered”, `seenFromAfar` w danych, do decyzji Piotra).
+- Mist: hydra chodzi tylko po mgle; krok na goły heks wydmuchuje mgłę przed nią za 2 Moisture (A1), Exhale Mist (przycisk i klawisz M) za 3 Moisture kryje jej heks i sąsiednie (Mist Breather: promień 2) na 3 tury. Mgła zanika o 1 turę za dzień, 0,5 w nocy, szybciej przy wietrze (1 dzień na 4) i w roku Drought, wolniej nad rzeką; kapłani z kadzielnicami rozwiewają ją wokół siebie. Na starcie mgła wokół każdego Passage (promień 2, 4 tury), na samym Passage na stałe. Bez mgły i Moisture hydra pełznie 1 heks na turę (B1).
+- Dzień i noc: 6 tur dnia, 4 nocy; w nocy wzrok hydry i Zakonu −1, mapa sinieje. Exposed (bez mgły na koniec tury): −15 HP tułowia (nie niżej niż 1), bez leczenia, Alert +2; bitwa Exposed bez mgły i z głowami −20% obrażeń, bitwa we mgle z 3 chmurami przy tułowiu.
+- Kapliczki Płomienia: bitwa ze strażą, wygrana gasi kapliczkę: Alert −10, trwała mgła w promieniu 2, mutacja z pierwszego płomienia (Smoke-cured albo Ember-eyed), z kolejnych szansa 1 na 4, flaga `putOutFlame` (odblokowuje rok Drought). Po 6 turach z obozu albo zamku idą Torchbearerzy (ruch 3); jeśli dojdą, kapliczka płonie (Alert +5), a trwała mgła zaczyna zanikać. Zamek zamknięty do M7 (C1).
+- Zakon na powierzchni: patrole z zamku i obozów (2–4 naraz według progów Alertu, pierwszy 3 tury po pierwszym wyjściu, potem co 4 tury, ruch 4) chodzą i gonią hydrę; we mgle widzą ją z 1 heksu, bez mgły z 3. W podziemiach Zakon dalej przychodzi przez Passages i szyb (D1).
+- Bitwa (`src/sim/battle/`): Censer Priest co 6 s macha kadzielnicą 1,5 s (przerywa to strach, ogłuszenie, chwyt, trans i urok, Banshee Wail rozbija kadzielnicę): w promieniu 2 rozwiewa chmury Mist, zdejmuje statusy z ludzi poza Seized i daje im +25% obrażeń na 5 s. Brazier Bearer stawia 2 kosze żarowe: suszą heksy w promieniu 1 (tułów 1,5× wolniej) i rozpraszają mgłę w promieniu 2; gaszą je Douse, Eat Fire i rzut Stranglera. Obaj od początku na powierzchni, w podziemiach od progu 75 (E1). Wsie, młyny i wieże są tylko widokami, bez najazdów i jeńców (F1).
+- Treść: 4 eventy na powierzchni (strach na wróble Zakonu, studnia, pielgrzymi, puste pole), kwestie przy pierwszym wyjściu, słońcu, Exposed, zgaszonej i znów zapalonej kapliczce, nowych ludziach, epitafia. Prompty do GPT na 19 grafik powierzchni (`docs/ART_PROMPTS.md`, sekcja „M4”), `docs/ASSETS.md` i `docs/ANIMATIONS.md`; na razie wszystko rysowane w kodzie (`src/assets/surfacePlaceholders.ts`).
+- Bot runów (`npm run balance:runs`) wychodzi na górę od 20. tury i gasi kapliczki: w medianie 2 na run, wszystkie 5 w 6% runów, Zakon zapala z powrotem 1,7. Smoke wchodzi na Passage, wychodzi na górę i wraca, wydycha mgłę i gasi kapliczkę.
+- Do testów: `?scene=map&surface=1` (na pierwszym Passage), `&near=flameShrine` (też `castle`, `village`, `camp`...), `&exposed=1`, `&night=1`, `?scene=battle&surface=1&group=shrineVigil`. `RUN_FORMAT` 6.
+
+**Narzędzia.** `npm run smoke` gra sama jak gracz: mapa, bitwy, śmierć i nowe pokolenie, powierzchnia, zapis i Continue, kapliczki; z `-- phone` na ekranie telefonu. `npm run balance` rozgrywa setki automatycznych bitew, wynik w `docs/BALANCE.md`; `npm run balance:runs` gra całe runy na mapie, wynik w `docs/BALANCE_RUNS.md`. `npm run shots` robi zrzuty do `docs/screens/`. `npm run art` wstawia do gry obrazki z `art/raw/` (opis w `docs/ASSETS.md`). Parametry URL są w `README.md`.
 
 **Zasady pracy (2026-10-03).** Nowe sekcje w `CLAUDE.md`: Notatki decyzji, Grafika z GPT, Animacje, Sekrety. Cała historia repo przejrzana: nie ma w niej kluczy, haseł ani tokenów.
 
@@ -218,6 +231,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 ## 4. Otwarte pytania
 
 **Czekają na Piotra:**
+000. Odpowiedzi na pytania M4 A–F (`GAME_DESIGN.md` §16; gra działa na wariancie 1) i playtest powierzchni. Do tego pytania z budowy: czy zamek i płonące kapliczki mają być widoczne z daleka (zbudowane tak, bo inaczej gracz szuka ich na ślepo za 2 Moisture za heks); Exposed nie zabija (najniżej 1 HP), więc hydra bez mgły i Moisture może pełznąć do Passage wiele tur; nowe wsie, młyny i wieże tylko stoją.
 00. Playtest M3: patrole i posłańcy, wyprawy i obrona leża, jaja i Broodlingi, wybór jaja po śmierci, ukryte jajo, nowi wrogowie, Great Burning, poziomy głów. Pytania M3 (decyzje robocze, `TODO(design)` w danych):
     - §8 chce 40–80 znanych heksów przed pierwszą wyprawą, a przy wzroku 3 bot zna wtedy ok. 250 (`docs/BALANCE_RUNS.md`): zmienić cel w dokumencie czy podnieść Alert za odkrywanie?
     - jajo bierze mutacje w chwili zniesienia, więc mutacja zdobyta później przechodzi tylko przez jaja zniesione po niej; po wyborze jednego jaja reszta przepada; Hidden Egg nie wymaga, żeby „rodowi szło dobrze”; hydra zaczyna z 1 jajem;
@@ -250,12 +264,12 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 - Grafika z GPT jest na terenie i obiektach mapy, na hydrze (tułów, głowa Bitera, hydra na mapie), na Man-at-Arms i oddziale pierwszego stopnia. Zastępcze, rysowane w kodzie: Headhunter, Torchbearer, oddziały drugiego i trzeciego stopnia, przejście na powierzchnię, ekran tytułowy. Stara szara głowa (barwiona) zostaje dla Acid Spittera i Mist Breathera do czasu ich obrazków, więc na brązowym tułowiu wyglądają obco.
 - M2c: modyfikatory i „świat dnia” tylko z URL (świat dnia odłożony decyzją z 2026-10-04). Prąd Undertow nie jest narysowany na wodzie. Old Crypts bez własnego miejsca. Zewnętrzny brzeg świata przy płaskich bokach mapy idzie po jej sześciokącie. Wydajność na telefonie niezmierzona (1261 heksów rysowanych naraz). Ok. 1% światów losuje się drugi raz, bo w pierwszym pierścieniu zabrakło kapliczki.
 - M6: bitwa przerwana zamknięciem karty zaczyna się od nowa. Księga zaklęć rodu czeka na zaklęcia. Przodkini i dziedziczka nie mają portretów.
-- M3: nowi ludzie Zakonu, Broodling, jaja i jednostki Zakonu na mapie są rysowane w kodzie (prompty gotowe). Bełt kusznika nie leci przez planszę, kusznik tylko robi wypad. Posłańców bot balansu nie goni, więc ucieka ich ok. 80%. Mapa nie pokazuje poziomów głów (tylko karty w bitwie). Bez komnat leża, Lineage Grimoire, głębszej warstwy, Censer Priesta i Brazier Bearera (poza M3).
+- M3: nowi ludzie Zakonu, Broodling, jaja i jednostki Zakonu na mapie są rysowane w kodzie (prompty gotowe). Bełt kusznika nie leci przez planszę, kusznik tylko robi wypad. Posłańców bot balansu nie goni, więc ucieka ich ok. 80%. Mapa nie pokazuje poziomów głów (tylko karty w bitwie). Bez komnat leża, Lineage Grimoire i głębszej warstwy.
+- M4: cała powierzchnia jest rysowana w kodzie (prompty gotowe). Plansza bitwy na górze ma zwykłe kafle w kolorach biomu; suchy grunt pod koszem słabo widać w jego świetle; mgła przy Passage jest dość biała. Bot gasi w medianie 2 kapliczki na run i czasem pełznie bez Moisture wiele tur (gracz zaplanuje lepiej). Zamek zamknięty do M7, bez najazdów na wsie, młyny i wieże.
 - Seed widać tylko z `?debug=1`. Menu pauzy, w którym miał być (§9), jeszcze nie ma.
 - Świadomie odłożone na późniejsze etapy:
   - Spell Caches czekają na umiejętności głów (M2a);
-  - przejścia na powierzchnię są zamknięte (M4);
-  - Moisture tylko się zbiera (Bones i Muck idą na jaja od M3);
+  - Moisture idzie na mgłę na powierzchni (od M4), Bones i Muck na jaja (od M3);
   - nie ma odwrotu z bitwy;
   - specjalizacje, drzewko talentów i przypadłości głów;
 - M5: głos Węża przy odpoczynku jest tylko w kwestiach Ropuchy; maska Hushed nic jeszcze nie daje (`TODO(design)`); kamień eventu i portrety jeńców, Mistrzów Zakonu i przodków czekają na grafikę; kwestie znają tylko trzy klasy głów, które są w grze.
@@ -263,13 +277,13 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 
 ## 6. Następne kroki
 
-0. Uwagi Piotra z playtestu M3, M5, M6 i M2a. Po zmianie kształtu `RunState` albo profilu podbić `RUN_FORMAT` / `PROFILE_FORMAT`.
+0. Odpowiedzi Piotra na pytania M4 (wpisać decyzje do `GAME_DESIGN.md`, przerobić to, co wybierze inaczej) i uwagi z playtestu M4, M3, M5, M6 i M2a. Po zmianie kształtu `RunState` albo profilu podbić `RUN_FORMAT` / `PROFILE_FORMAT`.
 1. Poczekać na odpowiedzi Piotra (sekcja 4).
 2. Dalej z `docs/ANIMATIONS.md` (stan „do zrobienia”): oddech i drgnięcie tułowia, ścięcie głowy. Kolejne grafiki: reszta Zakonu po uwagach do próby (Zakon jak rycerze z okładki, z herbem złotego płomienia zamiast lwa; wzór dla GPT: `hydra-grafika/wzory/zakon-z-okladki.png` w plikach projektu), przejście na powierzchnię, tło tytułu.
 3. Głowy i tułów w stylu okładki (sekcja 3.2, „Próba hydry i Zakonu w grze”): próba jest w grze od 2026-10-06, Piotr napisał „ok”. Prompty na pozostałe osiem głów, Headhuntera, Torchbearera i dwa większe oddziały są w `docs/ART_PROMPTS.md` od 2026-10-06, a ich wzory (portrety, pixelowy tułów, Biter, Man-at-Arms, oddział) w plikach projektu, `hydra-grafika/wzory/`; w manifeście są już miejsca na głowy. Przy imporcie: rozmiar głowy w manifeście z obrazka, `JAW_OVERLAP_BY_CLASS` z linii pyska, `TORCH_FLAME` z płomienia Torchbearera. Palety na razie nie ma (decyzja z 2026-10-06, sekcja 3.2).
 4. Gdy Piotr napisze, że wrzucił grafiki: `git pull`, `npm run art`, obejrzeć wynik w grze, wdrożyć, pokazać.
 5. Zatwierdzone decyzje od razu wpisywać do `GAME_DESIGN.md`, a budować w swoim etapie.
-6. Kolejność etapów z `GAME_DESIGN.md` §15: M4 (powierzchnia), potem M7. Każdy zaczyna się od planu i OK Piotra.
+6. Kolejność etapów z `GAME_DESIGN.md` §15: następny jest M7 (szturm na zamek, zwycięstwo, dźwięk, szlif). Zaczyna się od planu i OK Piotra.
 
 ## M2a: głowy i combosy (wątek „Głowy i balans bitwy”, od 2026-10-21)
 

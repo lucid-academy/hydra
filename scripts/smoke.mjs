@@ -4,6 +4,8 @@
 //   generation screen → the heiress hatches. Dialogues on the way are read to the end (picking the first answer),
 //   events get their first choice that can be picked. Last, the saved game: a few moves, the page is reloaded,
 //   Continue brings the same hydra back; New Lineage (confirmed) starts another; the Book of Lineages opens.
+//   The surface: she walks onto a Passage, climbs up and goes back down; up there she exhales mist and puts out a
+//   Flame Shrine by beating its guard.
 // Opens the built game (dist/) in a headless browser. Run `npm run build` first.
 // Exits with an error on any browser console error, or when a step doesn't happen in time.
 //
@@ -29,6 +31,7 @@ const RESUME_BUTTON = { x: 602, y: 328 };
 const CONTINUE_BUTTON = { x: 320, y: 148 };
 const ACCEPT_BLESSING_BUTTON = { x: 258, y: 248 };
 const ALL_HEADS_BUTTON = { x: 600, y: 8 };
+const EXHALE_BUTTON = { x: 590, y: 308 };
 /** Map hexes under the top bar, the minimap or the End Turn button can't be tapped. */
 const MAP_TAP_AREA = { left: 10, right: 630, top: 24, bottom: 320 };
 const MINIMAP = { right: 104, top: 266 };
@@ -145,6 +148,33 @@ async function playBattle(page, allAtOnce) {
   await tap(page, CONTINUE_BUTTON);
   await waitForScene(page, next, before);
   return end;
+}
+
+/** Taps through whatever dialogue is on screen, picking the first answer. Returns the ids of those read. */
+async function readDialogues(page) {
+  const read = new Set();
+  for (let i = 0; i < 60 && (await page.evaluate(() => window.__hydra.runSummary())).talking; i++) {
+    await page.waitForTimeout(250);
+    const dialogue = await page.evaluate(() => window.__hydra.dialogue?.() ?? null);
+    if (!dialogue) continue;
+    read.add(dialogue.id);
+    await tap(page, dialogue.choices[0] ?? DIALOGUE_TAP);
+  }
+  // A tap right as a dialogue closes can be lost: let the map take input again first.
+  if (read.size > 0) await page.waitForTimeout(500);
+  return read;
+}
+
+/** On a Passage whose panel is open: Climb up (or Go down), and waits for the map of the other side. */
+async function takePassage(page) {
+  await page.waitForTimeout(300);
+  const panel = await page.evaluate(() => window.__hydra.placePanel());
+  const action = panel?.actions.find((a) => a.id === '__passage');
+  if (!action?.enabled) throw new Error(`No Passage button to press: ${JSON.stringify(panel)}`);
+  await tap(page, action);
+  await page.waitForTimeout(600);
+  await waitForMap(page);
+  return page.evaluate(() => window.__hydra.runSummary());
 }
 
 /** On the generation screen: hatch from the first egg (or the hidden one), and the heiress's map. Returns her summary. */
@@ -280,7 +310,61 @@ try {
   log(`defeat → the generation screen → ${fresh.hydraName}, generation 2: ok`);
   await page.close();
 
-  // Part 3: the saved game. A few steps, the page is reloaded, and Continue brings back the same hydra where she was.
+  // Part 3a: the surface. Next to a Passage below, she walks onto it, climbs up, looks around, and goes back down.
+  page = await openPage(`?seed=7&scene=map&near=passage&speed=${SPEED}`);
+  await waitForScene(page, 'map');
+  await readDialogues(page);
+  const passage = (await page.evaluate(() => window.__hydra.reachableOnScreen())).find((p) => p.object === 'passage');
+  if (!passage) throw new Error('No Passage in reach of the hydra placed next to one');
+  await goTo(page, passage);
+  await waitForMap(page);
+  await readDialogues(page);
+  if (!(await page.evaluate(() => window.__hydra.runSummary())).atPlace) throw new Error('Walking onto the Passage did not open its panel');
+  const up = await takePassage(page);
+  const upDialogues = await readDialogues(page);
+  if (up.layer !== 'surface' || up.exposed || up.surfaceExplored === 0) throw new Error(`Climbing up looks wrong: ${JSON.stringify(up)}`);
+  log(`climbed up: ${up.surfaceExplored} hexes of the surface known, in mist; dialogues: ${[...upDialogues].join(', ') || 'none'}`);
+  // Standing on the Passage, a tap on it opens its panel again: Go down.
+  const here = (await page.evaluate(() => window.__hydra.inspectableOnScreen())).find((p) => p.object === 'passage' && p.distance === 0);
+  if (!here) throw new Error('The Passage under the hydra cannot be tapped');
+  await tap(page, here);
+  const down = await takePassage(page);
+  await readDialogues(page);
+  if (down.layer !== 'underground') throw new Error(`Going down looks wrong: ${JSON.stringify(down)}`);
+  log('went back down: ok');
+  await page.close();
+
+  // Part 3b: up there next to a Flame Shrine, with Moisture: Exhale Mist, then the battle with its guard puts it out.
+  page = await openPage(`?seed=7&scene=map&surface=1&near=flameShrine&speed=${SPEED}`);
+  await waitForScene(page, 'map');
+  await readDialogues(page);
+  const before = await page.evaluate(() => window.__hydra.runSummary());
+  await tap(page, EXHALE_BUTTON);
+  await page.waitForTimeout(400);
+  await readDialogues(page);
+  const exhaled = await page.evaluate(() => window.__hydra.runSummary());
+  if (exhaled.moisture >= before.moisture) throw new Error(`Exhale Mist used no Moisture: ${before.moisture} → ${exhaled.moisture}`);
+  log(`Exhale Mist: Moisture ${before.moisture} → ${exhaled.moisture}`);
+  const shrine = (await page.evaluate(() => window.__hydra.reachableOnScreen())).find((p) => p.object === 'flameShrine');
+  if (!shrine) throw new Error('No Flame Shrine in reach of the hydra placed next to one');
+  await goTo(page, shrine);
+  await waitForMap(page);
+  await readDialogues(page);
+  if (!(await page.evaluate(() => window.__hydra.runSummary())).inBattle) throw new Error('Walking onto a Flame Shrine did not start a battle with its guard');
+  await waitForScene(page, 'battle');
+  const guard = await playBattle(page, true);
+  if (guard.outcome === 'won') {
+    await readDialogues(page);
+    const after = await page.evaluate(() => window.__hydra.runSummary());
+    if (after.shrinesPutOut !== 1 || after.layer !== 'surface') throw new Error(`The shrine should be out after beating its guard: ${JSON.stringify(after)}`);
+    log(`the shrine's guard beaten: ${after.shrinesPutOut} Flame Shrine out, Alert ${Math.round(before.alert)} → ${Math.round(after.alert)}: ok`);
+  } else {
+    // A fresh hydra can lose to a shrine's guard; that is the game, not a bug, but the test wants to see a win.
+    throw new Error(`Lost the battle for the Flame Shrine (seed 7): ${JSON.stringify(guard)}`);
+  }
+  await page.close();
+
+  // Part 4: the saved game. A few steps, the page is reloaded, and Continue brings back the same hydra where she was.
   page = await openPage(`?seed=11&speed=${SPEED}`);
   await waitForScene(page, 'title');
   await tap(page, await button(page, 'begin'));
