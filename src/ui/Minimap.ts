@@ -1,5 +1,5 @@
-// A small map of everything the hydra knows, in the bottom-left corner of the map screen.
-// One dot per hex, coloured by its biome and ground; brighter where the hydra sees now.
+// A small map of everything the hydra knows of the map she is on, in the bottom-left corner of the map screen.
+// One dot per hex, coloured by its biome and ground; brighter where the hydra sees now; on the surface, mist paler.
 // Tapping it moves the view to that part of the map.
 
 import * as Phaser from 'phaser';
@@ -8,6 +8,7 @@ import { color } from '../scenes/context';
 import type { RunController } from '../scenes/RunController';
 import { hexKey, hexRound } from '../sim/hex';
 import type { Hex } from '../sim/hex';
+import { hasMist, mapOf, visibilityOf } from '../sim/turn';
 
 /** Size of one hex on the minimap, in screen pixels: across, and from row to row. */
 const DOT = { across: 2.2, down: 1.85 };
@@ -48,19 +49,25 @@ export class Minimap {
   redraw(): void {
     const g = this.graphics;
     g.clear();
-    const { map, visibility, hydra, echoes } = this.run.state;
+    const { state } = this.run;
+    const { hydra } = state;
+    const map = mapOf(state);
+    const visibility = visibilityOf(state);
+    const up = hydra.layer === 'surface';
+    const echoes = up ? [] : state.echoes;
     // Terrain dots are a little taller than the row step, so rows touch instead of leaving dark stripes between them.
     const dot = (h: Hex, fill: number, alpha = 1, size = 2) => {
       g.fillStyle(fill, alpha);
       g.fillRect(Math.round(this.center.x + (h.q + h.r / 2) * DOT.across - size / 2), Math.round(this.center.y + h.r * DOT.down - size / 2), size + 1, size + 1);
     };
-    for (const [key, state] of visibility) {
+    for (const [key, seen] of visibility) {
       const tile = map.tiles.get(key);
       if (!tile) continue;
       const colors = this.data.biomes.biomes[tile.biome]?.colors;
       if (!colors) continue;
-      const fill = tile.terrain === 'rock' ? colors.rock : tile.terrain === 'water' ? colors.water : colors.ground;
-      dot(tile.hex, color(fill), state === 'visible' ? 1 : 0.6);
+      const fill = tile.terrain === 'rock' ? colors.rock : (colors.grounds?.[tile.terrain] ?? (tile.terrain === 'water' ? colors.water : colors.ground));
+      dot(tile.hex, color(fill), seen === 'visible' ? 1 : 0.6);
+      if (up && hasMist(state, tile.hex)) dot(tile.hex, color(this.data.palette.mist), 0.45);
     }
     // Things worth finding again: the lair, shrines, passages, places, thresholds, the Order's people, event sites, echoes.
     const { palette } = this.data;
@@ -75,6 +82,9 @@ export class Minimap {
       else if (object.kind === 'threshold' && object.state !== 'hidden') dot(tile.hex, object.state === 'open' ? 0xe8e0d0 : color(palette.order.orange), 1, 2);
       else if (object.kind === 'encounter') dot(tile.hex, color(palette.order.bannerRed), 1, 2);
       else if (object.kind === 'event' && !object.done) dot(tile.hex, 0x5fd8c8, 1, 2);
+      else if (object.kind === 'flameShrine') dot(tile.hex, object.burning ? color(palette.order.fire) : 0x8a9a8a, 1, 2);
+      else if (object.kind === 'castle') dot(tile.hex, color(palette.order.gold), 1, 3);
+      else if (object.kind === 'settlement') dot(tile.hex, object.settlementId === 'camp' ? color(palette.order.bannerRed) : 0xc8b898, 1, 2);
     }
     for (const echo of echoes) if (!visibility.has(hexKey(echo.source))) dot(echo.mark, 0xa8c8d8, 0.9, 1);
     dot(hydra.position, 0xffffff, 1, 3);

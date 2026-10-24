@@ -14,7 +14,7 @@ import { readPixels } from '../assets/terrainTiles';
 import type { GameData } from '../data';
 import { hexNeighbors, hexToPixel, pixelToHex } from '../sim/hex';
 import type { HexLayout } from '../sim/hex';
-import type { HexMap, Tile, Visibility } from '../sim/map';
+import type { LayerMap, Tile, Visibility } from '../sim/map';
 import { HD_DENSITY, useDensity } from './view';
 
 /**
@@ -43,7 +43,7 @@ interface Block {
 
 /** What is painted for one run's map. Kept between map scenes; only one run at a time. */
 interface Painted {
-  map: HexMap;
+  map: LayerMap;
   grid: HexGrid;
   painter: GroundPainter;
   chunksAcross: number;
@@ -74,7 +74,7 @@ export class MapGround {
 
   constructor(
     private readonly scene: Phaser.Scene,
-    map: HexMap,
+    map: LayerMap,
     data: GameData,
     private readonly layout: HexLayout,
     seed: number,
@@ -335,19 +335,20 @@ export class MapGround {
 
 // ------------------------------------------------------------ setting up and clearing away
 
-function prepare(scene: Phaser.Scene, map: HexMap, data: GameData, layout: HexLayout, seed: number): Painted {
+function prepare(scene: Phaser.Scene, map: LayerMap, data: GameData, layout: HexLayout, seed: number): Painted {
   // Textures: each biome's grounds and its rock, read at the density they were loaded with.
   const textures: GroundTexture[] = [];
   const textureIndex = new Map<string, number>();
   for (const [biome, def] of Object.entries(data.biomes.biomes)) {
-    const keys: Array<[string, GroundTexture['kind']]> = [
-      ...Object.keys(def.ground).map((terrain): [string, GroundTexture['kind']] => [groundTextureKey(biome, terrain), terrain === 'water' ? 'water' : 'ground']),
-      [rockTextureKey(biome), 'rock'],
+    const keys: Array<[string, GroundTexture['kind'], string]> = [
+      ...Object.keys(def.ground).map((terrain): [string, GroundTexture['kind'], string] => [groundTextureKey(biome, terrain), terrain === 'water' ? 'water' : 'ground', terrain]),
+      [rockTextureKey(biome), 'rock', 'rock'],
     ];
-    for (const [key, kind] of keys) {
+    for (const [key, kind, terrain] of keys) {
       textureIndex.set(key, textures.length);
-      const colour = kind === 'rock' ? def.colors.rock : kind === 'water' ? def.colors.water : def.colors.ground;
-      textures.push({ kind, pixels: scene.textures.exists(key) && (data.manifest.images[key]?.file ?? null) !== null ? readPixels(scene, key) : flat(colour) });
+      const grounds: Readonly<Record<string, string | undefined>> = def.colors.grounds ?? {};
+      const colour = kind === 'rock' ? def.colors.rock : (grounds[terrain] ?? (kind === 'water' ? def.colors.water : def.colors.ground));
+      textures.push({ kind, pixels: scene.textures.exists(key) && (data.manifest.images[key]?.file ?? null) !== null ? readPixels(scene, key) : speckled(colour, key) });
     }
   }
 
@@ -424,15 +425,20 @@ function blur(values: Float32Array, width: number, height: number, radius: numbe
   return out;
 }
 
-/** A one-colour texture, for a biome whose texture has no picture yet. */
-function flat(hex: string): GroundTexture['pixels'] {
+/** A texture of one colour, a little lighter and darker here and there, for a ground whose texture has no picture yet. */
+function speckled(hex: string, key: string): GroundTexture['pixels'] {
   const value = Number.parseInt(hex.slice(1), 16);
-  const data = new Uint8ClampedArray(4 * 4 * 4);
+  const size = 32;
+  const data = new Uint8ClampedArray(size * size * 4);
+  let seed = [...key].reduce((h, ch) => Math.imul(h ^ ch.charCodeAt(0), 16777619), 2166136261) >>> 0;
+  const next = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32);
   for (let i = 0; i < data.length; i += 4) {
-    data[i] = (value >> 16) & 255;
-    data[i + 1] = (value >> 8) & 255;
-    data[i + 2] = value & 255;
+    const r = next();
+    const shade = r < 0.08 ? 0.8 : r > 0.94 ? 1.15 : 1 - next() * 0.05;
+    data[i] = Math.min(255, ((value >> 16) & 255) * shade);
+    data[i + 1] = Math.min(255, ((value >> 8) & 255) * shade);
+    data[i + 2] = Math.min(255, (value & 255) * shade);
     data[i + 3] = 255;
   }
-  return { width: 4, height: 4, data };
+  return { width: size, height: size, data };
 }

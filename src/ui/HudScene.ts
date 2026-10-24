@@ -1,7 +1,8 @@
 // Map HUD drawn above the map: turn, moves, body, resources, the Alert bar, conditions, the minimap and the End Turn button,
 // and at the bottom the hydra's name with the mutations she carries. Also shows short messages (finds, hints,
-// thresholds, conditions, mutations, unlocks) and the shrine and place panels. When the hydra dies the map hands over
-// to the generation screen.
+// thresholds, conditions, mutations, unlocks) and the shrine and place panels. On the surface: day or night, the
+// Flame Shrines still burning, whether she is in mist, and the Exhale Mist button. When the hydra dies the map hands
+// over to the generation screen.
 
 import * as Phaser from 'phaser';
 import { SCREEN } from '../scaling';
@@ -14,7 +15,24 @@ import { hexKey } from '../sim/hex';
 import { FONT } from './fonts';
 import type { Hex } from '../sim/hex';
 import type { Loot } from '../sim/map';
-import { canChooseEventOption, canDoPlaceAction, canHatch, canHideEgg, canLayEgg, canOpenSealed, canWorkThreshold, pendingEventRules, pendingPlaceTile, pendingThreshold } from '../sim/turn';
+import {
+  canChooseEventOption,
+  canDoPlaceAction,
+  canExhale,
+  canHatch,
+  canHideEgg,
+  canLayEgg,
+  canOpenSealed,
+  canUsePassage,
+  canWorkThreshold,
+  hasMist,
+  isNight,
+  pendingEventRules,
+  pendingPlaceTile,
+  pendingThreshold,
+  shrinesBurning,
+  tileHere,
+} from '../sim/turn';
 import type { LairCheck } from '../sim/turn';
 import type { EventOutcome } from '../sim/turn';
 import type { RunEvent } from '../sim/turn';
@@ -36,6 +54,8 @@ const EVENT_CHOICE = '__event:';
 const SEALED_WAY = '__sealed:';
 /** Action ids in the lair's panel. */
 const LAIR = { rest: '__lair:rest', lay: '__lair:lay', next: '__lair:next', defender: '__lair:defender', scout: '__lair:scout', hide: '__lair:hide' } as const;
+/** Action id in a Passage's panel: up, or down. */
+const PASSAGE = '__passage';
 const ALERT_BAR_WIDTH = 100;
 /** Where each resource counter starts in the top bar. */
 const RESOURCE_X = { muck: 228, moisture: 296, bones: 390 } as const;
@@ -53,6 +73,9 @@ export class HudScene extends Phaser.Scene {
   /** Marks of the Alert stages on the bar (order.json), by stage id. */
   private alertMarks: Array<{ id: string; mark: Phaser.GameObjects.Rectangle }> = [];
   private endTurnButton!: Button;
+  /** On the surface: Exhale Mist (key M), and a line on day or night, the flames and the mist. */
+  private exhaleButton!: Button;
+  private surfaceText!: Phaser.GameObjects.Text;
   private minimap!: Minimap;
   /** The hydra's name, generation and mutations, at the bottom. */
   private nameText!: Phaser.GameObjects.Text;
@@ -112,9 +135,20 @@ export class HudScene extends Phaser.Scene {
       { width: 88, height: 28, fill: color(palette.underground.deepTeal), border: color(palette.underground.bioluminescence), textColor: '#e8f0e0', fontSize: '12px' },
       () => this.run.endTurn(),
     );
+    const words = getContext(this).data.surface.texts;
+    this.exhaleButton = new Button(
+      this,
+      width - 50,
+      height - 52,
+      words.exhaleMist,
+      { width: 88, height: 24, fill: color('#2a3a3a'), border: color(palette.mist), textColor: '#e8f0e8', fontSize: '10px' },
+      () => this.run.exhaleMist(),
+    );
+    this.surfaceText = this.add.text(width - 6, BAR_HEIGHT + 2, '', { ...mono, fontSize: '9px', color: '#e8e0c0', backgroundColor: '#05090acc', padding: { x: 3, y: 1 } }).setOrigin(1, 0);
     onKeyDown(this, (event) => {
       if (this.run.talking) return;
       if (event.key === 'Enter') this.run.endTurn();
+      if ((event.key === 'm' || event.key === 'M') && this.run.state.hydra.layer === 'surface' && !this.placePanel.visible) this.run.exhaleMist();
       if (event.key === 'Escape' && this.placePanel.visible) this.run.leavePlace();
     });
     this.conditionsText = this.add.text(6, BAR_HEIGHT + 2, '', { ...mono, fontSize: '9px', color: '#e0c890', backgroundColor: '#05090acc', padding: { x: 3, y: 1 } });
@@ -126,6 +160,7 @@ export class HudScene extends Phaser.Scene {
       getContext(this).data,
       (id) => {
         if (id === WORK_THRESHOLD) this.run.workThreshold();
+        else if (id === PASSAGE) this.run.usePassage();
         else if (id.startsWith('__lair:')) this.lairAction(id);
         else if (id.startsWith(SEALED_WAY)) this.run.openSealed(Number(id.slice(SEALED_WAY.length)));
         else if (id.startsWith(EVENT_CHOICE)) this.run.chooseEventOption(Number(id.slice(EVENT_CHOICE.length)));
@@ -292,7 +327,8 @@ export class HudScene extends Phaser.Scene {
           this.toast(fill(getContext(this).data.order.greatBurning.beaten, { act: event.act }), palette.order.fire);
           break;
         case 'orderArrived':
-          if (event.kind === 'patrol') this.toast(getContext(this).data.order.patrols.arrived, palette.order.gold);
+          if (event.kind === 'patrol' && this.run.state.order.units.find((u) => u.id === event.unitId)?.layer === 'surface') this.announceSurface(event);
+          else if (event.kind === 'patrol') this.toast(getContext(this).data.order.patrols.arrived, palette.order.gold);
           break;
         case 'messengerSent':
           this.toast(getContext(this).data.order.messengers.sent, palette.order.gold);
@@ -325,9 +361,75 @@ export class HudScene extends Phaser.Scene {
           break;
         }
         default:
+          this.announceSurface(event);
           break;
       }
     }
+  }
+
+  /** Messages of the surface (M4). */
+  private announceSurface(event: RunEvent): void {
+    const { surface, palette } = getContext(this).data;
+    const words = surface.texts;
+    const fill = (template: string, values: Record<string, string | number>) => template.replace(/\{(\w+)\}/g, (all, name: string) => String(values[name] ?? all));
+    const mist = palette.mist;
+    switch (event.type) {
+      case 'climbed':
+        this.toast(event.layer === 'surface' ? words.climbedUp : words.wentDown, event.layer === 'surface' ? '#e8e0c0' : palette.underground.bioluminescence);
+        break;
+      case 'mistExhaled':
+        this.toast(words.exhaled, mist);
+        break;
+      case 'exposed':
+        this.toast(fill(words.exposed, { n: event.bodyHp }), palette.order.orange);
+        break;
+      case 'covered':
+        this.toast(words.covered, mist);
+        break;
+      case 'nightFalls':
+        this.toast(words.nightFalls, '#a8b8e0');
+        break;
+      case 'dayBreaks':
+        this.toast(event.windy ? `${words.dayBreaks} ${words.windyDay}` : words.dayBreaks, '#e8e0c0');
+        break;
+      case 'findTaken': {
+        const find = surface.finds[event.findId];
+        if (find) this.toast(`${find.name}. ${find.text} ${this.lootText(event.loot)}`.trim(), '#d8d0c0');
+        break;
+      }
+      case 'shrineOut':
+        this.toast(event.left === 0 ? words.allShrinesOut : fill(words.shrineOut, { left: event.left }), mist);
+        break;
+      case 'relightSent':
+        this.toast(words.relightSent, palette.order.gold);
+        break;
+      case 'shrineRelit':
+        this.toast(words.shrineRelit, palette.order.orange);
+        break;
+      case 'castleReached': {
+        const castle = surface.places['castle'];
+        if (castle) this.toast(`${castle.name}. ${castle.text}`, palette.order.gold);
+        break;
+      }
+      case 'orderArrived': {
+        if (event.kind !== 'patrol' || this.run.state.order.units.find((u) => u.id === event.unitId)?.layer !== 'surface') break;
+        const where = this.homeName(event.at) ?? surface.places['castle']?.name ?? '';
+        if (event.seen) this.toast(fill(words.patrolOut, { where }), palette.order.gold);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  /** The name of the castle or camp a surface patrol set out from (it starts on the home's hex or next to it). */
+  private homeName(at: Hex): string | null {
+    const { surface } = this.run.state;
+    const { places } = getContext(this).data.surface;
+    const near = (h: Hex) => Math.abs(h.q - at.q) + Math.abs(h.r - at.r) + Math.abs(h.q + h.r - at.q - at.r) <= 2;
+    if (near(surface.map.castle)) return places['castle']?.name ?? null;
+    if (surface.map.camps.some(near)) return places['camp']?.name ?? null;
+    return null;
   }
 
   /** Run modifiers unlocked for every lineage by what this hydra did. */
@@ -439,12 +541,35 @@ export class HudScene extends Phaser.Scene {
       const reached = this.run.state.order.stagesReached.includes(id);
       mark.setFillStyle(color(reached ? palette.order.fire : palette.order.gold), reached ? 1 : 0.7);
     }
-    const lairPanel = pendingPlace !== null && hexKey(pendingPlace) === hexKey(map.lair);
-    this.endTurnButton.setEnabled(pendingBattle === null && pendingShrine === null && (pendingPlace === null || lairPanel) && this.run.state.pendingEvent === null && !this.run.talking && !over);
+    const panel = pendingPlace ? tileHere(this.run.state, pendingPlace)?.object?.kind : undefined;
+    // The panels of the lair and of a Passage need no answer: the turn can end with them open.
+    const restingPanel = panel === 'lair' || panel === 'passage';
+    this.endTurnButton.setEnabled(pendingBattle === null && pendingShrine === null && (pendingPlace === null || restingPanel) && this.run.state.pendingEvent === null && !this.run.talking && !over);
+    this.refreshSurface();
     const data = getContext(this).data;
     const name = fillText(text.lineages.hudName, { name: hydra.name, generation: this.run.state.generation });
     this.nameText.setText([name, ...hydra.mutations.map((id) => mutationName(data, id))].join('  ·  ')).setVisible(hydra.name !== '');
     this.minimap.redraw();
+  }
+
+  /** On the surface: Exhale Mist and its cost, and the line on day or night, the flames and the mist. */
+  private refreshSurface(): void {
+    const { state, rules } = this.run;
+    const up = state.hydra.layer === 'surface';
+    this.exhaleButton.setVisible(up);
+    this.surfaceText.setVisible(up);
+    if (!up) return;
+    const { texts } = getContext(this).data.surface;
+    const fill = (template: string, values: Record<string, string | number>) => template.replace(/\{(\w+)\}/g, (all, name: string) => String(values[name] ?? all));
+    const check = canExhale(state, rules);
+    this.exhaleButton.setLabel(`${texts.exhaleMist} (${rules.surface.mist.exhale.moisture})`);
+    this.exhaleButton.setEnabled(check.can && !this.run.talking && state.pendingPlace === null);
+    const { dayTurns, nightTurns } = rules.surface.dayNight;
+    const day = Math.floor((state.turn - 1) / (dayTurns + nightTurns)) + 1;
+    const time = isNight(state.turn, rules) ? texts.night : `${texts.day} ${day}${state.surface.windy ? `, ${texts.windy}` : ''}`;
+    const cover = hasMist(state, state.hydra.position) ? texts.inMist : texts.exposedNow;
+    this.surfaceText.setText(`${time}  ·  ${fill(texts.shrinesBurning, { n: shrinesBurning(state) })}  ·  ${cover}`);
+    this.surfaceText.setColor(hasMist(state, state.hydra.position) ? '#e8e0c0' : getContext(this).data.palette.order.orange);
   }
 
   private lairAction(id: string): void {
@@ -457,6 +582,24 @@ export class HudScene extends Phaser.Scene {
       this.refresh();
     } else if (egg && (id === LAIR.defender || id === LAIR.scout)) this.run.hatchEgg(egg.id, id === LAIR.defender ? 'defender' : 'scout');
     else if (egg && id === LAIR.hide) this.run.hideEgg(egg.id);
+  }
+
+  /** A Passage's panel: up to the surface, or down to the underground. */
+  private passageView(): PlacePanelView {
+    const { text, surface } = getContext(this).data;
+    const { state, rules } = this.run;
+    const passage = surface.places['passage'];
+    const check = canUsePassage(state, rules);
+    const up = state.hydra.layer === 'underground';
+    return {
+      kind: up ? surface.texts.wayUp : surface.texts.wayDown,
+      name: passage?.name ?? '',
+      text: passage?.text ?? '',
+      status: null,
+      result: null,
+      leave: text.place.leaveButton,
+      actions: [{ id: PASSAGE, label: up ? surface.texts.climbUp : surface.texts.goDown, enabled: check.can, why: check.can || check.why !== 'noMovement' ? null : surface.texts.noMovement }],
+    };
   }
 
   /** The lair's panel: the eggs (one looked at closely), the Broodlings, and what can be done with them. */
@@ -556,7 +699,8 @@ export class HudScene extends Phaser.Scene {
       };
     }
 
-    if (state.pendingPlace && hexKey(state.pendingPlace) === hexKey(state.map.lair)) return this.lairView();
+    if (state.pendingPlace && state.hydra.layer === 'underground' && hexKey(state.pendingPlace) === hexKey(state.map.lair)) return this.lairView();
+    if (state.pendingPlace && tileHere(state, state.pendingPlace)?.object?.kind === 'passage') return this.passageView();
 
     const place = pendingPlaceTile(state);
     if (place) {

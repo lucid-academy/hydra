@@ -40,10 +40,12 @@ export class DebugOverlayScene extends Phaser.Scene {
     let visibility = '-';
     let turn = '-';
     if (run) {
-      const states = [...run.visibility.values()];
+      const up = run.hydra.layer === 'surface';
+      const states = [...(up ? run.surface.visibility : run.visibility).values()];
       const visible = states.filter((s) => s === 'visible').length;
-      visibility = `${visible} visible, ${states.length - visible} remembered, ${run.map.tiles.size - states.length} unexplored`;
-      turn = `${run.turn}  alert: ${run.alert.toFixed(1)}`;
+      const size = (up ? run.surface.map : run.map).tiles.size;
+      visibility = `${run.hydra.layer}: ${visible} visible, ${states.length - visible} remembered, ${size - states.length} unexplored`;
+      turn = `${run.turn}  alert: ${run.alert.toFixed(1)}${up ? `  mist: ${Object.keys(run.surface.mist).length} hexes` : ''}`;
     }
     const keeper = lineages(this);
     const lineage = keeper.lineage();

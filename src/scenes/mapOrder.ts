@@ -1,11 +1,13 @@
 // The Order's people on the map (GAME_DESIGN.md §5.3, §5.5): patrols, messengers and expeditions where the hydra sees
 // them, walking in the world turn; out of sight, a faded picture where they were last seen, with how many turns ago.
 // Also the hydra's own brood (§7): her scouts, which she always knows the whereabouts of, and the eggs and Broodlings
-// in the lair.
+// in the lair. Only the people of the map drawn (the underground or the surface) are shown.
 
 import type * as Phaser from 'phaser';
 import { hexKey } from '../sim/hex';
 import type { Hex } from '../sim/hex';
+import type { Layer } from '../sim/map';
+import { visibilityOf } from '../sim/turn';
 import type { OrderSighting, OrderUnit, RunEvent, RunState } from '../sim/turn';
 import { FONT } from '../ui/fonts';
 import type { Light } from './mapLight';
@@ -41,6 +43,7 @@ function imageKey(kind: OrderUnit['kind'] | 'scout', tier: number): string {
   if (kind === 'patrol') return 'map_patrol';
   if (kind === 'expedition') return 'map_expedition';
   if (kind === 'greatBurning') return 'map_great_burning';
+  if (kind === 'relight') return 'map_relight';
   return `map_encounter_${Math.min(3, tier)}`;
 }
 
@@ -53,31 +56,37 @@ export class OrderTokens {
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly drawing: OrderDrawing,
+    /** The map drawn: only its people are shown. */
+    private readonly layer: Layer,
   ) {}
 
   /** Every unit where it stands, shown when in sight; where unseen ones were last seen, faded. */
   sync(state: RunState): void {
-    const visible = (h: Hex) => state.visibility.get(hexKey(h)) === 'visible';
-    for (const unit of state.order.units) {
+    const known = visibilityOf(state, this.layer);
+    const visible = (h: Hex) => known.get(hexKey(h)) === 'visible';
+    const below = this.layer === 'underground';
+    const units = state.order.units.filter((u) => u.layer === this.layer);
+    const scouts = below ? state.lair.scouts : [];
+    for (const unit of units) {
       const token = this.tokenFor(unit);
       this.put(token, unit.at);
       token.image.setVisible(visible(unit.at));
       token.shadow.setVisible(visible(unit.at));
     }
-    for (const scout of state.lair.scouts) {
+    for (const scout of scouts) {
       const token = this.tokenFor({ id: scout.id, kind: 'scout', tier: 1 });
       this.put(token, scout.at);
       token.image.setVisible(true);
       token.shadow.setVisible(true);
     }
-    this.syncBrood(state);
+    if (below) this.syncBrood(state);
     for (const [id, token] of this.live) {
-      if (state.order.units.some((u) => u.id === id) || state.lair.scouts.some((s) => s.id === id)) continue;
+      if (units.some((u) => u.id === id) || scouts.some((s) => s.id === id)) continue;
       token.image.destroy();
       token.shadow.destroy();
       this.live.delete(id);
     }
-    this.syncGhosts(state, state.order.sightings.filter((s) => !visible(s.at)));
+    this.syncGhosts(state, state.order.sightings.filter((s) => s.layer === this.layer && !visible(s.at)));
   }
 
   /** Lights for the light layer: lanterns of the patrols in sight, a faint one over each faded picture. */
@@ -95,11 +104,15 @@ export class OrderTokens {
    * down). Each is shown only on hexes in sight. Calls `done` when all have arrived; returns false if none moved.
    */
   animate(state: RunState, events: readonly RunEvent[], done: () => void, onFrame: () => void = () => {}): boolean {
+    const below = this.layer === 'underground';
+    // People of the other map walk unseen; a messenger who got away (gone from the state) walked where the hydra is.
+    const here = (id: string) => (state.order.units.find((u) => u.id === id)?.layer ?? state.hydra.layer) === this.layer;
     const moves = events.flatMap((e) =>
-      e.type === 'orderMoved' ? [{ id: e.unitId, path: e.path, ours: false }] : e.type === 'scoutMoved' ? [{ id: e.scoutId, path: e.path, ours: true }] : [],
+      e.type === 'orderMoved' && here(e.unitId) ? [{ id: e.unitId, path: e.path, ours: false }] : e.type === 'scoutMoved' && below ? [{ id: e.scoutId, path: e.path, ours: true }] : [],
     );
     if (moves.length === 0) return false;
-    const visible = (h: Hex) => state.visibility.get(hexKey(h)) === 'visible';
+    const known = visibilityOf(state, this.layer);
+    const visible = (h: Hex) => known.get(hexKey(h)) === 'visible';
     let running = 0;
     for (const move of moves) {
       const unit = state.order.units.find((u) => u.id === move.id);

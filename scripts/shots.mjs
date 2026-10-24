@@ -318,7 +318,47 @@ const SHOTS = [
     await goTo(page, shrine);
     await readThroughToShrine(page);
   } },
+  // The surface (M4).
+  { name: 'surface-start', query: '?seed=123&scene=map&surface=1&debug=1', viewport: DESKTOP, scene: 'map', act: readThrough },
+  { name: 'surface-world', query: '?seed=123&scene=map&surface=1&reveal=1&zoom=0.45', viewport: DESKTOP, scene: 'map', act: readThrough },
+  { name: 'surface-shrine', query: '?seed=123&scene=map&surface=1&near=flameShrine', viewport: DESKTOP, scene: 'map', act: readThrough },
+  { name: 'surface-castle-night', query: '?seed=123&scene=map&surface=1&near=castle&night=1', viewport: DESKTOP, scene: 'map', act: readThrough },
+  { name: 'surface-village', query: '?seed=123&scene=map&surface=1&near=village', viewport: DESKTOP, scene: 'map', act: readThrough },
+  { name: 'surface-passage-panel', query: '?seed=123&scene=map&near=passage', viewport: DESKTOP, scene: 'map', act: stepOntoPassage },
+  { name: 'surface-climbed', query: '?seed=123&scene=map&near=passage', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await stepOntoPassage(page);
+    const { actions } = await page.evaluate(() => window.__hydra.placePanel());
+    await tapGame(page, actions[0]);
+    // The map scene starts again, on the surface.
+    await page.waitForFunction(() => window.__hydra.readyScenes.filter((s) => s === 'map').length >= 2, null, { timeout: 20_000 });
+    await page.waitForTimeout(800);
+    await readThrough(page);
+  } },
+  { name: 'surface-walk', query: '?seed=123&scene=map&surface=1', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await readThrough(page);
+    await moveFarthest(page);
+    await readThrough(page);
+  } },
+  { name: 'surface-exhale', query: '?seed=123&scene=map&surface=1', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await readThrough(page);
+    await moveFarthest(page);
+    await readThrough(page);
+    await page.keyboard.press('m');
+    await page.waitForTimeout(900);
+  } },
+  { name: 'surface-phone', query: '?seed=123&scene=map&surface=1', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map', act: readThrough },
 ];
+
+/** Steps onto the Passage next to the hydra (?near=passage), and waits for its panel. */
+async function stepOntoPassage(page) {
+  await readThrough(page);
+  const points = await page.evaluate(() => window.__hydra.reachableOnScreen());
+  const target = points.find((p) => p.object === 'passage');
+  if (!target) throw new Error('No Passage next to the hydra');
+  await goTo(page, target);
+  await waitForPanel(page);
+  await page.waitForTimeout(300);
+}
 
 const OUT_DIR = 'docs/screens';
 await mkdir(OUT_DIR, { recursive: true });

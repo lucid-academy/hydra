@@ -320,7 +320,8 @@ export const biomesSchema = section({
       ground: z.partialRecord(z.enum(GROUND_TYPES), share),
       // How likely encounters are here compared with other biomes (1 = normal, 1.5 = half as many again).
       encounterDensity: z.number().positive().optional(),
-      colors: section({ ground: hexColor, detail: hexColor, water: hexColor, rock: hexColor, glow: hexColor }),
+      // grounds: a colour for each kind of ground, for its placeholder until its texture exists (else ground or water).
+      colors: section({ ground: hexColor, detail: hexColor, water: hexColor, rock: hexColor, glow: hexColor, grounds: z.partialRecord(z.enum(GROUND_TYPES), hexColor).optional() }),
     }),
   ),
 }).superRefine((data, ctx) => {
@@ -1144,6 +1145,9 @@ export const surfaceSchema = section({
   // What the castle, the Passages, camps, shrines and each settlement of generator.settlements are called and say.
   places: entries(namedText),
   texts: section({
+    // The kind line of a Passage's panel, underground and on the surface.
+    wayUp: text,
+    wayDown: text,
     climbUp: text,
     goDown: text,
     climbedUp: text,
@@ -1174,6 +1178,12 @@ export const surfaceSchema = section({
     breathAhead: text,
     // {n}: percent of damage the heads deal.
     exposedInBattle: text,
+    noMovement: text,
+    // {where}: the castle's or a camp's name.
+    patrolOut: text,
+    inMist: text,
+    exposedNow: text,
+    windy: text,
   }),
 }).superRefine((s, ctx) => {
   const ids = s.generator.settlements.map((p) => p.id);
