@@ -1,0 +1,79 @@
+{
+  "//": "TODO(design): the castle of the Eternal Flame and the last assault (GAME_DESIGN.md §5.7, §6.6; M7, built on the recommended answers A1-E1 of the plan doc \"Hydra M7\" before Piotr answered). Working values and texts by Claude; change them freely.",
+  "gate": {
+    "//": "The castle's gate opens when shrinesOut Flame Shrines are out at the same time (surface.json makes generator.flameShrines.count of them; 5 = all). staysOpen: once open it stays open, even when the Order lights a shrine again (A1); false: it shuts again until enough are out (A3).",
+    "shrinesOut": 5,
+    "staysOpen": true
+  },
+  "parts": {
+    "//": "The assault, part by part, one battle each, in this order (B1). A part won stays won; between parts the hydra may press on or fall back, and her wounds stay with her. group: the Order's people there (enemies.json encounterGroups). arena: how the battle board looks (castleYard or cathedral, the manifest's battle_tile_<arena>_ground). eternalFlame: the Eternal Flame burns on the board (eternalFlame below); winning that part wins the run.",
+    "list": [
+      {
+        "id": "gate",
+        "name": "The Gate",
+        "text": "The gatehouse. Crossbowmen on the wall, braziers in the arch, and a knight who has been told to hold it, and will.",
+        "group": "castleGate",
+        "arena": "castleYard",
+        "eternalFlame": false
+      },
+      {
+        "id": "cloister",
+        "name": "The Cloister",
+        "text": "The cloister. Censers swing in every arch, and the Order's treasurer has come out to count what is coming.",
+        "group": "castleCloister",
+        "arena": "castleYard",
+        "eternalFlame": false
+      },
+      {
+        "id": "cathedral",
+        "name": "The Cathedral",
+        "text": "The cathedral of the Eternal Flame. Grand Master Ignatius Vell stands before it, as he has every night for thirty years.",
+        "group": "castleCathedral",
+        "arena": "cathedral",
+        "eternalFlame": true
+      }
+    ]
+  },
+  "eternalFlame": {
+    "//": "The Eternal Flame in the last battle (C1). It burns at the top of the board with strength points. Smothering takes them away every second: the body lying next to it (bodyPerSecond; the flame burns the body for burnsBodyPerSecond meanwhile), every Mist cloud lying on its hex (mistCloudPerSecond; censer smoke keeps the Mist off), and doused at once by a skill that puts out braziers aimed near it or a man thrown at it (Douse, Eat Fire, Acid Rain, Toss). With nothing smothering it, it comes back by rekindlesPerSecond. While it burns, the people of keeps.types heal keeps.healPerSecond HP a second and can't fall below 1 HP. When it goes out, everyone of the Order on the board who can be afraid gets fear.status (combos.json statuses) for fear.seconds. The battle is won when the flame is out and the Order is gone.",
+    "strength": 100,
+    "smother": { "bodyPerSecond": 5, "mistCloudPerSecond": 4, "doused": 30 },
+    "burnsBodyPerSecond": 3,
+    "rekindlesPerSecond": 2,
+    "keeps": { "types": ["grandMaster"], "healPerSecond": 4 },
+    "fear": { "status": "terrified", "seconds": 5 }
+  },
+  "victory": {
+    "//": "The Eternal Flame put out (GAME_DESIGN.md §4, §5.7): the run is won, the lineage goes into the Book of Lineages as victorious and ends (D1). setFlags: flags set (flags.json; world flags stay for every lineage after).",
+    "setFlags": ["eternalFlameOut"]
+  },
+  "texts": {
+    "//": "What the game says at the castle. {left}: shrines still burning; {part}: a part's name; {won}, {parts}: parts taken, and how many there are; {n}: a number; {name}, {lineage}, {generation}, {turns}: the hydra who won.",
+    "kind": "The castle",
+    "shut": "The gate is shut. {left} Flame Shrines still burn, and the Order opens for nobody while they do.",
+    "open": "The gate stands open. Nobody on the walls is writing anything down any more.",
+    "taken": "{won} of {parts} taken.",
+    "storm": "Storm the castle: {part}",
+    "pressOn": "Press on: {part}",
+    "leave": "Leave",
+    "fallBack": "Fall back",
+    "notNext": "Come up close to the walls first.",
+    "opened": "Enough Flame Shrines are out. Far off, the castle gate groans open: the Order has run out of fire to hide behind.",
+    "shutAgain": "A Flame Shrine burns again, and the castle gate swings shut.",
+    "partWon": "{part} is taken. The heads want to press on. One of them wants a nap.",
+    "flameLine": "Eternal Flame {n}%",
+    "flameOut": "The Eternal Flame goes out.",
+    "flameKeeps": "The Flame keeps him standing.",
+    "ending": {
+      "title": "The Mist Settles",
+      "lines": [
+        "The Eternal Flame is out. For the first time in four hundred years the cathedral is dark, and nobody can find the spare candles.",
+        "Mist lies over the fields, the villages and the castle on its hill. In the morning it does not lift.",
+        "{name} of the Line of {lineage} did it in {turns} turns, in generation {generation}.",
+        "The Order of the Eternal Flame has called an extraordinary chapter. It will meet by candlelight, when someone finds a candle."
+      ],
+      "book": "The Book of Lineages",
+      "toTitle": "To the title"
+    }
+  }
+}

@@ -865,7 +865,7 @@ export const textSchema = z
 
 // ---------------------------------------------------------------- story: dialogues.json and events.json
 
-const STORY_TRIGGERS = ['afterBattle', 'newBiome', 'enemyAhead', 'restInLair', 'serpentOnTheWay', 'serpentInBattle', 'eventOnly', 'newGeneration', 'ancestorInSleep', 'shrineOut', 'shrineRelit', 'exposed'] as const;
+const STORY_TRIGGERS = ['afterBattle', 'newBiome', 'enemyAhead', 'restInLair', 'serpentOnTheWay', 'serpentInBattle', 'eventOnly', 'newGeneration', 'ancestorInSleep', 'shrineOut', 'shrineRelit', 'exposed', 'castleOpened', 'castlePartWon', 'eternalFlameOut'] as const;
 const flagList = z.array(z.string().min(1));
 const storyConditionsSchema = section({
   rings: z.array(z.number().int().min(0)).optional(),
@@ -1237,6 +1237,79 @@ export const surfaceSchema = section({
   if (!Object.values(s.finds).some((f) => f.weight > 0) && s.generator.finds.count > 0) ctx.addIssue({ code: 'custom', path: ['finds'], message: 'needs at least one find with a weight above 0' });
 });
 
+// ---------------------------------------------------------------- the castle and the last assault: castle.json (M7)
+
+/** How the board of a battle in the castle looks (the manifest's battle_tile_<arena>_ground). */
+export const CASTLE_ARENAS = ['castleYard', 'cathedral'] as const;
+const perSecond = z.number().min(0);
+export const castleSchema = section({
+  gate: section({ shrinesOut: z.number().int().min(1), staysOpen: z.boolean() }),
+  parts: section({
+    list: z
+      .array(
+        section({
+          id: z.string().min(1),
+          name: text,
+          text,
+          // An encounter group (enemies.json).
+          group: z.string().min(1),
+          arena: z.enum(CASTLE_ARENAS),
+          eternalFlame: z.boolean(),
+        }),
+      )
+      .min(1),
+  }),
+  eternalFlame: section({
+    strength: z.number().positive(),
+    smother: section({ bodyPerSecond: perSecond, mistCloudPerSecond: perSecond, doused: z.number().min(0) }),
+    burnsBodyPerSecond: perSecond,
+    rekindlesPerSecond: perSecond,
+    // Enemy types (enemies.json) the flame keeps standing.
+    keeps: section({ types: z.array(z.string().min(1)), healPerSecond: perSecond }),
+    // A status (combos.json) the Order gets when the flame goes out.
+    fear: section({ status: z.string().min(1), seconds: z.number().min(0) }),
+  }),
+  victory: section({ setFlags: z.array(z.string().min(1)) }),
+  texts: section({
+    kind: text,
+    // {left}: shrines still burning.
+    shut: text,
+    open: text,
+    // {won}, {parts}
+    taken: text,
+    // {part}
+    storm: text,
+    pressOn: text,
+    leave: text,
+    fallBack: text,
+    notNext: text,
+    opened: text,
+    shutAgain: text,
+    // {part}
+    partWon: text,
+    // {n}: percent of the flame's strength left.
+    flameLine: text,
+    flameOut: text,
+    flameKeeps: text,
+    ending: section({
+      title: text,
+      // {name}, {lineage}, {generation}, {turns}
+      lines: z.array(text).min(1),
+      book: text,
+      toTitle: text,
+    }),
+  }),
+}).superRefine((c, ctx) => {
+  const ids = c.parts.list.map((p) => p.id);
+  ids.forEach((id, i) => {
+    if (ids.indexOf(id) !== i) ctx.addIssue({ code: 'custom', path: ['parts', 'list', i, 'id'], message: `"${id}" is used twice` });
+  });
+  const last = c.parts.list.length - 1;
+  c.parts.list.forEach((p, i) => {
+    if (p.eternalFlame && i !== last) ctx.addIssue({ code: 'custom', path: ['parts', 'list', i, 'eternalFlame'], message: 'only the last part can be fought round the Eternal Flame' });
+  });
+});
+
 export const FLAG_SCOPES = ['life', 'lineage', 'world'] as const;
 export const flagsSchema = section({
   flags: entries(section({ scope: z.enum(FLAG_SCOPES), about: z.string().min(1) })),
@@ -1278,3 +1351,4 @@ export type FlagsData = z.infer<typeof flagsSchema>;
 export type OrderData = z.infer<typeof orderSchema>;
 export type BroodData = z.infer<typeof broodSchema>;
 export type SurfaceData = z.infer<typeof surfaceSchema>;
+export type CastleData = z.infer<typeof castleSchema>;

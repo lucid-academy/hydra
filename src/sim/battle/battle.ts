@@ -18,6 +18,7 @@ import {
   beaconFor,
   breakHold,
   canCauterize,
+  cloudsOver,
   createMistCloud,
   devourEnemy,
   dryingBrazier,
@@ -42,7 +43,7 @@ import {
 } from './effects';
 import type { HitContext } from './effects';
 import { skillBlock, skillInSlot, useSkill } from './skills';
-import type { Ally, BattleCommand, BattleHead, BattleOutcome, BattleRules, BattleState, BrazierRules, CenserRules, Enemy, HeadAttackRules, HeadRecord, MistCloud, Stump } from './types';
+import type { Ally, BattleCommand, BattleHead, BattleOutcome, BattleRules, BattleState, BoardSize, BrazierRules, CenserRules, Enemy, HeadAttackRules, HeadRecord, MistCloud, Stump } from './types';
 
 /**
  * Where the first neck leaves the body; the others follow evenly around it. It points north-east, at a hex,
@@ -74,6 +75,8 @@ export interface BattleSetup {
    * `damagePercent`, her heads deal this many percent more damage (negative: less; Exposed).
    */
   surface?: { inMist: boolean; damagePercent: number };
+  /** The Eternal Flame burns on the board (the last battle of the castle, M7): the battle is won only once it is out. */
+  eternalFlame?: boolean;
 }
 
 /** The two skills a head takes into battle: its own choice if it is still valid, otherwise its class's first two. */
@@ -108,8 +111,10 @@ export function createBattle(setup: BattleSetup, rules: BattleRules): BattleStat
   const rng = new Rng(setup.seed);
   const heads: BattleHead[] = setup.heads.map((record, i) => battleHead(record, FIRST_NECK_ANGLE + (i / setup.heads.length) * Math.PI * 2, null, rules));
 
+  // The Eternal Flame burns in the middle of the top edge; nobody starts there.
+  const flameAt = flameHex(rules);
   // The Order starts on the edge of the board, spread evenly around the hydra, with a little randomness.
-  const freeRim = rimHexes(rules);
+  const freeRim = rimHexes(rules).filter((h) => !setup.eternalFlame || !hexEquals(h, flameAt));
   const ringStart = rng.next() * Math.PI * 2;
   const enemies: Enemy[] = setup.enemies.map((typeId, i) => {
     const type = rules.enemyTypes[typeId];
@@ -199,6 +204,7 @@ export function createBattle(setup: BattleSetup, rules: BattleRules): BattleStat
     clouds,
     smokes: [],
     braziers: [],
+    flame: setup.eternalFlame ? { at: flameAt, strength: rules.eternalFlame.strength, maxStrength: rules.eternalFlame.strength, out: false } : null,
     pools: [],
     beacons: [],
     headDamageMultiplier: Math.max(0, 1 + (setup.surface?.damagePercent ?? 0) / 100),
@@ -249,6 +255,12 @@ export function applyCommand(state: BattleState, command: BattleCommand, rules: 
   }
 }
 
+/** Where the Eternal Flame burns: the hex in the middle of the board's top row. */
+export function flameHex(size: BoardSize): Hex {
+  const r = -(size.boardRows - 1) / 2;
+  return hex(Math.round(-r / 2), r);
+}
+
 /** The body can't hang over the edge: a spot near the edge becomes the nearest spot where all seven hexes fit. */
 export function nearestBodySpot(to: Hex, rules: BattleRules): Hex {
   if (canBodyStandAt(to, rules)) return to;
@@ -264,6 +276,7 @@ export function stepBattle(state: BattleState, rules: BattleRules): void {
   moveBody(state, rules);
   for (const head of [...state.heads]) if (state.heads.includes(head)) updateHead(state, head, rules);
   updateEffects(state, rules);
+  updateFlame(state, rules);
   for (const ally of [...state.allies]) updateAlly(state, ally, rules);
   for (const enemy of [...state.enemies]) updateEnemy(state, enemy, rules);
   regrowStumps(state, rules, false);
@@ -449,6 +462,36 @@ function headAttackLands(state: BattleState, head: BattleHead, target: Enemy, at
   }
   if (attack.createsMistCloud) createMistCloud(state, at, rules, undefined, undefined, head.id);
   if (state.enemies.includes(target)) rememberHit(state, target, head, attack.tags, rules);
+}
+
+// ---------------------------------------------------------------- the Eternal Flame
+
+/**
+ * The Eternal Flame (castle.json eternalFlame): smothered by the body lying next to it and by Mist on it, it comes back
+ * when nothing smothers it, burns the body lying on it, heals its keepers, and when it goes out, frightens the Order.
+ */
+function updateFlame(state: BattleState, rules: BattleRules): void {
+  const flame = state.flame;
+  if (!flame || flame.out) return;
+  const f = rules.eternalFlame;
+  const bodyOnIt = bodyDistance(state.body.center, flame.at) <= 1;
+  const smother = (bodyOnIt ? f.bodyPerTick : 0) + cloudsOver(state, flame.at).length * f.mistCloudPerTick;
+  flame.strength = smother > 0 ? flame.strength - smother : Math.min(flame.maxStrength, flame.strength + f.rekindlesPerTick);
+  if (state.tick % rules.ticksPerSecond === 0) {
+    if (bodyOnIt && f.burnsBodyPerSecond > 0) {
+      state.body.hp -= f.burnsBodyPerSecond;
+      state.events.push({ type: 'hit', tick: state.tick, attacker: 'status', attackerId: null, targetKind: 'body', targetId: 'body', damage: f.burnsBodyPerSecond, at: flame.at });
+    }
+    for (const keeper of state.enemies) {
+      if (f.keepsTypes.includes(keeper.typeId)) keeper.hp = Math.min(keeper.maxHp, keeper.hp + f.healPerSecond);
+    }
+  }
+  if (flame.strength > 0) return;
+  flame.strength = 0;
+  flame.out = true;
+  state.events.push({ type: 'flame', tick: state.tick, what: 'out', amount: 0, at: flame.at });
+  // With the Flame out, the Order loses heart (those who can be afraid).
+  for (const enemy of [...state.enemies]) applyStatus(state, enemy, f.fearStatus, rules, f.fearTicks);
 }
 
 // ---------------------------------------------------------------- the Spare's Bad Idea
@@ -879,7 +922,8 @@ function hatchling(state: BattleState, rules: BattleRules, anchorAngle: number, 
 function checkOutcome(state: BattleState): void {
   let outcome: BattleOutcome | null = null;
   if (state.body.hp <= 0) outcome = 'lost';
-  else if (state.enemies.length === 0) outcome = 'won';
+  // In the cathedral the battle goes on until the Eternal Flame is out too.
+  else if (state.enemies.length === 0 && (!state.flame || state.flame.out)) outcome = 'won';
   if (!outcome) return;
   state.outcome = outcome;
   state.events.push({ type: 'ended', tick: state.tick, outcome });

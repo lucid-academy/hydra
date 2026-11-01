@@ -8,6 +8,7 @@ import type { Hex } from '../hex';
 import { generateUnderground, updateVisibility } from '../map';
 import type { Layer, MapObject, Tile } from '../map';
 import { Rng } from '../rng';
+import { beginAssault, castlePartWon, reachCastle } from './castle';
 import { gainExperience } from './experience';
 import { applyBirthMutations, gainMutation, headMaxHp, mutationTotal, startingHeadCount } from './mutations';
 import { breakEggs, lairTurn, newLair, scoutsCaught } from './lair';
@@ -97,6 +98,7 @@ export function createRun(seed: number, rules: RunRules, options: RunOptions = {
     nextId: heads.length + 1,
     rngState: rng.getState(),
     over: false,
+    won: false,
     deathCause: null,
     story: newStory(seed, map.tiles.get(hexKey(map.lair))!.biome),
     pendingEvent: null,
@@ -383,7 +385,7 @@ export function inspect(state: RunState, target: Hex, rules: RunRules): RunEvent
     openPanelAt(state, target, rules, events);
     return events;
   }
-  if (object?.kind === 'castle') return [{ type: 'castleReached', at: target }];
+  if (object?.kind === 'castle') return approachCastle(state, target, rules);
   if (object?.kind !== 'threshold' || object.state !== 'closed') return [];
 
   const events: RunEvent[] = [];
@@ -398,7 +400,27 @@ export function inspect(state: RunState, target: Hex, rules: RunRules): RunEvent
   return events;
 }
 
-/** The hex next to a threshold the hydra can reach most cheaply this turn, without walking into anything that stops it. */
+/** A tap on the castle: the hydra crawls up to its walls (if she can this turn), and its panel opens there. */
+function approachCastle(state: RunState, castle: Hex, rules: RunRules): RunEvent[] {
+  const events: RunEvent[] = [];
+  if (hexDistance(state.hydra.position, castle) > 1) {
+    const approach = thresholdApproach(state, castle, rules);
+    if (approach) events.push(...moveHydra(state, approach, rules));
+    if (isWaiting(state)) return events;
+  }
+  reachCastle(state, events);
+  return events;
+}
+
+/** Storms the next part of the castle from its panel: a battle with the Order there (GAME_DESIGN.md §5.7, M7). */
+export function stormCastle(state: RunState, rules: RunRules): RunEvent[] {
+  if (!beginAssault(state, rules)) return [];
+  const events: RunEvent[] = [];
+  battleAhead(state, rules, events);
+  return events;
+}
+
+/** The hex next to a threshold (or the castle) the hydra can reach most cheaply this turn, without walking into anything that stops it. */
 export function thresholdApproach(state: RunState, threshold: Hex, rules: RunRules): Hex | null {
   const reachable = reachableHexes(state, rules);
   let best: { hex: Hex; cost: number } | null = null;
@@ -493,6 +515,8 @@ export function pendingBattleSetup(state: RunState, rules: RunRules): BattleSetu
     cauterizePercent: mutationTotal(state.hydra, rules, 'cauterizePercent'),
     // On the surface the battle is fought in her mist, or out of it, Exposed (GAME_DESIGN.md §5.6).
     surface: pending.layer === 'surface' ? { inMist: !exposedNow(state), damagePercent: exposedNow(state) ? rules.surface.exposed.battleDamagePercent : 0 } : undefined,
+    // In the castle's last part, the Eternal Flame burns on the board (M7).
+    eternalFlame: pending.castlePart !== undefined && rules.castle.parts[pending.castlePart]?.eternalFlame === true,
   };
 }
 
@@ -540,8 +564,13 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
   if (escaped > 0) events.push(takeTithe(state, escaped, rules));
   const unit = pending.unitId ? state.order.units.find((u) => u.id === pending.unitId) : undefined;
   if (unit) unitBeaten(state, unit, rules, events);
-  // Someone always gets away to tell the Order, unless the Silent Bell drowned it all out.
-  if (!silenced) sendMessenger(state, pending.at, rules, events);
+  // A part of the castle taken: the next waits, or the Eternal Flame is out. Nobody needs a messenger in the castle.
+  if (pending.castlePart !== undefined) {
+    if (castlePartWon(state, pending.castlePart, rules, events)) return events;
+  } else if (!silenced) {
+    // Someone always gets away to tell the Order, unless the Silent Bell drowned it all out.
+    sendMessenger(state, pending.at, rules, events);
+  }
   // The heads talk it over: who was lost, who grew, what was burnt shut.
   const before = new Set(headsBefore.map((h) => h.id));
   const after = new Set(state.hydra.heads.map((h) => h.id));
@@ -582,9 +611,9 @@ function lostBattle(state: RunState, pending: NonNullable<RunState['pendingBattl
  * Ending it in the lair is resting: everything heals fully, and burnt stumps heal and grow heads again.
  */
 export function endTurn(state: RunState, rules: RunRules): RunEvent[] {
-  // The panels of the lair and of a Passage need no answer: the turn can end with them open.
+  // The panels of the lair, of a Passage and of the castle need no answer: the turn can end with them open.
   const panel = state.pendingPlace ? tileHere(state, state.pendingPlace)?.object?.kind : undefined;
-  if (panel === 'lair' || panel === 'passage') state.pendingPlace = null;
+  if (panel === 'lair' || panel === 'passage' || panel === 'castle') state.pendingPlace = null;
   if (isWaiting(state)) return [];
   const { hydra } = state;
   const events: RunEvent[] = [];

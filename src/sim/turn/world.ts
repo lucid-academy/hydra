@@ -29,7 +29,7 @@ function lastingTiles(map: HexMap): { thresholds: ThresholdTile[]; places: Place
 
 /** The hydra is busy: a battle, a shrine or a panel waits for an answer, or she is dead. Nothing else can happen until then. */
 export function isWaiting(state: RunState): boolean {
-  return state.over || state.pendingBattle !== null || state.pendingShrine !== null || state.pendingPlace !== null || state.pendingEvent !== null;
+  return state.over || state.won || state.pendingBattle !== null || state.pendingShrine !== null || state.pendingPlace !== null || state.pendingEvent !== null;
 }
 
 /** A hex of the underground. */

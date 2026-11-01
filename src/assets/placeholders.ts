@@ -212,6 +212,8 @@ interface SoldierLook {
   hat?: boolean;
   /** Bareheaded, with a tonsure (lay brothers and priests). */
   tonsure?: boolean;
+  /** A tall mitre in this colour (the Grand Master). */
+  mitre?: string;
 }
 
 function battleSoldier(tabard: string, emblem: string, gear: SoldierGear, heavy: boolean, look: SoldierLook = {}): PlaceholderDrawer {
@@ -234,7 +236,17 @@ function battleSoldier(tabard: string, emblem: string, gear: SoldierGear, heavy:
     g.fillRect(cx + body, feet - 22, 3, 9);
     g.fillStyle(0x101010);
     g.fillCircle(cx, feet - 27, 5);
-    if (look.hat) {
+    if (look.mitre) {
+      g.fillStyle(color('#c9a27a')); // a face under a tall mitre
+      g.fillCircle(cx, feet - 27, 4);
+      g.fillStyle(0x101010);
+      g.fillRect(cx - 5, feet - 41, 10, 11);
+      g.fillStyle(color(look.mitre));
+      g.fillRect(cx - 4, feet - 40, 8, 9);
+      g.fillRect(cx - 2, feet - 43, 4, 3);
+      g.fillStyle(color('#c23a2a'));
+      g.fillRect(cx - 1, feet - 39, 2, 6); // the flame sewn on it
+    } else if (look.hat) {
       g.fillStyle(color('#c9a27a')); // a clerk: a face, and a wide black hat
       g.fillCircle(cx, feet - 27, 4);
       g.fillStyle(0x111111);
@@ -328,6 +340,38 @@ const drawBrazier: PlaceholderDrawer = (scene, key, width, height, palette) => {
   g.destroy();
 };
 
+/**
+ * The Eternal Flame on the battle board: a tall stone pedestal with a bronze bowl and a fire in it. The game makes
+ * the fire flicker and shrink in code as it is smothered (BattleScene).
+ */
+const drawEternalFlame: PlaceholderDrawer = (scene, key, width, height, palette) => {
+  const g = scene.make.graphics({}, false);
+  const cx = Math.floor(width / 2);
+  const feet = height - 1;
+  g.fillStyle(0x101010);
+  g.fillRect(cx - 11, feet - 6, 22, 6); // the step
+  g.fillRect(cx - 6, feet - 26, 12, 21); // the pedestal
+  g.fillStyle(0x6a6460);
+  g.fillRect(cx - 10, feet - 5, 20, 4);
+  g.fillRect(cx - 5, feet - 25, 10, 20);
+  g.fillStyle(0x4a4440);
+  g.fillRect(cx - 5, feet - 25, 3, 20);
+  g.fillStyle(0x101010);
+  g.fillRect(cx - 14, feet - 32, 28, 7); // the bowl
+  g.fillStyle(color('#b08a3a'));
+  g.fillRect(cx - 13, feet - 31, 26, 5);
+  g.fillStyle(color('#7a5a24'));
+  g.fillRect(cx - 13, feet - 27, 26, 1);
+  g.fillStyle(color(palette.order.orange));
+  g.fillTriangle(cx - 12, feet - 31, cx + 12, feet - 31, cx, feet - 54);
+  g.fillStyle(color(palette.order.fire));
+  g.fillTriangle(cx - 8, feet - 31, cx + 8, feet - 31, cx + 1, feet - 48);
+  g.fillStyle(color('#fff2b0'));
+  g.fillTriangle(cx - 4, feet - 31, cx + 4, feet - 31, cx, feet - 40);
+  g.generateTexture(key, width, height);
+  g.destroy();
+};
+
 /** A Broodling standing on the battle board: a small bronze hatchling, mouth open, facing right. */
 const drawBroodlingInBattle: PlaceholderDrawer = (scene, key, width, height) => {
   const g = scene.make.graphics({}, false);
@@ -406,7 +450,13 @@ export const placeholderDrawers: Readonly<Record<string, PlaceholderDrawer>> = {
   battle_enemy_masterOfTheOrder: battleSoldier('#8a1a12', '#f0c040', 'torch', true, { plume: '#f0c040' }),
   battle_enemy_censerPriest: battleSoldier('#e0d8c4', '#c23a2a', 'censer', false, { tonsure: true }),
   battle_enemy_brazierBearer: battleSoldier('#5a4030', '#d9a93b', 'brazier', false),
+  battle_enemy_grandMaster: battleSoldier('#ece4d0', '#c23a2a', 'torch', true, { mitre: '#f0c040' }),
   battle_brazier: drawBrazier,
+  battle_eternal_flame: drawEternalFlame,
+  // The castle of the Eternal Flame (castle.json parts arena): the flagstones of its yard and cloister, and the
+  // cathedral's floor, red carpet over black marble.
+  battle_tile_castleYard_ground: battleTile('#6e6a62', '#8a857a', '#3a3834', '#2a2826', '#4a4642', 0xca571e),
+  battle_tile_cathedral_ground: battleTile('#5a1c18', '#b08a3a', '#1c1412', '#141012', '#2e2628', 0xca7ed2),
   battle_broodling: drawBroodlingInBattle,
   battle_stump: battleDot('#8a2a2a', '#3a0d0d'),
   battle_scar: battleDot('#2a2220', '#111111'),
@@ -431,7 +481,7 @@ function darker(hex: string): string {
 
 /** The placeholder for a manifest key: a fixed one, or one made from a biome's colours (map_ground_*, map_rock_*, battle_tile_*). */
 export function placeholderFor(key: string): PlaceholderDrawer | undefined {
-  if (/^battle_tile_.+_(ground|water)$/.test(key)) return drawBiomeBattleTile;
+  if (/^battle_tile_.+_(ground|water)$/.test(key)) return placeholderDrawers[key] ?? drawBiomeBattleTile;
   // A class's own head and jaw (battle_head_<class>, battle_head_<class>_jaw): until its art comes, that class
   // keeps the tinted battle_head, so the placeholder stays empty.
   if (/^battle_head_[a-z][A-Za-z]*(_jaw)?$/.test(key)) return placeholderDrawers[key] ?? drawEmpty;

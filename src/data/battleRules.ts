@@ -1,7 +1,7 @@
 // Converts heads.json, enemies.json and balance.json into the rules the battle simulation uses
 // (seconds become ticks; distances are already in hexes), plus statuses and combos from combos.json.
 
-import type { BattleRules, Effect, HeadExperienceRules, RummageFind, SkillArea, SkillRules, SkillSpecial } from '../sim/battle';
+import type { BattleRules, Effect, EternalFlameRules, HeadExperienceRules, RummageFind, SkillArea, SkillRules, SkillSpecial } from '../sim/battle';
 import type { EffectData, SkillSpecialData } from './battleSchemas';
 import type { GameData } from './index';
 
@@ -286,5 +286,23 @@ export function battleRulesFrom(data: GameData): BattleRules {
         fromBody: data.surface.battle.startClouds.fromBody,
       },
     },
+    eternalFlame: eternalFlameRules(data, tps),
+  };
+}
+
+/** The Eternal Flame of the castle's last battle (castle.json): per-second numbers become per tick. */
+function eternalFlameRules(data: GameData, tps: number): EternalFlameRules {
+  const f = data.castle.eternalFlame;
+  return {
+    strength: f.strength,
+    bodyPerTick: f.smother.bodyPerSecond / tps,
+    mistCloudPerTick: f.smother.mistCloudPerSecond / tps,
+    doused: f.smother.doused,
+    burnsBodyPerSecond: f.burnsBodyPerSecond,
+    rekindlesPerTick: f.rekindlesPerSecond / tps,
+    keepsTypes: f.keeps.types,
+    healPerSecond: f.keeps.healPerSecond,
+    fearStatus: f.fear.status,
+    fearTicks: Math.round(f.fear.seconds * tps),
   };
 }

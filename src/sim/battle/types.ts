@@ -306,6 +306,27 @@ export interface SurfaceBattleRules {
   startClouds: { count: number; radius: number; ticks: number; fromBody: number };
 }
 
+/**
+ * The Eternal Flame in the castle's cathedral (castle.json eternalFlame; GAME_DESIGN.md §5.7, M7). It burns on a hex at
+ * the top of the board with `strength` points. Every tick smothering takes points away: the body lying next to it
+ * (`bodyPerTick`; meanwhile it burns the body for `burnsBodyPerSecond`), every Mist cloud lying on its hex
+ * (`mistCloudPerTick`), and a douse at once (`doused`: a skill that puts out braziers aimed near it, or a man thrown at
+ * it). With nothing smothering it, it comes back by `rekindlesPerTick`. While it burns, enemies of `keepsTypes` heal
+ * `healPerSecond` and can't fall below 1 HP. When it goes out, everyone gets `fearStatus` (Terrified) for `fearTicks`.
+ */
+export interface EternalFlameRules {
+  strength: number;
+  bodyPerTick: number;
+  mistCloudPerTick: number;
+  doused: number;
+  burnsBodyPerSecond: number;
+  rekindlesPerTick: number;
+  keepsTypes: readonly string[];
+  healPerSecond: number;
+  fearStatus: string;
+  fearTicks: number;
+}
+
 /** Broodlings fighting for the lair (brood.json battle). */
 export interface AllyRules {
   maxHp: number;
@@ -351,6 +372,7 @@ export interface BattleRules extends BoardSize {
   broodling: AllyRules;
   experience: HeadExperienceRules;
   surface: SurfaceBattleRules;
+  eternalFlame: EternalFlameRules;
 }
 
 /** Head experience and levels (GAME_DESIGN.md §6.3): the battle uses the damage, the map the rest. */
@@ -470,6 +492,14 @@ export interface Brazier {
   dryRadius: number;
   mistRadius: number;
   bodySlowMultiplier: number;
+}
+
+/** The Eternal Flame on the board (EternalFlameRules): where it burns and how strong it is now; 0 = out for good. */
+export interface EternalFlame {
+  at: Hex;
+  strength: number;
+  maxStrength: number;
+  out: boolean;
 }
 
 /** A puddle on the board (Acid Pool): humans in it get the status. */
@@ -601,6 +631,10 @@ export type BattleEvent =
   | { type: 'censer'; tick: number; enemyId: number; what: 'started' | 'swung' | 'interrupted' | 'cracked'; at: Hex; radius: number }
   /** A Brazier Bearer starts setting a brazier down, or one is lit on the board, or one goes out. */
   | { type: 'brazier'; tick: number; what: 'settingDown' | 'lit' | 'out' | 'interrupted'; enemyId: number | null; brazierId: number | null; at: Hex }
+  /** The Eternal Flame was doused (lost `amount` at once), or went out for good. */
+  | { type: 'flame'; tick: number; what: 'doused' | 'out'; amount: number; at: Hex }
+  /** The Eternal Flame kept one of its keepers standing at 1 HP. */
+  | { type: 'flameKeeps'; tick: number; enemyId: number; at: Hex }
   | { type: 'allyKilled'; tick: number; allyId: number; at: Hex }
   | { type: 'devoured'; tick: number; enemyId: number; headId: string | null; at: Hex }
   | { type: 'severed'; tick: number; headId: string; name: string; stumpId: number }
@@ -641,6 +675,8 @@ export interface BattleState {
   /** Censer smoke keeping Mist off for a while. */
   smokes: Smoke[];
   braziers: Brazier[];
+  /** The Eternal Flame, in the last battle of the castle (null in every other battle). */
+  flame: EternalFlame | null;
   pools: Pool[];
   beacons: Beacon[];
   /** Heads hit this many times as hard in this battle (on the surface while Exposed: less). */

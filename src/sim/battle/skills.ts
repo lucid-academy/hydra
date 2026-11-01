@@ -12,6 +12,7 @@ import {
   breakHold,
   createMistCloud,
   devourEnemy,
+  douseFlame,
   enemyArmor,
   healHead,
   headDamageMultiplier,
@@ -232,13 +233,17 @@ function doSpecial(
       if (!held || !aimHex) return false;
       breakHold(state, head, rules);
       const landed = toss(state, held, aimHex, special.hexes, special.collisionStatus, special.collisionTicks, rules);
-      // Thrown into a brazier, or next to one, it knocks it over.
-      if (special.knocksOverBraziers) putOutBraziers(state, landed, 1);
+      // Thrown into a brazier, or next to one, it knocks it over; thrown at the Eternal Flame, it douses it.
+      if (special.knocksOverBraziers) {
+        putOutBraziers(state, landed, 1);
+        douseFlame(state, landed, 1, rules);
+      }
       return true;
     }
     case 'putOutBraziers':
-      // A skill isn't wasted for want of a brazier: putting them out comes on top of what it does.
+      // A skill isn't wasted for want of a brazier: putting them out comes on top of what it does. It douses the Eternal Flame too.
       putOutBraziers(state, aimHex, special.radius);
+      douseFlame(state, aimHex, special.radius, rules);
       return true;
     case 'seizeMany': {
       const inReach = state.enemies
