@@ -50,6 +50,17 @@ async function tapThreshold(page, id) {
   await page.waitForTimeout(300);
 }
 
+/** Taps the castle (in sight), and waits for its panel. */
+async function tapCastle(page) {
+  await readThrough(page);
+  const points = await page.evaluate(() => window.__hydra.inspectableOnScreen());
+  const target = points.find((p) => p.object === 'castle');
+  if (!target) throw new Error('No castle in sight');
+  await tapGame(page, target);
+  await waitForPanel(page);
+  await page.waitForTimeout(300);
+}
+
 /** Taps the reachable hex that costs the most to reach, like a player would. */
 async function moveFarthest(page) {
   const points = await page.evaluate(() => window.__hydra.reachableOnScreen());
@@ -361,6 +372,29 @@ const SHOTS = [
     await page.keyboard.press('Space');
     await page.waitForFunction(() => (window.__hydra.battleSummary?.().tick ?? 0) > 20 * 9, null, { timeout: 60_000 });
     await page.keyboard.press('Space');
+  } },
+  // The castle (M7): its panel at the walls, shut and open; its battles in the yard and in the cathedral, with the
+  // Eternal Flame; the ending and the victorious lineage in the Book.
+  { name: 'castle-shut', query: '?seed=123&scene=map&surface=1&near=castle', viewport: DESKTOP, scene: 'map', act: tapCastle },
+  { name: 'castle-open', query: '?seed=123&scene=map&surface=1&near=castle&castle=1', viewport: DESKTOP, scene: 'map', act: tapCastle },
+  { name: 'castle-battle-gate', query: '?seed=123&scene=battle&castle=0', viewport: DESKTOP, scene: 'battle' },
+  { name: 'castle-battle-cathedral', query: '?seed=123&scene=battle&castle=2&heads=biter,acidSpitter,mistBreather,screamer', viewport: DESKTOP, scene: 'battle' },
+  { name: 'castle-battle-fight', query: '?seed=123&scene=battle&castle=2&heads=biter,acidSpitter,mistBreather,screamer&speed=3', viewport: DESKTOP, scene: 'battle', act: async (page) => {
+    await page.keyboard.press('Space');
+    await page.waitForFunction(() => (window.__hydra.battleSummary?.().tick ?? 0) > 20 * 12, null, { timeout: 60_000 });
+    await page.keyboard.press('Space');
+  } },
+  { name: 'castle-ending', query: '?seed=123&scene=ending', viewport: DESKTOP, scene: 'ending', act: async (page) => {
+    await page.waitForTimeout(7000);
+  } },
+  { name: 'castle-ending-phone', query: '?seed=123&scene=ending', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'ending', act: async (page) => {
+    await page.waitForTimeout(7000);
+  } },
+  { name: 'castle-book', query: '?seed=123&scene=ending', viewport: DESKTOP, scene: 'ending', act: async (page) => {
+    const { book } = await page.evaluate(() => window.__hydra.buttons());
+    await tapGame(page, book);
+    await page.waitForFunction(() => window.__hydra.readyScenes.includes('book'), null, { timeout: 10_000 });
+    await page.waitForTimeout(400);
   } },
   // Exposed: no mist, and the board says the heads hit softer.
   { name: 'battle-surface-exposed', query: '?seed=123&scene=battle&surface=1&exposed=1&group=censerWalk', viewport: DESKTOP, scene: 'battle', act: async (page) => {

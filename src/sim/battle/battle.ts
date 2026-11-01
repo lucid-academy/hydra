@@ -255,9 +255,9 @@ export function applyCommand(state: BattleState, command: BattleCommand, rules: 
   }
 }
 
-/** Where the Eternal Flame burns: the hex in the middle of the board's top row. */
+/** Where the Eternal Flame burns: in the middle of the board's second row (its tall bowl would be cut off on the first). */
 export function flameHex(size: BoardSize): Hex {
-  const r = -(size.boardRows - 1) / 2;
+  const r = -(size.boardRows - 1) / 2 + 1;
   return hex(Math.round(-r / 2), r);
 }
 
