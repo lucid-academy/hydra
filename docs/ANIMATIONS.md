@@ -114,3 +114,15 @@ Te same animacje w kodzie co u ludzi wyżej (przestępowanie, podskok w kroku, w
 | Dzień i noc na mapie | kod: w nocy cały obraz ciemnieje i sinieje (`SURFACE_AMBIENT` w `src/scenes/mapLight.ts`), więc ognie i światło wokół hydry widać wyraźniej | – | | – | | – | jest |
 | Torchbearerzy idą rozpalić kapliczkę (map_relight) | kod: jak patrole, z heksu na heks w turze świata | – | 26×30 | – | stopy (dół środka) | bez odbicia | jest |
 | Płomień kapliczki i zamku | kod: światło stoi w miejscu | – | | | | | później (migotanie) |
+
+## Zamek (M7)
+
+| Animacja | Jak | Klatki | Rozmiar | fps | Zaczepienie | Kierunki | Stan |
+|---|---|---|---|---|---|---|---|
+| Wieczny Płomień (battle_eternal_flame) | kod: płomień się kołysze (skala w pionie), blask i światło migoczą nierówno; im bardziej zduszony, tym mniejszy blask i słabsze światło | – | 40×56 | – | stopy (dół środka) | – | jest |
+| Pasek siły Płomienia | kod: pasek nad płomieniem i napis „Eternal Flame N%” obok | – | | | | | jest |
+| Płomień gaśnie | kod: znika blask, kamień ciemnieje (tint), unosi się smuga dymu, kółko dymu i napis | – | | | | | jest |
+| Płomień z klatek | klatki: 3–4 klatki samego ognia nad misą | 3–4 | do ustalenia | 8 | dół ognia | – | później |
+| Grand Master Vell | kod: jak ludzie Zakonu (przestępowanie, krok, wypad, mignięcie, śmierć); światło pastorału jak pochodnia | – | 30×44 | – | stopy (dół środka) | w prawo, odbicie w lewo | jest |
+| Brama zamku się otwiera (map_castle_open) | kod: podmiana obrazka na mapie, gdy brama się otwiera | – | 56×52 | – | stopy (dół środka) | – | jest |
+| Ekran końcowy „The Mist Settles” | kod: linijki pojawiają się po kolei, ławice mgły powoli płyną przez ekran | – | | | | | jest |
