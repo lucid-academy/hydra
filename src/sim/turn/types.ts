@@ -151,7 +151,11 @@ export type StoryTrigger =
   /** On the surface (GAME_DESIGN.md §5.6, §5.7): a Flame Shrine put out, one lit again, the hydra left without mist. */
   | 'shrineOut'
   | 'shrineRelit'
-  | 'exposed';
+  | 'exposed'
+  /** At the castle (M7): its gate opened, a part of it taken, the Eternal Flame put out (said before the ending). */
+  | 'castleOpened'
+  | 'castlePartWon'
+  | 'eternalFlameOut';
 
 /** What must be true for a dialogue or an event. Missing = anything goes. */
 export interface StoryConditions {
@@ -504,6 +508,24 @@ export interface SurfaceRules {
   finds: Readonly<Record<string, FindRules>>;
 }
 
+/** The castle of the Eternal Flame and the last assault (castle.json; GAME_DESIGN.md §5.7, M7). */
+export interface CastleRules {
+  /** The gate opens when this many Flame Shrines are out at once; with `staysOpen` it stays open after that. */
+  gate: { shrinesOut: number; staysOpen: boolean };
+  /** The assault, part by part, in order: who fights there; the Eternal Flame burns in the last part's battle. */
+  parts: ReadonlyArray<{ id: string; groupId: string; eternalFlame: boolean }>;
+  /** Flags set when the Eternal Flame goes out. */
+  victoryFlags: readonly string[];
+}
+
+/** How far the hydra has got with the castle. */
+export interface CastleState {
+  /** The gate has opened (it may have shut again, without castle.json gate.staysOpen). */
+  opened: boolean;
+  /** Parts of the assault won (castle.json parts, in order); all of them = the Eternal Flame is out. */
+  partsWon: number;
+}
+
 /** The surface as this run has it: the map, what the hydra knows of it, the mist on it. */
 export interface SurfaceState {
   map: SurfaceMap;
@@ -522,6 +544,7 @@ export interface SurfaceState {
   nextPatrolTurn: number | null;
   /** Shrines this hydra has put out. */
   shrinesPutOut: number;
+  castle: CastleState;
   /** Random numbers for the surface's weather and the flames' mutations, apart from the rest. */
   rngState: number;
 }
@@ -572,6 +595,7 @@ export interface RunRules {
   brood: BroodRules;
   experience: HeadExperienceRules;
   surface: SurfaceRules;
+  castle: CastleRules;
 }
 
 export interface Hydra {
@@ -632,7 +656,7 @@ export interface RunState {
    * The encounter the hydra stepped on (or the Order's unit she met: `unitId`, or the guard of a Flame Shrine), on the
    * map she is on (`layer`), until its battle is resolved.
    */
-  pendingBattle: { at: Hex; layer: Layer; groupId: string; unitId?: string; defense?: boolean } | null;
+  pendingBattle: { at: Hex; layer: Layer; groupId: string; unitId?: string; defense?: boolean; castlePart?: number } | null;
   /** The shrine the hydra stands at, until its blessing is accepted or refused. */
   pendingShrine: Hex | null;
   /** The place the hydra stands at, or the threshold it stands next to, while its panel is open. */
@@ -650,6 +674,8 @@ export interface RunState {
   rngState: number;
   /** The hydra died: this run is over. */
   over: boolean;
+  /** She put out the Eternal Flame (GAME_DESIGN.md §4, §5.7): this run is won, and over too. */
+  won: boolean;
   /** Where she fell and to whom (an encounter group and its enemy types), once she has died. */
   deathCause: { at: Hex; groupId: string; enemyTypes: string[] } | null;
   story: StoryState;
@@ -760,8 +786,15 @@ export type RunEvent =
   | { type: 'relightSent'; unitId: string; at: Hex; shrine: Hex }
   /** They lit it: it burns again, guarded by them, and its mist fades from now on. */
   | { type: 'shrineRelit'; at: Hex; alert: number }
-  /** The castle, shut. */
-  | { type: 'castleReached'; at: Hex };
+  /** At the castle's walls: its panel opened (`open`: the gate is open). */
+  | { type: 'castleReached'; at: Hex; open: boolean }
+  /** Enough Flame Shrines are out: the castle's gate opened; or, a shrine lit again, it shut (without gate.staysOpen). */
+  | { type: 'castleOpened' }
+  | { type: 'castleShut' }
+  /** A part of the castle taken (castle.json parts): the next one waits (null: none, the Eternal Flame is out). */
+  | { type: 'castlePartWon'; partId: string; nextPartId: string | null }
+  /** The Eternal Flame is out: the run is won. */
+  | { type: 'eternalFlameOut'; at: Hex };
 
 export interface Reachable {
   cost: number;

@@ -7,6 +7,7 @@ import type { Hex } from '../hex';
 import { generateSurface } from '../map';
 import type { HexMap, MapObject } from '../map';
 import { Rng } from '../rng';
+import { checkGate } from './castle';
 import { gainMutation, mutationTotal } from './mutations';
 import { setFlags, storyMoment } from './story';
 import type { OrderUnit, RunEvent, RunRules, RunState, SurfaceState } from './types';
@@ -38,6 +39,7 @@ export function newSurface(seed: number, underground: HexMap, rules: RunRules): 
     relights: {},
     nextPatrolTurn: null,
     shrinesPutOut: 0,
+    castle: { opened: false, partsWon: 0 },
     rngState: new Rng((seed ^ 0x6d157) >>> 0).getState(),
   };
   // What stands out from far away is known before she ever sees it.
@@ -259,6 +261,7 @@ export function putOutShrine(state: RunState, at: Hex, rules: RunRules, events: 
   setFlags(state, flameShrines.setFlags);
   events.push({ type: 'shrineOut', at, alert: flameShrines.alertWhenPutOut, left: shrinesBurning(state) });
   coverIfMisty(state, events);
+  checkGate(state, rules, events);
 
   const rng = Rng.fromState(surface.rngState);
   const chance = surface.shrinesPutOut === 1 ? flameShrines.firstMutationChance : flameShrines.mutationChance;
@@ -290,4 +293,5 @@ export function relightShrine(state: RunState, at: Hex, party: OrderUnit, rules:
   raiseAlert(state, alert, rules);
   events.push({ type: 'shrineRelit', at, alert });
   storyMoment(state, rules, 'shrineRelit', {}, events);
+  checkGate(state, rules, events);
 }

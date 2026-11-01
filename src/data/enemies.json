@@ -72,6 +72,19 @@
       "immuneTo": ["terrified", "entranced"],
       "boss": true
     },
+    "grandMaster": {
+      "//": "TODO(design): M7, the last boss (§6.6): Grand Master Ignatius Vell, keeper of the Eternal Flame, in the cathedral. While the Flame burns he heals and can't fall below 1 HP (castle.json eternalFlame). Like the Master of the Order he burns stumps shut before anything else. Not afraid and not taken in by false lights.",
+      "displayName": "Grand Master Vell",
+      "maxHp": 640,
+      "armor": 4,
+      "stepSeconds": 1.1,
+      "attack": { "damage": 14, "cooldownSeconds": 2.4, "range": 1 },
+      "bonusDamageVsHeads": 1.2,
+      "cauterizeSeconds": 2,
+      "behavior": "torchbearer",
+      "immuneTo": ["terrified", "entranced"],
+      "boss": true
+    },
     "censerPriest": {
       "//": "TODO(design): M4, on the surface (GAME_DESIGN.md §6.6). Swings his censer: its smoke clears the Mist round him, takes statuses off his brothers and makes them hit harder. On the map, the smoke of a unit with a Censer Priest clears the mist round it (surface.json mist.censerClears).",
       "displayName": "Censer Priest",
@@ -129,6 +142,9 @@
     { "id": "shrineVigil", "tier": 2, "weight": 1, "orderOnly": true, "members": ["manAtArms", "headhunter", "torchbearer", "censerPriest", "brazierBearer"] },
     { "id": "shrineBastion", "tier": 3, "weight": 1, "orderOnly": true, "members": ["knight", "manAtArms", "crossbowman", "censerPriest", "brazierBearer"] },
     { "id": "relightDetail", "tier": 1, "weight": 1, "orderOnly": true, "members": ["torchbearer", "torchbearer", "manAtArms", "censerPriest"] },
-    { "id": "censerProcession", "tier": 2, "weight": 1, "orderOnly": true, "members": ["censerPriest", "manAtArms", "manAtArms", "torchbearer"] }
+    { "id": "censerProcession", "tier": 2, "weight": 1, "orderOnly": true, "members": ["censerPriest", "manAtArms", "manAtArms", "torchbearer"] },
+    { "id": "castleGate", "tier": 3, "weight": 1, "orderOnly": true, "members": ["knight", "manAtArms", "manAtArms", "crossbowman", "crossbowman", "brazierBearer"] },
+    { "id": "castleCloister", "tier": 3, "weight": 1, "orderOnly": true, "members": ["censerPriest", "censerPriest", "headhunter", "torchbearer", "torchbearer", "titheCollector"] },
+    { "id": "castleCathedral", "tier": 3, "weight": 1, "orderOnly": true, "members": ["grandMaster", "knight", "censerPriest", "torchbearer", "manAtArms"] }
   ]
 }

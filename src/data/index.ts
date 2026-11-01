@@ -17,9 +17,10 @@ import flagsJson from './flags.json';
 import orderJson from './order.json';
 import broodJson from './brood.json';
 import surfaceJson from './surface.json';
+import castleJson from './castle.json';
 import manifestJson from '../assets/manifest.json';
 import { battleProblems } from './battleChecks';
-import { balanceSchema, biomesSchema, broodSchema, combosSchema, dialoguesSchema, eventsSchema, flagsSchema, lineageSchema, mutationsSchema, orderSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, surfaceSchema, textSchema, worldSchema } from './schemas';
+import { balanceSchema, biomesSchema, broodSchema, castleSchema, combosSchema, dialoguesSchema, eventsSchema, flagsSchema, lineageSchema, mutationsSchema, orderSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, surfaceSchema, textSchema, worldSchema } from './schemas';
 import type {
   AssetManifest,
   Balance,
@@ -35,6 +36,7 @@ import type {
   OrderData,
   ShrinesData,
   SurfaceData,
+  CastleData,
   EnemiesData,
   GameText,
   HeadsData,
@@ -62,6 +64,7 @@ export interface GameData {
   order: OrderData;
   brood: BroodData;
   surface: SurfaceData;
+  castle: CastleData;
 }
 
 export function loadGameData(): GameData {
@@ -84,6 +87,7 @@ export function loadGameData(): GameData {
     order: validateData('src/data/order.json', orderSchema, orderJson),
     brood: validateData('src/data/brood.json', broodSchema, broodJson),
     surface: validateData('src/data/surface.json', surfaceSchema, surfaceJson),
+    castle: validateData('src/data/castle.json', castleSchema, castleJson),
   };
   checkCrossReferences(data);
   return data;
@@ -92,7 +96,7 @@ export function loadGameData(): GameData {
 /** Names that one data file borrows from another must exist there. */
 export function checkCrossReferences(
   data: Pick<GameData, 'heads' | 'combos'> &
-    Partial<Pick<GameData, 'balance' | 'enemies' | 'biomes' | 'manifest' | 'world' | 'dialogues' | 'events' | 'mutations' | 'lineage' | 'flags' | 'shrines' | 'order' | 'surface'>>,
+    Partial<Pick<GameData, 'balance' | 'enemies' | 'biomes' | 'manifest' | 'world' | 'dialogues' | 'events' | 'mutations' | 'lineage' | 'flags' | 'shrines' | 'order' | 'surface' | 'castle'>>,
 ): void {
   const statuses = Object.keys(data.combos.statuses);
   const problems: string[] = [];
@@ -125,6 +129,12 @@ export function checkCrossReferences(
   if (data.balance && data.biomes && data.world) problems.push(...worldProblems(data.balance, data.biomes, data.world, data.heads));
   if (data.order && data.enemies && data.balance && data.mutations) problems.push(...orderProblems(data.order, data.enemies, data.balance, data.mutations));
   if (data.surface && data.order && data.enemies && data.mutations) problems.push(...surfaceProblems(data.surface, data.order, data.enemies, data.mutations, data.heads));
+  if (data.castle && data.enemies) problems.push(...castleProblems(data.castle, data.enemies, data.surface, statuses));
+  if (data.castle && data.manifest) {
+    // Every arena of the castle needs its battle board's tile.
+    const missing = [...new Set(data.castle.parts.list.map((p) => `battle_tile_${p.arena}_ground`))].filter((key) => !(key in data.manifest!.images));
+    if (missing.length > 0) problems.push(`  - src/assets/manifest.json: castle.json needs these images (use "file": null for a placeholder): ${missing.join(', ')}`);
+  }
   if (data.surface && data.manifest) {
     // The surface's buildings and finds need their map images.
     const keys = ['map_castle', 'map_flame_shrine', 'map_flame_shrine_out', 'map_find', 'map_relight', ...['camp', ...data.surface.generator.settlements.map((p) => p.id)].map((id) => `map_settlement_${id}`)];
@@ -240,6 +250,7 @@ function generationProblems(data: GameData): string[] {
     for (const id of c?.motherKilledBy ?? []) if (!enemyTypes.includes(id)) where(file, `${path}.motherKilledBy`, `unknown enemy type "${id}" (enemies.json)`);
   };
   if (data.surface) checkFlags('surface.json', 'flameShrines.setFlags', data.surface.flameShrines.setFlags);
+  if (data.castle) checkFlags('castle.json', 'victory.setFlags', data.castle.victory.setFlags);
   data.dialogues.dialogues.forEach((d, i) => {
     const path = `dialogues.${i} (${d.id})`;
     checkConditions('dialogues.json', `${path}.conditions`, d.conditions);
@@ -315,6 +326,23 @@ function orderProblems(order: OrderData, enemies: EnemiesData, balance: Balance,
 }
 
 /** The surface (surface.json) names groups, enemy types, Alert stages, mutations and head classes that exist. */
+/** The castle's parts must name encounter groups that exist, and the Eternal Flame enemy types that exist. */
+function castleProblems(castle: CastleData, enemies: EnemiesData, surface: SurfaceData | undefined, statuses: readonly string[]): string[] {
+  const problems: string[] = [];
+  const where = (path: string, message: string) => problems.push(`  - src/data/castle.json, ${path}: ${message}`);
+  const groups = enemies.encounterGroups.map((g) => g.id);
+  castle.parts.list.forEach((p, i) => {
+    if (!groups.includes(p.group)) where(`parts.list.${i}.group`, `unknown encounter group "${p.group}"; known (from enemies.json): ${groups.join(', ')}`);
+  });
+  castle.eternalFlame.keeps.types.forEach((id, i) => {
+    if (!(id in enemies.types)) where(`eternalFlame.keeps.types.${i}`, `unknown enemy type "${id}"; known (from enemies.json): ${Object.keys(enemies.types).join(', ')}`);
+  });
+  if (!statuses.includes(castle.eternalFlame.fear.status)) where('eternalFlame.fear.status', `unknown status "${castle.eternalFlame.fear.status}"; known (from combos.json): ${statuses.join(', ')}`);
+  const shrines = surface?.generator.flameShrines.count;
+  if (shrines !== undefined && castle.gate.shrinesOut > shrines) where('gate.shrinesOut', `the surface has only ${shrines} Flame Shrines (surface.json generator.flameShrines.count)`);
+  return problems;
+}
+
 function surfaceProblems(surface: SurfaceData, order: OrderData, enemies: EnemiesData, mutations: MutationsData, heads: HeadsData): string[] {
   const problems: string[] = [];
   const where = (path: string, message: string) => problems.push(`  - src/data/surface.json, ${path}: ${message}`);

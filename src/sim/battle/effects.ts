@@ -63,6 +63,11 @@ export function hurtEnemy(
   dealt = Math.round(dealt * 100) / 100;
   enemy.hp -= dealt;
   state.events.push({ type: 'hit', tick: state.tick, attacker, attackerId, targetKind: 'enemy', targetId: enemy.id, damage: dealt, at: enemy.hex });
+  // While the Eternal Flame burns, its keepers don't fall.
+  if (enemy.hp <= 0 && rules && keptByFlame(state, enemy, rules)) {
+    enemy.hp = 1;
+    state.events.push({ type: 'flameKeeps', tick: state.tick, enemyId: enemy.id, at: enemy.hex });
+  }
   if (enemy.hp <= 0) {
     removeEnemy(state, enemy, rules);
     state.events.push({ type: 'enemyKilled', tick: state.tick, enemyId: enemy.id, at: enemy.hex });
@@ -115,6 +120,10 @@ function rewardKill(state: BattleState, headId: string, rules: BattleRules): voi
 /** The enemy is eaten on the spot; the body heals. */
 export function devourEnemy(state: BattleState, enemy: Enemy, healAmount: number, head: BattleHead | null, rules: BattleRules): void {
   if (!state.enemies.includes(enemy)) return;
+  if (keptByFlame(state, enemy, rules)) {
+    state.events.push({ type: 'flameKeeps', tick: state.tick, enemyId: enemy.id, at: enemy.hex });
+    return;
+  }
   const at = enemy.hex;
   removeEnemy(state, enemy, rules);
   state.events.push({ type: 'enemyKilled', tick: state.tick, enemyId: enemy.id, at });
@@ -321,6 +330,22 @@ export function putOutBraziers(state: BattleState, at: Hex | null, radius: numbe
   state.braziers = state.braziers.filter((b) => !out.includes(b));
   for (const brazier of out) state.events.push({ type: 'brazier', tick: state.tick, what: 'out', enemyId: null, brazierId: brazier.id, at: brazier.at });
   return out.length;
+}
+
+/** Does the Eternal Flame keep this enemy standing now (it burns, and he is one of its keepers)? */
+export function keptByFlame(state: BattleState, enemy: Enemy, rules: BattleRules): boolean {
+  return state.flame !== null && !state.flame.out && rules.eternalFlame.keepsTypes.includes(enemy.typeId);
+}
+
+/** The Eternal Flame is doused if `at` is within `radius` of it (radius null: wherever it was aimed). */
+export function douseFlame(state: BattleState, at: Hex | null, radius: number | null, rules: BattleRules): void {
+  const flame = state.flame;
+  if (!flame || flame.out) return;
+  if (radius !== null && (at === null || hexDistance(flame.at, at) > radius)) return;
+  const amount = Math.min(flame.strength, rules.eternalFlame.doused);
+  if (amount <= 0) return;
+  flame.strength -= amount;
+  state.events.push({ type: 'flame', tick: state.tick, what: 'doused', amount, at: flame.at });
 }
 
 /** Who a beacon draws to itself right now. */
@@ -674,5 +699,8 @@ function placeBySlide(state: BattleState, enemy: Enemy, from: Hex, to: Hex): voi
 /** Keys of hexes taken by humans and Broodlings (for walking). */
 export function takenHexes(state: BattleState, except: Enemy | Ally | null): Set<string> {
   const standing: Array<Enemy | Ally> = [...state.enemies, ...state.allies];
-  return new Set(standing.filter((e) => e !== except).map((e) => hexKey(e.hex)));
+  const taken = new Set(standing.filter((e) => e !== except).map((e) => hexKey(e.hex)));
+  // Nobody stands where the Eternal Flame burns, nor where it burnt.
+  if (state.flame) taken.add(hexKey(state.flame.at));
+  return taken;
 }

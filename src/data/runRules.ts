@@ -193,6 +193,11 @@ export function runRulesFrom(data: GameData): RunRules {
     },
     experience: experienceRulesFrom(data),
     surface: surfaceRulesFrom(data),
+    castle: {
+      gate: { shrinesOut: data.castle.gate.shrinesOut, staysOpen: data.castle.gate.staysOpen },
+      parts: data.castle.parts.list.map((p) => ({ id: p.id, groupId: p.group, eternalFlame: p.eternalFlame })),
+      victoryFlags: data.castle.victory.setFlags,
+    },
   };
 }
 

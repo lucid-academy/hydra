@@ -18,6 +18,7 @@
     "surveyStamped": { "scope": "world", "about": "\"The Subterranean Survey\", step 3: the hydra is officially surveyed." },
     "ninefoldFriend": { "scope": "lineage", "about": "The Ninefold Camp counts this lineage as a friend." },
     "angeredOneCoil": { "scope": "lineage", "about": "This lineage has angered the One Coil." },
-    "putOutFlame": { "scope": "world", "about": "A Flame Shrine of the Order has been put out on the surface (unlocks the Drought)." }
+    "putOutFlame": { "scope": "world", "about": "A Flame Shrine of the Order has been put out on the surface (unlocks the Drought)." },
+    "eternalFlameOut": { "scope": "world", "about": "A hydra has put out the Eternal Flame in the castle's cathedral (castle.json victory; one of the endings, GAME_DESIGN.md §4)." }
   }
 }
