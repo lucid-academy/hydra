@@ -3,7 +3,7 @@
 // Tapping a card selects that head (same as keys 1–9); with Ctrl or Shift held it is added to the selected heads.
 
 import * as Phaser from 'phaser';
-import { wantsToAdd } from './keys';
+import { heldLong, wantsToAdd } from './keys';
 import { FONT } from './fonts';
 
 const CARD_HEIGHT = 40;
@@ -110,7 +110,7 @@ export class HeadCards {
       const x = this.style.x + i * (this.cardWidth + GAP);
       const classColor = Phaser.Display.Color.HexStringToColor(this.style.classColors[head.classId] ?? '#cccccc').color;
       const bg = this.scene.add.rectangle(x, top, this.cardWidth, CARD_HEIGHT, 0x0b1112, 0.95).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-      bg.on('pointerup', (pointer: Phaser.Input.Pointer) => this.onSelect(head.id, wantsToAdd(pointer)));
+      bg.on('pointerup', (pointer: Phaser.Input.Pointer) => this.onSelect(head.id, wantsToAdd(pointer) || heldLong(pointer)));
       const stripe = this.scene.add.rectangle(x, top, 3, CARD_HEIGHT, classColor).setOrigin(0, 0);
       const name = this.scene.add.text(x + 5, top + 2, `${i + 1} ${head.name}`, { fontFamily: FONT.text, fontSize: '10px', color: '#e8f0e0', fixedWidth: textWidth });
       // A level above 1 sits at the right end of the class line, so a long class name never hides it.

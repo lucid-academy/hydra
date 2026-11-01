@@ -54,7 +54,7 @@ import { SkillBar } from '../ui/SkillBar';
 import { CodexPanel } from '../ui/CodexPanel';
 import { discoverCombo, discoveredCombos } from '../ui/codexStore';
 import { FONT } from '../ui/fonts';
-import { onKeyDown, wantsToAdd } from '../ui/keys';
+import { heldLong, onKeyDown, wantsToAdd } from '../ui/keys';
 import { color, getContext } from './context';
 import { getRun, startNewRun } from './RunController';
 import type { RunController } from './RunController';
@@ -844,11 +844,12 @@ export class BattleScene extends Phaser.Scene {
     // The board area: buttons, cards and the top bar lie above it and catch their own taps first.
     const zone = this.add.zone(0, ARENA_TOP, SCREEN.width, PANEL_TOP - ARENA_TOP).setOrigin(0, 0).setDepth(DEPTH.tile).setInteractive();
     zone.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-      if (!this.finished) this.handleTap({ x: pointer.worldX, y: pointer.worldY }, pointer.rightButtonReleased(), wantsToAdd(pointer));
+      if (!this.finished) this.handleTap({ x: pointer.worldX, y: pointer.worldY }, pointer.rightButtonReleased(), wantsToAdd(pointer), heldLong(pointer));
     });
   }
 
-  private handleTap(at: Point, rightButton: boolean, add: boolean): void {
+  /** `add`: Ctrl or Shift held. `held`: a finger held down a while, which adds a head too, but still orders an attack. */
+  private handleTap(at: Point, rightButton: boolean, add: boolean, held = false): void {
     const rules = this.run.battleRules;
     const tappedHex = pixelToHex(LAYOUT, at.x, at.y);
     if (this.aiming) {
@@ -866,7 +867,7 @@ export class BattleScene extends Phaser.Scene {
       }
       const head = this.headAt(at);
       if (head) {
-        this.selectHead(head.id, add);
+        this.selectHead(head.id, add || held);
         return;
       }
       if (enemy) return;
