@@ -11,6 +11,8 @@
 // From a set turn (or once nothing is left to find below), healthy and with Moisture to spare, it climbs the nearest
 // Passage it knows, scouts for a burning Flame Shrine (breathing mist ahead, exhaling more when its mist is thin),
 // fights its guard, and goes back down when hurt or nearly out of Moisture.
+// Once the castle's gate is open (M7) and it is healthy, it goes to the castle's walls and storms it part by part,
+// falling back when hurt, until the Eternal Flame is out (the run is won) or it dies.
 
 import { loadGameData } from '../src/data';
 import { battleRulesFrom } from '../src/data/battleRules';
@@ -20,7 +22,11 @@ import { hexDistance, hexEquals, hexKey, hexNeighbors } from '../src/sim/hex';
 import type { Hex } from '../src/sim/hex';
 import {
   acceptBlessing,
+  atCastle,
   canChooseEventOption,
+  canStormCastle,
+  castleOpen,
+  castlePanelOpen,
   canHatch,
   canLayEgg,
   canUsePassage,
@@ -32,6 +38,7 @@ import {
   endTurn,
   exhaleMist,
   finishBattle,
+  inspect,
   hatchEgg,
   knownDraughts,
   layEgg,
@@ -39,17 +46,19 @@ import {
   mapOf,
   mistAt,
   moveHydra,
+  nextCastlePart,
   pendingBattleSetup,
   pendingEventRules,
   plannedJourney,
   reachableHexes,
+  stormCastle,
   tileAt,
   tileOn,
   usePassage,
   visibilityOf,
 } from '../src/sim/turn';
 import type { RunEvent, RunState } from '../src/sim/turn';
-import { giveFocusOrders, useSkills } from './autoPlayer';
+import { giveFocusOrders, smotherFlame, useSkills } from './autoPlayer';
 
 /** A run still going after this many turns stops there. */
 const TURN_LIMIT = 120;
@@ -68,6 +77,11 @@ const TARGET_HEXES = { min: 40, max: 80 };
  * gone by the next one.
  */
 const SURFACE = { fromTurn: 20, minMoisture: 24, spareMoisture: 4 };
+/**
+ * The castle's own report: the same runs again, but the gate stands open from this turn on whatever the shrines (the
+ * bot seldom puts all of them out at once), to see how a hydra the bot has grown that far does in the assault.
+ */
+const CASTLE_TRIAL = { openGateOn: 60 };
 /** Runs whose bot has turned back on the surface and is making for a Passage. */
 const turnedBack = new WeakSet<RunState>();
 
@@ -77,8 +91,8 @@ const battleRules = battleRulesFrom(data);
 
 interface RunStats {
   turns: number;
-  /** How it ended: died (and to whom), or still alive at the turn limit. */
-  end: 'died' | 'alive';
+  /** How it ended: won (the Eternal Flame out), died (and to whom), or still alive at the turn limit. */
+  end: 'won' | 'died' | 'alive';
   killedBy: string | null;
   hexesKnown: number;
   alert: number;
@@ -105,6 +119,15 @@ interface RunStats {
     battles: number;
     battlesWon: number;
     diedUpThere: boolean;
+  };
+  castle: {
+    /** Turn the gate opened, or null. */
+    opened: number | null;
+    partsWon: number;
+    battles: number;
+    /** Turn the Eternal Flame went out, or null. */
+    won: number | null;
+    diedThere: boolean;
   };
 }
 
@@ -168,11 +191,11 @@ function knownShrines(state: RunState): Hex[] {
 }
 
 /**
- * Scouting up there: the hex it can reach this turn nearest a burning shrine it knows of (or, knowing none, farthest
- * from every Passage), if that gets it closer (or farther) than here.
+ * Scouting up there: the hex it can reach this turn nearest a burning shrine it knows of (or `towards` those hexes; or,
+ * knowing none, farthest from every Passage), if that gets it closer (or farther) than here.
  */
-function scoutGoal(state: RunState): Hex | null {
-  const shrines = knownShrines(state);
+function scoutGoal(state: RunState, towards: readonly Hex[] = knownShrines(state)): Hex | null {
+  const shrines = towards;
   const passages = knownPassages(state);
   const score = (h: Hex): number =>
     shrines.length > 0 ? -Math.min(...shrines.map((s) => hexDistance(s, h))) : passages.length > 0 ? Math.min(...passages.map((p) => hexDistance(p, h))) : 0;
@@ -195,6 +218,26 @@ const nearestShrine = (state: RunState): Hex | null =>
 /** A draught felt on a known hex: standing there shows the crack it comes from. Null when none can be reached. */
 function nearestDraught(state: RunState): Hex | null {
   return knownDraughts(state).find((h) => plannedJourney(state, h, rules)) ?? null;
+}
+
+/** Known hexes next to the castle she could stand on. */
+function castleWalls(state: RunState): Hex[] {
+  const castle = state.surface.map.castle;
+  return hexNeighbors(castle).filter((h) => {
+    const tile = tileOn(state, 'surface', h);
+    return tile && state.surface.visibility.has(hexKey(h)) && rules.terrain[tile.terrain].moveCost !== null;
+  });
+}
+
+/**
+ * Up there, the gate open, a part left to storm and the hydra healthy: the hex by the walls it makes for (or, not
+ * knowing the way, the hex this turn nearest the castle). Otherwise null.
+ */
+function castleGoal(state: RunState): Hex | null {
+  if (state.hydra.layer !== 'surface' || !castleOpen(state) || !nextCastlePart(state, rules) || hurt(state)) return null;
+  if (atCastle(state)) return state.hydra.position;
+  const castle = state.surface.map.castle;
+  return nearest(state, (h) => hexDistance(h, castle) === 1) ?? closest(state, castleWalls(state)) ?? scoutGoal(state, [castle]);
 }
 
 /** Walks as far along the way to `target` as this turn allows. Returns false when it can't move at all. */
@@ -249,6 +292,7 @@ function fight(state: RunState, events: RunEvent[]): void {
     if (battle.tick % 10 === 0) {
       giveFocusOrders(battle, battleRules);
       useSkills(battle, battleRules);
+      smotherFlame(battle, battleRules);
     }
     stepBattle(battle, battleRules);
   }
@@ -268,6 +312,11 @@ function answerWhatWaits(state: RunState, events: RunEvent[]): void {
     closeEvent(state);
     // An event none of whose choices she can take: a player would walk away from it.
     state.pendingEvent = null;
+  }
+  if (castlePanelOpen(state)) {
+    // The castle's panel: storm (or press on) when healthy, else fall back.
+    if (!hurt(state) && canStormCastle(state, rules).can) events.push(...stormCastle(state, rules));
+    else events.push(...leavePlace(state));
   }
   if (state.pendingPlace && tileOn(state, state.hydra.layer, state.pendingPlace)?.object?.kind === 'passage') {
     // A Passage's panel: up or down, if that is where the bot was going.
@@ -290,6 +339,11 @@ function hurt(state: RunState): boolean {
 /** Below: time to go up. Up there: time to go back down (and then it keeps wanting to, until it is below). */
 function wantsOtherLayer(state: RunState): boolean {
   if (state.hydra.layer === 'surface') {
+    // The castle's gate is open: no going home before the assault, unless hurt.
+    if (castleGoal(state)) {
+      turnedBack.delete(state);
+      return false;
+    }
     if (turnedBack.has(state)) return true;
     const haven = closest(state, havens(state));
     // Mist breathed all the way, and a breath out at the end of every turn of it.
@@ -311,12 +365,13 @@ function goalOf(state: RunState): Hex {
     const passage = nearestPassage(state) ?? (state.hydra.layer === 'surface' ? closest(state, knownPassages(state)) : null);
     if (passage) return passage;
   }
-  if (state.hydra.layer === 'surface') return nearestShrine(state) ?? scoutGoal(state) ?? nearestFrontier(state) ?? state.hydra.position;
+  if (state.hydra.layer === 'surface') return castleGoal(state) ?? nearestShrine(state) ?? scoutGoal(state) ?? nearestFrontier(state) ?? state.hydra.position;
   // Hurt: home to rest. Otherwise the nearest edge of the map, or a draught to follow, or home when there is neither.
   return hurt(state) ? state.map.lair : (nearestFrontier(state) ?? nearestDraught(state) ?? state.map.lair);
 }
 
-function playRun(seed: number): RunStats {
+/** `openGateOn`: from that turn on the castle's gate stands open whatever the shrines (for the castle's own report). */
+function playRun(seed: number, openGateOn: number | null = null): RunStats {
   const state = createRun(seed, rules);
   const s: RunStats = {
     turns: 0,
@@ -337,6 +392,7 @@ function playRun(seed: number): RunStats {
     eggsBroken: 0,
     levelsGained: 0,
     surface: { climbs: 0, firstClimb: null, turns: 0, exposedTurns: 0, shrinesOut: 0, shrinesRelit: 0, battles: 0, battlesWon: 0, diedUpThere: false },
+    castle: { opened: null, partsWon: 0, battles: 0, won: null, diedThere: false },
   };
   const note = (events: readonly RunEvent[]) => {
     const now = { turn: state.turn, hexes: state.visibility.size };
@@ -358,22 +414,40 @@ function playRun(seed: number): RunStats {
       } else if (e.type === 'exposed') s.surface.exposedTurns++;
       else if (e.type === 'shrineOut') s.surface.shrinesOut++;
       else if (e.type === 'shrineRelit') s.surface.shrinesRelit++;
+      else if (e.type === 'castleOpened') s.castle.opened ??= state.turn;
+      else if (e.type === 'castlePartWon') s.castle.partsWon++;
+      else if (e.type === 'eternalFlameOut') s.castle.won = state.turn;
     }
   };
 
-  while (!state.over && state.turn <= TURN_LIMIT) {
+  while (!state.over && !state.won && state.turn <= TURN_LIMIT) {
     const events: RunEvent[] = [];
+    if (openGateOn !== null && state.turn >= openGateOn && !state.surface.castle.opened) {
+      state.surface.castle.opened = true;
+      s.castle.opened = state.turn;
+    }
     answerWhatWaits(state, events);
     if (state.pendingBattle) {
       const up = state.pendingBattle.layer === 'surface';
+      const atTheCastle = state.pendingBattle.castlePart !== undefined;
       s.battles++;
       if (up) s.surface.battles++;
+      if (atTheCastle) s.castle.battles++;
       fight(state, events);
       if (up && events.some((e) => e.type === 'battleWon')) s.surface.battlesWon++;
       if (up && state.over) s.surface.diedUpThere = true;
+      if (atTheCastle && state.over) s.castle.diedThere = true;
     } else {
       const goal = goalOf(state);
       const atGoal = hexEquals(state.hydra.position, goal);
+      // At the castle's walls, the gate open: its panel opens, and the next part is stormed (answerWhatWaits).
+      if (atGoal && castleGoal(state) && canStormCastle(state, rules).can) {
+        events.push(...inspect(state, state.surface.map.castle, rules));
+        if (castlePanelOpen(state)) {
+          note(events);
+          continue;
+        }
+      }
       // Standing on the Passage it wanted: up (or down) it goes, if it has the movement left.
       if (atGoal && wantsOtherLayer(state) && tileOn(state, state.hydra.layer, goal)?.object?.kind === 'passage' && canUsePassage(state, rules).can) {
         events.push(...usePassage(state, rules));
@@ -393,7 +467,7 @@ function playRun(seed: number): RunStats {
     note(events);
   }
   s.turns = Math.min(state.turn, TURN_LIMIT);
-  s.end = state.over ? 'died' : 'alive';
+  s.end = state.won ? 'won' : state.over ? 'died' : 'alive';
   s.killedBy = state.deathCause?.groupId ?? null;
   s.hexesKnown = state.visibility.size;
   s.alert = Math.round(state.alert);
@@ -432,6 +506,11 @@ export function runBalanceReport(runs = 50): { table: string; report: string } {
   const sum = (pick: (s: RunStats) => number) => all.reduce((n, s) => n + pick(s), 0);
   const avg = (pick: (s: RunStats) => number) => (sum(pick) / runs).toFixed(1);
   const climbers = all.filter((s) => s.surface.firstClimb !== null);
+  const opened = all.filter((s) => s.castle.opened !== null);
+  const winners = all.filter((s) => s.castle.won !== null);
+  const trial = Array.from({ length: runs }, (_, i) => playRun(i + 1, CASTLE_TRIAL.openGateOn));
+  const trialWinners = trial.filter((s) => s.castle.won !== null);
+  const stormed = trial.filter((s) => s.castle.battles > 0);
 
   const report = `# Run balance report
 
@@ -447,7 +526,7 @@ ${table}
 
 ## How the runs went
 
-- Died: ${percent(died.length)} (${[...killers.entries()].sort((a, b) => b[1] - a[1]).map(([group, n]) => `${group} ${n}`).join(', ') || 'none'}); alive after ${TURN_LIMIT} turns: ${percent(runs - died.length)}.
+- Won (the Eternal Flame put out): ${percent(winners.length)}. Died: ${percent(died.length)} (${[...killers.entries()].sort((a, b) => b[1] - a[1]).map(([group, n]) => `${group} ${n}`).join(', ') || 'none'}); alive after ${TURN_LIMIT} turns: ${percent(runs - died.length - winners.length)}.
 - Turns played: ${spread(all.map((s) => s.turns))}. Hexes known at the end: ${spread(all.map((s) => s.hexesKnown))}. Alert at the end: ${spread(all.map((s) => s.alert))}.
 - Battles per run: ${avg((s) => s.battles)}, won ${percent(sum((s) => s.battlesWon) / Math.max(1, sum((s) => s.battles)) * runs)} of them.
 - Messengers per run: ${avg((s) => s.messengersSent)} sent, ${avg((s) => s.messengersEscaped)} got away, ${avg((s) => s.messengersEaten)} eaten.
@@ -462,6 +541,22 @@ The bot goes up from turn ${SURFACE.fromTurn} (or once nothing is left to find b
 - Turns up there per run: ${spread(all.map((s) => s.surface.turns))}; of them Exposed: ${spread(all.map((s) => s.surface.exposedTurns))}.
 - Flame Shrines put out per run: ${spread(all.map((s) => s.surface.shrinesOut))} (all ${rules.surface.generator.flameShrines.count} in ${percent(all.filter((s) => s.surface.shrinesOut >= rules.surface.generator.flameShrines.count).length)} of runs); lit again by the Order: ${avg((s) => s.surface.shrinesRelit)} per run.
 - Battles up there: ${avg((s) => s.surface.battles)} per run, won ${percent(sum((s) => s.surface.battlesWon) / Math.max(1, sum((s) => s.surface.battles)) * runs)} of them. Died up there: ${percent(all.filter((s) => s.surface.diedUpThere).length)} of runs.
+
+## The castle
+
+The gate opens when ${rules.castle.gate.shrinesOut} Flame Shrines are out at once. The bot, healthy, then goes to the walls and storms the castle part by part (${rules.castle.parts.map((p) => p.id).join(', ')}), falling back when hurt. In the last part its body lies down by the Eternal Flame from the start.
+
+- The gate opened in ${percent(opened.length)} of runs, on turn ${spread(opened.map((s) => s.castle.opened!))}.
+- Battles at the castle: ${avg((s) => s.castle.battles)} per run; parts taken: ${spread(all.map((s) => s.castle.partsWon))} (in the runs whose gate opened: ${spread(opened.map((s) => s.castle.partsWon))}).
+- The Eternal Flame put out (the run won) in ${percent(winners.length)} of runs, on turn ${spread(winners.map((s) => s.castle.won!))}. Died at the castle: ${percent(all.filter((s) => s.castle.diedThere).length)} of runs.
+
+### The gate opened by hand on turn ${CASTLE_TRIAL.openGateOn}
+
+The same ${runs} runs, but from turn ${CASTLE_TRIAL.openGateOn} the gate stands open whatever the shrines, to see how a hydra the bot has grown that far does in the assault.
+
+- Stormed the castle in ${percent(stormed.length)} of runs; in the others the bot never got to its walls by turn ${TURN_LIMIT} (or died before). Battles at the castle: ${(trial.reduce((n, x) => n + x.castle.battles, 0) / runs).toFixed(1)} per run.
+- Parts taken in the runs that stormed it: ${spread(stormed.map((s) => s.castle.partsWon))}. Gate taken: ${percent(stormed.filter((s) => s.castle.partsWon >= 1).length)} of runs, cloister: ${percent(stormed.filter((s) => s.castle.partsWon >= 2).length)}, cathedral (the Flame out): ${percent(trialWinners.length)}.
+- Won on turn ${spread(trialWinners.map((s) => s.castle.won!))}. Died at the castle: ${percent(trial.filter((s) => s.castle.diedThere).length)} of runs; died anywhere: ${percent(trial.filter((s) => s.end === 'died').length)}.
 `;
   return { table, report };
 }

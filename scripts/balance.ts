@@ -15,7 +15,7 @@ import { loadGameData } from '../src/data';
 import { battleRulesFrom } from '../src/data/battleRules';
 import { runRulesFrom } from '../src/data/runRules';
 import { createBattle, stepBattle } from '../src/sim/battle';
-import { giveFocusOrders, useSkills } from './autoPlayer';
+import { giveFocusOrders, smotherFlame, useSkills } from './autoPlayer';
 import { hex } from '../src/sim/hex';
 import { createRun, pendingBattleSetup } from '../src/sim/turn';
 
@@ -48,7 +48,9 @@ function play(groupId: string, policy: Policy, battles: number, headClasses: rea
   for (let seed = 1; seed <= battles; seed++) {
     // The same start as in the game: a fresh hydra with its starting heads walks into this group.
     const run = createRun(seed, runRules);
-    run.pendingBattle = { at: hex(0, 0), layer: 'underground', groupId };
+    // A part of the castle's assault (M7) is fought on the surface, on its own board; the last one with the Eternal Flame.
+    const castlePart = runRules.castle.parts.findIndex((p) => p.groupId === groupId);
+    run.pendingBattle = castlePart >= 0 ? { at: hex(0, 0), layer: 'surface', groupId, castlePart } : { at: hex(0, 0), layer: 'underground', groupId };
     const setup = pendingBattleSetup(run, runRules)!;
     if (headClasses) {
       setup.heads = headClasses.map((classId, i) => {
@@ -62,6 +64,8 @@ function play(groupId: string, policy: Policy, battles: number, headClasses: rea
       // A player re-thinks orders now and then, not twenty times a second.
       if (policy !== 'no orders' && state.tick % 10 === 0) giveFocusOrders(state, rules);
       if (policy === 'focus + skills' && state.tick % 10 === 0) useSkills(state, rules);
+      // Any player who wants to win the last battle has to smother the Eternal Flame: the body lies down by it.
+      if (policy !== 'no orders' && state.tick % 10 === 0) smotherFlame(state, rules);
       stepBattle(state, rules);
       for (const event of state.events) {
         if (event.type === 'severed') t.severed++;
@@ -129,6 +133,7 @@ ${battles} automatic battles per row, each with a fresh hydra (${startingHeads})
 - **no orders:** the hydra is left alone, heads pick their own targets.
 - **focus fire:** every head that can reach attacks the same enemy (Torchbearers and Tithe Collectors first, then Headhunters). A stand-in for a careful player.
 - **focus + skills:** focus fire, and every head uses its Q and W skills as soon as they are ready. A stand-in for a player who uses skills (a real player aims them better).
+- **castle groups** (castleGate, castleCloister, castleCathedral): the three parts of the castle's assault (M7), fought on the surface. The cathedral has the Eternal Flame, and with orders the body lies down by it to smother it from the start. A fresh hydra is far weaker than one who gets that far, so these rows show which part is the hardest, not the real odds.
 
 "Heads severed", "Stumps burnt", "Combos" and "Body HP lost" are averages per battle.
 
