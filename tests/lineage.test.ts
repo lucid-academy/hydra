@@ -11,6 +11,7 @@ import {
   heritageOf,
   hideEgg,
   hydraDied,
+  lineageWon,
   miraculousIntervention,
   modifierFor,
   newProfile,
@@ -323,6 +324,29 @@ describe('ending a lineage', () => {
     hydraDied(profile, lineage, run, lineageRules);
     endLineage(profile, lineage, run, lineageRules);
     expect(lineage.chronicle.map((e) => e.end)).toEqual(['slain']);
+  });
+});
+
+describe('winning (M7)', () => {
+  it('the hydra who put out the Eternal Flame goes into the book as the one who won, and her lineage ends there', () => {
+    const profile = newProfile();
+    const lineage = startLineage(profile, 8, lineageRules);
+    const run = hatch(profile, lineage);
+    run.turn = 120;
+    // Not won yet: nothing is written.
+    expect(lineageWon(profile, lineage, run, lineageRules)).toBeNull();
+    run.won = true;
+    run.story.flags.push(...rules.castle.victoryFlags);
+    const entry = lineageWon(profile, lineage, run, lineageRules)!;
+    expect(entry).toMatchObject({ generation: 1, name: lineage.hydraName, end: 'won', killedBy: null, turns: 120 });
+    expect(couldBe(lineageRules.epitaphs.won, entry.epitaph)).toBe(true);
+    expect(lineage.ended).toBe(true);
+    expect(currentLineage(profile)).toBeNull();
+    // The world remembers the Flame put out, for every lineage after.
+    for (const flag of rules.castle.victoryFlags) expect(profile.knowledge.flags).toContain(flag);
+    // Once is enough.
+    expect(lineageWon(profile, lineage, run, lineageRules)).toBeNull();
+    expect(lineage.chronicle).toHaveLength(1);
   });
 });
 

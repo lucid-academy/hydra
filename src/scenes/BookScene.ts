@@ -75,10 +75,13 @@ export class BookScene extends Phaser.Scene {
 
     const living = keeper.lineage();
     for (const lineage of [...keeper.profile.lineages].reverse()) {
-      const state = lineage.ended ? words.bookEnded : words.bookLiving;
+      const won = lineage.chronicle.some((e) => e.end === 'won');
+      const state = won ? words.bookWon : lineage.ended ? words.bookEnded : words.bookLiving;
       lines.push(heading(`${fillText(words.lineageName, { lineage: lineage.name })} (${state})`));
       for (const entry of lineage.chronicle) {
-        lines.push(name(`${entry.generation}. ${entry.name}  ·  ${fillText(words.bookTurns, { turns: entry.turns })}`));
+        const line = name(`${entry.generation}. ${entry.name}  ·  ${fillText(words.bookTurns, { turns: entry.turns })}`);
+        // The one who put out the Eternal Flame is written in gold.
+        lines.push(entry.end === 'won' ? { ...line, style: { ...line.style, color: palette.order.gold } } : line);
         lines.push(epitaph(entry.epitaph));
       }
       if (lineage === living) {

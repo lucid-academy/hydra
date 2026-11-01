@@ -18,6 +18,8 @@ import type { Loot } from '../sim/map';
 import {
   canChooseEventOption,
   canDoPlaceAction,
+  canStormCastle,
+  castlePanelOpen,
   canExhale,
   canHatch,
   canHideEgg,
@@ -27,10 +29,12 @@ import {
   canWorkThreshold,
   hasMist,
   isNight,
+  nextCastlePart,
   pendingEventRules,
   pendingPlaceTile,
   pendingThreshold,
   shrinesBurning,
+  shrinesToOpen,
   tileHere,
 } from '../sim/turn';
 import type { LairCheck } from '../sim/turn';
@@ -56,6 +60,8 @@ const SEALED_WAY = '__sealed:';
 const LAIR = { rest: '__lair:rest', lay: '__lair:lay', next: '__lair:next', defender: '__lair:defender', scout: '__lair:scout', hide: '__lair:hide' } as const;
 /** Action id in a Passage's panel: up, or down. */
 const PASSAGE = '__passage';
+/** Action id in the castle's panel: storm its next part. */
+const CASTLE_STORM = '__castle:storm';
 const ALERT_BAR_WIDTH = 100;
 /** Where each resource counter starts in the top bar. */
 const RESOURCE_X = { muck: 228, moisture: 296, bones: 390 } as const;
@@ -161,6 +167,7 @@ export class HudScene extends Phaser.Scene {
       (id) => {
         if (id === WORK_THRESHOLD) this.run.workThreshold();
         else if (id === PASSAGE) this.run.usePassage();
+        else if (id === CASTLE_STORM) this.run.stormCastle();
         else if (id.startsWith('__lair:')) this.lairAction(id);
         else if (id.startsWith(SEALED_WAY)) this.run.openSealed(Number(id.slice(SEALED_WAY.length)));
         else if (id.startsWith(EVENT_CHOICE)) this.run.chooseEventOption(Number(id.slice(EVENT_CHOICE.length)));
@@ -407,8 +414,21 @@ export class HudScene extends Phaser.Scene {
         this.toast(words.shrineRelit, palette.order.orange);
         break;
       case 'castleReached': {
+        // At the walls its panel says it all; from afar, a word on it.
         const castle = surface.places['castle'];
-        if (castle) this.toast(`${castle.name}. ${castle.text}`, palette.order.gold);
+        if (castle && !castlePanelOpen(this.run.state)) this.toast(`${castle.name}. ${castle.text}`, palette.order.gold);
+        break;
+      }
+      case 'castleOpened':
+        this.toast(getContext(this).data.castle.texts.opened, palette.order.gold);
+        break;
+      case 'castleShut':
+        this.toast(getContext(this).data.castle.texts.shutAgain, palette.order.orange);
+        break;
+      case 'castlePartWon': {
+        const { castle } = getContext(this).data;
+        const part = castle.parts.list.find((p) => p.id === event.partId);
+        if (part && event.nextPartId !== null) this.toast(fill(castle.texts.partWon, { part: part.name }), mist);
         break;
       }
       case 'orderArrived': {
@@ -542,8 +562,8 @@ export class HudScene extends Phaser.Scene {
       mark.setFillStyle(color(reached ? palette.order.fire : palette.order.gold), reached ? 1 : 0.7);
     }
     const panel = pendingPlace ? tileHere(this.run.state, pendingPlace)?.object?.kind : undefined;
-    // The panels of the lair and of a Passage need no answer: the turn can end with them open.
-    const restingPanel = panel === 'lair' || panel === 'passage';
+    // The panels of the lair, of a Passage and of the castle need no answer: the turn can end with them open.
+    const restingPanel = panel === 'lair' || panel === 'passage' || panel === 'castle';
     this.endTurnButton.setEnabled(pendingBattle === null && pendingShrine === null && (pendingPlace === null || restingPanel) && this.run.state.pendingEvent === null && !this.run.talking && !over);
     this.refreshSurface();
     const data = getContext(this).data;
@@ -599,6 +619,41 @@ export class HudScene extends Phaser.Scene {
       result: null,
       leave: text.place.leaveButton,
       actions: [{ id: PASSAGE, label: up ? surface.texts.climbUp : surface.texts.goDown, enabled: check.can, why: check.can || check.why !== 'noMovement' ? null : surface.texts.noMovement }],
+    };
+  }
+
+  /**
+   * The castle's panel at its walls: shut while the Flame Shrines burn; open, the part of the assault fought next,
+   * how many are taken, and Storm (Press on after the first) or Leave (Fall back after the first).
+   */
+  private castleView(): PlacePanelView {
+    const { castle, surface } = getContext(this).data;
+    const words = castle.texts;
+    const { state, rules } = this.run;
+    const fill = (template: string, values: Record<string, string | number>) => template.replace(/\{(\w+)\}/g, (all, name: string) => String(values[name] ?? all));
+    const won = state.surface.castle.partsWon;
+    const check = canStormCastle(state, rules);
+    const nextRule = nextCastlePart(state, rules);
+    const part = castle.parts.list.find((p) => p.id === nextRule?.id) ?? null;
+    const open = state.surface.castle.opened;
+    const left = Math.max(1, shrinesToOpen(state, rules) - (state.surface.map.shrines.length - shrinesBurning(state)));
+    return {
+      kind: words.kind,
+      name: open && part ? part.name : (surface.places['castle']?.name ?? ''),
+      text: open && part ? part.text : fill(words.shut, { left }),
+      status: open ? [words.open, fill(words.taken, { won, parts: castle.parts.list.length })].join(' ') : null,
+      result: null,
+      leave: won > 0 ? words.fallBack : words.leave,
+      actions: part
+        ? [
+            {
+              id: CASTLE_STORM,
+              label: fill(won > 0 ? words.pressOn : words.storm, { part: part.name }),
+              enabled: check.can,
+              why: check.can || check.why !== 'notNext' ? null : words.notNext,
+            },
+          ]
+        : [],
     };
   }
 
@@ -701,6 +756,7 @@ export class HudScene extends Phaser.Scene {
 
     if (state.pendingPlace && state.hydra.layer === 'underground' && hexKey(state.pendingPlace) === hexKey(state.map.lair)) return this.lairView();
     if (state.pendingPlace && tileHere(state, state.pendingPlace)?.object?.kind === 'passage') return this.passageView();
+    if (castlePanelOpen(state)) return this.castleView();
 
     const place = pendingPlaceTile(state);
     if (place) {

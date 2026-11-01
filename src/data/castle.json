@@ -62,6 +62,7 @@
     "shutAgain": "A Flame Shrine burns again, and the castle gate swings shut.",
     "partWon": "{part} is taken. The heads want to press on. One of them wants a nap.",
     "flameLine": "Eternal Flame {n}%",
+    "flameDoused": "The Flame gutters.",
     "flameOut": "The Eternal Flame goes out.",
     "flameKeeps": "The Flame keeps him standing.",
     "ending": {

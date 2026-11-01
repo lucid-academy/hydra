@@ -133,6 +133,30 @@ export function hydraDied(profile: Profile, lineage: Lineage, run: RunState, rul
   return entry;
 }
 
+/**
+ * The living hydra has put out the Eternal Flame (M7, GAME_DESIGN.md §4): she goes into the Book of Lineages as the
+ * one who won, and her lineage ends there: nobody hatches after her. What the world remembers (flags of scope
+ * 'world', such as eternalFlameOut) stays for every lineage after. Returns her entry in the book.
+ */
+export function lineageWon(profile: Profile, lineage: Lineage, run: RunState, rules: LineageRules): ChronicleEntry | null {
+  if (lineage.ended || !run.won || run.generation !== lineage.generation) return null;
+  remember(profile, lineage, run, rules);
+  const rng = Rng.fromState(lineage.rngState);
+  const entry: ChronicleEntry = {
+    generation: lineage.generation,
+    name: lineage.hydraName,
+    turns: run.turn,
+    mutations: [...run.hydra.mutations],
+    end: 'won',
+    killedBy: null,
+    epitaph: fill(rng.pick(rules.epitaphs.won), { turns: run.turn, biome: '' }),
+  };
+  lineage.chronicle.push(entry);
+  lineage.rngState = rng.getState();
+  lineage.ended = true;
+  return entry;
+}
+
 /** The heiress hatches from the egg `index` of those her mother left, with the mutations it carries. */
 export function chooseEgg(lineage: Lineage, index: number): boolean {
   const egg = lineage.eggs?.[index];

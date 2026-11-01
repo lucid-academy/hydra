@@ -18,12 +18,13 @@ import {
   heritageOf,
   hideEgg,
   hydraDied,
+  lineageWon,
   miraculousIntervention,
   modifierFor,
   newProfile,
   startLineage,
 } from '../sim/lineage';
-import type { Lineage, LineageRules, Profile } from '../sim/lineage';
+import type { ChronicleEntry, Lineage, LineageRules, Profile } from '../sim/lineage';
 import { Rng } from '../sim/rng';
 import { createRun, eggMutations, finishBattle, gainMutation } from '../sim/turn';
 import type { RunEvent, RunRules, RunState, StoryFacts } from '../sim/turn';
@@ -211,6 +212,7 @@ export class LineageKeeper {
     run.on('events', (events: RunEvent[]) => {
       for (const event of events) if (event.type === 'eggHidden') this.eggHidden(run, event.mutations);
       if (events.some((e) => e.type === 'hydraDied')) this.died(run.state);
+      if (events.some((e) => e.type === 'eternalFlameOut')) this.won(run.state);
     });
     run.on('changed', () => {
       this.unlock(run);
@@ -228,6 +230,34 @@ export class LineageKeeper {
     this.unlockedAtDeath = checkUnlocks(this.profile, lineage, state, this.rules);
     this.saveProfile();
     this.saveRunNow();
+  }
+
+  /**
+   * She has put out the Eternal Flame (M7): what she reached may unlock something, then she goes into the book as the
+   * one who won and her lineage ends there. The world remembers it (eternalFlameOut) for every lineage after.
+   */
+  private won(state: RunState): void {
+    const lineage = this.lineage();
+    if (!lineage || state.generation !== lineage.generation || this.runLineage !== lineage.number) return;
+    checkUnlocks(this.profile, lineage, state, this.rules);
+    lineageWon(this.profile, lineage, state, this.rules);
+    this.saveProfile();
+    this.saveRunNow();
+  }
+
+  /** The last lineage of the account, if its last hydra put out the Eternal Flame: for the ending screen. */
+  lastWin(): { lineage: Lineage; entry: ChronicleEntry } | null {
+    const lineage = this.profile.lineages[this.profile.lineages.length - 1];
+    const entry = lineage?.chronicle[lineage.chronicle.length - 1];
+    return lineage && entry?.end === 'won' ? { lineage, entry } : null;
+  }
+
+  /** For `?scene=ending`: the living hydra puts out the Eternal Flame on the spot. Testing only. */
+  winForTest(): void {
+    const run = this.playNow();
+    run.state.won = true;
+    run.state.turn = Math.max(run.state.turn, 87);
+    this.won(run.state);
   }
 
   /** Old Mother Toad has hidden an egg of the living hydra: the lineage keeps it, whatever becomes of her. */
