@@ -19,7 +19,7 @@ Turn and hexes: the middle run, and in brackets the range of the middle 80% of r
 
 ## How the runs went
 
-- Died: 4% (censerWalk 1, greatBurning 1); alive after 120 turns: 96%.
+- Won (the Eternal Flame put out): 0%. Died: 4% (censerWalk 1, greatBurning 1); alive after 120 turns: 96%.
 - Turns played: 120 (120–120). Hexes known at the end: 496 (208–768). Alert at the end: 61 (8–100).
 - Battles per run: 12.0, won 100% of them.
 - Messengers per run: 9.3 sent, 7.7 got away, 1.3 eaten.
@@ -34,3 +34,19 @@ The bot goes up from turn 20 (or once nothing is left to find below) when health
 - Turns up there per run: 13 (0–43); of them Exposed: 4 (0–25).
 - Flame Shrines put out per run: 2 (0–4) (all 5 in 6% of runs); lit again by the Order: 1.7 per run.
 - Battles up there: 2.9 per run, won 99% of them. Died up there: 2% of runs.
+
+## The castle
+
+The gate opens when 5 Flame Shrines are out at once. The bot, healthy, then goes to the walls and storms the castle part by part (gate, cloister, cathedral), falling back when hurt. In the last part its body lies down by the Eternal Flame from the start.
+
+- The gate opened in 0% of runs, on turn –.
+- Battles at the castle: 0.0 per run; parts taken: 0 (0–0) (in the runs whose gate opened: –).
+- The Eternal Flame put out (the run won) in 0% of runs, on turn –. Died at the castle: 0% of runs.
+
+### The gate opened by hand on turn 60
+
+The same 50 runs, but from turn 60 the gate stands open whatever the shrines, to see how a hydra the bot has grown that far does in the assault.
+
+- Stormed the castle in 26% of runs; in the others the bot never got to its walls by turn 120 (or died before). Battles at the castle: 0.7 per run.
+- Parts taken in the runs that stormed it: 3 (2–3). Gate taken: 26% of runs, cloister: 24%, cathedral (the Flame out): 22%.
+- Won on turn 81 (68–99). Died at the castle: 2% of runs; died anywhere: 8%.
