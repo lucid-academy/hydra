@@ -16,6 +16,7 @@ import type { ButtonStyle } from '../ui/Button';
 import { FONT } from '../ui/fonts';
 import { onKeyDown } from '../ui/keys';
 import { fillText, mutationEffects, mutationName } from '../ui/mutationText';
+import { setAmbience } from '../audio/SoundBoard';
 
 const HATCH_BUTTON_Y = 330;
 const TEXT_WIDTH = 460;
@@ -31,6 +32,7 @@ export class GenerationScene extends Phaser.Scene {
     const { data } = getContext(this);
     const { palette, text, world } = data;
     const words = text.lineages;
+    setAmbience(this, null);
     const { width } = SCREEN;
     const keeper = lineages(this);
     const lineage = keeper.lineage();

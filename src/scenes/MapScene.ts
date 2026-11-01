@@ -31,6 +31,7 @@ import type { RunController } from './RunController';
 import { SceneKey } from './sceneKeys';
 import { pageScale, pinnedToScreen, viewScale } from './view';
 import { FONT } from '../ui/fonts';
+import { setAmbience } from '../audio/SoundBoard';
 
 const LAYOUT: HexLayout = { columnWidth: MAP_COLUMN_WIDTH, rowHeight: MAP_ROW_HEIGHT, originX: 0, originY: 0 };
 const WORLD_MARGIN = 60;
@@ -286,6 +287,8 @@ export class MapScene extends Phaser.Scene {
     });
 
     this.refresh();
+    // Dripping caves below, wind up there (the scene starts again after a Passage).
+    setAmbience(this, this.run.state.hydra.layer);
     this.scene.launch(SceneKey.Hud);
     this.exposeTestHooks();
     markReady(SceneKey.Map);

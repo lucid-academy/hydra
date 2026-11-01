@@ -13,6 +13,7 @@ import type { ButtonStyle } from '../ui/Button';
 import { FONT } from '../ui/fonts';
 import { onKeyDown } from '../ui/keys';
 import { fillText } from '../ui/mutationText';
+import { setAmbience } from '../audio/SoundBoard';
 
 /** The first button stays where a tap used to start the game (the smoke test taps it). */
 const FIRST_BUTTON_Y = 200;
@@ -30,6 +31,7 @@ export class TitleScene extends Phaser.Scene {
     const { data } = getContext(this);
     const { palette, text } = data;
     const words = text.lineages;
+    setAmbience(this, null);
     const { width } = SCREEN;
     const keeper = lineages(this);
     fitScreenCamera(this);

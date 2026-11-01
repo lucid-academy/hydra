@@ -1,6 +1,8 @@
 // The game's sounds (M7): played by name from any scene (`playSound(scene, 'bite')`). A sound with a file in
 // src/data/sounds.json is loaded by the boot scene; the others are made from their recipes (synth.ts) into audio
 // buffers when the game starts. The volume and mute are the player's settings, remembered in the browser.
+// Under everything, the quiet background of the place (sounds.json ambience) plays round and round, and fades into
+// the next place's when the hydra goes somewhere else (`setAmbience(scene, 'surface')`).
 // Without Web Audio (an old browser) the game is simply silent.
 
 import * as Phaser from 'phaser';
@@ -11,6 +13,10 @@ import { getContext } from '../scenes/context';
 import { renderSound } from './synth';
 
 const REGISTRY_KEY = 'soundBoard';
+/** A place's background fades in and out over this many seconds. */
+const AMBIENCE_FADE_SECONDS = 1.2;
+
+export type AmbiencePlace = 'underground' | 'surface' | 'battle';
 
 /** The cache key of a sound. */
 export const soundKey = (id: string): string => `sound_${id}`;
@@ -18,6 +24,7 @@ export const soundKey = (id: string): string => `sound_${id}`;
 export class SoundBoard {
   readonly settings: Settings;
   private readonly lastPlayed = new Map<string, number>();
+  private ambient: { id: string; sound: Phaser.Sound.BaseSound } | null = null;
 
   constructor(
     private readonly game: Phaser.Game,
@@ -48,6 +55,38 @@ export class SoundBoard {
     if (id) this.play(id);
   }
 
+  /** The background of a place (sounds.json ambience), looped; the one before fades out. null: none. */
+  ambience(place: AmbiencePlace | null): void {
+    const id = place ? this.data.ambience[place] : null;
+    if ((this.ambient?.id ?? null) === id) return;
+    if (this.ambient) this.fade(this.ambient.sound, 0, true);
+    this.ambient = null;
+    if (id === null || !this.game.cache.audio.exists(soundKey(id))) return;
+    try {
+      const sound = this.game.sound.add(soundKey(id), { loop: true, volume: 0 });
+      sound.play();
+      this.fade(sound, this.data.ambience.volume, false);
+      this.ambient = { id, sound };
+    } catch {
+      // No background, then.
+    }
+  }
+
+  /** Slides a sound's own volume to `to`; when `thenEnd`, it is thrown away once silent. */
+  private fade(sound: Phaser.Sound.BaseSound, to: number, thenEnd: boolean): void {
+    if (sound instanceof Phaser.Sound.WebAudioSound) {
+      const gain = sound.volumeNode.gain;
+      const now = (this.game.sound as Phaser.Sound.WebAudioSoundManager).context.currentTime;
+      gain.cancelScheduledValues(now);
+      gain.setValueAtTime(gain.value, now);
+      gain.linearRampToValueAtTime(to, now + AMBIENCE_FADE_SECONDS);
+    } else if ('setVolume' in sound && typeof sound.setVolume === 'function') {
+      sound.setVolume(to);
+    }
+    // Real time, not the game's: the sound fades even while the game is paused or the scene is gone.
+    if (thenEnd) setTimeout(() => sound.destroy(), AMBIENCE_FADE_SECONDS * 1000 + 100);
+  }
+
   setVolume(volume: number): void {
     this.settings.volume = Math.min(1, Math.max(0, volume));
     this.settings.muted = this.settings.volume === 0;
@@ -73,7 +112,7 @@ export class SoundBoard {
     const context = manager.context;
     for (const [id, sound] of Object.entries(this.data.sounds)) {
       if (this.game.cache.audio.exists(soundKey(id))) continue;
-      const samples = renderSound({ layers: sound.layers, volume: sound.volume }, context.sampleRate);
+      const samples = renderSound({ layers: sound.layers, volume: sound.volume, loop: sound.loop ?? false }, context.sampleRate);
       const buffer = context.createBuffer(1, samples.length, context.sampleRate);
       buffer.copyToChannel(samples, 0);
       this.game.cache.audio.add(soundKey(id), buffer);
@@ -99,4 +138,9 @@ export function playSound(scene: Phaser.Scene, id: string): void {
 /** Plays the sound of a moment (sounds.json cues: ui, map or battle), from any scene. */
 export function playCue(scene: Phaser.Scene, group: keyof SoundsData['cues'], name: string): void {
   soundBoard(scene, getContext(scene).data.sounds).cue(group, name);
+}
+
+/** The background sound of a place (sounds.json ambience), from any scene; null: silence. */
+export function setAmbience(scene: Phaser.Scene, place: AmbiencePlace | null): void {
+  soundBoard(scene, getContext(scene).data.sounds).ambience(place);
 }
