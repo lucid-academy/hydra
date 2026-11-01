@@ -57,6 +57,8 @@ declare global {
         combos: string[];
         /** Broodlings on the board (the battle for the lair). */
         allies: number;
+        /** The Eternal Flame (the castle's last battle; a tap on it sends the body to lie down by it); null elsewhere. */
+        flame: { x: number; y: number; strength: number; out: boolean } | null;
       };
       /** Buttons on the screen now (the title, the generation screen, the Book of Lineages), by name: where they are (game pixels). */
       buttons?: () => Record<string, { x: number; y: number }>;

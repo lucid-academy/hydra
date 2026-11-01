@@ -79,9 +79,9 @@ export interface UrlParams {
   eggs: number | null;
   /** The lineage has a hidden egg. */
   hidden: boolean;
-  /** Head classes for a test battle (empty = the usual heads). */
+  /** Head classes for a test battle, or with scene=map the hydra's heads (empty = the usual heads). */
   heads: string[];
-  /** Level of the test battle's heads (null = as they are). */
+  /** Level of the test battle's heads, or with scene=map of the hydra's heads (null = as they are). */
   level: number | null;
   /** Ultimate skills can be used in battle. */
   ults: boolean;

@@ -227,6 +227,7 @@ export class MapScene extends Phaser.Scene {
     if (firstTime && surface) this.run.surfaceForTest();
     if (firstTime && getContext(this).params.castle !== null) this.run.castleForTest(getContext(this).params.castle!);
     if (firstTime && night) this.run.nightForTest();
+    if (firstTime && (getContext(this).params.heads.length > 0 || getContext(this).params.level !== null)) this.run.headsForTest(getContext(this).params.heads, getContext(this).params.level);
     if (firstTime && flags.length > 0) this.run.flagsForTest(flags);
     if (firstTime && conditions.length > 0) this.run.conditionsForTest(conditions);
     if (firstTime && alert !== null) this.run.alertForTest(alert);
