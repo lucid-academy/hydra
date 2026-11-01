@@ -893,11 +893,11 @@ const storyConditionsSchema = section({
 });
 const speakerSchema = z
   .string()
-  .regex(/^(toad|serpent|ancestor|head:[A-Za-z]+)$/, 'expected "toad", "serpent", "ancestor", "head:any", "head:other", "head:new" or "head:<class id>"');
+  .regex(/^(toad|serpent|ancestor|grandMaster|head:[A-Za-z]+)$/, 'expected "toad", "serpent", "ancestor", "grandMaster", "head:any", "head:other", "head:new" or "head:<class id>"');
 const dialogueLineSchema = section({ speaker: speakerSchema, text: z.string().min(1) });
 
 export const dialoguesSchema = section({
-  speakers: section({ toad: z.string().min(1), serpent: z.string().min(1), ancestor: z.string().min(1) }),
+  speakers: section({ toad: z.string().min(1), serpent: z.string().min(1), ancestor: z.string().min(1), grandMaster: z.string().min(1) }),
   serpentVoice: section({ minTurnsBetween: z.number().int().min(0), chancePerTurn: share, battleChance: share }),
   dialogues: z.array(
     section({

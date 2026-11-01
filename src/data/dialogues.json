@@ -1,7 +1,7 @@
 {
-  "//": "TODO(design): first batch of dialogues, written by Claude for M5 (GAME_DESIGN.md §1, §11, §14); change them freely. trigger: when the dialogue can come up: afterBattle, newBiome (first step into a biome), enemyAhead (an encounter is about to start), restInLair (end of a turn in the lair: Old Mother Toad), serpentOnTheWay (end of a turn away from the lair, now and then), serpentInBattle (one short line over the battle, only the first line is used), eventOnly (only when an event's choice asks for it by id), newGeneration (a new generation hatches: Old Mother Toad greets the heiress), ancestorInSleep (now and then when a new generation hatches, lineage.json ancestorVoice). Of the dialogues that fit, the one with the highest priority comes up (ties: random). once: said at most once per lineage (default true): an heiress doesn't hear again what her mothers heard, a new lineage does. conditions (all must hold; leave one out to not care): rings, biomes (where the hydra stands, or the new biome), flags, notFlags, minAlert, maxAlert, minTurn, headClasses, minHeads, maxHeads, won, severedAtLeast, grownAtLeast, cauterizedAtLeast (in the battle just fought, or heads grown at rest), newEnemyTypes (met for the first time), minGeneration, maxGeneration (the hydra's generation, 1 = the first of her lineage), mutations (she carries all of these, mutations.json), inheritedAtLeast and motherKilledBy (a new generation: mutations inherited, enemy types that killed her mother). Every flag must be listed in flags.json. speaker: toad, serpent, ancestor (the hydra's mother, through her sleep: no portrait), head:any (any head), head:other (a different head), head:new (a head that just grew), head:<class id> (a head of that class, e.g. head:biter). If the heads can't be found, the dialogue is skipped. In a text {any}, {other}, {new} are those heads' names, {biome} the biome's name, {name} the hydra's name, {lineage} her lineage's, {mother} her mother's and {mutation} one of the mutations she inherited (or carries). setFlags: flags set when said; a choice can set its own and has a reply.",
+  "//": "TODO(design): first batch of dialogues, written by Claude for M5 (GAME_DESIGN.md §1, §11, §14); change them freely. trigger: when the dialogue can come up: afterBattle, newBiome (first step into a biome), enemyAhead (an encounter is about to start), restInLair (end of a turn in the lair: Old Mother Toad), serpentOnTheWay (end of a turn away from the lair, now and then), serpentInBattle (one short line over the battle, only the first line is used), eventOnly (only when an event's choice asks for it by id), newGeneration (a new generation hatches: Old Mother Toad greets the heiress), ancestorInSleep (now and then when a new generation hatches, lineage.json ancestorVoice), castleOpened, castlePartWon, eternalFlameOut (M7: the castle's gate opens, a part of its assault is taken, the Eternal Flame goes out). Of the dialogues that fit, the one with the highest priority comes up (ties: random). once: said at most once per lineage (default true): an heiress doesn't hear again what her mothers heard, a new lineage does. conditions (all must hold; leave one out to not care): rings, biomes (where the hydra stands, or the new biome), flags, notFlags, minAlert, maxAlert, minTurn, headClasses, minHeads, maxHeads, won, severedAtLeast, grownAtLeast, cauterizedAtLeast (in the battle just fought, or heads grown at rest), newEnemyTypes (met for the first time), minGeneration, maxGeneration (the hydra's generation, 1 = the first of her lineage), mutations (she carries all of these, mutations.json), inheritedAtLeast and motherKilledBy (a new generation: mutations inherited, enemy types that killed her mother). Every flag must be listed in flags.json. speaker: toad, serpent, ancestor (the hydra's mother, through her sleep: no portrait), grandMaster (Grand Master Vell, M7; stands on the right like Old Mother Toad), head:any (any head), head:other (a different head), head:new (a head that just grew), head:<class id> (a head of that class, e.g. head:biter). If the heads can't be found, the dialogue is skipped. In a text {any}, {other}, {new} are those heads' names, {biome} the biome's name, {name} the hydra's name, {lineage} her lineage's, {mother} her mother's and {mutation} one of the mutations she inherited (or carries). setFlags: flags set when said; a choice can set its own and has a reply.",
 
-  "speakers": { "toad": "Old Mother Toad", "serpent": "The Great Serpent", "ancestor": "An Ancestress" },
+  "speakers": { "toad": "Old Mother Toad", "serpent": "The Great Serpent", "ancestor": "An Ancestress", "grandMaster": "Grand Master Vell" },
 
   "serpentVoice": {
     "//": "How often the Serpent speaks on the way: at most once every minTurnsBetween turns, then with chancePerTurn at the end of each turn. battleChance: chance of a short line at the start of a battle.",
@@ -813,6 +813,65 @@
       "lines": [
         { "speaker": "head:any", "text": "We won. In daylight." },
         { "speaker": "head:other", "text": "Do not get used to it." }
+      ]
+    },
+    {
+      "id": "castleOpened",
+      "//": "TODO(design): M7, the castle's gate opens (castle.json gate).",
+      "trigger": "castleOpened",
+      "priority": 8,
+      "lines": [
+        { "speaker": "head:any", "text": "Listen. That was a gate." },
+        { "speaker": "head:other", "text": "They have opened the castle." },
+        { "speaker": "head:any", "text": "For us?" },
+        { "speaker": "serpent", "text": "For no one, child. They have run out of fire to hide behind. Go in." }
+      ]
+    },
+    {
+      "id": "castleFirstPartTaken",
+      "//": "TODO(design): M7, after the first part of the assault (The Gate).",
+      "trigger": "castlePartWon",
+      "priority": 6,
+      "lines": [
+        { "speaker": "head:any", "text": "We are inside the castle." },
+        { "speaker": "head:other", "text": "It smells of candle wax and paperwork." },
+        { "speaker": "head:any", "text": "It smells of us now as well." }
+      ]
+    },
+    {
+      "id": "castleSecondPartTaken",
+      "//": "TODO(design): M7, after the second part (The Cloister): Grand Master Vell calls from the cathedral.",
+      "trigger": "castlePartWon",
+      "priority": 5,
+      "lines": [
+        { "speaker": "grandMaster", "text": "You have come a long way for a swamp creature. Come the rest of the way. The Flame is waiting." },
+        { "speaker": "head:any", "text": "He sounds nice." },
+        { "speaker": "head:other", "text": "He sounds like a man who has rehearsed that." }
+      ]
+    },
+    {
+      "id": "firstGrandMaster",
+      "//": "TODO(design): M7, the cathedral: Grand Master Vell and the Eternal Flame (GAME_DESIGN.md §6.6). The Serpent says how to win.",
+      "trigger": "enemyAhead",
+      "priority": 10,
+      "conditions": { "newEnemyTypes": ["grandMaster"] },
+      "lines": [
+        { "speaker": "grandMaster", "text": "By the Eternal Flame, this swamp is hereby declared kindling." },
+        { "speaker": "head:any", "text": "We are not a swamp." },
+        { "speaker": "head:other", "text": "We are a little bit of a swamp." },
+        { "speaker": "serpent", "text": "While the Flame burns, he will not fall. Smother it, child: lie down beside it, or breathe on it." }
+      ]
+    },
+    {
+      "id": "eternalFlameOut",
+      "//": "TODO(design): M7, the Eternal Flame is out: the run is won (castle.json victory), then the ending.",
+      "trigger": "eternalFlameOut",
+      "priority": 10,
+      "lines": [
+        { "speaker": "head:any", "text": "It is out." },
+        { "speaker": "head:other", "text": "Four hundred years, and it is out." },
+        { "speaker": "head:any", "text": "It is very dark in here." },
+        { "speaker": "serpent", "text": "Yes, child. Now it is dark everywhere. Rest." }
       ]
     },
     {

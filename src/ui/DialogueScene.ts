@@ -28,6 +28,7 @@ const CHOICE = { width: 340, height: 22, gap: 5 };
 const SERPENT_COLOR = '#7fe0d6';
 const ANCESTOR_COLOR = '#c8b0f0';
 const TOAD_COLOR = '#b8c870';
+const GRAND_MASTER_COLOR = '#f0c040';
 
 type Slot = 'left' | 'right';
 
@@ -132,12 +133,13 @@ export class DialogueScene extends Phaser.Scene {
     const serpent = line.speaker === 'serpent' || line.speaker === 'ancestor';
     const voiceColor = line.speaker === 'ancestor' ? ANCESTOR_COLOR : SERPENT_COLOR;
     const slot = this.slotFor(line);
-    if (slot) this.portrait(slot, line.speaker === 'toad' ? 'dialogue_oldMotherToad' : `dialogue_${line.classId}`, line.speaker === 'toad' ? 'toad' : line.name);
+    const portraitKey = line.speaker === 'toad' ? 'dialogue_oldMotherToad' : line.speaker === 'grandMaster' ? 'dialogue_grandMaster' : `dialogue_${line.classId}`;
+    if (slot) this.portrait(slot, portraitKey, line.speaker === 'toad' ? 'toad' : line.name);
     this.lastSlot = slot ?? this.lastSlot;
     for (const s of ['left', 'right'] as const) this.portraits[s]?.setTint(s === slot ? 0xffffff : PORTRAIT.dimTint);
 
     const classData = line.classId ? heads.classes[line.classId] : undefined;
-    const plateColor = serpent ? voiceColor : line.speaker === 'toad' ? TOAD_COLOR : (classData?.color ?? '#e8e0d0');
+    const plateColor = serpent ? voiceColor : line.speaker === 'toad' ? TOAD_COLOR : line.speaker === 'grandMaster' ? GRAND_MASTER_COLOR : (classData?.color ?? '#e8e0d0');
     this.name.setText(line.name).setColor(plateColor);
     this.role.setText(line.speaker === 'ancestor' ? getContext(this).data.text.lineages.ancestorRole : (classData?.displayName ?? ''));
     const left = BOX.x + BOX.padding;
@@ -171,9 +173,10 @@ export class DialogueScene extends Phaser.Scene {
    */
   private slotFor(line: ShownLine): Slot | null {
     if (line.speaker === 'serpent' || line.speaker === 'ancestor') return null;
-    if (line.speaker === 'toad') return 'right';
+    // Old Mother Toad and Grand Master Vell (M7) stand on the right, the heads facing them.
+    if (line.speaker === 'toad' || line.speaker === 'grandMaster') return 'right';
     const all = [...this.dialogue.lines, ...this.dialogue.choices.flatMap((c) => c.reply)];
-    if (all.some((l) => l.speaker === 'toad')) return 'left';
+    if (all.some((l) => l.speaker === 'toad' || l.speaker === 'grandMaster')) return 'left';
     if (this.standing.left === line.name) return 'left';
     if (this.standing.right === line.name) return 'right';
     return this.lastSlot === 'left' ? 'right' : 'left';
