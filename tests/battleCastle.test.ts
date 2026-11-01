@@ -52,7 +52,7 @@ function besideTheFlame(s: BattleState): Hex {
 const seconds = (n: number) => Math.round(n * rules.ticksPerSecond);
 
 describe('the Eternal Flame', () => {
-  it('burns in the middle of the top edge, where nobody starts; other battles have none', () => {
+  it('burns at the top of the board, in the middle, where nobody starts; other battles have none', () => {
     const s = battle(['manAtArms', 'manAtArms', 'manAtArms', 'manAtArms', 'manAtArms', 'manAtArms']);
     expect(s.flame).not.toBeNull();
     expect(hexEquals(s.flame!.at, flameHex(rules))).toBe(true);

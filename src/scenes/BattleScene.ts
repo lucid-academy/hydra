@@ -282,9 +282,9 @@ export class BattleScene extends Phaser.Scene {
       // ?scene=battle: a test battle without walking to an encounter.
       run = run ?? startNewRun(this);
       if (params.surface) run.surfaceForTest();
-      if (params.surface && params.exposed) run.exposeForTest();
       if (params.castle !== null) run.startCastleTestBattle(params.castle, params.hp);
-      else run.startTestBattle(params.group ?? DEFAULT_TEST_GROUP, params.hp, params.allies);
+      if ((params.surface || params.castle !== null) && params.exposed) run.exposeForTest();
+      if (params.castle === null) run.startTestBattle(params.group ?? DEFAULT_TEST_GROUP, params.hp, params.allies);
     }
     this.run = run;
     const setup = run.battleSetup();

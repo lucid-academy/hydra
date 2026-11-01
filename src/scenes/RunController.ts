@@ -217,6 +217,8 @@ export class RunController extends Phaser.Events.EventEmitter {
     this.castleForTest(index);
     const { castle } = this.state.surface.map;
     this.state.hydra.position = hexNeighbors(castle).find((h) => this.state.surface.map.tiles.has(hexKey(h))) ?? this.state.hydra.position;
+    // In a little mist, as a hydra who breathed some before storming (?exposed=1: none).
+    this.state.surface.mist[hexKey(this.state.hydra.position)] = this.rules.surface.mist.exhale.turns;
     this.state.pendingBattle = { at: castle, layer: 'surface', groupId: parts[index]!.groupId, castlePart: index };
     if (bodyHp !== null) this.state.hydra.bodyHp = Math.min(this.state.hydra.bodyMaxHp, bodyHp);
   }
