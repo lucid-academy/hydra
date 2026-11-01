@@ -59,7 +59,10 @@ import { color, getContext } from './context';
 import { getRun, startNewRun } from './RunController';
 import type { RunController } from './RunController';
 import { hexEdges, hexOutlines, roundCorners } from './hexOutline';
+import { playCue } from '../audio/SoundBoard';
 import { FlameView } from './battleFlame';
+import { GameMenu } from '../ui/GameMenu';
+import { lineages } from './LineageKeeper';
 import { LIGHT_TEXTURE, LIGHT_TEXTURE_SIZE, makeSoftTextures, MapLight, SHADOW_TEXTURE, SHADOW_TEXTURE_WIDTH } from './mapLight';
 import type { Light } from './mapLight';
 import { SceneKey } from './sceneKeys';
@@ -78,7 +81,9 @@ const SURFACE_LINE_X = 352;
 /** "The Flame keeps him standing" is said at most this often. */
 const FLAME_KEEPS_EVERY_MS = 2500;
 /** A boss's name in the top bar starts here, and his HP bar after it is this wide (screen units). */
-const BOSS_BAR = { x: 86, width: 90 } as const;
+const BOSS_BAR = { x: 112, width: 90 } as const;
+/** The Menu button at the left end of the top bar. */
+const MENU_BUTTON = { width: 36, height: 13, fontSize: '9px' } as const;
 const DEFAULT_TEST_GROUP = 'burningDetail';
 /** The skill buttons lie over the front edge of the board, in the middle (SkillBar is 372 wide). */
 const SKILL_BAR = { x: 134, y: PANEL_TOP - 21 } as const;
@@ -264,6 +269,7 @@ export class BattleScene extends Phaser.Scene {
   /** The skill the player is aiming (picked with Q / W / E), or null. */
   private aiming: { headId: string; slot: number } | null = null;
   private pauseButton!: Button;
+  private menu!: GameMenu;
   private speedButton!: Button;
 
   constructor() {
@@ -536,7 +542,7 @@ export class BattleScene extends Phaser.Scene {
     // The bars above and below the board are not interactive: the board's own tap area ends where they begin,
     // and an interactive bar could be counted as lying on top of the buttons and cards drawn on it.
     this.add.rectangle(0, 0, width, ARENA_TOP, color(palette.underground.black), 0.9).setOrigin(0, 0).setDepth(DEPTH.ui);
-    this.bodyHpText = this.add.text(6, 3, '', { fontFamily: FONT.text, fontSize: '10px', color: '#d8e4d0' }).setDepth(DEPTH.ui + 1);
+    this.bodyHpText = this.add.text(MENU_BUTTON.width + 10, 3, '', { fontFamily: FONT.text, fontSize: '10px', color: '#d8e4d0' }).setDepth(DEPTH.ui + 1);
     // Paused = the word in the top bar plus a gold frame around the board area, so nothing on the board is covered.
     this.pausedText = this.add
       .text(width / 2, 3, text.battle.paused, { fontFamily: FONT.text, fontSize: '10px', color: palette.order.gold })
@@ -605,7 +611,17 @@ export class BattleScene extends Phaser.Scene {
     );
     this.codex = new CodexPanel(this);
     const codexButton = new Button(this, width - 120, ARENA_TOP / 2, text.battle.codexButton, { ...buttonStyle, width: 74, height: 13, fontSize: '10px' }, () => this.openCodex());
-    for (const b of [this.pauseButton, this.speedButton, allHeads, codexButton]) b.setDepth(DEPTH.ui + 2);
+    const menuButton = new Button(this, MENU_BUTTON.width / 2 + 3, ARENA_TOP / 2, text.menu.button, { ...buttonStyle, ...MENU_BUTTON }, () => this.menu.open());
+    for (const b of [this.pauseButton, this.speedButton, allHeads, codexButton, menuButton]) b.setDepth(DEPTH.ui + 2);
+    // The menu pauses the battle; Quit leaves it (the battle starts over when the game goes on).
+    this.menu = new GameMenu(this, DEPTH.ui + 50, {
+      seed: lineages(this).lineage()?.seed ?? getContext(this).seed,
+      inBattle: true,
+      onOpen: () => {
+        if (!this.paused) this.togglePause();
+      },
+      onQuit: () => this.scene.start(SceneKey.Title),
+    });
     this.skillBar = new SkillBar(
       this,
       SKILL_BAR.x,
@@ -804,10 +820,16 @@ export class BattleScene extends Phaser.Scene {
     onKeyDown(this, (event) => {
       // Key codes, not characters: Shift + 1 still counts as 1 on every keyboard layout.
       const digit = /^Digit([1-9])$/.exec(event.code);
+      // Esc: stop aiming, then let go of the heads, then the menu.
+      if (this.menu.visible) {
+        if (event.key === 'Escape') this.menu.close();
+        return;
+      }
       if (event.code === 'Space') this.togglePause();
       else if (event.key === 'Escape') {
         if (this.aiming) this.aiming = null;
-        else this.selected = new Set();
+        else if (this.selected.size > 0) this.selected = new Set();
+        else this.menu.open();
       } else if (event.code === 'KeyQ') this.startSkill(0);
       else if (event.code === 'KeyW') this.startSkill(1);
       else if (event.code === 'KeyE') this.startSkill(2);
@@ -1531,6 +1553,7 @@ export class BattleScene extends Phaser.Scene {
     const body = this.bodyCenter();
     const above = { x: body.x, y: body.y - 40 };
     for (const event of events) {
+      this.soundOf(event);
       switch (event.type) {
         case 'hit':
           this.showHit(event, now);
@@ -1642,6 +1665,18 @@ export class BattleScene extends Phaser.Scene {
           break;
       }
     }
+  }
+
+  /** The sound of a moment of the battle (sounds.json cues.battle). */
+  private soundOf(event: BattleEvent): void {
+    let cue: string | null = null;
+    if (event.type === 'hit') {
+      if ((event.attacker === 'head' || event.attacker === 'combo') && event.targetKind === 'enemy') cue = 'headHits';
+      else if (event.attacker === 'enemy' && (event.targetKind === 'head' || event.targetKind === 'body')) cue = 'hydraHurt';
+    } else if (event.type === 'brazier') cue = event.what === 'out' ? 'brazierOut' : null;
+    else if (event.type === 'flame') cue = event.what === 'out' ? 'flameOut' : 'flameDoused';
+    else if (['severed', 'regrown', 'cauterized', 'combo', 'skill', 'devoured', 'enemyKilled'].includes(event.type)) cue = event.type;
+    if (cue) playCue(this, 'battle', cue);
   }
 
   /**
@@ -1757,6 +1792,7 @@ export class BattleScene extends Phaser.Scene {
     const { palette, text } = getContext(this).data;
     const { width } = SCREEN;
     const won = this.battle.outcome === 'won';
+    playCue(this, 'battle', won ? 'won' : 'lost');
     const result = battleResult(this.battle, this.run.battleRules);
 
     const panel = this.add.container(width / 2, ARENA_TOP + 110).setDepth(DEPTH.ui + 10);

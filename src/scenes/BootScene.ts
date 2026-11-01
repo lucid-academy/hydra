@@ -4,6 +4,7 @@
 
 import * as Phaser from 'phaser';
 import { placeholderFor } from '../assets/placeholders';
+import { soundBoard, soundKey } from '../audio/SoundBoard';
 import { isTerrainTextureKey } from '../assets/terrain';
 import { buildTerrainTiles } from '../assets/terrainTiles';
 import { loadFonts } from '../ui/fonts';
@@ -27,6 +28,8 @@ export class BootScene extends Phaser.Scene {
       if (entry.frames !== undefined) this.load.spritesheet(key, entry.file, { frameWidth: entry.width * HD_DENSITY, frameHeight: entry.height * HD_DENSITY });
       else this.load.image(key, entry.file);
     }
+    // Sounds with a file (sounds.json); the others are made in code (SoundBoard).
+    for (const [id, sound] of Object.entries(data.sounds.sounds)) if (sound.file !== null) this.load.audio(soundKey(id), sound.file);
   }
 
   create(): void {
@@ -41,6 +44,7 @@ export class BootScene extends Phaser.Scene {
       draw(this, key, entry.width, entry.height, data.palette, data);
     }
     buildTerrainTiles(this, data);
+    soundBoard(this, data.sounds);
 
     let first: string = SceneKey.Title;
     if (params.scene !== null) {

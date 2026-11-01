@@ -1,0 +1,82 @@
+{
+  "//": "TODO(design): M7, sounds (answer E1 of the M7 plan): placeholders made in code until real sound files come; no music yet. Each sound: file (a sound file in public/, e.g. \"sounds/bite.ogg\"; null = made from its layers), volume (0..1), layers. A layer is a tone sliding from one pitch to another (wave sine, square, triangle or sawtooth; from and to in Hz) or a hiss (wave noise; from and to: how bright, in Hz), starting delay seconds after the sound starts, lasting seconds, rising to its volume in attack seconds and then fading out. defaultVolume: the volume a new player hears (the menu changes it, and it is remembered in the browser). minGapSeconds: the same sound plays at most this often (many hits in one moment make one sound).",
+  "defaultVolume": 0.6,
+  "minGapSeconds": 0.06,
+  "cues": {
+    "//": "Which sound plays when (names from sounds below; leave a cue out for silence). ui: button (any button pressed), ending (the ending screen opens). map: things that happen on the map, by the game's name for them. battle: headHits (a head hits a man), hydraHurt (a man hits a head or the body), severed, regrown, cauterized, combo, skill (a skill used), devoured, enemyKilled, brazierOut, flameDoused, flameOut (the Eternal Flame), won, lost (the end of a battle).",
+    "ui": { "button": "click", "ending": "ending" },
+    "map": { "moved": "slither", "mistExhaled": "exhale", "shrineOut": "hiss", "castleOpened": "gate", "castleShut": "gate", "rested": "regrow", "mutationGained": "regrow", "thresholdOpened": "fall" },
+    "battle": { "headHits": "bite", "hydraHurt": "hurt", "severed": "sever", "regrown": "regrow", "cauterized": "sizzle", "combo": "combo", "skill": "skill", "devoured": "gulp", "enemyKilled": "fall", "brazierOut": "hiss", "flameDoused": "hiss", "flameOut": "flameOut", "won": "victory", "lost": "defeat" }
+  },
+  "sounds": {
+    "click": { "file": null, "volume": 0.25, "layers": [
+      { "wave": "sine", "from": 880, "to": 660, "delay": 0, "seconds": 0.05, "volume": 1, "attack": 0.002 }
+    ] },
+    "bite": { "file": null, "volume": 0.35, "layers": [
+      { "wave": "noise", "from": 2600, "to": 800, "delay": 0, "seconds": 0.08, "volume": 0.8, "attack": 0.002 },
+      { "wave": "square", "from": 220, "to": 110, "delay": 0, "seconds": 0.07, "volume": 0.5, "attack": 0.002 }
+    ] },
+    "hurt": { "file": null, "volume": 0.4, "layers": [
+      { "wave": "sine", "from": 160, "to": 70, "delay": 0, "seconds": 0.15, "volume": 1, "attack": 0.003 },
+      { "wave": "noise", "from": 900, "to": 300, "delay": 0, "seconds": 0.1, "volume": 0.6, "attack": 0.002 }
+    ] },
+    "sever": { "file": null, "volume": 0.45, "layers": [
+      { "wave": "noise", "from": 4000, "to": 500, "delay": 0, "seconds": 0.25, "volume": 0.9, "attack": 0.002 },
+      { "wave": "sawtooth", "from": 300, "to": 60, "delay": 0.02, "seconds": 0.3, "volume": 0.6, "attack": 0.005 }
+    ] },
+    "regrow": { "file": null, "volume": 0.3, "layers": [
+      { "wave": "sine", "from": 200, "to": 500, "delay": 0, "seconds": 0.35, "volume": 1, "attack": 0.1 },
+      { "wave": "triangle", "from": 300, "to": 750, "delay": 0.05, "seconds": 0.3, "volume": 0.5, "attack": 0.08 }
+    ] },
+    "sizzle": { "file": null, "volume": 0.3, "layers": [
+      { "wave": "noise", "from": 6000, "to": 3000, "delay": 0, "seconds": 0.5, "volume": 1, "attack": 0.02 }
+    ] },
+    "combo": { "file": null, "volume": 0.3, "layers": [
+      { "wave": "triangle", "from": 440, "to": 440, "delay": 0, "seconds": 0.14, "volume": 1, "attack": 0.004 },
+      { "wave": "triangle", "from": 660, "to": 660, "delay": 0.08, "seconds": 0.14, "volume": 1, "attack": 0.004 },
+      { "wave": "triangle", "from": 880, "to": 880, "delay": 0.16, "seconds": 0.22, "volume": 1, "attack": 0.004 }
+    ] },
+    "skill": { "file": null, "volume": 0.25, "layers": [
+      { "wave": "sine", "from": 300, "to": 900, "delay": 0, "seconds": 0.18, "volume": 1, "attack": 0.01 }
+    ] },
+    "gulp": { "file": null, "volume": 0.4, "layers": [
+      { "wave": "sine", "from": 300, "to": 90, "delay": 0, "seconds": 0.25, "volume": 1, "attack": 0.005 },
+      { "wave": "noise", "from": 500, "to": 200, "delay": 0.05, "seconds": 0.2, "volume": 0.5, "attack": 0.01 }
+    ] },
+    "fall": { "file": null, "volume": 0.3, "layers": [
+      { "wave": "noise", "from": 1200, "to": 200, "delay": 0, "seconds": 0.18, "volume": 0.8, "attack": 0.002 },
+      { "wave": "square", "from": 140, "to": 60, "delay": 0, "seconds": 0.12, "volume": 0.4, "attack": 0.002 }
+    ] },
+    "hiss": { "file": null, "volume": 0.3, "layers": [
+      { "wave": "noise", "from": 5000, "to": 1500, "delay": 0, "seconds": 0.45, "volume": 1, "attack": 0.01 }
+    ] },
+    "flameOut": { "file": null, "volume": 0.45, "layers": [
+      { "wave": "noise", "from": 3000, "to": 300, "delay": 0, "seconds": 1.2, "volume": 1, "attack": 0.05 },
+      { "wave": "sine", "from": 220, "to": 110, "delay": 0.1, "seconds": 1.2, "volume": 0.5, "attack": 0.1 }
+    ] },
+    "victory": { "file": null, "volume": 0.3, "layers": [
+      { "wave": "triangle", "from": 392, "to": 392, "delay": 0, "seconds": 0.5, "volume": 1, "attack": 0.01 },
+      { "wave": "triangle", "from": 494, "to": 494, "delay": 0.12, "seconds": 0.5, "volume": 0.9, "attack": 0.01 },
+      { "wave": "triangle", "from": 587, "to": 587, "delay": 0.24, "seconds": 0.7, "volume": 0.9, "attack": 0.01 }
+    ] },
+    "defeat": { "file": null, "volume": 0.35, "layers": [
+      { "wave": "sawtooth", "from": 220, "to": 110, "delay": 0, "seconds": 0.8, "volume": 0.6, "attack": 0.02 },
+      { "wave": "sine", "from": 110, "to": 55, "delay": 0.1, "seconds": 1, "volume": 1, "attack": 0.05 }
+    ] },
+    "slither": { "file": null, "volume": 0.18, "layers": [
+      { "wave": "noise", "from": 700, "to": 400, "delay": 0, "seconds": 0.35, "volume": 1, "attack": 0.1 }
+    ] },
+    "exhale": { "file": null, "volume": 0.3, "layers": [
+      { "wave": "noise", "from": 1200, "to": 600, "delay": 0, "seconds": 0.8, "volume": 1, "attack": 0.25 }
+    ] },
+    "gate": { "file": null, "volume": 0.4, "layers": [
+      { "wave": "sawtooth", "from": 60, "to": 45, "delay": 0, "seconds": 1, "volume": 0.6, "attack": 0.2 },
+      { "wave": "noise", "from": 300, "to": 150, "delay": 0, "seconds": 1, "volume": 0.7, "attack": 0.2 }
+    ] },
+    "ending": { "file": null, "volume": 0.3, "layers": [
+      { "wave": "sine", "from": 220, "to": 220, "delay": 0, "seconds": 2.5, "volume": 1, "attack": 0.6 },
+      { "wave": "sine", "from": 277, "to": 277, "delay": 0.3, "seconds": 2.2, "volume": 0.7, "attack": 0.6 },
+      { "wave": "sine", "from": 330, "to": 330, "delay": 0.6, "seconds": 1.9, "volume": 0.6, "attack": 0.6 }
+    ] }
+  }
+}

@@ -862,6 +862,19 @@ export const textSchema = z
       // How each effect of a mutation is written (mutations.json); {n} becomes the number with its sign.
       effects: section(Object.fromEntries(MUTATION_EFFECTS.map((e) => [e, z.string().min(1)])) as Record<(typeof MUTATION_EFFECTS)[number], z.ZodString>),
     }),
+    // M7: the menu on the map and in battle.
+    menu: section({
+      button: z.string().min(1),
+      title: z.string().min(1),
+      resume: z.string().min(1),
+      // {n}: percent.
+      sound: z.string().min(1),
+      soundOff: z.string().min(1),
+      // {seed}
+      seed: z.string().min(1),
+      quit: z.string().min(1),
+      quitBattle: z.string().min(1),
+    }),
   })
   .strict();
 
@@ -1355,3 +1368,28 @@ export type OrderData = z.infer<typeof orderSchema>;
 export type BroodData = z.infer<typeof broodSchema>;
 export type SurfaceData = z.infer<typeof surfaceSchema>;
 export type CastleData = z.infer<typeof castleSchema>;
+
+// M7: sounds made in code until real files come (src/audio/synth.ts).
+const soundLayerSchema = section({
+  wave: z.enum(['sine', 'square', 'triangle', 'sawtooth', 'noise']),
+  from: z.number().positive(),
+  to: z.number().positive(),
+  delay: z.number().min(0),
+  seconds: z.number().positive(),
+  volume: share,
+  attack: z.number().min(0),
+});
+/** Moments that can have a sound (sounds.json cues); a new one needs code that plays it. */
+export const SOUND_CUES = {
+  ui: ['button', 'ending'],
+  map: ['moved', 'mistExhaled', 'shrineOut', 'castleOpened', 'castleShut', 'rested', 'mutationGained', 'thresholdOpened', 'eggLaid', 'battleWon', 'findTaken', 'headLevelled', 'alertStage', 'climbed'],
+  battle: ['headHits', 'hydraHurt', 'severed', 'regrown', 'cauterized', 'combo', 'skill', 'devoured', 'enemyKilled', 'brazierOut', 'flameDoused', 'flameOut', 'won', 'lost'],
+} as const;
+const cueList = <T extends readonly [string, ...string[]]>(names: T) => z.partialRecord(z.enum(names), z.string().min(1));
+export const soundsSchema = section({
+  defaultVolume: share,
+  minGapSeconds: z.number().min(0),
+  cues: section({ ui: cueList(SOUND_CUES.ui), map: cueList(SOUND_CUES.map), battle: cueList(SOUND_CUES.battle) }),
+  sounds: entries(section({ file: z.string().min(1).nullable(), volume: share, layers: z.array(soundLayerSchema).min(1) })),
+});
+export type SoundsData = z.infer<typeof soundsSchema>;
