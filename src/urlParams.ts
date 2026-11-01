@@ -31,6 +31,9 @@
 //                 the test battle is fought up there, in mist
 //   ?exposed=1    with ?surface=1: no mist under the hydra (with ?scene=battle: an Exposed battle)
 //   ?night=1      with ?scene=map: the game starts on the first turn of the night
+//   ?castle=2     with ?scene=battle: the test battle is that part of the castle's assault (castle.json parts, from 0;
+//                 the last has the Eternal Flame); with ?scene=map: the castle's gate stands open and that many parts
+//                 are taken (with ?surface=1&near=castle she starts at its walls)
 // A URL with any of these but seed, debug, speed and zoom is a test: the saved game is neither loaded nor saved
 // (testUrl). ?seed= alone picks the world of a lineage started from the title.
 
@@ -88,6 +91,8 @@ export interface UrlParams {
   night: boolean;
   /** On the surface, with no mist under her. */
   exposed: boolean;
+  /** The castle's gate open and this many parts taken (a test battle: this part of the assault), or null. */
+  castle: number | null;
 }
 
 export function parseUrlParams(search: string): UrlParams {
@@ -129,6 +134,7 @@ export function parseUrlParams(search: string): UrlParams {
     surface: params.get('surface') === '1' || params.get('surface') === 'true',
     night: params.get('night') === '1' || params.get('night') === 'true',
     exposed: params.get('exposed') === '1' || params.get('exposed') === 'true',
+    castle: (params.get('castle') ?? '').trim() !== '' && Number.isInteger(Number(params.get('castle'))) && Number(params.get('castle')) >= 0 ? Number(params.get('castle')) : null,
   };
 }
 
@@ -159,6 +165,7 @@ export function testUrl(params: UrlParams): boolean {
     params.ults ||
     params.surface ||
     params.night ||
-    params.exposed
+    params.exposed ||
+    params.castle !== null
   );
 }

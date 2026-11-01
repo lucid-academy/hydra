@@ -22,7 +22,7 @@ export interface LineageRules {
   names: readonly string[];
   /** The chance that an heiress is named after one of her ancestresses. */
   takeAncestorName: number;
-  epitaphs: { byEnemy: Readonly<Record<string, readonly string[]>>; any: readonly string[]; ended: readonly string[] };
+  epitaphs: { byEnemy: Readonly<Record<string, readonly string[]>>; any: readonly string[]; ended: readonly string[]; won: readonly string[] };
   flagScopes: Readonly<Record<string, FlagScope>>;
   /** For {biome} in epitaphs. */
   biomeNames: Readonly<Record<string, string>>;
@@ -42,8 +42,8 @@ export interface ChronicleEntry {
   turns: number;
   /** The mutations she carried at the end. */
   mutations: string[];
-  /** Slain, or the last of a lineage the player ended. */
-  end: 'slain' | 'ended';
+  /** Slain, the last of a lineage the player ended, or the one who put out the Eternal Flame (M7). */
+  end: 'slain' | 'ended' | 'won';
   /** The kind of enemy credited with her death (enemies.json), or null. */
   killedBy: string | null;
   epitaph: string;

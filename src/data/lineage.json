@@ -1,5 +1,5 @@
 {
-  "//": "TODO(design): lineages and generations (GAME_DESIGN.md §12), written by Claude for M6; change freely. names: what a hydra can be called, picked at random; a name that comes again in the same lineage gets a number (Morwenna II), and the lineage is named after its first hydra. takeAncestorName: the chance that an heiress is named after one of her ancestresses (so numbers come up). inheritedShare: the share of her mother's mutations an heiress inherits, picked at random and rounded up. ancestorVoice.chance: how often an ancestress speaks through sleep when a new generation hatches (dialogues.json, trigger ancestorInSleep). epitaphs: the lines of the Book of Lineages, after the hydra's name. byEnemy: by the kind of enemy that killed her (enemies.json types; when a group of several kinds kills her, one of them is picked); any: when the killer has no lines of its own; ended: the last hydra of a lineage the player ended by starting a new one. {turns}: how many turns she lived; {biome}: where she fell.",
+  "//": "TODO(design): lineages and generations (GAME_DESIGN.md §12), written by Claude for M6; change freely. names: what a hydra can be called, picked at random; a name that comes again in the same lineage gets a number (Morwenna II), and the lineage is named after its first hydra. takeAncestorName: the chance that an heiress is named after one of her ancestresses (so numbers come up). inheritedShare: the share of her mother's mutations an heiress inherits, picked at random and rounded up. ancestorVoice.chance: how often an ancestress speaks through sleep when a new generation hatches (dialogues.json, trigger ancestorInSleep). epitaphs: the lines of the Book of Lineages, after the hydra's name. byEnemy: by the kind of enemy that killed her (enemies.json types; when a group of several kinds kills her, one of them is picked); any: when the killer has no lines of its own; ended: the last hydra of a lineage the player ended by starting a new one; won (TODO(design), M7): the hydra who put out the Eternal Flame, whose line ends there as victorious. {turns}: how many turns she lived; {biome}: where she fell.",
   "names": [
     "Morwenna", "Ysolde", "Gudrun", "Hespera", "Brannagh", "Ottilie", "Agathe", "Wendeline", "Mab", "Sabeth",
     "Orla", "Ethne", "Grizel", "Hildegund", "Ermengarde", "Clothilde", "Melisende", "Isolt", "Brunhild", "Radegund",
@@ -32,6 +32,14 @@
       "brazierBearer": [
         "Dried out by a Brazier Bearer, one basket of coals at a time.",
         "Slain on ground the Order had dried for the purpose. It was entered as land reclaimed."
+      ],
+      "knight": [
+        "Ridden down by a Knight of the Eternal Flame, who did not stop to find out what she was.",
+        "Slain by a knight in full armour. He wrote a poem about it. It rhymed hydra with fire."
+      ],
+      "grandMaster": [
+        "Fell before Grand Master Vell in his own cathedral, within sight of the Flame.",
+        "Slain by the Grand Master, who then went back to his prayers. He had been interrupted."
       ]
     },
     "any": [
@@ -42,6 +50,10 @@
     "ended": [
       "Left the swamp to another line. Nobody filed anything.",
       "The last of her line, by choice. Old Mother Toad kept her name anyway."
+    ],
+    "won": [
+      "Put out the Eternal Flame after {turns} turns. The mist settled, and stayed.",
+      "Smothered the Eternal Flame in its own cathedral. The Order is still looking for a match."
     ]
   }
 }

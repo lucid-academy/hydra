@@ -846,6 +846,8 @@ export const textSchema = z
       bookTitle: z.string().min(1),
       bookEmpty: z.string().min(1),
       bookEnded: z.string().min(1),
+      // M7: a lineage whose last hydra put out the Eternal Flame.
+      bookWon: z.string().min(1),
       bookLiving: z.string().min(1),
       bookStillAlive: z.string().min(1),
       bookTurns: z.string().min(1),
@@ -992,7 +994,7 @@ export const lineageSchema = section({
   takeAncestorName: share,
   inheritedShare: share,
   ancestorVoice: section({ chance: share }),
-  epitaphs: section({ byEnemy: entries(lines.min(1)), any: lines.min(1), ended: lines.min(1) }),
+  epitaphs: section({ byEnemy: entries(lines.min(1)), any: lines.min(1), ended: lines.min(1), won: lines.min(1) }),
 });
 
 /** An encounter group (enemies.json) the Order sends, by weight. */
@@ -1289,6 +1291,7 @@ export const castleSchema = section({
     partWon: text,
     // {n}: percent of the flame's strength left.
     flameLine: text,
+    flameDoused: text,
     flameOut: text,
     flameKeeps: text,
     ending: section({

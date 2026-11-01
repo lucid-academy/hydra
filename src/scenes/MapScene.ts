@@ -218,6 +218,7 @@ export class MapScene extends Phaser.Scene {
     }
     const { near, reveal, say, event, flags, conditions, alert, units, surface, night } = getContext(this).params;
     if (firstTime && surface) this.run.surfaceForTest();
+    if (firstTime && getContext(this).params.castle !== null) this.run.castleForTest(getContext(this).params.castle!);
     if (firstTime && night) this.run.nightForTest();
     if (firstTime && flags.length > 0) this.run.flagsForTest(flags);
     if (firstTime && conditions.length > 0) this.run.conditionsForTest(conditions);
@@ -459,6 +460,8 @@ export class MapScene extends Phaser.Scene {
       case 'passage':
         // Up here a Passage is a crack in the ground; below, a shaft of light from one.
         return this.onSurface ? 'map_passage_down' : 'map_passage';
+      case 'castle':
+        return this.run.state.surface.castle.opened ? 'map_castle_open' : 'map_castle';
       default:
         return `map_${object.kind}`;
     }
@@ -610,6 +613,13 @@ export class MapScene extends Phaser.Scene {
       run.talking = true;
       this.path.clear();
       this.scene.launch(SceneKey.Dialogue);
+      return;
+    }
+    if (run.state.won) {
+      // The Eternal Flame is out, and everyone has had their say: the ending.
+      this.leaving = true;
+      this.cameras.main.fadeOut(900, 5, 9, 10);
+      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start(SceneKey.Ending));
       return;
     }
     if (run.state.pendingBattle) {

@@ -4,6 +4,7 @@ import { DataError } from './data/validate';
 import { fitCanvas } from './scaling';
 import { BattleScene } from './scenes/BattleScene';
 import { BookScene } from './scenes/BookScene';
+import { EndingScene } from './scenes/EndingScene';
 import { BootScene } from './scenes/BootScene';
 import { setContext } from './scenes/context';
 import { GenerationScene } from './scenes/GenerationScene';
@@ -46,7 +47,7 @@ function start(): void {
     },
     banner: false,
     // Order matters: later scenes draw on top and get input first.
-    scene: [BootScene, TitleScene, GenerationScene, BookScene, MapScene, HudScene, DialogueScene, BattleScene, DebugOverlayScene],
+    scene: [BootScene, TitleScene, GenerationScene, BookScene, EndingScene, MapScene, HudScene, DialogueScene, BattleScene, DebugOverlayScene],
   });
   setContext(game, { data, seed, params });
   sharpenText();

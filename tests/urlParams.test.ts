@@ -30,6 +30,7 @@ describe('parseUrlParams', () => {
       surface: false,
       night: false,
       exposed: false,
+      castle: null,
     });
   });
 
@@ -38,8 +39,12 @@ describe('parseUrlParams', () => {
   });
 
   it('returns defaults when nothing is given', () => {
-    expect(parseUrlParams('')).toEqual({ seed: null, scene: null, debug: false, group: null, hp: null, allies: null, speed: null, near: null, reveal: false, modifiers: [], zoom: null, say: null, event: null, flags: [], conditions: [], alert: null, units: [], ancestors: null, eggs: null, hidden: false, heads: [], level: null, ults: false, surface: false, night: false, exposed: false });
+    expect(parseUrlParams('')).toEqual({ seed: null, scene: null, debug: false, group: null, hp: null, allies: null, speed: null, near: null, reveal: false, modifiers: [], zoom: null, say: null, event: null, flags: [], conditions: [], alert: null, units: [], ancestors: null, eggs: null, hidden: false, heads: [], level: null, ults: false, surface: false, night: false, exposed: false, castle: null });
     expect(parseUrlParams('?reveal=1').reveal).toBe(true);
+    // ?castle= counts from 0 (the gate), so 0 is a value too.
+    expect(parseUrlParams('?castle=0').castle).toBe(0);
+    expect(parseUrlParams('?castle=2').castle).toBe(2);
+    expect(parseUrlParams('?castle=x').castle).toBeNull();
     expect(parseUrlParams('?near=shrine').near).toBe('shrine');
     expect(parseUrlParams('?zoom=0.45').zoom).toBe(0.45);
     expect(parseUrlParams('?say=toadWelcome&event=titheBox')).toMatchObject({ say: 'toadWelcome', event: 'titheBox' });

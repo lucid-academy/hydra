@@ -8,7 +8,8 @@ export const SceneKey = {
   DebugOverlay: 'debug-overlay',
   Generation: 'generation',
   Book: 'book',
+  Ending: 'ending',
 } as const;
 
 /** Scenes that `?scene=` may start directly. */
-export const startableScenes: readonly string[] = [SceneKey.Title, SceneKey.Map, SceneKey.Battle, SceneKey.Generation, SceneKey.Book];
+export const startableScenes: readonly string[] = [SceneKey.Title, SceneKey.Map, SceneKey.Battle, SceneKey.Generation, SceneKey.Book, SceneKey.Ending];

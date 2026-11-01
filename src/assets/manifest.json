@@ -75,6 +75,7 @@
     "map_messenger": { "file": null, "width": 14, "height": 22 },
     "map_relight": { "file": null, "width": 26, "height": 30 },
     "map_castle": { "file": null, "width": 56, "height": 52 },
+    "map_castle_open": { "file": null, "width": 56, "height": 52 },
     "map_flame_shrine": { "file": null, "width": 22, "height": 34 },
     "map_flame_shrine_out": { "file": null, "width": 22, "height": 26 },
     "map_find": { "file": null, "width": 16, "height": 12 },

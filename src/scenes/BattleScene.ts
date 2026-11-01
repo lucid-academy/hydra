@@ -59,6 +59,7 @@ import { color, getContext } from './context';
 import { getRun, startNewRun } from './RunController';
 import type { RunController } from './RunController';
 import { hexEdges, hexOutlines, roundCorners } from './hexOutline';
+import { FlameView } from './battleFlame';
 import { LIGHT_TEXTURE, LIGHT_TEXTURE_SIZE, makeSoftTextures, MapLight, SHADOW_TEXTURE, SHADOW_TEXTURE_WIDTH } from './mapLight';
 import type { Light } from './mapLight';
 import { SceneKey } from './sceneKeys';
@@ -74,6 +75,8 @@ const LAYOUT: HexLayout = { columnWidth: HEX_COLUMN_WIDTH, rowHeight: HEX_ROW_HE
 const SPEEDS = [1, 0.5] as const;
 /** A battle on the surface: whether it is fought in mist or Exposed, in the top bar from here (screen units). */
 const SURFACE_LINE_X = 352;
+/** "The Flame keeps him standing" is said at most this often. */
+const FLAME_KEEPS_EVERY_MS = 2500;
 /** A boss's name in the top bar starts here, and his HP bar after it is this wide (screen units). */
 const BOSS_BAR = { x: 86, width: 90 } as const;
 const DEFAULT_TEST_GROUP = 'burningDetail';
@@ -246,6 +249,9 @@ export class BattleScene extends Phaser.Scene {
   private bossText!: Phaser.GameObjects.Text;
   private bossBar!: Phaser.GameObjects.Graphics;
   private stumpSprites = new Map<number, Phaser.GameObjects.Image>();
+  /** The Eternal Flame, in the castle's cathedral (null in every other battle). */
+  private flame: FlameView | null = null;
+  private flameKeptSaidAt = -Infinity;
   private necks!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Graphics;
   private cards!: HeadCards;
@@ -277,7 +283,8 @@ export class BattleScene extends Phaser.Scene {
       run = run ?? startNewRun(this);
       if (params.surface) run.surfaceForTest();
       if (params.surface && params.exposed) run.exposeForTest();
-      run.startTestBattle(params.group ?? DEFAULT_TEST_GROUP, params.hp, params.allies);
+      if (params.castle !== null) run.startCastleTestBattle(params.castle, params.hp);
+      else run.startTestBattle(params.group ?? DEFAULT_TEST_GROUP, params.hp, params.allies);
     }
     this.run = run;
     const setup = run.battleSetup();
@@ -315,8 +322,10 @@ export class BattleScene extends Phaser.Scene {
     // The board looks like the place of the encounter: its biome, and water if it was fought in water.
     const pending = run.state.pendingBattle!;
     const tile = tileOn(run.state, pending.layer, pending.at);
-    const biome = tile?.biome ?? data.biomes.lairBiome;
-    this.createBoard(biome, tile?.terrain ?? 'mud');
+    // In the castle, the board is its yard or its cathedral (castle.json parts arena).
+    const arena = pending.castlePart !== undefined ? data.castle.parts.list[pending.castlePart]?.arena : undefined;
+    const biome = arena ?? tile?.biome ?? data.biomes.lairBiome;
+    this.createBoard(biome, arena ? 'ground' : (tile?.terrain ?? 'mud'), arena !== undefined);
 
     this.bodySprite = this.add.image(0, 0, 'battle_body');
     this.bodySprite.setOrigin(BODY_FOOT.x / this.bodySprite.width, BODY_FOOT.y / this.bodySprite.height);
@@ -329,6 +338,19 @@ export class BattleScene extends Phaser.Scene {
     };
     this.necks = this.add.graphics().setDepth(DEPTH.necks);
     this.overlay = this.add.graphics().setDepth(DEPTH.overlay);
+    this.flame = null;
+    this.flameKeptSaidAt = -Infinity;
+    if (this.battle.flame) {
+      const { palette, castle } = data;
+      this.flame = new FlameView(
+        this,
+        this.hexFeet(this.battle.flame.at),
+        { fire: color(palette.order.fire), ember: color(palette.order.orange), text: palette.order.gold },
+        castle.texts.flameLine,
+        { standing: DEPTH.standing, glow: DEPTH.glow, overlay: DEPTH.overlay },
+        this.softShadow(SHADOW.soldier),
+      );
+    }
 
     this.createUi();
     this.setUpInput();
@@ -388,7 +410,7 @@ export class BattleScene extends Phaser.Scene {
    * The board painted as one picture with a faint grid. A terrain with no texture file yet gets tiles instead, row by
    * row from the top: each row hides the walls of the row behind it, so only the front edge shows its walls.
    */
-  private createBoard(biome: string, terrain: string): void {
+  private createBoard(biome: string, terrain: string, inCastle = false): void {
     const rules = this.run.battleRules;
     const painted = this.paintBoardPicture(biome, terrain);
     const cut = battleTileKey(biome, terrain, true);
@@ -407,10 +429,10 @@ export class BattleScene extends Phaser.Scene {
       this.dryTiles.set(hexKey(h), dry);
     }
     if (painted) this.drawGrid();
-    // A few glowing spores in the dark around the board.
+    // A few glowing spores in the dark around the board; in the castle, sparks from its fires.
     const { palette } = getContext(this).data;
     const g = this.add.graphics().setDepth(DEPTH.tile - 1);
-    g.fillStyle(color(palette.underground.bioluminescence), 0.6);
+    g.fillStyle(color(inCastle ? palette.order.orange : palette.underground.bioluminescence), 0.6);
     for (let i = 0; i < 40; i++) g.fillRect(Math.floor(((i * 173) % 640) + ((i * 7) % 5)), ARENA_TOP + ((i * 97) % 300), 1, 1);
   }
 
@@ -1382,6 +1404,8 @@ export class BattleScene extends Phaser.Scene {
       view.glow.setAlpha(BRAZIER_LIGHT.glowAlpha * flicker);
       lights.push({ x: view.glow.x, y: view.glow.y, radius: BRAZIER_LIGHT.radius, color: color(palette.order.orange), strength: BRAZIER_LIGHT.strength * flicker });
     }
+    const flame = this.flame && this.battle.flame ? this.flame.update(this.battle.flame, now) : null;
+    if (flame) lights.push(flame);
     for (const cloud of this.battle.clouds) {
       if (!isAcid(this.battle, cloud)) continue;
       const c = this.hexCenter(cloud.center);
@@ -1593,6 +1617,25 @@ export class BattleScene extends Phaser.Scene {
           const at = this.hexFeet(event.at);
           if (event.what === 'lit') this.floatText({ x: at.x, y: at.y - 40 }, text.battle.brazierLit, palette.order.orange, '9px');
           else if (event.what === 'out') this.floatText({ x: at.x, y: at.y - 40 }, text.battle.brazierOut, '#c6e04a', '9px');
+          break;
+        }
+        case 'flame': {
+          // The Eternal Flame doused (a skill, a man thrown at it), or out at last.
+          const fire = this.flame?.fire ?? this.hexFeet(event.at);
+          const words = getContext(this).data.castle.texts;
+          if (event.what === 'doused') this.floatText({ x: fire.x, y: fire.y - 14 }, words.flameDoused, '#c6e04a', '9px');
+          else {
+            this.smokeRing(fire, 1);
+            this.floatText({ x: fire.x, y: fire.y - 20 }, words.flameOut, palette.order.gold, '12px');
+          }
+          break;
+        }
+        case 'flameKeeps': {
+          // Said once in a while, not at every blow that would have felled him.
+          const view = this.enemies.get(event.enemyId);
+          if (now - this.flameKeptSaidAt < FLAME_KEEPS_EVERY_MS) break;
+          this.flameKeptSaidAt = now;
+          if (view) this.floatText({ x: view.feet.x, y: view.feet.y - 56 }, getContext(this).data.castle.texts.flameKeeps, palette.order.fire, '9px');
           break;
         }
         default:

@@ -37,6 +37,7 @@ import {
   startCondition,
   storyDialogue,
   usePassage,
+  stormCastle,
   visibilityOf,
   workThreshold,
 } from '../sim/turn';
@@ -195,6 +196,36 @@ export class RunController extends Phaser.Events.EventEmitter {
    * For `?scene=battle`: a battle against the given group without walking to it, optionally with a wounded body, or as
    * the battle for the lair with `allies` Broodlings guarding it.
    */
+  /**
+   * For `?castle=2` with ?scene=map: the castle's gate stands open and that many parts of the assault are taken.
+   * Testing only.
+   */
+  castleForTest(partsWon: number): void {
+    const { castle } = this.state.surface;
+    castle.opened = true;
+    castle.partsWon = Math.min(partsWon, this.rules.castle.parts.length - 1);
+  }
+
+  /**
+   * For `?castle=2` with ?scene=battle: the test battle is that part of the castle's assault, fought at its walls
+   * (the last part with the Eternal Flame). Testing only.
+   */
+  startCastleTestBattle(part: number, bodyHp: number | null = null): void {
+    const parts = this.rules.castle.parts;
+    const index = Math.min(part, parts.length - 1);
+    if (this.state.hydra.layer !== 'surface') this.surfaceForTest();
+    this.castleForTest(index);
+    const { castle } = this.state.surface.map;
+    this.state.hydra.position = hexNeighbors(castle).find((h) => this.state.surface.map.tiles.has(hexKey(h))) ?? this.state.hydra.position;
+    this.state.pendingBattle = { at: castle, layer: 'surface', groupId: parts[index]!.groupId, castlePart: index };
+    if (bodyHp !== null) this.state.hydra.bodyHp = Math.min(this.state.hydra.bodyMaxHp, bodyHp);
+  }
+
+  /** Storms the next part of the castle from its panel. */
+  stormCastle(): void {
+    this.publish(stormCastle(this.state, this.rules));
+  }
+
   startTestBattle(groupId: string, bodyHp: number | null = null, allies: number | null = null): void {
     const layer = this.state.hydra.layer;
     // Up there it is fought where she stands (in mist or not); underground anywhere.

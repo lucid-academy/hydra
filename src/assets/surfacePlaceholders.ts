@@ -83,8 +83,8 @@ function house(g: Graphics, x: number, b: number, w: number, h: number, roof: st
 
 // ---------------------------------------------------------------- the Order
 
-/** The Castle of the Eternal Flame: a keep between two towers, the gate shut, a flame on top. */
-const castle = drawer((g, cx, b) => {
+/** The Castle of the Eternal Flame: a keep between two towers, the gate shut (or open: a dark arch), a flame on top. */
+const castleDrawer = (open: boolean) => drawer((g, cx, b) => {
   wall(g, cx - 20, b - 22, 40, 20); // the curtain wall
   crenels(g, cx - 20, b - 22, 40);
   wall(g, cx - 9, b - 38, 18, 18); // the keep
@@ -94,14 +94,22 @@ const castle = drawer((g, cx, b) => {
     crenels(g, cx + x, b - 32, 8);
   }
   px(g, OUTLINE, cx - 5, b - 12, 10, 11); // the gate, shut
-  px(g, WOOD, cx - 4, b - 11, 8, 10);
-  px(g, '#3a2a1a', cx, b - 11, 1, 10);
+  if (open) {
+    px(g, '#0a0806', cx - 4, b - 11, 8, 10); // the arch, dark, the doors swung back against the wall
+    px(g, WOOD, cx - 7, b - 11, 2, 10);
+    px(g, WOOD, cx + 5, b - 11, 2, 10);
+  } else {
+    px(g, WOOD, cx - 4, b - 11, 8, 10);
+    px(g, '#3a2a1a', cx, b - 11, 1, 10);
+  }
   px(g, '#3a2a1a', cx - 1, b - 32, 2, 4); // the keep's window
   banner(g, cx - 22, b - 44, 12);
   banner(g, cx + 22, b - 44, 12);
   px(g, GOLD, cx - 2, b - 44, 5, 4); // the brazier on top, and its flame
   flame(g, cx, b - 45, 3);
 });
+const castle = castleDrawer(false);
+const castleOpen = castleDrawer(true);
 
 /** A camp of the Order: two tents, a flagpole, a fire. */
 const camp = drawer((g, cx, b) => {
@@ -242,6 +250,7 @@ const passageDown = drawer((g, cx, b) => {
 export const surfacePlaceholderDrawers: Readonly<Record<string, PlaceholderDrawer>> = {
   map_passage_down: passageDown,
   map_castle: castle,
+  map_castle_open: castleOpen,
   map_settlement_camp: camp,
   map_flame_shrine: flameShrine,
   map_flame_shrine_out: flameShrineOut,
