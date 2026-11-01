@@ -385,6 +385,8 @@ export class BattleScene extends Phaser.Scene {
       clouds: this.battle.clouds.length,
       combos: [...this.combosSeen],
       allies: this.battle.allies.length,
+      // The Eternal Flame (castle's last battle): where it is (a tap there sends the body to lie down by it), how strong.
+      flame: this.battle.flame && { ...this.hexCenter(this.battle.flame.at), strength: this.battle.flame.strength, out: this.battle.flame.out },
     }));
     setAmbience(this, 'battle');
     markReady(SceneKey.Battle);
@@ -856,6 +858,13 @@ export class BattleScene extends Phaser.Scene {
     if (this.aiming) {
       if (!rightButton) this.aimAt(at, tappedHex);
       else this.aiming = null;
+      return;
+    }
+    // A tap on the burning Eternal Flame sends the body to lie down by it and smother it, even with a head hanging over
+    // it (heads reach up there all the time; that one can still be picked by its card).
+    const flame = this.battle.flame;
+    if (flame && !flame.out && hexKey(tappedHex) === hexKey(flame.at)) {
+      applyCommand(this.battle, { type: 'moveBody', to: flame.at }, rules);
       return;
     }
     if (!rightButton) {

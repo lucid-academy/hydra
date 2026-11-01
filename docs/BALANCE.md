@@ -7,6 +7,7 @@ Made by `npm run balance` from the numbers in `src/data/`. Run it again after ch
 - **no orders:** the hydra is left alone, heads pick their own targets.
 - **focus fire:** every head that can reach attacks the same enemy (Torchbearers and Tithe Collectors first, then Headhunters). A stand-in for a careful player.
 - **focus + skills:** focus fire, and every head uses its Q and W skills as soon as they are ready. A stand-in for a player who uses skills (a real player aims them better).
+- **castle groups** (castleGate, castleCloister, castleCathedral): the three parts of the castle's assault (M7), fought on the surface. The cathedral has the Eternal Flame, and with orders the body lies down by it to smother it from the start. A fresh hydra is far weaker than one who gets that far, so these rows show which part is the hardest, not the real odds.
 
 "Heads severed", "Stumps burnt", "Combos" and "Body HP lost" are averages per battle.
 
@@ -39,6 +40,42 @@ Made by `npm run balance` from the numbers in `src/data/`. Run it again after ch
 | greatBurning | Master of the Order, Knight of the Eternal Flame, Man-at-Arms, Man-at-Arms, Torchbearer, Crossbowman | no orders | 0% | 100% | 23 s | 3.1 | 1.5 | 2.7 | 200.0 |
 | greatBurning | Master of the Order, Knight of the Eternal Flame, Man-at-Arms, Man-at-Arms, Torchbearer, Crossbowman | focus fire | 3% | 98% | 27 s | 4.8 | 0.2 | 11.1 | 199.4 |
 | greatBurning | Master of the Order, Knight of the Eternal Flame, Man-at-Arms, Man-at-Arms, Torchbearer, Crossbowman | focus + skills | 43% | 57% | 42 s | 4.9 | 0.0 | 30.4 | 178.1 |
+| fieldPatrol | Man-at-Arms, Man-at-Arms, Headhunter | no orders | 100% | 1% | 54 s | 3.5 | 0.0 | 18.9 | 58.7 |
+| fieldPatrol | Man-at-Arms, Man-at-Arms, Headhunter | focus fire | 100% | 0% | 43 s | 1.6 | 0.0 | 15.4 | 52.9 |
+| fieldPatrol | Man-at-Arms, Man-at-Arms, Headhunter | focus + skills | 100% | 0% | 25 s | 1.1 | 0.0 | 9.9 | 28.0 |
+| censerWalk | Censer Priest, Man-at-Arms, Man-at-Arms, Torchbearer | no orders | 89% | 11% | 54 s | 2.0 | 0.2 | 12.2 | 121.0 |
+| censerWalk | Censer Priest, Man-at-Arms, Man-at-Arms, Torchbearer | focus fire | 100% | 0% | 34 s | 1.2 | 0.0 | 10.6 | 50.4 |
+| censerWalk | Censer Priest, Man-at-Arms, Man-at-Arms, Torchbearer | focus + skills | 100% | 0% | 22 s | 0.5 | 0.0 | 7.6 | 24.5 |
+| brazierCrew | Brazier Bearer, Man-at-Arms, Man-at-Arms, Torchbearer | no orders | 83% | 17% | 59 s | 2.3 | 0.2 | 14.3 | 130.3 |
+| brazierCrew | Brazier Bearer, Man-at-Arms, Man-at-Arms, Torchbearer | focus fire | 100% | 0% | 49 s | 1.6 | 0.0 | 15.6 | 67.0 |
+| brazierCrew | Brazier Bearer, Man-at-Arms, Man-at-Arms, Torchbearer | focus + skills | 100% | 0% | 32 s | 1.0 | 0.0 | 10.8 | 31.8 |
+| knightsRide | Knight of the Eternal Flame, Man-at-Arms, Censer Priest, Crossbowman | no orders | 65% | 35% | 57 s | 4.2 | 0.0 | 18.2 | 151.2 |
+| knightsRide | Knight of the Eternal Flame, Man-at-Arms, Censer Priest, Crossbowman | focus fire | 87% | 13% | 53 s | 3.4 | 0.0 | 19.3 | 119.8 |
+| knightsRide | Knight of the Eternal Flame, Man-at-Arms, Censer Priest, Crossbowman | focus + skills | 99% | 1% | 39 s | 2.1 | 0.0 | 17.3 | 78.8 |
+| shrineWatch | Man-at-Arms, Man-at-Arms, Torchbearer, Censer Priest | no orders | 89% | 12% | 56 s | 2.1 | 0.2 | 11.7 | 117.3 |
+| shrineWatch | Man-at-Arms, Man-at-Arms, Torchbearer, Censer Priest | focus fire | 100% | 0% | 36 s | 1.2 | 0.0 | 11.2 | 48.8 |
+| shrineWatch | Man-at-Arms, Man-at-Arms, Torchbearer, Censer Priest | focus + skills | 100% | 0% | 22 s | 0.5 | 0.0 | 7.7 | 22.8 |
+| shrineVigil | Man-at-Arms, Headhunter, Torchbearer, Censer Priest, Brazier Bearer | no orders | 69% | 31% | 58 s | 4.1 | 1.0 | 13.3 | 132.5 |
+| shrineVigil | Man-at-Arms, Headhunter, Torchbearer, Censer Priest, Brazier Bearer | focus fire | 100% | 0% | 55 s | 2.4 | 0.0 | 20.9 | 82.5 |
+| shrineVigil | Man-at-Arms, Headhunter, Torchbearer, Censer Priest, Brazier Bearer | focus + skills | 100% | 0% | 38 s | 1.4 | 0.0 | 16.6 | 43.1 |
+| shrineBastion | Knight of the Eternal Flame, Man-at-Arms, Crossbowman, Censer Priest, Brazier Bearer | no orders | 52% | 49% | 52 s | 4.6 | 0.0 | 16.9 | 170.3 |
+| shrineBastion | Knight of the Eternal Flame, Man-at-Arms, Crossbowman, Censer Priest, Brazier Bearer | focus fire | 72% | 28% | 55 s | 4.0 | 0.0 | 20.4 | 144.6 |
+| shrineBastion | Knight of the Eternal Flame, Man-at-Arms, Crossbowman, Censer Priest, Brazier Bearer | focus + skills | 98% | 2% | 44 s | 2.2 | 0.0 | 20.5 | 90.0 |
+| relightDetail | Torchbearer, Torchbearer, Man-at-Arms, Censer Priest | no orders | 98% | 3% | 47 s | 1.4 | 0.4 | 8.4 | 81.1 |
+| relightDetail | Torchbearer, Torchbearer, Man-at-Arms, Censer Priest | focus fire | 100% | 0% | 25 s | 0.7 | 0.0 | 9.2 | 23.4 |
+| relightDetail | Torchbearer, Torchbearer, Man-at-Arms, Censer Priest | focus + skills | 100% | 0% | 17 s | 0.0 | 0.0 | 8.4 | 11.2 |
+| censerProcession | Censer Priest, Man-at-Arms, Man-at-Arms, Torchbearer | no orders | 89% | 11% | 54 s | 2.0 | 0.2 | 12.2 | 121.0 |
+| censerProcession | Censer Priest, Man-at-Arms, Man-at-Arms, Torchbearer | focus fire | 100% | 0% | 34 s | 1.2 | 0.0 | 10.6 | 50.4 |
+| censerProcession | Censer Priest, Man-at-Arms, Man-at-Arms, Torchbearer | focus + skills | 100% | 0% | 22 s | 0.5 | 0.0 | 7.6 | 24.5 |
+| castleGate | Knight of the Eternal Flame, Man-at-Arms, Man-at-Arms, Crossbowman, Crossbowman, Brazier Bearer | no orders | 19% | 81% | 41 s | 5.6 | 0.0 | 14.3 | 192.2 |
+| castleGate | Knight of the Eternal Flame, Man-at-Arms, Man-at-Arms, Crossbowman, Crossbowman, Brazier Bearer | focus fire | 54% | 47% | 52 s | 4.6 | 0.0 | 23.1 | 171.8 |
+| castleGate | Knight of the Eternal Flame, Man-at-Arms, Man-at-Arms, Crossbowman, Crossbowman, Brazier Bearer | focus + skills | 89% | 11% | 48 s | 2.8 | 0.0 | 27.8 | 119.2 |
+| castleCloister | Censer Priest, Censer Priest, Headhunter, Torchbearer, Torchbearer, Tithe Collector | no orders | 97% | 4% | 50 s | 3.9 | 0.9 | 14.1 | 69.6 |
+| castleCloister | Censer Priest, Censer Priest, Headhunter, Torchbearer, Torchbearer, Tithe Collector | focus fire | 100% | 0% | 40 s | 2.5 | 0.0 | 19.1 | 44.1 |
+| castleCloister | Censer Priest, Censer Priest, Headhunter, Torchbearer, Torchbearer, Tithe Collector | focus + skills | 100% | 0% | 30 s | 1.4 | 0.0 | 15.5 | 27.9 |
+| castleCathedral | Grand Master Vell, Knight of the Eternal Flame, Censer Priest, Torchbearer, Man-at-Arms | no orders | 0% | 100% | 28 s | 3.3 | 1.2 | 7.2 | 200.0 |
+| castleCathedral | Grand Master Vell, Knight of the Eternal Flame, Censer Priest, Torchbearer, Man-at-Arms | focus fire | 3% | 98% | 29 s | 3.8 | 0.1 | 12.0 | 198.9 |
+| castleCathedral | Grand Master Vell, Knight of the Eternal Flame, Censer Priest, Torchbearer, Man-at-Arms | focus + skills | 32% | 69% | 38 s | 4.1 | 0.0 | 24.2 | 182.2 |
 
 ## The head classes
 

@@ -5,7 +5,8 @@
 //   events get their first choice that can be picked. Last, the saved game: a few moves, the page is reloaded,
 //   Continue brings the same hydra back; New Lineage (confirmed) starts another; the Book of Lineages opens.
 //   The surface: she walks onto a Passage, climbs up and goes back down; up there she exhales mist and puts out a
-//   Flame Shrine by beating its guard.
+//   Flame Shrine by beating its guard. The castle: its gate open and two parts taken, she presses on into the
+//   cathedral, the body smothers the Eternal Flame, the win shows the ending, and the Book has her lineage.
 // Opens the built game (dist/) in a headless browser. Run `npm run build` first.
 // Exits with an error on any browser console error, or when a step doesn't happen in time.
 //
@@ -21,6 +22,8 @@ const LABEL = PHONE ? 'phone' : 'desktop';
 /** Battles are fast-forwarded, so the test doesn't take minutes. */
 const SPEED = 4;
 const BATTLES_TO_WIN = 2;
+/** The hydra who storms the cathedral: six heads (at level 4). */
+const CASTLE_HEADS = 'biter,biter,acidSpitter,mistBreather,strangler,tender';
 const MAX_MAP_STEPS = 300;
 
 // Where things are on the 640×360 game screen. Update these if the layout changes.
@@ -119,13 +122,13 @@ async function mapStep(page, step) {
 }
 
 /**
- * Plays the battle on screen: orders every head onto one enemy (all at once with "All heads", or card by card),
- * starts it, waits for the end, presses Continue.
+ * Plays the battle on screen: orders every head onto one enemy (all at once with "All heads", or card by card; the
+ * first one, or the one `pick` picks), starts it, waits for the end, presses Continue.
  */
-async function playBattle(page, allAtOnce) {
+async function playBattle(page, allAtOnce, pick = (enemies) => enemies[0]) {
   const start = await page.evaluate(() => window.__hydra.battleSummary());
   if (!start.paused) throw new Error('A battle should start paused');
-  const target = start.enemies[0];
+  const target = pick(start.enemies);
   if (allAtOnce) {
     await tap(page, ALL_HEADS_BUTTON);
     await tap(page, target);
@@ -362,6 +365,45 @@ try {
     // A fresh hydra can lose to a shrine's guard; that is the game, not a bug, but the test wants to see a win.
     throw new Error(`Lost the battle for the Flame Shrine (seed 7): ${JSON.stringify(guard)}`);
   }
+  await page.close();
+
+  // Part 3c: the castle (M7). Its gate open and two parts taken: Press on into the cathedral, lie the body down by the
+  // Eternal Flame, order the heads in; the win puts out the Flame, and the ending and the Book of Lineages follow.
+  // A hydra who got this far has more heads, and grown ones: a fresh one mostly loses here (docs/BALANCE.md).
+  page = await openPage(`?seed=7&scene=map&surface=1&near=castle&castle=2&heads=${CASTLE_HEADS}&level=4&speed=${SPEED}`);
+  await waitForScene(page, 'map');
+  await readDialogues(page);
+  // In mist, as a player would storm it (Exposed, the heads hit softer).
+  await tap(page, EXHALE_BUTTON);
+  await page.waitForTimeout(400);
+  await readDialogues(page);
+  const castle = (await page.evaluate(() => window.__hydra.inspectableOnScreen())).find((p) => p.object === 'castle');
+  if (!castle) throw new Error('No castle in sight of the hydra placed next to it');
+  await tap(page, castle);
+  await page.waitForTimeout(400);
+  const castlePanel = await page.evaluate(() => window.__hydra.placePanel());
+  const storm = castlePanel?.actions.find((a) => a.id === '__castle:storm');
+  if (!storm?.enabled) throw new Error(`No Storm button on the castle's panel: ${JSON.stringify(castlePanel)}`);
+  const battlesBefore = await timesReady(page, 'battle');
+  await tap(page, storm);
+  await page.waitForTimeout(400);
+  await readDialogues(page);
+  await waitForScene(page, 'battle', battlesBefore);
+  const cathedral = await page.evaluate(() => window.__hydra.battleSummary());
+  if (!cathedral.flame || cathedral.flame.out) throw new Error(`No Eternal Flame burning in the cathedral: ${JSON.stringify(cathedral.flame)}`);
+  // No head picked yet: a tap on the Flame sends the body to lie down by it.
+  await tap(page, cathedral.flame);
+  // The heads go for the people who can die: the Grand Master can't, while the Flame burns.
+  const assault = await playBattle(page, true, (enemies) => enemies.find((e) => e.typeId !== 'grandMaster') ?? enemies[0]);
+  if (assault.outcome !== 'won') throw new Error(`Lost the battle in the cathedral (seed 7): ${JSON.stringify(assault)}`);
+  if (!assault.flame?.out) throw new Error(`The cathedral was won with the Eternal Flame still burning: ${JSON.stringify(assault.flame)}`);
+  const endings = await timesReady(page, 'ending');
+  await readDialogues(page);
+  await waitForScene(page, 'ending', endings);
+  await page.waitForTimeout(500);
+  await tap(page, await button(page, 'book'));
+  await waitForScene(page, 'book');
+  log('the cathedral won, the Eternal Flame out: the ending, then the Book of Lineages: ok');
   await page.close();
 
   // Part 4: the saved game. A few steps, the page is reloaded, and Continue brings back the same hydra where she was.

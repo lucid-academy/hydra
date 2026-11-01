@@ -1,7 +1,6 @@
 // The automatic player of the balance reports (scripts/balance.ts, scripts/runBalance.ts): what it orders in battle.
 
 import { applyCommand, bodyDistance, canHeadReach, skillCooldown, skillInSlot } from '../src/sim/battle';
-import { hex } from '../src/sim/hex';
 import type { BattleRules, BattleState, Enemy, SkillAim } from '../src/sim/battle';
 
 /** Lower number = kill first: those who burn stumps shut or would run off with the tithe, then the head hunters. */
@@ -48,12 +47,12 @@ export function useSkills(state: BattleState, r: BattleRules): void {
 }
 
 /**
- * In the cathedral (M7): the body lies down by the Eternal Flame while it burns, to smother it, and burns for it. It
- * goes to the spot two hexes below the flame, where its edge touches the flame's hex (nobody can stand on that hex).
+ * In the cathedral (M7): the body lies down by the Eternal Flame while it burns, to smother it, and burns for it. Sent
+ * at the flame's own hex, it crawls until its edge touches it (nobody can stand on that hex) and stays there.
  */
 export function smotherFlame(state: BattleState, r: BattleRules): void {
   const flame = state.flame;
   // At once: tried against waiting until only the flame's keepers are left, and that won fewer battles (2026-11-01).
   if (!flame || flame.out || state.body.moveTarget) return;
-  if (bodyDistance(state.body.center, flame.at) > 1) applyCommand(state, { type: 'moveBody', to: hex(flame.at.q - 1, flame.at.r + 2) }, r);
+  if (bodyDistance(state.body.center, flame.at) > 1) applyCommand(state, { type: 'moveBody', to: flame.at }, r);
 }

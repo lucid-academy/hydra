@@ -17,6 +17,7 @@ import {
   endTurn,
   exhaleMist,
   finishBattle,
+  growHeads,
   hatchEgg,
   hideEgg,
   inspect,
@@ -221,6 +222,28 @@ export class RunController extends Phaser.Events.EventEmitter {
     this.state.surface.mist[hexKey(this.state.hydra.position)] = this.rules.surface.mist.exhale.turns;
     this.state.pendingBattle = { at: castle, layer: 'surface', groupId: parts[index]!.groupId, castlePart: index };
     if (bodyHp !== null) this.state.hydra.bodyHp = Math.min(this.state.hydra.bodyMaxHp, bodyHp);
+  }
+
+  /**
+   * For `?heads=` and `?level=` with ?scene=map: her heads are new heads of these classes (empty: the ones she has),
+   * every one of them at that level, as if grown on the map (to try the castle with a hydra who got that far). Testing only.
+   */
+  headsForTest(classes: readonly string[], level: number | null): void {
+    const { state, rules } = this;
+    const valid = classes.filter((c) => c in rules.headMaxHp);
+    if (valid.length > 0) {
+      state.hydra.heads = [];
+      for (const classId of valid) growHeads(state, rules, 1, classId);
+    }
+    if (level === null) return;
+    const xp = rules.experience;
+    const lvl = Math.max(1, Math.min(level, xp.experienceForLevel.length + 1));
+    for (const head of state.hydra.heads) {
+      head.maxHp = Math.round((head.maxHp * (1 + ((lvl - 1) * xp.maxHpPercentPerLevel) / 100)) / (1 + ((head.level - 1) * xp.maxHpPercentPerLevel) / 100));
+      head.hp = head.maxHp;
+      head.level = lvl;
+      head.xp = xp.experienceForLevel[lvl - 2] ?? 0;
+    }
   }
 
   /** Storms the next part of the castle from its panel. */
