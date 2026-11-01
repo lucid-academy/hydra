@@ -46,6 +46,10 @@ const CARRIED_STEP_MS = 80;
 const SLITHER = { sway: 5, stretch: 0.07, carriedSway: 2 } as const;
 /** Below this page zoom (small screens, e.g. phones) the map camera zooms in 2×, so hexes are big enough for fingers. */
 const SMALL_SCREEN_ZOOM = 2;
+/** The player's zoom of the map (wheel, pinch), within these bounds, a wheel notch changing it this many times. */
+const MAP_ZOOM = { min: 0.5, max: 3, wheelStep: 1.2 } as const;
+/** The player's own zoom, kept for the rest of the game (null: the usual one). */
+let playerZoom: number | null = null;
 /** Hexes seen before but out of sight now are drawn this much darker. */
 const REMEMBERED_TINT = 0x808080;
 /** A shrine that has given its blessing, remains already searched. */
@@ -185,6 +189,8 @@ export class MapScene extends Phaser.Scene {
   private token!: Phaser.GameObjects.Image;
   private animating = false;
   private press: { x: number; y: number; dragging: boolean } | null = null;
+  /** How far apart two fingers pinching the map were at the last move, or null. */
+  private pinch: number | null = null;
   /** Catches presses on the map: it covers the whole screen, which depends on the camera's zoom. */
   private inputZone!: Phaser.GameObjects.Zone;
   /** Biome names waiting to be shown, one after another (two at once would overlap). */
@@ -1039,11 +1045,37 @@ export class MapScene extends Phaser.Scene {
 
   private fitCameraZoom(): void {
     const cam = this.cameras.main;
-    const zoom = getContext(this).params.zoom ?? (pageScale(this) < SMALL_SCREEN_ZOOM ? 2 : 1);
+    const zoom = playerZoom ?? this.usualZoom();
     // The camera also zooms the 640×360 screen up to the canvas's resolution.
     cam.setZoom(zoom * viewScale(this));
     const { x, y } = hexToPixel(LAYOUT, this.run.state.hydra.position);
     cam.centerOn(x, y);
+    this.coverScreen();
+  }
+
+  /** The map's zoom before the player changes it: ?zoom=, else 2× on small screens. */
+  private usualZoom(): number {
+    return getContext(this).params.zoom ?? (pageScale(this) < SMALL_SCREEN_ZOOM ? 2 : 1);
+  }
+
+  /**
+   * The player zooms the map (mouse wheel, two fingers): by `factor`, keeping the spot under (x, y) on the screen
+   * where it is. The zoom stays for the rest of the game, through battles and Passages.
+   */
+  private zoomBy(factor: number, x: number, y: number): void {
+    const cam = this.cameras.main;
+    const scale = viewScale(this);
+    const now = cam.zoom / scale;
+    const next = Math.min(MAP_ZOOM.max, Math.max(MAP_ZOOM.min, now * factor));
+    if (Math.abs(next - now) < 0.001) return;
+    const before = cam.getWorldPoint(x, y);
+    cam.stopFollow();
+    cam.setZoom(next * scale);
+    cam.preRender();
+    const after = cam.getWorldPoint(x, y);
+    cam.scrollX += before.x - after.x;
+    cam.scrollY += before.y - after.y;
+    playerZoom = next;
     this.coverScreen();
   }
 
@@ -1087,10 +1119,28 @@ export class MapScene extends Phaser.Scene {
     this.coverScreen();
 
     zone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.press = { x: pointer.x, y: pointer.y, dragging: false };
+      // A second finger coming down starts a pinch, never a tap.
+      const twoFingers = Boolean(this.input.pointer1?.isDown && this.input.pointer2?.isDown);
+      this.press = { x: pointer.x, y: pointer.y, dragging: twoFingers };
     });
 
+    // Two fingers pinch the map in and out; the mouse wheel does the same.
+    if (this.input.manager.pointersTotal < 3) this.input.addPointer(1);
+    this.pinch = null;
+    this.input.on('wheel', (pointer: Phaser.Input.Pointer, _over: unknown, _dx: number, dy: number) => {
+      if (dy !== 0) this.zoomBy(dy > 0 ? 1 / MAP_ZOOM.wheelStep : MAP_ZOOM.wheelStep, pointer.x, pointer.y);
+    });
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      const [one, two] = [this.input.pointer1, this.input.pointer2];
+      if (one?.isDown && two?.isDown) {
+        const apart = Phaser.Math.Distance.Between(one.x, one.y, two.x, two.y);
+        if (this.pinch !== null && this.pinch > 0) this.zoomBy(apart / this.pinch, (one.x + two.x) / 2, (one.y + two.y) / 2);
+        this.pinch = apart;
+        // A pinch is never a tap, and the map doesn't pan under it.
+        if (this.press) this.press.dragging = true;
+        return;
+      }
+      this.pinch = null;
       // A mouse moving over the map (no button held) shows the way to the hex under it.
       if (!pointer.isDown && !pointer.wasTouch) this.showPath(pointer);
       if (!this.press || !pointer.isDown) return;
