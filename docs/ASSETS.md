@@ -452,3 +452,34 @@ Same look, angle and facing as the Order's soldiers above (facing right, gear on
 - **battle_brazier:** the basket set down on the board: an iron basket of coals on three legs, small flames. Its light and glow shine **16 px above the feet** (32 px in HD; `BRAZIER_LIGHT.flameY` in `src/scenes/BattleScene.ts`). Put out, it tips over and fades.
 
 The incense smoke, the ring of smoke after a swing, the dried ground round a brazier and the gaps they make in the mist are drawn in code and are not art to replace.
+
+## The castle (M7)
+
+The castle of the Eternal Flame and its assault (GAME_DESIGN.md §5.7, §6.6; `src/data/castle.json`). All of it is drawn in code for now (`src/assets/placeholders.ts`, `src/assets/surfacePlaceholders.ts`); prompts are in `docs/ART_PROMPTS.md`, section "M7: zamek Wiecznego Płomienia".
+
+### Castle boards: texture_ground_castleYard_ground, texture_rock_castleYard, texture_ground_cathedral_ground, texture_rock_cathedral
+
+Each part of the assault is fought on its own board (castle.json `parts`, `arena`): The Gate and The Cloister in the castle's yard (`castleYard`), The Cathedral in the cathedral (`cathedral`). They are textures like the biomes' (see "Terrain textures": 96×67 each, a 96×96 square squashed to the camera angle): the board is painted from `texture_ground_<arena>_ground`, its front walls from `texture_rock_<arena>`. Until they come, the boards are made of the placeholder tiles `battle_tile_castleYard_ground` (grey flagstones) and `battle_tile_cathedral_ground` (red carpet on black marble), 42×46 like every battle tile. The castle's yard is outdoors in daylight colours; the cathedral is indoors, lit by fire.
+
+### battle_enemy_grandMaster, battle_eternal_flame
+
+| | |
+|---|---|
+| Size | 30×44 (Grand Master), 40×56 (the Eternal Flame) px |
+| Frames | 1 (the game makes him bob, hop and lunge, and makes the fire flicker) |
+| Anchor | feet, at the bottom middle |
+| Background | transparent |
+| Used in | The Cathedral, the last battle of the assault |
+
+- **battle_enemy_grandMaster:** Grand Master Ignatius Vell, the last boss: very old and straight, a long white robe over gilded plate, a red stole, a tall gold mitre, a gold crozier with a small burning bowl held out in front of him (the game lights it like a Torchbearer's torch, `TORCH_FLAME`: 10 px right of and 32 px above the feet; after the import I move the light onto his flame). Taller than the other soldiers; the manifest gets his size.
+- **battle_eternal_flame:** the Eternal Flame, on the hex in the middle of the board's second row: a tall stone pedestal on a step, a bronze bowl, a tall fire. Its light and glow shine **40 px above the feet** (`FLAME_LOOK.fireY` in `src/scenes/battleFlame.ts`). The game makes it sway, shrinks its glow and light as it is smothered, draws a bar of its strength over it and its percent beside it, and tints it dark grey when it is out, with a wisp of smoke. A version with no fire (stone and a cold bowl) could replace the tint later: it would get its own key.
+
+### map_castle_open
+
+| Key | Size | What |
+|---|---|---|
+| map_castle_open | 56×52 | The castle with its gate open, once enough Flame Shrines are out: the same picture as `map_castle`, the doors swung back, a black archway. The same light, 46 px above the feet. |
+
+### dialogue_grandMaster (later)
+
+Grand Master Vell speaks in dialogues (`grandMaster` in `src/data/dialogues.json`) and stands on the right, like Old Mother Toad. He has no portrait yet: his name and words show without one. A painted portrait like the heads' (see `dialogue_<class>`) gets the manifest key `dialogue_grandMaster` and shows with no change in code.
