@@ -284,7 +284,7 @@ export interface StoryRules {
 
 /** A line as shown: who says it (name; class for heads) and what. */
 export interface ShownLine {
-  speaker: 'toad' | 'serpent' | 'ancestor' | 'head';
+  speaker: 'toad' | 'serpent' | 'ancestor' | 'grandMaster' | 'head';
   name: string;
   classId: string | null;
   text: string;

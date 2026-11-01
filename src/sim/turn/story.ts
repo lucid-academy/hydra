@@ -100,7 +100,7 @@ function castDialogue(state: RunState, rules: RunRules, d: DialogueRules, facts:
   const all = [...d.lines, ...d.choices.flatMap((c) => c.reply)];
   const taken = () => new Set([...cast.values()].map((h) => h.id));
   // Heads of a class first, so head:any never turns out to be the same head as head:biter.
-  const classRoles = [...new Set(all.map((l) => l.speaker.replace(/^head:/, '')))].filter((r) => !['toad', 'serpent', 'ancestor', 'new', 'any', 'other'].includes(r));
+  const classRoles = [...new Set(all.map((l) => l.speaker.replace(/^head:/, '')))].filter((r) => !['toad', 'serpent', 'ancestor', 'grandMaster', 'new', 'any', 'other'].includes(r));
   for (const role of classRoles) {
     const pool = heads.filter((h) => h.classId === role && !taken().has(h.id));
     if (pool.length === 0) return null;
@@ -130,7 +130,7 @@ function castDialogue(state: RunState, rules: RunRules, d: DialogueRules, facts:
       .replace(/\{mother\}/g, facts.mother ?? '')
       .replace(/\{mutation\}/g, mutation ?? '');
   const line = (l: DialogueLineRules): ShownLine => {
-    if (l.speaker === 'toad' || l.speaker === 'serpent') return { speaker: l.speaker, name: story.speakerNames[l.speaker] ?? l.speaker, classId: null, text: fill(l.text) };
+    if (l.speaker === 'toad' || l.speaker === 'serpent' || l.speaker === 'grandMaster') return { speaker: l.speaker, name: story.speakerNames[l.speaker] ?? l.speaker, classId: null, text: fill(l.text) };
     if (l.speaker === 'ancestor') return { speaker: 'ancestor', name: facts.mother ?? story.speakerNames.ancestor ?? '', classId: null, text: fill(l.text) };
     const head = cast.get(l.speaker.replace(/^head:/, ''))!;
     return { speaker: 'head', name: head.name, classId: head.classId, text: fill(l.text) };
