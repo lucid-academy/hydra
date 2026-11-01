@@ -59,7 +59,7 @@ import { color, getContext } from './context';
 import { getRun, startNewRun } from './RunController';
 import type { RunController } from './RunController';
 import { hexEdges, hexOutlines, roundCorners } from './hexOutline';
-import { playCue } from '../audio/SoundBoard';
+import { playCue, setAmbience } from '../audio/SoundBoard';
 import { FlameView } from './battleFlame';
 import { GameMenu } from '../ui/GameMenu';
 import { lineages } from './LineageKeeper';
@@ -386,6 +386,7 @@ export class BattleScene extends Phaser.Scene {
       combos: [...this.combosSeen],
       allies: this.battle.allies.length,
     }));
+    setAmbience(this, 'battle');
     markReady(SceneKey.Battle);
   }
 

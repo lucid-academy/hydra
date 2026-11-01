@@ -142,6 +142,11 @@ export function checkCrossReferences(
         if (!(id in data.sounds.sounds)) problems.push(`  - src/data/sounds.json, cues.${group}.${cue}: no sound "${id}"; known: ${Object.keys(data.sounds.sounds).join(', ')}`);
       }
     }
+    // Every place's background is a sound that exists.
+    for (const place of ['underground', 'surface', 'battle'] as const) {
+      const id = data.sounds.ambience[place];
+      if (id !== null && !(id in data.sounds.sounds)) problems.push(`  - src/data/sounds.json, ambience.${place}: no sound "${id}"; known: ${Object.keys(data.sounds.sounds).join(', ')}`);
+    }
   }
   if (data.castle && data.manifest) {
     // Every arena of the castle needs its battle board's tile.

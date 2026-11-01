@@ -1378,6 +1378,8 @@ const soundLayerSchema = section({
   seconds: z.number().positive(),
   volume: share,
   attack: z.number().min(0),
+  sustain: z.boolean().optional(),
+  wobble: section({ hz: z.number().positive(), depth: share }).optional(),
 });
 /** Moments that can have a sound (sounds.json cues); a new one needs code that plays it. */
 export const SOUND_CUES = {
@@ -1390,6 +1392,7 @@ export const soundsSchema = section({
   defaultVolume: share,
   minGapSeconds: z.number().min(0),
   cues: section({ ui: cueList(SOUND_CUES.ui), map: cueList(SOUND_CUES.map), battle: cueList(SOUND_CUES.battle) }),
-  sounds: entries(section({ file: z.string().min(1).nullable(), volume: share, layers: z.array(soundLayerSchema).min(1) })),
+  ambience: section({ volume: share, underground: z.string().min(1).nullable(), surface: z.string().min(1).nullable(), battle: z.string().min(1).nullable() }),
+  sounds: entries(section({ file: z.string().min(1).nullable(), volume: share, loop: z.boolean().optional(), layers: z.array(soundLayerSchema).min(1) })),
 });
 export type SoundsData = z.infer<typeof soundsSchema>;

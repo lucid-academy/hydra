@@ -1,6 +1,7 @@
 // Placeholder sounds made in code (M7, answer E1): each sound is a few layers, a tone sliding from one pitch to
 // another or a hiss of noise, each with its own volume, start and length, mixed into one short clip. The recipes are
 // data (src/data/sounds.json); a sound file with the same key in the manifest replaces the recipe.
+// A looped sound (the quiet background of a place) is made so that its end runs on into its start without a click.
 // Plain number work on a Float32Array (no browser, no Phaser), so it can be tested. Deterministic: the noise comes
 // from a fixed seed, so a sound is the same every time.
 
@@ -18,13 +19,22 @@ export interface SoundLayer {
   volume: number;
   /** Seconds to rise to full volume; then it fades out to the end. */
   attack: number;
+  /** Holds its volume to the end instead of fading out (a drone, the wind). */
+  sustain?: boolean;
+  /** The volume swells and sinks `hz` times a second, by `depth` (0..1) of it. */
+  wobble?: { hz: number; depth: number };
 }
 
 export interface SoundRecipe {
   layers: readonly SoundLayer[];
   /** 0..1, for the whole sound. */
   volume: number;
+  /** Played round and round: the end is blended into the start, so the seam can't be heard. */
+  loop?: boolean;
 }
+
+/** A looped sound's last this many seconds are blended into its start. */
+export const LOOP_BLEND_SECONDS = 0.5;
 
 /** How long the sound is, in seconds: until its last layer ends. */
 export function soundSeconds(recipe: SoundRecipe): number {
@@ -34,15 +44,22 @@ export function soundSeconds(recipe: SoundRecipe): number {
 /** The sound as samples (-1..1), mono, at `sampleRate` samples a second. */
 export function renderSound(recipe: SoundRecipe, sampleRate: number): Float32Array<ArrayBuffer> {
   const length = Math.max(1, Math.ceil(soundSeconds(recipe) * sampleRate));
+  // A loop is made a little longer, its held layers running on past the end; that extra bit is then blended into the start.
+  const blend = recipe.loop ? Math.min(length, Math.ceil(LOOP_BLEND_SECONDS * sampleRate)) : 0;
+  const made = new Float32Array(length + blend);
+  recipe.layers.forEach((layer, i) => addLayer(made, layer, recipe.volume, sampleRate, 0x5eed + i * 7919, layer.sustain ? blend : 0));
   const out = new Float32Array(length);
-  recipe.layers.forEach((layer, i) => addLayer(out, layer, recipe.volume, sampleRate, 0x5eed + i * 7919));
-  for (let i = 0; i < length; i++) out[i] = Math.max(-1, Math.min(1, out[i]!));
+  for (let i = 0; i < length; i++) {
+    const share = i < blend ? i / blend : 1;
+    const sample = made[i]! * share + (i < blend ? made[length + i]! * (1 - share) : 0);
+    out[i] = Math.max(-1, Math.min(1, sample));
+  }
   return out;
 }
 
-function addLayer(out: Float32Array, layer: SoundLayer, volume: number, sampleRate: number, seed: number): void {
+function addLayer(out: Float32Array, layer: SoundLayer, volume: number, sampleRate: number, seed: number, extra: number): void {
   const start = Math.floor(layer.delay * sampleRate);
-  const count = Math.floor(layer.seconds * sampleRate);
+  const count = Math.floor(layer.seconds * sampleRate) + extra;
   const attack = Math.max(1, Math.floor(layer.attack * sampleRate));
   let phase = 0;
   let noise = seed >>> 0;
@@ -51,8 +68,10 @@ function addLayer(out: Float32Array, layer: SoundLayer, volume: number, sampleRa
     const t = count > 1 ? i / (count - 1) : 0;
     // The pitch slides evenly in octaves (exponentially in Hz), as the ear hears it.
     const hz = layer.from * Math.pow(layer.to / layer.from, t);
-    // Rises over `attack`, then fades to nothing at the end.
-    const envelope = Math.min(1, i / attack) * (1 - t) * (1 - t);
+    // Rises over `attack`, then fades to nothing at the end (or holds, when sustained), swelling with the wobble.
+    const fade = layer.sustain ? 1 : (1 - t) * (1 - t);
+    const wobble = layer.wobble ? 1 - layer.wobble.depth * (0.5 - 0.5 * Math.cos((2 * Math.PI * layer.wobble.hz * i) / sampleRate)) : 1;
+    const envelope = Math.min(1, i / attack) * fade * wobble;
     let sample: number;
     if (layer.wave === 'noise') {
       noise = (Math.imul(noise, 1664525) + 1013904223) >>> 0;

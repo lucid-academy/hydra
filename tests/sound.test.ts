@@ -47,10 +47,27 @@ describe('the synth', () => {
     expect(peak(renderSound(hiss, RATE))).toBeGreaterThan(0.05);
   });
 
-  it('every sound in sounds.json makes a short, audible clip', () => {
+  it('a loop runs on from its end into its start without a jump, and is not quiet at the start', () => {
+    const drone: SoundRecipe = {
+      volume: 1,
+      loop: true,
+      layers: [{ wave: 'sine', from: 97, to: 97, delay: 0, seconds: 1.3, volume: 1, attack: 0.01, sustain: true, wobble: { hz: 0.7, depth: 0.5 } }],
+    };
+    const samples = renderSound(drone, RATE);
+    expect(samples.length).toBe(Math.ceil(1.3 * RATE));
+    let biggestStep = 0;
+    for (let i = 1; i < samples.length; i++) biggestStep = Math.max(biggestStep, Math.abs(samples[i]! - samples[i - 1]!));
+    expect(Math.abs(samples[0]! - samples[samples.length - 1]!)).toBeLessThanOrEqual(biggestStep * 1.5);
+    expect(peak(samples.subarray(0, Math.floor(0.05 * RATE)))).toBeGreaterThan(0.2);
+    // Not looped: the same layer fades out to nothing.
+    const once = renderSound({ ...drone, loop: false, layers: [{ ...drone.layers[0]!, sustain: false }] }, RATE);
+    expect(Math.abs(once[once.length - 1]!)).toBeLessThan(0.01);
+  });
+
+  it('every sound in sounds.json makes a short, audible clip (a background loop, a longer one)', () => {
     for (const [id, sound] of Object.entries(data.sounds.sounds)) {
       const samples = renderSound(sound, RATE);
-      expect(samples.length / RATE, id).toBeLessThan(3);
+      expect(samples.length / RATE, id).toBeLessThan(sound.loop ? 15 : 3);
       expect(peak(samples), id).toBeGreaterThan(0.02);
       expect(samples.every((s) => Number.isFinite(s)), id).toBe(true);
     }
@@ -63,6 +80,15 @@ describe('the synth', () => {
         expect(data.sounds.sounds, `${group}.${cue}`).toHaveProperty(id);
         expect(SOUND_CUES[group as keyof typeof SOUND_CUES] as readonly string[], group).toContain(cue);
       }
+    }
+  });
+
+  it('each place has a looped background sound (or none)', () => {
+    for (const place of ['underground', 'surface', 'battle'] as const) {
+      const id = data.sounds.ambience[place];
+      if (id === null) continue;
+      expect(data.sounds.sounds, place).toHaveProperty(id);
+      expect(data.sounds.sounds[id]!.loop, place).toBe(true);
     }
   });
 });

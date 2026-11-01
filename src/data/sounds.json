@@ -8,6 +8,13 @@
     "map": { "moved": "slither", "mistExhaled": "exhale", "shrineOut": "hiss", "castleOpened": "gate", "castleShut": "gate", "rested": "regrow", "mutationGained": "regrow", "thresholdOpened": "fall" },
     "battle": { "headHits": "bite", "hydraHurt": "hurt", "severed": "sever", "regrown": "regrow", "cauterized": "sizzle", "combo": "combo", "skill": "skill", "devoured": "gulp", "enemyKilled": "fall", "brazierOut": "hiss", "flameDoused": "hiss", "flameOut": "flameOut", "won": "victory", "lost": "defeat" }
   },
+  "ambience": {
+    "//": "The quiet background of each place, played round and round under everything else (names from sounds below; null = silence there). underground and surface: the map, by where the hydra is; battle: every battle. volume: how loud, against the other sounds (0..1). A looped sound has \"loop\": true; its layers with \"sustain\": true hold their volume to the end, and \"wobble\" makes the volume swell and sink (hz times a second, by depth 0..1).",
+    "volume": 0.5,
+    "underground": "caves",
+    "surface": "wind",
+    "battle": "battleHum"
+  },
   "sounds": {
     "click": { "file": null, "volume": 0.25, "layers": [
       { "wave": "sine", "from": 880, "to": 660, "delay": 0, "seconds": 0.05, "volume": 1, "attack": 0.002 }
@@ -77,6 +84,23 @@
       { "wave": "sine", "from": 220, "to": 220, "delay": 0, "seconds": 2.5, "volume": 1, "attack": 0.6 },
       { "wave": "sine", "from": 277, "to": 277, "delay": 0.3, "seconds": 2.2, "volume": 0.7, "attack": 0.6 },
       { "wave": "sine", "from": 330, "to": 330, "delay": 0.6, "seconds": 1.9, "volume": 0.6, "attack": 0.6 }
+    ] },
+    "caves": { "file": null, "volume": 0.35, "loop": true, "layers": [
+      { "wave": "noise", "from": 160, "to": 160, "delay": 0, "seconds": 9, "volume": 0.9, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.111, "depth": 0.4 } },
+      { "wave": "sine", "from": 55, "to": 55, "delay": 0, "seconds": 9, "volume": 0.25, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.222, "depth": 0.5 } },
+      { "wave": "sine", "from": 1900, "to": 1100, "delay": 1.4, "seconds": 0.07, "volume": 0.35, "attack": 0.002 },
+      { "wave": "sine", "from": 1600, "to": 950, "delay": 4.1, "seconds": 0.08, "volume": 0.25, "attack": 0.002 },
+      { "wave": "sine", "from": 2100, "to": 1300, "delay": 4.5, "seconds": 0.06, "volume": 0.15, "attack": 0.002 },
+      { "wave": "sine", "from": 1750, "to": 1000, "delay": 7.3, "seconds": 0.07, "volume": 0.3, "attack": 0.002 }
+    ] },
+    "wind": { "file": null, "volume": 0.3, "loop": true, "layers": [
+      { "wave": "noise", "from": 500, "to": 500, "delay": 0, "seconds": 10, "volume": 0.9, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.1, "depth": 0.7 } },
+      { "wave": "noise", "from": 1400, "to": 1400, "delay": 0, "seconds": 10, "volume": 0.3, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.3, "depth": 0.9 } }
+    ] },
+    "battleHum": { "file": null, "volume": 0.18, "loop": true, "layers": [
+      { "wave": "sine", "from": 49, "to": 49, "delay": 0, "seconds": 8, "volume": 0.6, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.25, "depth": 0.3 } },
+      { "wave": "triangle", "from": 73.5, "to": 73.5, "delay": 0, "seconds": 8, "volume": 0.2, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.125, "depth": 0.6 } },
+      { "wave": "noise", "from": 300, "to": 300, "delay": 0, "seconds": 8, "volume": 0.5, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.5, "depth": 0.3 } }
     ] }
   }
 }
