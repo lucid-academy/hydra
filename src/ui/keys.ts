@@ -13,6 +13,14 @@ export function wantsToAdd(pointer: Phaser.Input.Pointer): boolean {
   return Boolean(event && (event.ctrlKey || event.shiftKey || event.metaKey));
 }
 
+/** A finger held this long on a head adds it to the selection, as Ctrl does with a mouse (phones have no Ctrl). */
+export const LONG_PRESS_MS = 400;
+
+/** The press was a finger held down for a while, not a quick tap. Read it when the finger lifts. */
+export function heldLong(pointer: Phaser.Input.Pointer): boolean {
+  return pointer.wasTouch && pointer.getDuration() >= LONG_PRESS_MS;
+}
+
 export function onKeyDown(scene: Phaser.Scene, handler: (event: KeyboardEvent) => void): void {
   const handled = new WeakSet<KeyboardEvent>();
   scene.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
