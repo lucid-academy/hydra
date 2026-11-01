@@ -546,7 +546,7 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 
 **M6: pokolenia.** Ekran pokolenia, mutacje, księga zaklęć rodu, ukryte jajo i wybór przy wymarciu rodu, odblokowania, Księga Rodów, zapis gry. Wiedza o świecie przechodzi na kolejne pokolenia. Ponieważ M6 idzie przed M3, zaczyna w prostej wersji (plan zatwierdzony przez Piotra 2026-10-21, dokument Claude „Hydra M6: pokolenia”): bez jaj, ukrytego jaja i wyboru przy wymarciu rodu (przyjdą z M3), bez księgi zaklęć (z M2a albo po nim, gdy będą zaklęcia) i bez mutacji działających w bitwie (po M2a). Gra zapisuje się sama w przeglądarce na początku każdej tury i po bitwie; bitwa przerwana zamknięciem karty zaczyna się od nowa.
 
-**M7 i dalej: finał i szlif.** Szturm na zamek i zwycięstwo, dźwięk, podmiana grafiki, balans, pełne sterowanie dotykowe.
+**M7 i dalej: finał i szlif.** Szturm na zamek i zwycięstwo, dźwięk, podmiana grafiki, balans, pełne sterowanie dotykowe. Plan i pytania A–E: dokument Claude „Hydra M7: szturm na zamek i finał” (2026-11-01). Piotr napisał „Kontynuuj co możesz samemu”, więc szturm, zwycięstwo, dźwięk, menu w grze i dotyk są zbudowane na odpowiedziach polecanych przez Claude, z liczbami w `src/data/castle.json` i `src/data/sounds.json` (`TODO(design)`); decyzje trafią tu po odpowiedziach Piotra (§16). Podmiana grafiki i balans czekają na obrazki i playtest, pozostałe zakończenia na decyzję (§16).
 
 ## 16. Otwarte pytania (decyduje Piotr, nie zgadywać)
 
@@ -561,4 +561,10 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
   - D. Zakon w podziemiach dalej przy Passages i szybie, jak w M3 (wariant 2: schodzi z powierzchni Passage'em).
   - E. Censer Priest i Brazier Bearer na powierzchni od początku, w podziemiach od progu Alertu 75 (wariant 2: tylko na powierzchni).
   - F. Wsie, młyny i wieże są w M4 tylko widokami; najazdy i jeńcy w osobnym etapie (wariant 2: najazdy już w M4).
+- **M7, pytania A–E** (dokument „Hydra M7: szturm na zamek i finał”; gra działa na wariancie 1, do zmiany w danych):
+  - A. Brama zamku otwiera się, gdy wszystkie 5 kapliczek Płomienia jest zgaszonych naraz, i zostaje otwarta, nawet gdy Zakon którąś zapali (wariant 2: 3 z 5; wariant 3: zamyka się znowu przy ponownym zapaleniu).
+  - B. Szturm to trzy bitwy po kolei (The Gate, The Cloister, The Cathedral); rany i ścięte głowy przechodzą dalej, między bitwami Press on albo Fall back, zdobyta część zostaje zdobyta (wariant 2: jedna duża bitwa).
+  - C. W katedrze Wieczny Płomień na planszy: póki płonie, Grand Master Ignatius Vell się leczy i nie spada poniżej 1 HP; gaszą go chmury Mist i umiejętności gaszące kosze żarowe (wariant 2: zwykły boss). Zmiana przy budowie: zamiast zwykłych ataków głów Płomień dusi tułów położony obok niego (i parzy się przy tym), bo tak gracz ma prosty ruch, który działa przy każdym składzie głów.
+  - D. Po zwycięstwie dialog, ekran „The Mist Settles”, ród kończy się w Księdze Rodów jako zwycięski, flaga świata zostaje (wariant 2: ród gra dalej w trudniejszym świecie z Płomieniem rozpalonym od nowa).
+  - E. Dźwięk generowany w kodzie (efekty i ciche tło każdego miejsca), każdy pod kluczem, który plik może podmienić, bez muzyki (wariant 2: także prosta muzyka z kodu; wariant 3: cisza do czasu plików od Piotra).
 - **Świat dnia:** jeden seed dziennie, ten sam dla wszystkich graczy, jak w Spelunky. Czy go chcemy i kiedy? Propozycja Claude: później, np. po M5, bo łatwo go dodać.

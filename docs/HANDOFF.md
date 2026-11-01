@@ -1,6 +1,6 @@
 # Handoff: stan prac nad Hydrą
 
-Stan na 2026-10-24 (M4 zbudowany na polecanych odpowiedziach i wdrożony, czeka na odpowiedzi i playtest Piotra; M3, M5, M6 i M2a też czekają na playtest). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
+Stan na 2026-11-01 (M7 zbudowany na polecanych odpowiedziach i wdrożony, czeka na odpowiedzi i playtest Piotra; M4 też czeka na odpowiedzi, a M3, M5, M6 i M2a na playtest). Ten plik streszcza dotychczasową pracę, żeby następna sesja mogła ją podjąć bez czytania całej rozmowy. Źródłem prawdy pozostają `GAME_DESIGN.md` (projekt gry) i `CLAUDE.md` (zasady pracy). Tutaj jest stan na dziś i to, czego w tych plikach nie ma.
 
 - Gra: https://lucid-academy.github.io/hydra/
 - Repo: https://github.com/lucid-academy/hydra (na serwerze `/root/Hydra`)
@@ -9,7 +9,8 @@ Stan na 2026-10-24 (M4 zbudowany na polecanych odpowiedziach i wdrożony, czeka 
 
 ## 1. Etap
 
-- Zrobione: **M0, M1, M1b, M2b, M2c, Wygląd mapy (HD), M5, M6, M2a, M3, M4** (sekcja 15 w `GAME_DESIGN.md`).
+- Zrobione: **M0, M1, M1b, M2b, M2c, Wygląd mapy (HD), M5, M6, M2a, M3, M4, M7** (sekcja 15 w `GAME_DESIGN.md`).
+- **M7** (szturm na zamek, zwycięstwo, dźwięk, menu, dotyk): plan w dokumencie Claude „Hydra M7: szturm na zamek i finał” (https://claude.ai/artifact/5YC7VPX4cVyrs3rBJQryTc). Piotr napisał 2026-11-01 „Kontynuuj co możesz samemu”, więc etap jest zbudowany na wariancie 1 w pytaniach A–E (`GAME_DESIGN.md` §15, §16), zanim Piotr odpowiedział. Wdrożony 2026-11-01, czeka na odpowiedzi i playtest (opis w sekcji 2). Decyzje trafią do `GAME_DESIGN.md` po odpowiedziach.
 - **M4** (powierzchnia): plan w dokumencie Claude „Hydra M4: powierzchnia” (https://claude.ai/artifact/Cru1wkA4zam1mXDK5tfarA). Piotr napisał 2026-10-24 „Kontynuuj co możesz samemu, później odpowiem na pytania”, więc etap jest zbudowany na wariancie 1 w pytaniach A–F (`GAME_DESIGN.md` §15, §16), zanim Piotr odpowiedział. Wdrożony 2026-10-24 (PR #18–#20), czeka na odpowiedzi i playtest (opis w sekcji 2). Decyzje trafią do `GAME_DESIGN.md` po odpowiedziach.
 - **M3** (Zakon kontratakuje): plan zatwierdzony przez Piotra 2026-10-23 na karcie „Buduj z polecanymi” (dokument Claude „Hydra M3: Zakon kontratakuje”, https://claude.ai/artifact/NeZGXw7XaQeAHkwstVnXvE; decyzje w `GAME_DESIGN.md` §4, §8, §12, §15), zbudowany i wdrożony 2026-10-23/24 (PR #8–#16), czeka na playtest (opis w sekcji 2). Wątek M3 przejął pliki bitwy po M2a.
 - **M5** (eventy, mini questy, dialogi) wdrożony 2026-10-21 i czeka na playtest Piotra (opis w sekcji 2).
@@ -17,7 +18,7 @@ Stan na 2026-10-24 (M4 zbudowany na polecanych odpowiedziach i wdrożony, czeka 
 - **M2a** (głowy i balans bitwy) zbudował osobny wątek projektu Hydra; jest na main od 2026-10-23 (opis w sekcji „M2a” na końcu pliku).
 - **M2c** (świat do odkrywania) jest wdrożony 2026-10-04 i czeka na playtest Piotra. Playtest M2b nie przyszedł; M2c zmienił mapę na tyle, że lepiej grać od razu w M2c.
 - 2026-10-03 Piotr zmienił sposób pracy: grafika będzie z GPT, animacje najpierw w kodzie. Zasady są już w `CLAUDE.md`. Plan grafiki (sekcja 3.2) Piotr zatwierdził tego samego dnia i potok jest zbudowany. Wieczorem przyszła cała pierwsza partia (21 obrazków) i jest w grze; **czeka na uwagi Piotra**.
-- Następny etap: M7 (kolejność Piotra z 2026-10-04, `GAME_DESIGN.md` §15). Każdy zaczyna się od planu i OK Piotra. Projekt 9 głów (M2a) jest zatwierdzony (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13).
+- Następny etap: po M7 kolejność z `GAME_DESIGN.md` §15 się kończy („M7 i dalej”: podmiana grafiki, balans, pozostałe zakończenia). Co dalej, wybiera Piotr; każdy etap zaczyna się od planu i OK Piotra. Projekt 9 głów (M2a) jest zatwierdzony (`GAME_DESIGN.md` §6.4, §6.5, §6.9, §13).
 - **Wygląd mapy (HD), od 2026-10-05:** Piotr wybrał na karcie przejście na HD pixel art (`GAME_DESIGN.md` §13, §15). Mapa, bitwa i napisy w HD (opis w sekcji 3.2, „Wygląd mapy w HD”). Mapę Piotr ocenił 2026-10-06: „wygląda naprawdę lepiej”. Od 2026-10-21 HD jest jedynym trybem (etap zakończony); uwagi Piotra do bitwy i napisów wciąż mile widziane.
 - **Zmiana kierunku, 2026-10-04:** Hydra to teraz fabularny roguelite z naciskiem na odkrywanie świata, mini questy i kilka zakończeń; bitwy rzadsze, ale ważne (`GAME_DESIGN.md` §1, §2, §4, §15).
 
@@ -94,7 +95,19 @@ Stan na 2026-10-24 (M4 zbudowany na polecanych odpowiedziach i wdrożony, czeka 
 - Bot runów (`npm run balance:runs`) wychodzi na górę od 20. tury i gasi kapliczki: w medianie 2 na run, wszystkie 5 w 6% runów, Zakon zapala z powrotem 1,7. Smoke wchodzi na Passage, wychodzi na górę i wraca, wydycha mgłę i gasi kapliczkę.
 - Do testów: `?scene=map&surface=1` (na pierwszym Passage), `&near=flameShrine` (też `castle`, `village`, `camp`...), `&exposed=1`, `&night=1`, `?scene=battle&surface=1&group=shrineVigil`. `RUN_FORMAT` 6.
 
-**Narzędzia.** `npm run smoke` gra sama jak gracz: mapa, bitwy, śmierć i nowe pokolenie, powierzchnia, zapis i Continue, kapliczki; z `-- phone` na ekranie telefonu. `npm run balance` rozgrywa setki automatycznych bitew, wynik w `docs/BALANCE.md`; `npm run balance:runs` gra całe runy na mapie, wynik w `docs/BALANCE_RUNS.md`. `npm run shots` robi zrzuty do `docs/screens/`. `npm run art` wstawia do gry obrazki z `art/raw/` (opis w `docs/ASSETS.md`). Parametry URL są w `README.md`.
+**M7 (2026-11-01): szturm na zamek i finał** (zbudowany na wariancie 1 pytań A–E, zanim Piotr odpowiedział; liczby w `src/data/castle.json` i `src/data/sounds.json` z `TODO(design)`).
+- Zamek (`src/sim/turn/castle.ts`, dane `castle.json`): brama otwiera się, gdy 5 kapliczek Płomienia jest zgaszonych naraz, i zostaje otwarta (A1, przełącznik `gate.staysOpen`). Tapnięcie w zamek podprowadza hydrę pod mury i otwiera panel: zamknięta brama z liczbą płonących kapliczek albo „Storm the castle” / „Press on”, „Leave” / „Fall back”, ile części zdobytych. Na mapie otwarta brama ma swój obrazek (`map_castle_open`).
+- Szturm w trzech bitwach (B1): The Gate (rycerz, 2 zbrojnych, 2 kuszników, Brazier Bearer), The Cloister (2 Censer Priestów, Headhunter, 2 Torchbearerów, Tithe Collector), The Cathedral (Grand Master Ignatius Vell, rycerz, Censer Priest, Torchbearer, zbrojny). Plansze dziedzińca i katedry (zastępcze tekstury). Rany i ścięte głowy przechodzą dalej, zdobyta część zostaje zdobyta, bitwa na powierzchni liczy się jak każda inna (we mgle albo Exposed). Przegrana to śmierć hydry.
+- Wieczny Płomień (C1, `battleFlame.ts`, `eternalFlame` w `castle.json`): stoi w drugim rzędzie planszy z paskiem „Eternal Flame N%”. Póki płonie, Wielki Mistrz leczy się 4 HP/s i nie spada poniżej 1 HP. Gasi go tułów położony obok (5 na sekundę, Płomień parzy tułów 3 HP/s), chmura Mist na jego heksie (4/s) i od razu o 30 Douse, Eat Fire, Acid Rain albo rzut Stranglera wymierzone obok; bez tego odrasta 2/s. Tapnięcie w Płomień posyła tam tułów. Zgaszony straszy ludzi Zakonu na 5 s. Bitwa jest wygrana, gdy Płomień zgasł i Zakonu nie ma. Zmiana względem planu: zamiast zwykłych ataków głów dusi tułów (pytanie w sekcji 4).
+- Zwycięstwo (D1): dialog Węża i głów, ekran „The Mist Settles” (`EndingScene`, mgła płynie nad tekstem), ród kończy się w Księdze Rodów jako zwycięski (złote imię, „the Eternal Flame put out”), flaga świata `eternalFlameOut`. Zapis: `RUN_FORMAT` 7, `PROFILE_FORMAT` bez zmian.
+- Treść: Grand Master Vell mówi w dialogach (złoty kolor, po prawej, bez portretu), 5 dialogów (brama otwarta, pierwsza i druga część zdobyta, pierwsze spotkanie z Mistrzem z podpowiedzią Węża, Płomień zgaszony), epitafia za śmierć od rycerza i Mistrza oraz za zwycięstwo. Prompty do GPT na 7 grafik (`docs/ART_PROMPTS.md`, sekcja „M7”), `docs/ASSETS.md`, `docs/ANIMATIONS.md`.
+- Dźwięk (E1, `src/audio/`): 18 efektów i 3 zapętlone tła (kapanie w jaskiniach, wiatr na powierzchni, buczenie w bitwie) generowane w kodzie z przepisów w `sounds.json`; każdy dźwięk ma pole `file`, więc plik go podmienia. Które zdarzenie gra jaki dźwięk: `cues`. Bez muzyki. Głośność w menu, zapamiętana pod `hydra.settings.v1`.
+- Menu w grze: przycisk Menu (albo Esc) na mapie i w bitwie: Resume, Sound (100, 60, 30, wyłączony), seed rodu, Quit to the title (gra jest zapisana; przerwana bitwa zaczyna się od nowa).
+- Dotyk: zoom mapy kółkiem myszy i dwoma palcami (0,5–3×, zostaje do przeładowania strony); w bitwie przytrzymanie palca na głowie (400 ms) dodaje ją do zaznaczenia, jak Ctrl.
+- Boty: `npm run balance` gra też trzy części szturmu (świeża hydra wygrywa katedrę w 32% z umiejętnościami; Krużganek jest łatwiejszy niż Brama), `npm run balance:runs` idzie na zamek: bot w 120 turach nigdy nie zgasił 5 kapliczek naraz, a z bramą otwartą na siłę od 60. tury dochodzi pod mury w 26% runów i wygrywa w 22% (11 z 13, które szturmowały). Smoke szturmuje katedrę sześciogłową hydrą na 4. poziomie aż do zakończenia i Księgi.
+- Do testów: `?scene=battle&castle=2` (część szturmu, od 0), `?scene=map&surface=1&near=castle&castle=2&heads=biter,biter,acidSpitter,mistBreather,strangler,tender&level=4` (brama otwarta, 2 części zdobyte, silna hydra pod murami), `?scene=ending`.
+
+**Narzędzia.** `npm run smoke` gra sama jak gracz: mapa, bitwy, śmierć i nowe pokolenie, powierzchnia, kapliczki, szturm na katedrę i zakończenie, zapis i Continue; z `-- phone` na ekranie telefonu. `npm run balance` rozgrywa setki automatycznych bitew, wynik w `docs/BALANCE.md`; `npm run balance:runs` gra całe runy na mapie, wynik w `docs/BALANCE_RUNS.md`. `npm run shots` robi zrzuty do `docs/screens/`. `npm run art` wstawia do gry obrazki z `art/raw/` (opis w `docs/ASSETS.md`). Parametry URL są w `README.md`.
 
 **Zasady pracy (2026-10-03).** Nowe sekcje w `CLAUDE.md`: Notatki decyzji, Grafika z GPT, Animacje, Sekrety. Cała historia repo przejrzana: nie ma w niej kluczy, haseł ani tokenów.
 
@@ -231,6 +244,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 ## 4. Otwarte pytania
 
 **Czekają na Piotra:**
+0000. Odpowiedzi na pytania M7 A–E (`GAME_DESIGN.md` §16; gra działa na wariancie 1) i playtest szturmu, zakończenia, dźwięku, menu i dotyku. Do tego pytania z budowy: w C1 Płomień miały powoli gasić zwykłe ataki głów, a zbudowane jest duszenie tułowiem położonym obok (prosty ruch, który działa przy każdym składzie głów; do zmiany, jeśli wolisz ataki); bot nigdy nie gasi 5 kapliczek naraz, więc pytanie A wpływa na to, czy gracz w ogóle dojdzie do zamku; wyjście do tytułu w bitwie pozwala ją powtórzyć (czy przerwana bitwa ma liczyć się jak ucieczka albo przegrana?).
 000. Odpowiedzi na pytania M4 A–F (`GAME_DESIGN.md` §16; gra działa na wariancie 1) i playtest powierzchni. Do tego pytania z budowy: czy zamek i płonące kapliczki mają być widoczne z daleka (zbudowane tak, bo inaczej gracz szuka ich na ślepo za 2 Moisture za heks); Exposed nie zabija (najniżej 1 HP), więc hydra bez mgły i Moisture może pełznąć do Passage wiele tur; nowe wsie, młyny i wieże tylko stoją.
 00. Playtest M3: patrole i posłańcy, wyprawy i obrona leża, jaja i Broodlingi, wybór jaja po śmierci, ukryte jajo, nowi wrogowie, Great Burning, poziomy głów. Pytania M3 (decyzje robocze, `TODO(design)` w danych):
     - §8 chce 40–80 znanych heksów przed pierwszą wyprawą, a przy wzroku 3 bot zna wtedy ok. 250 (`docs/BALANCE_RUNS.md`): zmienić cel w dokumencie czy podnieść Alert za odkrywanie?
@@ -266,7 +280,7 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 - M6: bitwa przerwana zamknięciem karty zaczyna się od nowa. Księga zaklęć rodu czeka na zaklęcia. Przodkini i dziedziczka nie mają portretów.
 - M3: nowi ludzie Zakonu, Broodling, jaja i jednostki Zakonu na mapie są rysowane w kodzie (prompty gotowe). Bełt kusznika nie leci przez planszę, kusznik tylko robi wypad. Posłańców bot balansu nie goni, więc ucieka ich ok. 80%. Mapa nie pokazuje poziomów głów (tylko karty w bitwie). Bez komnat leża, Lineage Grimoire i głębszej warstwy.
 - M4: cała powierzchnia jest rysowana w kodzie (prompty gotowe). Plansza bitwy na górze ma zwykłe kafle w kolorach biomu; suchy grunt pod koszem słabo widać w jego świetle; mgła przy Passage jest dość biała. Bot gasi w medianie 2 kapliczki na run i czasem pełznie bez Moisture wiele tur (gracz zaplanuje lepiej). Zamek zamknięty do M7, bez najazdów na wsie, młyny i wieże.
-- Seed widać tylko z `?debug=1`. Menu pauzy, w którym miał być (§9), jeszcze nie ma.
+- M7: zamek od środka, Wielki Mistrz, Wieczny Płomień i otwarta brama są rysowane w kodzie (prompty gotowe); Mistrz nie ma portretu w dialogach. Dźwięki są zastępcze z kodu i Claude ich nie słyszał (sprawdzona tylko głośność w liczbach); muzyki nie ma. Douse i podobne gaszą Płomień tylko wymierzone w człowieka albo heks obok niego. Boty balansu nie gaszą Płomienia umiejętnościami. Wyjście do tytułu w trakcie bitwy pozwala ją powtórzyć. W 1. pokoleniu zakończenie mówi „Kunigunde of the Line of Kunigunde”. Zoom mapy wraca do zwykłego po przeładowaniu strony.
 - Świadomie odłożone na późniejsze etapy:
   - Spell Caches czekają na umiejętności głów (M2a);
   - Moisture idzie na mgłę na powierzchni (od M4), Bones i Muck na jaja (od M3);
@@ -277,13 +291,13 @@ Podjęte przy budowie, nie ma ich w `GAME_DESIGN.md`. Liczby leżą w `src/data/
 
 ## 6. Następne kroki
 
-0. Odpowiedzi Piotra na pytania M4 (wpisać decyzje do `GAME_DESIGN.md`, przerobić to, co wybierze inaczej) i uwagi z playtestu M4, M3, M5, M6 i M2a. Po zmianie kształtu `RunState` albo profilu podbić `RUN_FORMAT` / `PROFILE_FORMAT`.
+0. Odpowiedzi Piotra na pytania M7 i M4 (wpisać decyzje do `GAME_DESIGN.md`, przerobić to, co wybierze inaczej) i uwagi z playtestu M7, M4, M3, M5, M6 i M2a. Po zmianie kształtu `RunState` albo profilu podbić `RUN_FORMAT` / `PROFILE_FORMAT`.
 1. Poczekać na odpowiedzi Piotra (sekcja 4).
 2. Dalej z `docs/ANIMATIONS.md` (stan „do zrobienia”): oddech i drgnięcie tułowia, ścięcie głowy. Kolejne grafiki: reszta Zakonu po uwagach do próby (Zakon jak rycerze z okładki, z herbem złotego płomienia zamiast lwa; wzór dla GPT: `hydra-grafika/wzory/zakon-z-okladki.png` w plikach projektu), przejście na powierzchnię, tło tytułu.
 3. Głowy i tułów w stylu okładki (sekcja 3.2, „Próba hydry i Zakonu w grze”): próba jest w grze od 2026-10-06, Piotr napisał „ok”. Prompty na pozostałe osiem głów, Headhuntera, Torchbearera i dwa większe oddziały są w `docs/ART_PROMPTS.md` od 2026-10-06, a ich wzory (portrety, pixelowy tułów, Biter, Man-at-Arms, oddział) w plikach projektu, `hydra-grafika/wzory/`; w manifeście są już miejsca na głowy. Przy imporcie: rozmiar głowy w manifeście z obrazka, `JAW_OVERLAP_BY_CLASS` z linii pyska, `TORCH_FLAME` z płomienia Torchbearera. Palety na razie nie ma (decyzja z 2026-10-06, sekcja 3.2).
 4. Gdy Piotr napisze, że wrzucił grafiki: `git pull`, `npm run art`, obejrzeć wynik w grze, wdrożyć, pokazać.
 5. Zatwierdzone decyzje od razu wpisywać do `GAME_DESIGN.md`, a budować w swoim etapie.
-6. Kolejność etapów z `GAME_DESIGN.md` §15: następny jest M7 (szturm na zamek, zwycięstwo, dźwięk, szlif). Zaczyna się od planu i OK Piotra.
+6. Kolejność etapów z `GAME_DESIGN.md` §15 jest zrobiona do M7. Dalej „M7 i dalej”: podmiana grafiki (gdy przyjdą obrazki), balans (po playteście i odpowiedziach M3), pozostałe zakończenia (§16). Każdy etap zaczyna się od planu i OK Piotra.
 
 ## M2a: głowy i combosy (wątek „Głowy i balans bitwy”, od 2026-10-21)
 
