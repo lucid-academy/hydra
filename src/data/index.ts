@@ -18,9 +18,10 @@ import orderJson from './order.json';
 import broodJson from './brood.json';
 import surfaceJson from './surface.json';
 import castleJson from './castle.json';
+import soundsJson from './sounds.json';
 import manifestJson from '../assets/manifest.json';
 import { battleProblems } from './battleChecks';
-import { balanceSchema, biomesSchema, broodSchema, castleSchema, combosSchema, dialoguesSchema, eventsSchema, flagsSchema, lineageSchema, mutationsSchema, orderSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, surfaceSchema, textSchema, worldSchema } from './schemas';
+import { balanceSchema, biomesSchema, broodSchema, castleSchema, combosSchema, soundsSchema, dialoguesSchema, eventsSchema, flagsSchema, lineageSchema, mutationsSchema, orderSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, surfaceSchema, textSchema, worldSchema } from './schemas';
 import type {
   AssetManifest,
   Balance,
@@ -37,6 +38,7 @@ import type {
   ShrinesData,
   SurfaceData,
   CastleData,
+  SoundsData,
   EnemiesData,
   GameText,
   HeadsData,
@@ -65,6 +67,7 @@ export interface GameData {
   brood: BroodData;
   surface: SurfaceData;
   castle: CastleData;
+  sounds: SoundsData;
 }
 
 export function loadGameData(): GameData {
@@ -88,6 +91,7 @@ export function loadGameData(): GameData {
     brood: validateData('src/data/brood.json', broodSchema, broodJson),
     surface: validateData('src/data/surface.json', surfaceSchema, surfaceJson),
     castle: validateData('src/data/castle.json', castleSchema, castleJson),
+    sounds: validateData('src/data/sounds.json', soundsSchema, soundsJson),
   };
   checkCrossReferences(data);
   return data;
@@ -96,7 +100,7 @@ export function loadGameData(): GameData {
 /** Names that one data file borrows from another must exist there. */
 export function checkCrossReferences(
   data: Pick<GameData, 'heads' | 'combos'> &
-    Partial<Pick<GameData, 'balance' | 'enemies' | 'biomes' | 'manifest' | 'world' | 'dialogues' | 'events' | 'mutations' | 'lineage' | 'flags' | 'shrines' | 'order' | 'surface' | 'castle'>>,
+    Partial<Pick<GameData, 'balance' | 'enemies' | 'biomes' | 'manifest' | 'world' | 'dialogues' | 'events' | 'mutations' | 'lineage' | 'flags' | 'shrines' | 'order' | 'surface' | 'castle' | 'sounds'>>,
 ): void {
   const statuses = Object.keys(data.combos.statuses);
   const problems: string[] = [];
@@ -130,6 +134,15 @@ export function checkCrossReferences(
   if (data.order && data.enemies && data.balance && data.mutations) problems.push(...orderProblems(data.order, data.enemies, data.balance, data.mutations));
   if (data.surface && data.order && data.enemies && data.mutations) problems.push(...surfaceProblems(data.surface, data.order, data.enemies, data.mutations, data.heads));
   if (data.castle && data.enemies) problems.push(...castleProblems(data.castle, data.enemies, data.surface, statuses));
+  if (data.sounds) {
+    // Every cue plays a sound that exists.
+    for (const [group, cues] of Object.entries(data.sounds.cues)) {
+      if (group === '//') continue;
+      for (const [cue, id] of Object.entries(cues as Record<string, string>)) {
+        if (!(id in data.sounds.sounds)) problems.push(`  - src/data/sounds.json, cues.${group}.${cue}: no sound "${id}"; known: ${Object.keys(data.sounds.sounds).join(', ')}`);
+      }
+    }
+  }
   if (data.castle && data.manifest) {
     // Every arena of the castle needs its battle board's tile.
     const missing = [...new Set(data.castle.parts.list.map((p) => `battle_tile_${p.arena}_ground`))].filter((key) => !(key in data.manifest!.images));

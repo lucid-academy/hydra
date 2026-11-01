@@ -2,6 +2,7 @@
 
 import * as Phaser from 'phaser';
 import { FONT } from './fonts';
+import { playCue } from '../audio/SoundBoard';
 
 export interface ButtonStyle {
   width: number;
@@ -33,7 +34,9 @@ export class Button extends Phaser.GameObjects.Container {
     this.background.on('pointerout', () => this.background.setAlpha(1));
     this.background.on('pointerup', () => {
       this.background.setAlpha(1);
-      if (this.enabled) onPress();
+      if (!this.enabled) return;
+      playCue(scene, 'ui', 'button');
+      onPress();
     });
     scene.add.existing(this);
   }

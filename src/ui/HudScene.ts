@@ -40,7 +40,10 @@ import {
 import type { LairCheck } from '../sim/turn';
 import type { EventOutcome } from '../sim/turn';
 import type { RunEvent } from '../sim/turn';
+import { playCue } from '../audio/SoundBoard';
 import { Button } from './Button';
+import { GameMenu } from './GameMenu';
+import { lineages } from '../scenes/LineageKeeper';
 import { onKeyDown } from './keys';
 import { Minimap } from './Minimap';
 import { PlacePanel } from './PlacePanel';
@@ -50,6 +53,9 @@ import { exposePlacePanel } from '../testHooks';
 import { fillText, mutationName, mutationWords } from './mutationText';
 
 const BAR_HEIGHT = 16;
+/** The Menu button at the left end of the top bar, and the menu over everything. */
+const MENU_BUTTON = { width: 36, height: 13, fontSize: '9px' } as const;
+const MENU_DEPTH = 1000;
 /** Action id of the one thing to do at a threshold (dig, or open it with a head). */
 const WORK_THRESHOLD = '__work';
 /** Action ids of an event's choices: this and the choice's index. */
@@ -87,6 +93,7 @@ export class HudScene extends Phaser.Scene {
   private nameText!: Phaser.GameObjects.Text;
   private shrinePanel!: ShrinePanel;
   private placePanel!: PlacePanel;
+  private menu!: GameMenu;
   private conditionsText!: Phaser.GameObjects.Text;
   private resourceTexts!: Record<'muck' | 'moisture' | 'bones', Phaser.GameObjects.Text>;
   /** Messages on screen now, top to bottom, so new ones go below. */
@@ -109,7 +116,7 @@ export class HudScene extends Phaser.Scene {
 
     // Top bar. Interactive, so taps on it don't reach the map below.
     this.add.rectangle(0, 0, width, BAR_HEIGHT, color(palette.underground.black), 0.85).setOrigin(0, 0).setInteractive();
-    this.info = this.add.text(6, 3, '', { ...mono, color: '#d8e4d0' });
+    this.info = this.add.text(MENU_BUTTON.width + 10, 3, '', { ...mono, color: '#d8e4d0' });
     // Resources: a small coloured square and the amount.
     const resourceColors = { muck: '#8a5a2a', moisture: '#3f9fb8', bones: '#d8d0c0' } as const;
     this.resourceTexts = Object.fromEntries(
@@ -153,6 +160,12 @@ export class HudScene extends Phaser.Scene {
     this.surfaceText = this.add.text(width - 6, BAR_HEIGHT + 2, '', { ...mono, fontSize: '9px', color: '#e8e0c0', backgroundColor: '#05090acc', padding: { x: 3, y: 1 } }).setOrigin(1, 0);
     onKeyDown(this, (event) => {
       if (this.run.talking) return;
+      // Esc opens and closes the menu (with a panel open, it leaves the panel instead).
+      if (event.key === 'Escape' && (this.menu.visible || !this.placePanel.visible)) {
+        this.menu.toggle();
+        return;
+      }
+      if (this.menu.visible) return;
       if (event.key === 'Enter') this.run.endTurn();
       if ((event.key === 'm' || event.key === 'M') && this.run.state.hydra.layer === 'surface' && !this.placePanel.visible) this.run.exhaleMist();
       if (event.key === 'Escape' && this.placePanel.visible) this.run.leavePlace();
@@ -181,6 +194,16 @@ export class HudScene extends Phaser.Scene {
     this.toasts = [];
     this.placeResult = null;
     exposePlacePanel(() => (this.placePanel.visible ? this.placePanel.buttons : null));
+    this.menu = new GameMenu(this, MENU_DEPTH, {
+      seed: lineages(this).lineage()?.seed ?? getContext(this).seed,
+      inBattle: false,
+      onQuit: () => {
+        this.scene.stop(SceneKey.Dialogue);
+        this.scene.stop(SceneKey.Map);
+        this.scene.start(SceneKey.Title);
+      },
+    });
+    new Button(this, MENU_BUTTON.width / 2 + 3, BAR_HEIGHT / 2, text.menu.button, { ...MENU_BUTTON, fill: color(palette.underground.deepTeal), border: color(palette.underground.bioluminescence), textColor: '#e8f0e0' }, () => this.menu.open());
 
     const onChanged = (): void => this.refresh();
     const onEvents = (events: RunEvent[]): void => this.announce(events);
@@ -219,6 +242,7 @@ export class HudScene extends Phaser.Scene {
     const hint = '#a8c8d8';
     const fill = (template: string, values: Record<string, string | number>) => template.replace(/\{(\w+)\}/g, (all, name: string) => String(values[name] ?? all));
     for (const event of events) {
+      playCue(this, 'map', event.type);
       switch (event.type) {
         case 'collected': {
           const amount = `+${event.amount} ${event.resource === 'muck' ? text.hud.muck : text.hud.moisture}`;

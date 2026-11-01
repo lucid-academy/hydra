@@ -14,6 +14,7 @@ import { FONT } from '../ui/fonts';
 import { onKeyDown } from '../ui/keys';
 import { fillText } from '../ui/mutationText';
 import { LIGHT_TEXTURE, LIGHT_TEXTURE_SIZE, makeSoftTextures } from './mapLight';
+import { playCue } from '../audio/SoundBoard';
 
 const TEXT_WIDTH = 470;
 const BUTTONS_Y = 332;
@@ -47,6 +48,7 @@ export class EndingScene extends Phaser.Scene {
     this.add.image(0, 0, 'title_background').setOrigin(0, 0).setAlpha(0.28).setDepth(-3);
     makeSoftTextures(this);
     this.driftMist(palette.mist);
+    playCue(this, 'ui', 'ending');
 
     const values = { name: entry.name, lineage: lineage.name, turns: entry.turns, generation: entry.generation };
     const items: Phaser.GameObjects.Text[] = [];

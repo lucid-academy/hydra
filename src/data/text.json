@@ -205,5 +205,16 @@
       "cauterizePercent": "Stumps take {n}% longer to burn shut",
       "exposedDamagePercent": "Exposed: {n}% body HP lost"
     }
+  },
+  "menu": {
+    "//": "M7: the menu on the map and in battle (the Menu button, or Esc). sound: {n} is the volume in percent; the button goes round 100, 60, 30 and off. seed: {seed} is the lineage's seed (?seed= plays its first world again). quitBattle: said under Quit in a battle.",
+    "button": "Menu",
+    "title": "Menu",
+    "resume": "Resume",
+    "sound": "Sound: {n}%",
+    "soundOff": "Sound: off",
+    "seed": "Lineage seed {seed}",
+    "quit": "Quit to the title",
+    "quitBattle": "The game is saved. A battle left now starts over."
   }
 }
