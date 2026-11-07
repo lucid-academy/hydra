@@ -485,5 +485,7 @@ export function placeholderFor(key: string): PlaceholderDrawer | undefined {
   // A class's own head and jaw (battle_head_<class>, battle_head_<class>_jaw): until its art comes, that class
   // keeps the tinted battle_head, so the placeholder stays empty.
   if (/^battle_head_[a-z][A-Za-z]*(_jaw)?$/.test(key)) return placeholderDrawers[key] ?? drawEmpty;
+  // The Big World's art (GAME_DESIGN.md §13): until Piotr's pictures come, the game goes on without them.
+  if (/^(map_props_|map_patches_|map_clump_|map_landmark_|discovery_)/.test(key) || key === 'map_current') return placeholderDrawers[key] ?? drawEmpty;
   return placeholderDrawers[key] ?? mapPlaceholderFor(key);
 }

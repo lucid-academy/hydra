@@ -22,8 +22,16 @@ export interface ManifestEntry {
 export type Align = 'center' | 'bottom' | 'top-right';
 
 export interface ImportRule {
-  /** texture: fills the box, squashed; cover: fills the box keeping its shape, the overflow cut off; sprite: on magenta, trimmed and fitted. */
-  fit: 'texture' | 'cover' | 'sprite';
+  /**
+   * texture: fills the box, squashed; strip: fills the box like a texture, but seen from the front, so only cut to the
+   * box's shape (walls); cover: fills the box keeping its shape, the overflow cut off; sprite: on magenta, trimmed and fitted.
+   */
+  fit: 'texture' | 'strip' | 'cover' | 'sprite';
+  /**
+   * A set of variants drawn apart on one picture (props, patches): it becomes a sheet of as many frames as there are
+   * separate pieces (up to MAX_SET_PIECES), whatever the manifest's frame count says.
+   */
+  set?: boolean;
   /** Grey only, for images the game tints (head classes, mist, marks). */
   grey: boolean;
   /** Pieces drawn side by side on one picture, left to right; each becomes its own image, all at the same scale. */
@@ -33,13 +41,20 @@ export interface ImportRule {
 const TINTED = /^(battle_head|battle_head_jaw|battle_mist_puff|battle_shadow|battle_hex_mark|battle_hex_fill|map_glow|map_mark)$/;
 /** battle_head_<class> and battle_head_<class>_jaw (battle_head_jaw itself is the tinted jaw, handled before). */
 const CLASS_HEAD = /^battle_head_([a-z][A-Za-z]*?)(_jaw)?$/;
-const STANDING = /^(battle_body|battle_enemy_.+|map_deco_.+|map_encounter_.+|map_place_.+|map_(lair|shrine|passage|muck|moisture|hydra|remains|hoard|muck_rich|moisture_rich)|portrait_.+)$/;
+const STANDING = /^(battle_body|battle_enemy_.+|map_deco_.+|map_props_.+|map_clump_.+|map_landmark_.+|map_encounter_.+|map_place_.+|map_(lair|shrine|passage|muck|moisture|hydra|remains|hoard|muck_rich|moisture_rich)|portrait_.+)$/;
+/** Sets of variants on one picture (GAME_DESIGN.md §13, "Mapa bliżej Songs of Conquest"). */
+const SET = /^(map_props_.+|map_patches_.+|map_current)$/;
+/** A set keeps at most this many pieces. */
+export const MAX_SET_PIECES = 12;
 /** Open thresholds lie flat on the hex, centred on it, except the timber frame of the Old Workings, which stands. */
 const STANDING_THRESHOLD = /^map_threshold_[A-Za-z]+$|^map_threshold_oldWorkings_open$/;
 
 /** How a picture named after a manifest key is imported. */
 export function ruleFor(key: string): ImportRule {
+  if (key.startsWith('texture_wall_')) return { fit: 'strip', grey: false, parts: [{ key, align: 'center' }] };
   if (key.startsWith('texture_')) return { fit: 'texture', grey: false, parts: [{ key, align: 'center' }] };
+  if (key.startsWith('discovery_')) return { fit: 'cover', grey: false, parts: [{ key, align: 'center' }] };
+  if (SET.test(key)) return { fit: 'sprite', grey: false, set: true, parts: [{ key, align: STANDING.test(key) ? 'bottom' : 'center' }] };
   if (key === 'title_background') return { fit: 'cover', grey: false, parts: [{ key, align: 'center' }] };
   if (key === 'battle_head') {
     // The head and its lower jaw side by side; the jaw hangs under the head in the game (docs/ASSETS.md).
@@ -85,7 +100,7 @@ export function importArt(sources: Picture[], key: string, entries: Record<strin
     const entry = entries[key]!;
     const source = sources[0]!;
     const crop = rule.fit === 'texture' ? centredCrop(source, 1) : centredCrop(source, entry.width / entry.height);
-    if (rule.fit === 'texture' && share(source, (r, g, b) => magentaness(r, g, b) >= 120) > 0.02) {
+    if (rule.fit !== 'cover' && share(source, (r, g, b) => magentaness(r, g, b) >= 120) > 0.02) {
       notes.push(`${key}: a texture should fill the whole picture, but this one has magenta in it (did GPT draw a background?)`);
     }
     if (rule.fit === 'texture' && Math.abs(entry.height / entry.width - TEXTURE_SQUASH) > 0.02) {
@@ -117,9 +132,11 @@ export function importArt(sources: Picture[], key: string, entries: Record<strin
 
   const only = cleaned[0]!;
   const entry = entries[key]!;
-  if (entry.frames !== undefined) {
-    // A sprite sheet: the frames are separate figures on one picture, read left to right.
-    const pieces = splitPieces(only, entry.frames, key);
+  if (entry.frames !== undefined || rule.set) {
+    // A sprite sheet: the frames are separate figures on one picture, read left to right (a set: top row first).
+    const count = rule.set ? Math.min(MAX_SET_PIECES, countPieces(only)) : entry.frames!;
+    if (rule.set && count !== entry.frames) notes.push(`${key}: ${count} pieces found (the prompt asked for ${entry.frames ?? '?'}); the game uses all of them`);
+    const pieces = splitPieces(only, count, key, rule.set);
     const scale = Math.min(...pieces.map((p) => Math.min(entry.width / p.box.width, entry.height / p.box.height)));
     const strip = blank(entry.width * pieces.length, entry.height);
     pieces.forEach((p, i) => paste(strip, place(shrinkBy(p, scale), entry, rule.parts[0]!.align), i * entry.width, 0));
@@ -323,19 +340,40 @@ export function dropSpecks(picture: Picture): Cleaned {
  * Splits a cleaned picture into `count` pieces, left to right: the `count` biggest pieces, each also taking the
  * smaller bits nearest to it (a tooth or a glint drawn apart from the rest).
  */
-function splitPieces(cleaned: Cleaned, count: number, key: string): Cleaned[] {
+/** How many separate figures a set has: pieces at least SET_PIECE_SHARE of the biggest one; smaller bits join the nearest. */
+const SET_PIECE_SHARE = 0.03;
+function countPieces(cleaned: Cleaned): number {
+  const { pieces } = findPieces(cleaned.picture);
+  const largest = Math.max(0, ...pieces.map((p) => p.area));
+  return pieces.filter((p) => p.area >= largest * SET_PIECE_SHARE).length;
+}
+
+function splitPieces(cleaned: Cleaned, count: number, key: string, rows = false): Cleaned[] {
   const { labels, pieces } = findPieces(cleaned.picture);
   const bySize = [...pieces].sort((a, b) => b.area - a.area);
   const main = bySize.slice(0, count);
   const second = bySize[count];
-  if (main.length < count || main[count - 1]!.area < bySize[0]!.area * 0.05) {
+  const minShare = rows ? SET_PIECE_SHARE : 0.05;
+  if (main.length < count || main[count - 1]!.area < bySize[0]!.area * minShare) {
     const big = bySize.filter((p) => p.area >= bySize[0]!.area * 0.05).length;
     throw new ImportError(`${key}: expected ${count} separate pieces, found ${big}. They must not touch each other.`);
   }
-  if (second && second.area >= bySize[0]!.area * 0.25) {
+  if (!rows && second && second.area >= bySize[0]!.area * 0.25) {
     throw new ImportError(`${key}: expected ${count} separate pieces, found more. Remove the extra ones or join them.`);
   }
-  main.sort((a, b) => a.x - b.x);
+  if (rows) {
+    // Top row first, each row left to right: a piece starts a new row when it lies wholly below the row's first one.
+    main.sort((a, b) => a.y - b.y);
+    const ordered: typeof main = [];
+    while (main.length > 0) {
+      const first = main[0]!;
+      const row = main.filter((p) => p.y < first.y + first.height);
+      row.sort((a, b) => a.x - b.x);
+      ordered.push(...row);
+      for (const p of row) main.splice(main.indexOf(p), 1);
+    }
+    main.push(...ordered);
+  } else main.sort((a, b) => a.x - b.x);
   const owner = new Map<number, number>();
   for (const p of pieces) {
     const cx = p.x + p.width / 2;
