@@ -40,14 +40,17 @@ Decyzje Piotra z 2026-10-04. Gracz poznaje ten świat po kawałku, a części od
 
 ## 2. Referencje
 
-- **Tomb Guard** (Studio Siege, demo na Steamie, 2026): główna referencja walki, eventów i stylu. Real-time z pauzą, drużyna z klasami i specjalizacjami, walka aż do bossa, eventy z ryzykiem, błogosławieństwa, odblokowania przez wyzwania, śmierć jako normalna część gry. Pixel art widziany z góry.
+**Wzór całości od 2026-11-07** (decyzja Piotra, etap „Wielki świat”): Songs of Conquest i Heroes of Might and Magic (wygląd, mapy), Terraria (eksploracja, biomy), FTL i Tomb Guard (mechaniki, roguelike, powtarzalność). Świat i poruszanie się po nim są ważniejsze niż bitwy.
+
+- **Tomb Guard** (Studio Siege, demo na Steamie, 2026): główna referencja walki, eventów, stylu i powtarzalności runów. Real-time z pauzą, drużyna z klasami i specjalizacjami, walka aż do bossa, eventy z ryzykiem, błogosławieństwa, odblokowania przez wyzwania, śmierć jako normalna część gry. Pixel art widziany z góry.
 - **Cywilizacja:** ruch po heksach, odsłanianie mapy, mgła wojny na terenach już odkrytych.
-- **Heroes of Might and Magic II:** podział na mapę przygody i osobny ekran bitwy. Wygląd hydry (nasza jest mroczniejsza).
+- **Heroes of Might and Magic II:** podział na mapę przygody i osobny ekran bitwy. Skala i budowa mapy przygody: duża mapa, na każdym ekranie coś do zebrania, drogi. Wygląd hydry (nasza jest mroczniejsza).
 - **Hades:** dialogi z dużym portretem i tekstem, postacie reagujące na to, co się wydarzyło, śmierć jako postęp fabuły.
-- **Sunless Sea:** wzór całości dla fabularnego roguelite'a: eksploracja nieznanego, małe historie przypięte do miejsc, kilka zakończeń, następca po śmierci. Nie bierzemy stamtąd walki na doczepkę: u nas bitwy są rzadsze, ale ważne. (Decyzja Piotra z 2026-10-04.)
+- **Sunless Sea:** wzór historii w roguelicie: eksploracja nieznanego, małe historie przypięte do miejsc, kilka zakończeń, następca po śmierci. Do 2026-11-07 był wzorem całości. Nie bierzemy stamtąd walki na doczepkę: u nas bitwy są rzadsze, ale ważne. (Decyzja Piotra z 2026-10-04.)
 - **Into the Breach:** wygląd bitwy. Plansza widziana pod skosem, wyraźne pola, postacie lekko poruszające się na swoim polu. U nas pola to heksy, a walka toczy się w czasie rzeczywistym, nie w turach.
-- **FTL:** pauza w czasie rzeczywistym: zatrzymujesz, wydajesz rozkazy, puszczasz.
-- **Songs of Conquest:** docelowy styl warstwy eksploracji (mapy przygody).
+- **FTL:** pauza w czasie rzeczywistym: zatrzymujesz, wydajesz rozkazy, puszczasz. Struktura roguelike'a: krótkie decyzje z ryzykiem, losowe eventy, powtarzalność.
+- **Songs of Conquest:** docelowy styl warstwy eksploracji (mapy przygody): teren z wysokością, gęste skupiska roślin i przedmiotów, duże budowle, światło i lekki ruch wszędzie (§13).
+- **Terraria:** eksploracja i biomy. Biom to duża kraina z własnym światłem, dźwiękiem, wrogami i znaleziskami, a wejście do nowego biomu jest wydarzeniem (§9.2).
 - **Key art** (okładka gry): źródło palety i klimatu.
 
 ## 3. Słownik (obowiązuje w kodzie i w tekstach)
@@ -108,11 +111,15 @@ Trzy poziomy pętli:
 ### 5.1 Warstwy
 Dwie osobne mapy heksagonalne: **Underground** (podziemia) i **Surface** (powierzchnia). Łączą je **Passages** (zapadliska, studnie, krypty), czyli heksy przejścia między warstwami. W podziemiach hydra porusza się swobodnie. Na powierzchnię wychodzi tylko przez Passage i tylko na heksy z Mist.
 
-**Podziemia aktu 1 to pierścienie** (decyzja Piotra z 2026-10-04): leże w środku i trzy **Rings** wokół niego (roboczo do 8, 14 i 20 heksów od leża), każdy groźniejszy od poprzedniego. Pierścienie są umowne: mają nierówny kształt i bywają przesunięte względem leża. Oddzielają je pasy litej skały, przez które prowadzi tylko kilka **Thresholds** (§9). Leże łączy się z pierścieniem 1 kilkoma szerokimi wyjściami. Głębsze warstwy przychodzą z kolejnymi aktami (§4).
+**Podziemia aktu 1 to pierścienie** (decyzja Piotra z 2026-10-04): leże w środku i trzy **Rings** wokół niego (roboczo do 15, 28 i 40 heksów od leża; do 2026-11-07 było 8, 14 i 20), każdy groźniejszy od poprzedniego. Pierścienie są umowne: mają nierówny kształt i bywają przesunięte względem leża. Oddzielają je pasy litej skały, przez które prowadzi tylko kilka **Thresholds** (§9). Leże łączy się z pierścieniem 1 kilkoma szerokimi wyjściami. Głębsze warstwy przychodzą z kolejnymi aktami (§4).
+
+**Skala** (decyzja Piotra z 2026-11-07, etap „Wielki świat”): podziemia mają skalę średniej mapy Heroes, roboczo promień 40, czyli 4921 heksów i około 4 ekranów szerokości przy zwykłym zoomie. Eksploracja jest podstawą gry, więc mapa ma być na tyle duża, żeby odkrywanie biomu było wydarzeniem.
 
 ### 5.2 Tury i ruch
 - Warstwa strategiczna jest turowa. Hydra to jeden żeton na mapie.
-- Hydra ma punkty ruchu na turę (startowo 6, roboczo; do M2b było 5). Koszt wejścia na heks zależy od terenu (roboczo: woda 1, błoto 1, korzenie 2, sól 3, lita skała nieprzechodnia).
+- Hydra ma punkty ruchu na turę (startowo 8, roboczo; od 2026-11-07, wcześniej 6, a do M2b 5). Koszt wejścia na heks zależy od terenu (roboczo: woda 1, błoto 1, korzenie 2, sól 3, lita skała nieprzechodnia).
+- **Szybkie szlaki** (decyzja Piotra z 2026-11-07), jak drogi w Heroes: prądy we Flooded Caves niosą hydrę za darmo w stronę nurtu, a stare korytarze w Old Crypts i Salt Mines kosztują połowę. Szlaki dają mapie kształt: wiadomo, którędy opłaca się iść.
+- **Mutacje ruchu** (decyzja Piotra z 2026-11-07), zawsze coś za coś: *Long-bodied* (+1 ruchu, ciało −30 HP), *Eel-Spined* (+2 ruchu w turze, która zaczyna się w wodzie; ciało −20 HP), *Root-Slither* (korzenie kosztują 1 zamiast 2; wzrok −1), *Salt-Crusted Belly* (sól kosztuje 1 zamiast 3; regeneracja −2), *Restless* (+2 ruchu; Alert +1 co turę). Liczby robocze, w danych.
 - Przycisk **End Turn** uruchamia turę świata: ruszają się ludzkie jednostki, Mist na powierzchni zanika, jaja się wykluwają, mogą pojawić się eventy. Sam upływ tur podnosi Alert minimalnie albo wcale (sekcja 8).
 - Na powierzchni obowiązuje cykl dnia i nocy liczony w turach (roboczo 6 tur dnia, 4 tury nocy).
 
@@ -120,7 +127,7 @@ Dwie osobne mapy heksagonalne: **Underground** (podziemia) i **Surface** (powier
 Każdy heks ma jeden z trzech stanów:
 - **Unexplored:** czarny, nic nie wiadomo.
 - **Remembered:** odkryty wcześniej, teraz poza zasięgiem wzroku. Widać przyciemniony teren i obiekty stałe. Ludzie są pokazani jako „ostatnio widziani": wyblakła ikona z informacją, ile tur temu.
-- **Visible:** w zasięgu wzroku (startowo 3 heksy od hydry, roboczo; do M2b były 2). Wszystko aktualne.
+- **Visible:** w zasięgu wzroku (startowo 5 heksów od hydry, roboczo; od 2026-11-07, wcześniej 3, a do M2b 2). Wszystko aktualne.
 
 Zasięg wzroku zmieniają klasy głów, przypadłości, mutacje, kapliczki i noc. Broodlingi-zwiadowcy też odsłaniają mapę. Przesłuchany jeniec może odsłonić jej fragment.
 
@@ -154,6 +161,7 @@ Wyprawa, która dojdzie do leża, wywołuje bitwę obronną. Jeśli hydry nie ma
 - Mist zanika co turę: szybciej w dzień, wolniej w nocy. Wiatr i kapłani z kadzielnicami rozwiewają ją szybciej.
 - Jeśli mgła pod hydrą zniknie, hydra jest **Exposed**: traci HP co turę i ma kary w bitwie, dopóki nie wróci do mgły.
 - Inne cele najazdów: wieże strażnicze, młyny, wsie, obozy Zakonu. Zniszczenie celu daje łupy albo jeńców.
+- Powierzchnia ma ten sam rozmiar co podziemia, więc rośnie razem z nimi (decyzja Piotra z 2026-11-07): więcej wsi i obozów, a kapliczek Płomienia dalej 5.
 
 ### 5.7 Płomienie i zwycięstwo
 - Na powierzchni płoną **Flame Shrines**, kapliczki podtrzymujące Wieczny Płomień w katedrze na zamku.
@@ -163,6 +171,11 @@ Wyprawa, która dojdzie do leża, wywołuje bitwę obronną. Jeśli hydry nie ma
 
 ### 5.8 Technicznie
 Współrzędne osiowe (axial q, r), heksy pointy-top, algorytmy według przewodnika Red Blob Games „Hexagonal Grids". Wszystkie operacje na heksach (sąsiedzi, dystans, zasięg, linia wzroku, zamiana piksel↔heks) w czystym TypeScripcie, pokryte testami.
+
+### 5.9 Widok mapy
+Decyzja Piotra z 2026-11-07:
+- Zoom kółkiem myszy i dwoma palcami (od M7) oraz przełącznik **Blisko / Daleko**: przycisk na mapie i opcja w menu, zapamiętane w ustawieniach. Blisko (roboczo 2×): hydra duża, około 10 heksów w poprzek ekranu. Daleko (roboczo 0,6×): hydra mała, około 35 heksów w poprzek.
+- Przy oddaleniu ikony miejsc i wrogów rosną względem terenu, jak w Heroes, żeby nie znikały.
 
 ## 6. Walka (warstwa taktyczna)
 
@@ -363,7 +376,7 @@ Woda (Body szybsze, powolne leczenie), błoto, suchy grunt (Body wolniejsze), ch
 
 - Generator jest deterministyczny, działa z ziarna (seed). Wszystkie losowania w symulacji idą przez własny generator liczb losowych z ziarnem, nigdy przez `Math.random()`.
 - Seed jest widoczny w menu pauzy, a parametr URL `?seed=` odtwarza run (do testów i do dzielenia się mapą ze znajomymi).
-- Podziemia są duże (roboczo promień 20, czyli 1261 heksów w akcie 1), bo mają wystarczyć na długie wyprawy.
+- Podziemia są duże (roboczo promień 40, czyli 4921 heksów w akcie 1, skala średniej mapy Heroes; do 2026-11-07 promień 20), bo eksploracja jest podstawą gry (§5.1).
 - Biomy podziemi: Flooded Caves, Root Tangle, Old Crypts (ludzkie katakumby), Salt Mines (sucho i groźnie), Fungal Deeps.
 - Powierzchnia ma osobny generator: zamek z katedrą Wiecznego Płomienia na wzgórzu po przeciwnej stronie, kapliczki Płomienia rozsiane po krainie, wsie, pola, las, rzeka, obozy Zakonu. Mgła startowo tylko przy wyjściach z Passages.
 
@@ -384,6 +397,13 @@ Udziały i wagi są robocze i żyją w danych.
 | 3 | Fungal Deeps | Old Crypts, Salt Mines, Flooded Caves, Root Tangle |
 
 Wtrącenie to cała komora w obcym biomie, zawsze z jedną rzeczą z tego biomu. Ma zaskakiwać i zapowiadać, co czeka dalej.
+
+**Biom jako kraina, jak w Terrarii** (decyzja Piotra z 2026-11-07, etap „Wielki świat”):
+- **Duże, zwarte biomy:** pierścień ma 2–3 biomy po roboczo 300–800 heksów, czyli kilka ekranów każdy. Wtrącenia zostają jako zapowiedź.
+- **Zapowiedź z daleka:** światło i kolor biomu prześwitują przez ciemność na jego granicy; landmarki widać przez skałę, echa słychać zza zakrętu (§9.4).
+- **Moment odkrycia:** pierwszy krok w biom, którego ta hydra jeszcze nie widziała: duża nazwa biomu na ekranie, własny dźwięk tła biomu, krótka kwestia którejś głowy. Księga zapisuje, które pokolenie odkryło biom pierwsze.
+- **Coś, czego nie ma gdzie indziej:** każdy biom ma własne znaleziska i jedną własną zasadę na mapie (lista do zatwierdzenia, §16).
+- **Zajrzeć i uciec:** na dużej mapie hydra często widzi krawędź groźniejszego biomu, zanim jest na niego gotowa.
 
 ### 9.3 Thresholds
 Na granicy pierścieni stoją 2–4 progi, co najmniej 1/5 obwodu od siebie. Zawsze jest wśród nich Draught Crack, więc żadna granica nie wymaga klucza.
@@ -493,6 +513,7 @@ Na granicy pierścieni stoją 2–4 progi, co najmniej 1/5 obwodu od siebie. Zaw
 
 - Bitwa widziana pod skosem: plansza z heksów jak gruba płyta, postacie stojące. Warstwa eksploracji docelowo w stylu Songs of Conquest.
 - Mapa w stylu Songs of Conquest (decyzja Piotra z 2026-10-05, etap „Wygląd mapy”, §15): ziemia jest jedną powierzchnią bez widocznej siatki i szwów między heksami, z nieregularnymi granicami terenów i spokojnymi teksturami, na których odcinają się rzeczy. Rzeczy mają cień pod sobą. Zasięg ruchu to jedna linia wokół obszaru i ścieżka do wskazanego heksa, a nie obwódka na każdym heksie. Podziemia są ciemne, a światło dają hydra, świecące grzyby i miejsca. Brzeg poznanej mapy łagodnie ginie w ciemności.
+- **Mapa bliżej Songs of Conquest** (decyzja Piotra z 2026-11-07, etap „Wielki świat”): najwięcej dają gęstość i wysokość, nie lepsze pojedyncze obrazki. Teren ma wysokość (tarasy, zapadliska, ściany, rampy). Rośliny i przedmioty stoją ławicami, w gęstych skupiskach, z losową skalą i odbiciem, a hydra chowa się za nimi. Podłoże ma plamy (mech, kałuże, sól) i miękkie przejścia między biomami. Miejsca i landmarki zajmują 2–4 heksy. Wszystko lekko żyje (migotanie wody, zarodniki, krople, świetliki, kołysanie trzcin i korzeni), animowane w kodzie z pojedynczych obrazków. Każdy biom ma własne światło otoczenia, kolor i mgiełkę głębi. Nowe grafiki najpierw na próbę dla Flooded Caves, pozostałe biomy po akceptacji Piotra.
 - Portrety w dialogach (głowy, Old Mother Toad, jeńcy, Mistrzowie Zakonu, przodkowie): malowane, w stylu okładki i Hadesa (mocne kontury, płaskie plamy koloru, ostre światło), wycięte z tła i pokazywane w pełnej rozdzielczości ekranu nad grą pixelową. Portret głowy jest też wzorem, z którego powstaje pixelowa głowa do bitwy. (Decyzje Piotra z 2026-10-04; wcześniej portrety miały być pixelowymi popiersiami.)
 - The Hushed widać tylko na niewyraźnych grafikach, jak ryciny ze starych ksiąg: nie do końca wiadomo, czy to humanoidy, czy bliżej im do węży. (Decyzja Piotra z 2026-10-04.)
 - Napisy w kroju „Księga”, jak ze starej drukowanej księgi: tytuły, nazwy i okrzyki w bitwie krojem IM Fell English SC, dłuższe teksty (opisy miejsc, błogosławieństwa, Game Over) krojem Alegreya, reszta interfejsu (paski, karty głów, przyciski, komunikaty) krojem Alegreya Sans. Kroje są na licencji OFL; to wyjątek od zasady darmowych paczek CC0 (niżej). (Decyzja Piotra z 2026-10-06, etap „Wygląd mapy”; wcześniej czcionki systemowe przeglądarki.)
@@ -516,7 +537,7 @@ Na granicy pierścieni stoją 2–4 progi, co najmniej 1/5 obwodu od siebie. Zaw
 
 Zasada: po każdym etapie gra jest wdrożona i grywalna pod linkiem, a Claude Code zatrzymuje się na playtest.
 
-**Kolejność od 2026-10-04** (decyzja Piotra po zmianie kierunku na fabularny roguelite, sekcja 1): M2c, M5, M6, M2a, M3, M4, M7. Etapy zachowują swoje nazwy, więc numery nie oznaczają już kolejności. 2026-10-05 Piotr wstawił po M2c etap „Wygląd mapy”.
+**Kolejność od 2026-10-04** (decyzja Piotra po zmianie kierunku na fabularny roguelite, sekcja 1): M2c, M5, M6, M2a, M3, M4, M7. Etapy zachowują swoje nazwy, więc numery nie oznaczają już kolejności. 2026-10-05 Piotr wstawił po M2c etap „Wygląd mapy”. 2026-11-07, po M7, Piotr wstawił etap „Wielki świat”; bitwy czekają, świat i poruszanie się po nim są ważniejsze.
 
 **M0: fundament.** Projekt (Vite + TypeScript + Phaser 4), testy, skrypt do zrzutów ekranu, repo na GitHubie, automatyczne wdrożenie na GitHub Pages. Ekran startowy dostępny pod linkiem.
 
@@ -548,7 +569,11 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 
 **M7 i dalej: finał i szlif.** Szturm na zamek i zwycięstwo, dźwięk, podmiana grafiki, balans, pełne sterowanie dotykowe. Plan i pytania A–E: dokument Claude „Hydra M7: szturm na zamek i finał” (2026-11-01). Piotr napisał „Kontynuuj co możesz samemu”, więc szturm, zwycięstwo, dźwięk, menu w grze i dotyk są zbudowane na odpowiedziach polecanych przez Claude, z liczbami w `src/data/castle.json` i `src/data/sounds.json` (`TODO(design)`); decyzje trafią tu po odpowiedziach Piotra (§16). Podmiana grafiki i balans czekają na obrazki i playtest, pozostałe zakończenia na decyzję (§16).
 
+**Wielki świat** (decyzja Piotra z 2026-11-07, dokument Claude „Hydra: większy świat i eksploracja”; zgoda na wszystkie polecane odpowiedzi). Podziemia i powierzchnia o promieniu 40 (§5.1, §5.6, §9), duże biomy z momentem odkrycia (§9.2), wzrok 5 i ruch 8, szybkie szlaki i mutacje ruchu (§5.2, §5.3), widok Blisko / Daleko (§5.9), mapa bliżej Songs of Conquest (§13). Grafiki: najpierw próba Flooded Caves, pozostałe biomy po akceptacji. Pytania o bitwy z M3, M4 i M7 (§16) czekają; gra działa na polecanych odpowiedziach.
+
 ## 16. Otwarte pytania (decyduje Piotr, nie zgadywać)
+
+- **Zasady biomów na mapie (Wielki świat, §9.2):** każdy biom ma mieć jedną własną zasadę na mapie. Prądy we Flooded Caves są już zatwierdzone jako szybkie szlaki (§5.2). Propozycje Claude dla reszty do zatwierdzenia, np. chmury zarodników w Fungal Deeps zasłaniają widok.
 
 - Ile kapliczek Płomienia trzeba zgasić, żeby zamek stał się celem (roboczo: wszystkie).
 - **Odrost (pomysł Piotra po playteście M1b):** nowe głowy są mniejsze i na początku zadają połowę obrażeń, żeby odrost nie dawał od razu siły. Głowy potem rosną, i dlatego z czasem hydra jest mocna. Do ustalenia: od czego rosną (doświadczenie z walk, błogosławieństwa, czas). Decyzja Piotra z 2026-10-23: jeszcze nie wprowadzamy; najpierw gra z pełnym składem klas.
