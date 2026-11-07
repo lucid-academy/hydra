@@ -25,6 +25,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # Pictures Piotr put in art/raw/ go into the game at once, even before Claude imports them by hand (scripts/art.mjs).
+      - run: npm run art || echo "::warning::npm run art failed for some pictures, see the log above"
       - run: npm run typecheck
       - run: npm test
       - run: npm run build

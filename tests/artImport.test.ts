@@ -190,6 +190,27 @@ describe('importing pictures', () => {
     expect(Math.min(...columns(26))).toBeGreaterThanOrEqual(12);
   });
 
+  it('makes a set of props into as many frames as there are pieces, top row first, at one common scale', () => {
+    // Two rows: a tall piece and a small one on top, three small ones below (GPT rarely draws the count asked for).
+    const boxes = [[20, 10, 60, 90], [120, 60, 140, 90], [20, 150, 40, 170], [80, 150, 100, 170], [140, 150, 160, 170]] as const;
+    const src = picture(200, 200, (x, y) => (boxes.some(([x0, y0, x1, y1]) => inside(x, y, x0, y0, x1, y1)) ? GREEN : MAGENTA));
+    const { images, notes } = importArt([src], 'map_props_floodedCaves', entries, null);
+    expect(images[0]!.frames).toBe(5);
+    expect(notes.join(' ')).toMatch(/5 pieces found/);
+    const { width, height } = entries['map_props_floodedCaves']!;
+    expect([images[0]!.picture.width, images[0]!.picture.height]).toEqual([width * 5, height]);
+    // The first frame is the tall piece, filling the frame's height; the small ones keep their size next to it.
+    const tall = opaqueBox({ ...images[0]!.picture, data: images[0]!.picture.data }).maxY;
+    expect(tall).toBe(height - 1);
+  });
+
+  it('cuts a wall strip to its shape without squashing it', () => {
+    const src = picture(300, 200, (x, y) => (y < 100 ? [90, 90, 90, 255] : [30, 30, 30, 255]));
+    const { images } = importArt([src], 'texture_wall_floodedCaves', entries, null);
+    const { width, height } = entries['texture_wall_floodedCaves']!;
+    expect([images[0]!.picture.width, images[0]!.picture.height]).toEqual([width, height]);
+  });
+
   it('matches colours to the palette when there is one', () => {
     const src = picture(2, 1, (x) => (x === 0 ? [250, 10, 10, 255] : [10, 10, 240, 255]));
     const out = toPalette(src, [[255, 0, 0], [0, 0, 255], [0, 0, 0]]);

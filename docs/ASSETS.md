@@ -483,3 +483,22 @@ Each part of the assault is fought on its own board (castle.json `parts`, `arena
 ### dialogue_grandMaster (later)
 
 Grand Master Vell speaks in dialogues (`grandMaster` in `src/data/dialogues.json`) and stands on the right, like Old Mother Toad. He has no portrait yet: his name and words show without one. A painted portrait like the heads' (see `dialogue_<class>`) gets the manifest key `dialogue_grandMaster` and shows with no change in code.
+
+## The Big World (2026-11-07)
+
+Art for a map closer to Songs of Conquest (GAME_DESIGN.md §13, "Mapa bliżej Songs of Conquest"): dense clusters, walls with height, ground patches, big landmarks and a vista for the moment a biome is discovered. One set per biome (`lairSwamp`, `floodedCaves`, `rootTangle`, `oldCrypts`, `saltMines`, `fungalDeeps`; the lair swamp has no vista, it is home). Prompts: `docs/ART_PROMPTS.md`, section "Wielki świat". Until a picture comes, the game goes on without it (the placeholder is empty), so each one can arrive on its own.
+
+Sizes are screen units (the file has twice the pixels in each direction, §13).
+
+| Key | Size | Frames | Anchor | Background | What |
+|---|---|---|---|---|---|
+| map_props_&lt;biome&gt; | 24×28 per frame | a set: as many as the picture has pieces, up to 12 (the prompt asks for 8) | bottom middle (where it stands) | transparent | small props; the game scatters them in clumps, several to a hex, some mirrored |
+| map_patches_&lt;biome&gt; | 40×20 per frame | a set, up to 12 (the prompt asks for 6) | centre | transparent | flat patches painted onto the ground, under everything |
+| map_clump_&lt;biome&gt;_&lt;name&gt; | 64×56 | 1 | bottom middle | transparent | a dense group (a stalagmite forest, a reed bed) on 2–3 hexes; the game stands it in chambers and the hydra shows through it |
+| texture_wall_&lt;biome&gt; | 96×32 | 1 | – | none: fills the picture | the face of a wall seen from the front; repeated sideways under raised ground and rock |
+| map_landmark_&lt;biome&gt; | 88×96 | 1 | bottom middle | transparent | the biome's landmark, about 3 hexes wide; replaces the small `map_place_<landmark>` on the map |
+| map_current | 30×14 per frame | a set, up to 12 (the prompt asks for 3) | centre | transparent | foam flecks the game slides along the currents of the Flooded Caves |
+| discovery_&lt;biome&gt; | 640×240 | 1 | – | none: fills the picture | the vista shown across the screen with the biome's name when the hydra first enters it; cropped from the middle of the picture (`cover`) |
+
+- **Sets** (`map_props_`, `map_patches_`, `map_current`): the import finds the separate pieces on the picture, top row first, and shrinks them all by one scale, so their sizes stay as drawn relative to each other. A piece smaller than 3% of the biggest joins the nearest one (a glint drawn apart from its lily).
+- **Walls** (`texture_wall_`): cut from the middle of the picture to 3:1 and shrunk, not squashed (they are seen from the front).
