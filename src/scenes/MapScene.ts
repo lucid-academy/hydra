@@ -23,6 +23,8 @@ import { color, getContext } from './context';
 import { hexOutlines, roundCorners } from './hexOutline';
 import { MapGround } from './mapGround';
 import { OrderTokens } from './mapOrder';
+import { biomeScenery, hasPicture, planBigClumps } from './mapScenery';
+import type { BiomeScenery } from './mapScenery';
 import { LIGHT_TEXTURE, LIGHT_TEXTURE_SIZE, MapLight, SHADOW_TEXTURE, SHADOW_TEXTURE_WIDTH, SURFACE_AMBIENT, makeSoftTextures } from './mapLight';
 import type { Light } from './mapLight';
 import { lineages } from './LineageKeeper';
@@ -152,6 +154,15 @@ const PLACE_GLOWS: Readonly<Record<string, { tint: string; scale: number; alpha:
 
 /** Decorations come in clumps around an anchor hex (a ring of mushrooms, a heap of bones), not sprinkled evenly. */
 const CLUMP = { pieces: [3, 7] as const, perChamberHexes: 9, loneChance: 0.12, favouriteShare: 0.7 };
+/**
+ * One small decoration: an older one by its kind (map_deco_<kind>), or a frame of the biome's props sheet
+ * (map_props_<biome>) once it has one.
+ */
+type Piece = DecorationKind | number;
+/** Flat patches on the ground (map_patches_<biome>): how often an open hex gets one, and how strong they are. */
+const PATCHES = { chance: 0.4, alpha: 0.9 } as const;
+/** Big clumps (map_clump_*) stand on a shadow this share of their width. */
+const BIG_CLUMP_SHADOW = 0.7;
 /** On the surface: trees on every forest hex (from, to), and how often an open hex gets a lone decoration. */
 const SURFACE_DECOR = { trees: [2, 3] as const, loneChance: 0.18 };
 /**
@@ -203,6 +214,8 @@ export class MapScene extends Phaser.Scene {
   private token!: Phaser.GameObjects.Image;
   /** How much bigger the hydra and the things worth finding are drawn now (the Far view grows them). */
   private iconScale = 1;
+  /** The Big World pictures each biome has, as found when the map was drawn. */
+  private scenery = new Map<string, BiomeScenery>();
   /** The view the player last switched to (until the wheel or fingers zoom the map again). */
   private chosenView: MapView | null = null;
   private animating = false;
@@ -330,7 +343,11 @@ export class MapScene extends Phaser.Scene {
   }
 
   private drawMap(): void {
-    const clumps = this.onSurface ? new Map<string, DecorationKind[]>() : this.planClumps();
+    this.scenery = new Map();
+    const clumps = this.onSurface ? new Map<string, Piece[]>() : this.planClumps();
+    const bigClumps = this.onSurface ? [] : planBigClumps(this.run.state.map, this.run.state.seed, (biome) => this.sceneryOf(biome));
+    const bigAt = new Map(bigClumps.map((c) => [hexKey(c.anchor), c.key]));
+    const covered = new Set(bigClumps.flatMap((c) => c.covers.map(hexKey)));
     const { data } = getContext(this);
     this.ground = new MapGround(this, this.shown, data, LAYOUT, this.run.state.seed, {
       ground: DEPTH.ground,
@@ -367,8 +384,14 @@ export class MapScene extends Phaser.Scene {
         whispered: false,
       };
       if (tile.terrain !== 'rock' && !tile.object) {
+        const key = hexKey(tile.hex);
         if (this.onSurface) this.decorateSurface(view, x, y);
-        else this.decorate(view, x, y, clumps.get(hexKey(tile.hex)));
+        else {
+          this.patchGround(view, x, y);
+          const big = bigAt.get(key);
+          if (big) this.putBigClump(view, x, y, big);
+          else if (!covered.has(key)) this.decorate(view, x, y, clumps.get(key));
+        }
       }
       this.views.set(hexKey(tile.hex), view);
       this.syncObject(view);
@@ -391,7 +414,7 @@ export class MapScene extends Phaser.Scene {
    * Anchors of decoration clumps, and what grows at each hex near one: a few per chamber, sometimes one in a corridor.
    * Each clump has a favourite kind from its biome's list, so it reads as one thing (a ring of mushrooms, a bone heap).
    */
-  private planClumps(): Map<string, DecorationKind[]> {
+  private planClumps(): Map<string, Piece[]> {
     const { biomes } = getContext(this).data;
     const { map } = this.run.state;
     const rng = new Rng(this.hexSeed(map.lair) ^ 0xdec0);
@@ -403,9 +426,10 @@ export class MapScene extends Phaser.Scene {
     const openTiles = [...map.tiles.values()].filter((t) => t.terrain !== 'rock' && t.region === 'ring');
     for (const tile of openTiles) if (rng.chance(CLUMP.loneChance / 6)) anchors.push(tile.hex);
 
-    const pieces = new Map<string, DecorationKind[]>();
+    const pieces = new Map<string, Piece[]>();
     for (const anchor of anchors) {
-      const kinds = biomes.biomes[map.tiles.get(hexKey(anchor))?.biome ?? '']?.decorations ?? [];
+      const biome = map.tiles.get(hexKey(anchor))?.biome ?? '';
+      const kinds = this.piecesOf(biome, biomes.biomes[biome]?.decorations ?? []);
       if (kinds.length === 0) continue;
       const favourite = rng.pick(kinds);
       const spots = [anchor, ...hexNeighbors(anchor)].filter((h) => {
@@ -426,25 +450,80 @@ export class MapScene extends Phaser.Scene {
     return pieces;
   }
 
+  /** What a biome scatters: the frames of its props sheet once it has one, else its older decorations. */
+  private piecesOf(biome: string, decorations: readonly DecorationKind[]): Piece[] {
+    const { props } = this.sceneryOf(biome);
+    return props > 0 ? Array.from({ length: props }, (_, i) => i) : [...decorations];
+  }
+
+  /** The Big World pictures a biome has (worked out once per map scene). */
+  private sceneryOf(biome: string): BiomeScenery {
+    let scenery = this.scenery.get(biome);
+    if (!scenery) {
+      scenery = biomeScenery(this, getContext(this).data, biome);
+      this.scenery.set(biome, scenery);
+    }
+    return scenery;
+  }
+
   /** Decorations on an open hex: its share of a clump, or now and then a lone one from the biome's list. */
-  private decorate(view: HexView, x: number, y: number, clump: DecorationKind[] | undefined): void {
+  private decorate(view: HexView, x: number, y: number, clump: Piece[] | undefined): void {
     const biome = getContext(this).data.biomes.biomes[view.tile.biome];
-    if (!biome || biome.decorations.length === 0) return;
+    if (!biome) return;
+    const scenery = this.sceneryOf(view.tile.biome);
+    const choices = this.piecesOf(view.tile.biome, biome.decorations);
+    if (choices.length === 0) return;
     const rng = new Rng(this.hexSeed(view.tile.hex));
-    const kinds = clump ?? (rng.chance(CLUMP.loneChance) ? [rng.pick(biome.decorations)] : []);
-    for (let kind of kinds) {
-      // Only reeds grow out of water.
-      if (view.tile.terrain === 'water' && kind !== 'reeds') {
+    const pieces = clump ?? (rng.chance(CLUMP.loneChance) ? [rng.pick(choices)] : []);
+    const inWater = view.tile.terrain === 'water';
+    for (let piece of pieces) {
+      if (typeof piece === 'number') {
+        // Props from the sheet: some stand in water (reeds, lilies), the others on dry ground.
+        const fitting = inWater ? scenery.propsInWater : scenery.propsOnGround;
+        if (!fitting.includes(piece)) {
+          if (fitting.length === 0) continue;
+          piece = rng.pick(fitting);
+        }
+      } else if (inWater && piece !== 'reeds') {
+        // Only reeds grow out of water.
         if (!biome.decorations.includes('reeds')) continue;
-        kind = 'reeds';
+        piece = 'reeds';
       }
       const px = x + rng.int(-9, 9);
       const py = y + rng.int(-4, 5);
-      const prop = this.add.image(px, py, `map_deco_${kind}`).setOrigin(0.5, 1).setDepth(this.standingDepth(py));
+      const sheet = typeof piece === 'number';
+      const prop = (sheet ? this.add.image(px, py, `map_props_${view.tile.biome}`, piece) : this.add.image(px, py, `map_deco_${piece}`))
+        .setOrigin(0.5, 1)
+        .setFlipX(rng.chance(0.5))
+        .setDepth(this.standingDepth(py));
       view.props.push(prop);
-      if (!FLAT_DECORATIONS.includes(kind)) view.shadows.push(this.contactShadow(px, py, prop.width));
-      if (GLOWING_DECORATIONS.includes(kind)) view.propGlows.push(this.glow(px, py - 9, biome.colors.glow, 0.55, 0.5, py));
+      const flat = !sheet && FLAT_DECORATIONS.includes(piece as DecorationKind);
+      if (!flat) view.shadows.push(this.contactShadow(px, py, prop.width));
+      const glowing = sheet ? scenery.glowingProps.includes(piece as number) : GLOWING_DECORATIONS.includes(piece as DecorationKind);
+      if (glowing) view.propGlows.push(this.glow(px, py - Math.min(9, prop.height / 2), biome.colors.glow, 0.55, 0.5, py));
     }
+  }
+
+  /** Now and then a flat patch on the ground (silt, moss, cracked flagstones), once the biome has its patches sheet. */
+  private patchGround(view: HexView, x: number, y: number): void {
+    const { patches } = this.sceneryOf(view.tile.biome);
+    if (patches === 0) return;
+    const rng = new Rng(this.hexSeed(view.tile.hex) ^ 0x9a7c);
+    if (!rng.chance(PATCHES.chance)) return;
+    const patch = this.add
+      .image(x + rng.int(-6, 6), y + rng.int(-3, 3), `map_patches_${view.tile.biome}`, rng.int(0, patches - 1))
+      .setFlipX(rng.chance(0.5))
+      .setAlpha(PATCHES.alpha)
+      .setDepth(DEPTH.decal);
+    view.props.push(patch);
+  }
+
+  /** A big clump (a wood of stalagmites, a heap of skulls) standing on its hex against the back wall. */
+  private putBigClump(view: HexView, x: number, y: number, key: string): void {
+    const feet = y + MAP_FEET_BELOW_HEX_CENTER;
+    const clump = this.add.image(x, feet, key).setOrigin(0.5, 1).setFlipX(new Rng(this.hexSeed(view.tile.hex)).chance(0.5)).setDepth(this.standingDepth(feet));
+    view.props.push(clump);
+    view.shadows.push(this.add.image(x, feet - 1, SHADOW_TEXTURE).setScale((clump.width * BIG_CLUMP_SHADOW) / SHADOW_TEXTURE_WIDTH).setAlpha(PLACE_FOOTING.alpha).setDepth(DEPTH.shadow));
   }
 
   /** On the surface: trees in the woods, now and then something lying in a field, reeds by the river. */
@@ -468,6 +547,7 @@ export class MapScene extends Phaser.Scene {
   /** Image key of an object as it is now, or null when nothing is drawn (a hidden threshold looks like plain rock). */
   private objectKey(object: MapObject | null): string | null {
     if (!object) return null;
+    const { world, biomes } = getContext(this).data;
     switch (object.kind) {
       case 'encounter':
         return `map_encounter_${Math.min(3, object.tier)}`;
@@ -477,7 +557,9 @@ export class MapScene extends Phaser.Scene {
       case 'threshold':
         return object.state === 'hidden' ? null : object.state === 'closed' ? `map_threshold_${object.thresholdId}` : `map_threshold_${object.thresholdId}_open`;
       case 'place':
-        return `map_place_${object.placeId}`;
+        return this.landmarkPicture(world.places[object.placeId]?.type === 'landmark' ? world.places[object.placeId]?.biome : undefined) ?? `map_place_${object.placeId}`;
+      case 'lair':
+        return this.landmarkPicture(biomes.lairBiome) ?? 'map_lair';
       case 'event':
         return object.done ? null : 'map_event';
       case 'flameShrine':
@@ -494,6 +576,13 @@ export class MapScene extends Phaser.Scene {
       default:
         return `map_${object.kind}`;
     }
+  }
+
+  /** A biome's big landmark picture (map_landmark_<biome>, the Big World), once it exists. */
+  private landmarkPicture(biome: string | undefined): string | null {
+    if (!biome) return null;
+    const key = `map_landmark_${biome}`;
+    return hasPicture(this, getContext(this).data, key) ? key : null;
   }
 
   /** Redraws the object on a hex if it has changed (taken, opened...), with its light if it has one. */

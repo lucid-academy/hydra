@@ -77,6 +77,11 @@ export type SurfaceKind = 'ground' | 'water' | 'rock';
 export interface GroundTexture {
   pixels: Pixels;
   kind: SurfaceKind;
+  /**
+   * Rock only: the face of its cliffs seen from the front (texture_wall_<biome>), its top edge the lip and its bottom
+   * the foot. Without it, cliffs show the rock texture, shaded.
+   */
+  wall?: Pixels;
 }
 
 export interface GroundSpec {
@@ -121,6 +126,8 @@ const CALM: Record<SurfaceKind, { contrast: number; maxBrightness: number; brigh
 const ROCK_TOP = { shade: 0.6, inner: 0.72, frontEdge: 1.45, backEdge: 0.7, innerReach: 9 };
 /** Cliffs: lit from the left, dark on the right, darker at the foot, a bright line along the top. */
 const CLIFF = { left: 0.66, middle: 0.52, right: 0.4, foot: 0.75, topLine: 1.25 };
+/** A cliff painted from a wall picture keeps the picture's own light, shaded only a little by which way it faces. */
+const WALL = { left: 1, middle: 0.9, right: 0.78, topLine: 1.15 };
 /** Ground in the shadow of rock (to its lower right), how dark at most and how far it reaches (screen units). */
 const SHADOW = { darkest: 0.5, steps: 5, stepX: 1.4, stepY: 1, footDark: 0.78 };
 /** Water's edge: wet ground darker, a light line on the water. */
@@ -134,7 +141,15 @@ const LOOK_AROUND = 10;
 
 export class GroundPainter {
   private readonly liftPx: number;
-  private readonly textures: Array<{ data: Uint8ClampedArray; width: number; height: number; kind: SurfaceKind; offsetX: number; offsetY: number }>;
+  private readonly textures: Array<{
+    data: Uint8ClampedArray;
+    width: number;
+    height: number;
+    kind: SurfaceKind;
+    offsetX: number;
+    offsetY: number;
+    wall: { data: Uint8ClampedArray; width: number; height: number } | null;
+  }>;
   /** Which hex each pixel lies in (borders already wandering), worked out in tiles of 64×64 pixels when first needed. */
   private readonly idTiles = new Map<number, Int32Array>();
   private readonly tilesAcross: number;
@@ -154,6 +169,7 @@ export class GroundPainter {
       // Each texture starts at its own place, so two areas of different textures don't share a pattern.
       offsetX: Math.floor(hash(i, 1, spec.seed) * t.pixels.width),
       offsetY: Math.floor(hash(i, 2, spec.seed) * t.pixels.height),
+      wall: t.wall ? calm(t.wall, 'rock') : null,
     }));
     this.water = Uint8Array.from(textures, (t) => (t.kind === 'water' ? 1 : 0));
   }
@@ -262,6 +278,13 @@ export class GroundPainter {
           }
           // Which way the cliff faces: rock to the left of its foot means its edge rises to the right (it faces right).
           const facing = (rockAt(x - facingStep, y + foot) ? 1 : 0) - (rockAt(x + facingStep, y + foot) ? 1 : 0);
+          const wall = this.textures[lookTexture[id]!]?.wall;
+          if (wall) {
+            let wallShade = facing < 0 ? WALL.left : facing > 0 ? WALL.right : WALL.middle;
+            if (foot === lift - 1) wallShade *= WALL.topLine;
+            put(out.data, o, this.sampleWall(wall, x, lift - 1 - foot), wallShade);
+            continue;
+          }
           let shade = facing < 0 ? CLIFF.left : facing > 0 ? CLIFF.right : CLIFF.middle;
           shade *= CLIFF.foot + (1 - CLIFF.foot) * ((foot + 0.5) / lift);
           if (foot === lift - 1) shade *= CLIFF.topLine;
@@ -478,6 +501,18 @@ export class GroundPainter {
     const ty = (((y + t.offsetY) % t.height) + t.height) % t.height;
     const i = (ty * t.width + tx) * 4;
     return (t.data[i]! << 16) | (t.data[i + 1]! << 8) | t.data[i + 2]!;
+  }
+
+  /**
+   * A wall picture's colour on a cliff, `down` pixels below its lip: the whole picture, top to bottom, fits the
+   * cliff's height, and it repeats along the cliff at the same scale.
+   */
+  private sampleWall(wall: { data: Uint8ClampedArray; width: number; height: number }, x: number, down: number): number {
+    const scale = wall.height / this.liftPx;
+    const ty = Math.min(wall.height - 1, Math.floor((down + 0.5) * scale));
+    const tx = ((Math.floor(x * scale) % wall.width) + wall.width) % wall.width;
+    const i = (ty * wall.width + tx) * 4;
+    return (wall.data[i]! << 16) | (wall.data[i + 1]! << 8) | wall.data[i + 2]!;
   }
 
   /** Slow lighter and darker patches over the ground. */

@@ -348,7 +348,13 @@ function prepare(scene: Phaser.Scene, map: LayerMap, data: GameData, layout: Hex
       textureIndex.set(key, textures.length);
       const grounds: Readonly<Record<string, string | undefined>> = def.colors.grounds ?? {};
       const colour = kind === 'rock' ? def.colors.rock : (grounds[terrain] ?? (kind === 'water' ? def.colors.water : def.colors.ground));
-      textures.push({ kind, pixels: scene.textures.exists(key) && (data.manifest.images[key]?.file ?? null) !== null ? readPixels(scene, key) : speckled(colour, key) });
+      const hasPicture = (k: string) => scene.textures.exists(k) && (data.manifest.images[k]?.file ?? null) !== null;
+      const wallKey = `texture_wall_${biome}`;
+      textures.push({
+        kind,
+        pixels: hasPicture(key) ? readPixels(scene, key) : speckled(colour, key),
+        ...(kind === 'rock' && hasPicture(wallKey) ? { wall: readPixels(scene, wallKey) } : {}),
+      });
     }
   }
 
