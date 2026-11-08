@@ -84,12 +84,24 @@ export interface Lineage {
   rngState: number;
 }
 
+/** A biome in the Book of Lineages: the first hydra who entered it. */
+export interface LandFound {
+  biome: string;
+  /** Her name with its number, her lineage's name, her generation. */
+  hydra: string;
+  lineage: string;
+  generation: number;
+}
+
 /** What the account keeps whatever happens to its lineages. */
 export interface Profile {
   /** Every lineage, first first; the last one is played unless it has ended. */
   lineages: Lineage[];
-  /** World knowledge: flags of scope 'world', and places (world.json ids) any hydra has seen. */
-  knowledge: { flags: string[]; placesSeen: string[] };
+  /**
+   * World knowledge: flags of scope 'world', and places (world.json ids) any hydra has seen. landsFound (the Big World,
+   * GAME_DESIGN.md §9.2): each biome any hydra has entered, and who entered it first (older saves have none yet).
+   */
+  knowledge: { flags: string[]; placesSeen: string[]; landsFound?: LandFound[] };
   /** Run modifiers unlocked (world.json runModifiers). */
   unlocked: string[];
 }

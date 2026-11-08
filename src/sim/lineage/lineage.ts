@@ -94,6 +94,16 @@ export function remember(profile: Profile, lineage: Lineage, run: RunState, rule
   for (const tile of run.map.tiles.values()) {
     if (tile.object?.kind === 'place' && run.visibility.has(hexKey(tile.hex))) addOnce(profile.knowledge.placesSeen, tile.object.placeId);
   }
+  noteLandsFound(profile, lineage, run);
+}
+
+/** Biomes she entered that no hydra had before go into the Book under her name. */
+export function noteLandsFound(profile: Profile, lineage: Lineage, run: RunState): void {
+  const lands = (profile.knowledge.landsFound ??= []);
+  for (const biome of run.story.biomesEntered) {
+    if (lands.some((l) => l.biome === biome)) continue;
+    lands.push({ biome, hydra: lineage.hydraName, lineage: lineage.name, generation: lineage.generation });
+  }
 }
 
 /**

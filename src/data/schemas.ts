@@ -342,6 +342,8 @@ export const biomesSchema = section({
     z.string(),
     section({
       displayName: z.string().min(1),
+      // Under its name when a hydra first finds it (the Big World, GAME_DESIGN.md §9.2).
+      discoveryLine: z.string().min(1).optional(),
       decorations: z.array(z.enum(DECORATION_KINDS)),
       ground: z.partialRecord(z.enum(GROUND_TYPES), share),
       // How likely encounters are here compared with other biomes (1 = normal, 1.5 = half as many again).
@@ -869,6 +871,10 @@ export const textSchema = z
       bookTurns: z.string().min(1),
       bookUnlocks: z.string().min(1),
       bookUnlocked: z.string().min(1),
+      bookLands: z.string().min(1),
+      bookLandFound: z.string().min(1),
+      bookLandUnknown: z.string().min(1),
+      landDiscovered: z.string().min(1),
       backButton: z.string().min(1),
       hudName: z.string().min(1),
       mutationGained: z.string().min(1),
@@ -1403,7 +1409,7 @@ const soundLayerSchema = section({
 /** Moments that can have a sound (sounds.json cues); a new one needs code that plays it. */
 export const SOUND_CUES = {
   ui: ['button', 'ending'],
-  map: ['moved', 'mistExhaled', 'shrineOut', 'castleOpened', 'castleShut', 'rested', 'mutationGained', 'thresholdOpened', 'eggLaid', 'battleWon', 'findTaken', 'headLevelled', 'alertStage', 'climbed'],
+  map: ['moved', 'mistExhaled', 'shrineOut', 'castleOpened', 'castleShut', 'rested', 'mutationGained', 'thresholdOpened', 'eggLaid', 'battleWon', 'findTaken', 'headLevelled', 'alertStage', 'climbed', 'newLand'],
   battle: ['headHits', 'hydraHurt', 'severed', 'regrown', 'cauterized', 'combo', 'skill', 'devoured', 'enemyKilled', 'brazierOut', 'flameDoused', 'flameOut', 'won', 'lost'],
 } as const;
 const cueList = <T extends readonly [string, ...string[]]>(names: T) => z.partialRecord(z.enum(names), z.string().min(1));
@@ -1411,7 +1417,14 @@ export const soundsSchema = section({
   defaultVolume: share,
   minGapSeconds: z.number().min(0),
   cues: section({ ui: cueList(SOUND_CUES.ui), map: cueList(SOUND_CUES.map), battle: cueList(SOUND_CUES.battle) }),
-  ambience: section({ volume: share, underground: z.string().min(1).nullable(), surface: z.string().min(1).nullable(), battle: z.string().min(1).nullable() }),
+  ambience: section({
+    volume: share,
+    underground: z.string().min(1).nullable(),
+    // The Big World: each biome its own background (GAME_DESIGN.md §9.2).
+    biomes: z.record(z.string(), z.string().min(1).nullable()).optional(),
+    surface: z.string().min(1).nullable(),
+    battle: z.string().min(1).nullable(),
+  }),
   sounds: entries(section({ file: z.string().min(1).nullable(), volume: share, loop: z.boolean().optional(), layers: z.array(soundLayerSchema).min(1) })),
 });
 export type SoundsData = z.infer<typeof soundsSchema>;

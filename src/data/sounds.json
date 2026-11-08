@@ -3,15 +3,16 @@
   "defaultVolume": 0.6,
   "minGapSeconds": 0.06,
   "cues": {
-    "//": "Which sound plays when (names from sounds below; leave a cue out for silence). ui: button (any button pressed), ending (the ending screen opens). map: things that happen on the map, by the game's name for them. battle: headHits (a head hits a man), hydraHurt (a man hits a head or the body), severed, regrown, cauterized, combo, skill (a skill used), devoured, enemyKilled, brazierOut, flameDoused, flameOut (the Eternal Flame), won, lost (the end of a battle).",
+    "//": "Which sound plays when (names from sounds below; leave a cue out for silence). ui: button (any button pressed), ending (the ending screen opens). map: things that happen on the map, by the game's name for them (newLand: a biome no hydra of the account has found before comes into sight). battle: headHits (a head hits a man), hydraHurt (a man hits a head or the body), severed, regrown, cauterized, combo, skill (a skill used), devoured, enemyKilled, brazierOut, flameDoused, flameOut (the Eternal Flame), won, lost (the end of a battle).",
     "ui": { "button": "click", "ending": "ending" },
-    "map": { "moved": "slither", "mistExhaled": "exhale", "shrineOut": "hiss", "castleOpened": "gate", "castleShut": "gate", "rested": "regrow", "mutationGained": "regrow", "thresholdOpened": "fall" },
+    "map": { "moved": "slither", "mistExhaled": "exhale", "shrineOut": "hiss", "castleOpened": "gate", "castleShut": "gate", "rested": "regrow", "mutationGained": "regrow", "thresholdOpened": "fall", "newLand": "newLand" },
     "battle": { "headHits": "bite", "hydraHurt": "hurt", "severed": "sever", "regrown": "regrow", "cauterized": "sizzle", "combo": "combo", "skill": "skill", "devoured": "gulp", "enemyKilled": "fall", "brazierOut": "hiss", "flameDoused": "hiss", "flameOut": "flameOut", "won": "victory", "lost": "defeat" }
   },
   "ambience": {
-    "//": "The quiet background of each place, played round and round under everything else (names from sounds below; null = silence there). underground and surface: the map, by where the hydra is; battle: every battle. volume: how loud, against the other sounds (0..1). A looped sound has \"loop\": true; its layers with \"sustain\": true hold their volume to the end, and \"wobble\" makes the volume swell and sink (hz times a second, by depth 0..1).",
+    "//": "The quiet background of each place, played round and round under everything else (names from sounds below; null = silence there). underground and surface: the map, by where the hydra is; biomes: underground, the background of the biome the hydra is in (a biome not listed has the underground's); battle: every battle. volume: how loud, against the other sounds (0..1). A looped sound has \"loop\": true; its layers with \"sustain\": true hold their volume to the end, and \"wobble\" makes the volume swell and sink (hz times a second, by depth 0..1).",
     "volume": 0.5,
     "underground": "caves",
+    "biomes": { "lairSwamp": "swamp", "floodedCaves": "drippingCaves", "rootTangle": "creakingRoots", "oldCrypts": "cryptHush", "saltMines": "saltWind", "fungalDeeps": "sporeHum" },
     "surface": "wind",
     "battle": "battleHum"
   },
@@ -92,6 +93,66 @@
       { "wave": "sine", "from": 1600, "to": 950, "delay": 4.1, "seconds": 0.08, "volume": 0.25, "attack": 0.002 },
       { "wave": "sine", "from": 2100, "to": 1300, "delay": 4.5, "seconds": 0.06, "volume": 0.15, "attack": 0.002 },
       { "wave": "sine", "from": 1750, "to": 1000, "delay": 7.3, "seconds": 0.07, "volume": 0.3, "attack": 0.002 }
+    ] },
+    "swamp": { "file": null, "volume": 0.35, "loop": true, "layers": [
+      { "wave": "noise", "from": 220, "to": 220, "delay": 0, "seconds": 9, "volume": 0.7, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.111, "depth": 0.5 } },
+      { "wave": "sine", "from": 62, "to": 62, "delay": 0, "seconds": 9, "volume": 0.2, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.222, "depth": 0.4 } },
+      { "wave": "square", "from": 140, "to": 110, "delay": 1.2, "seconds": 0.12, "volume": 0.22, "attack": 0.005 },
+      { "wave": "square", "from": 150, "to": 115, "delay": 1.42, "seconds": 0.12, "volume": 0.18, "attack": 0.005 },
+      { "wave": "square", "from": 135, "to": 105, "delay": 5.8, "seconds": 0.14, "volume": 0.2, "attack": 0.005 },
+      { "wave": "sine", "from": 400, "to": 900, "delay": 3.1, "seconds": 0.05, "volume": 0.25, "attack": 0.002 },
+      { "wave": "sine", "from": 380, "to": 850, "delay": 3.28, "seconds": 0.05, "volume": 0.18, "attack": 0.002 },
+      { "wave": "sine", "from": 420, "to": 950, "delay": 7.6, "seconds": 0.05, "volume": 0.2, "attack": 0.002 }
+    ] },
+    "drippingCaves": { "file": null, "volume": 0.35, "loop": true, "layers": [
+      { "wave": "noise", "from": 260, "to": 260, "delay": 0, "seconds": 9, "volume": 0.85, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.222, "depth": 0.4 } },
+      { "wave": "sine", "from": 50, "to": 50, "delay": 0, "seconds": 9, "volume": 0.2, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.111, "depth": 0.5 } },
+      { "wave": "sine", "from": 2200, "to": 1300, "delay": 0.8, "seconds": 0.06, "volume": 0.35, "attack": 0.002 },
+      { "wave": "sine", "from": 1900, "to": 1100, "delay": 2.3, "seconds": 0.07, "volume": 0.25, "attack": 0.002 },
+      { "wave": "sine", "from": 2400, "to": 1400, "delay": 3.0, "seconds": 0.05, "volume": 0.2, "attack": 0.002 },
+      { "wave": "sine", "from": 2000, "to": 1200, "delay": 4.9, "seconds": 0.06, "volume": 0.3, "attack": 0.002 },
+      { "wave": "sine", "from": 1800, "to": 1050, "delay": 6.2, "seconds": 0.07, "volume": 0.22, "attack": 0.002 },
+      { "wave": "sine", "from": 2300, "to": 1350, "delay": 7.7, "seconds": 0.06, "volume": 0.28, "attack": 0.002 },
+      { "wave": "sine", "from": 2100, "to": 1250, "delay": 8.3, "seconds": 0.05, "volume": 0.15, "attack": 0.002 }
+    ] },
+    "creakingRoots": { "file": null, "volume": 0.35, "loop": true, "layers": [
+      { "wave": "noise", "from": 120, "to": 120, "delay": 0, "seconds": 9, "volume": 0.75, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.111, "depth": 0.5 } },
+      { "wave": "sine", "from": 45, "to": 45, "delay": 0, "seconds": 9, "volume": 0.2, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.111, "depth": 0.3 } },
+      { "wave": "sawtooth", "from": 90, "to": 70, "delay": 2.0, "seconds": 0.45, "volume": 0.1, "attack": 0.05 },
+      { "wave": "triangle", "from": 72, "to": 60, "delay": 4.0, "seconds": 1.0, "volume": 0.14, "attack": 0.1 },
+      { "wave": "sawtooth", "from": 84, "to": 66, "delay": 6.5, "seconds": 0.5, "volume": 0.1, "attack": 0.05 },
+      { "wave": "noise", "from": 3000, "to": 2500, "delay": 1.1, "seconds": 0.02, "volume": 0.2, "attack": 0.002 },
+      { "wave": "noise", "from": 2800, "to": 2400, "delay": 5.2, "seconds": 0.02, "volume": 0.15, "attack": 0.002 },
+      { "wave": "noise", "from": 3200, "to": 2600, "delay": 8.0, "seconds": 0.02, "volume": 0.18, "attack": 0.002 }
+    ] },
+    "cryptHush": { "file": null, "volume": 0.35, "loop": true, "layers": [
+      { "wave": "sine", "from": 55, "to": 55, "delay": 0, "seconds": 9, "volume": 0.3, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.111, "depth": 0.5 } },
+      { "wave": "triangle", "from": 110, "to": 110, "delay": 0, "seconds": 9, "volume": 0.07, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.222, "depth": 0.8 } },
+      { "wave": "noise", "from": 400, "to": 400, "delay": 0, "seconds": 9, "volume": 0.35, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.111, "depth": 0.6 } },
+      { "wave": "sine", "from": 330, "to": 330, "delay": 3.0, "seconds": 2.5, "volume": 0.1, "attack": 0.01 },
+      { "wave": "sine", "from": 660, "to": 660, "delay": 3.0, "seconds": 1.5, "volume": 0.04, "attack": 0.01 },
+      { "wave": "noise", "from": 1500, "to": 600, "delay": 6.4, "seconds": 0.25, "volume": 0.12, "attack": 0.02 }
+    ] },
+    "saltWind": { "file": null, "volume": 0.3, "loop": true, "layers": [
+      { "wave": "noise", "from": 900, "to": 900, "delay": 0, "seconds": 9, "volume": 0.55, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.111, "depth": 0.8 } },
+      { "wave": "noise", "from": 2400, "to": 2400, "delay": 0, "seconds": 9, "volume": 0.15, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.333, "depth": 0.9 } },
+      { "wave": "sine", "from": 3200, "to": 3100, "delay": 2.2, "seconds": 0.15, "volume": 0.1, "attack": 0.002 },
+      { "wave": "sine", "from": 3600, "to": 3500, "delay": 2.35, "seconds": 0.15, "volume": 0.07, "attack": 0.002 },
+      { "wave": "sine", "from": 3400, "to": 3300, "delay": 6.8, "seconds": 0.18, "volume": 0.09, "attack": 0.002 }
+    ] },
+    "sporeHum": { "file": null, "volume": 0.35, "loop": true, "layers": [
+      { "wave": "sine", "from": 82.5, "to": 82.5, "delay": 0, "seconds": 9, "volume": 0.25, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.111, "depth": 0.6 } },
+      { "wave": "sine", "from": 123.75, "to": 123.75, "delay": 0, "seconds": 9, "volume": 0.12, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.222, "depth": 0.7 } },
+      { "wave": "noise", "from": 180, "to": 180, "delay": 0, "seconds": 9, "volume": 0.5, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.111, "depth": 0.4 } },
+      { "wave": "noise", "from": 1200, "to": 400, "delay": 2.5, "seconds": 0.3, "volume": 0.22, "attack": 0.03 },
+      { "wave": "noise", "from": 1100, "to": 380, "delay": 6.0, "seconds": 0.3, "volume": 0.18, "attack": 0.03 },
+      { "wave": "noise", "from": 1300, "to": 420, "delay": 7.1, "seconds": 0.25, "volume": 0.15, "attack": 0.03 }
+    ] },
+    "newLand": { "file": null, "volume": 0.3, "layers": [
+      { "wave": "sine", "from": 110, "to": 110, "delay": 0, "seconds": 2.6, "volume": 0.5, "attack": 0.7 },
+      { "wave": "sine", "from": 165, "to": 165, "delay": 0.15, "seconds": 2.4, "volume": 0.35, "attack": 0.7 },
+      { "wave": "triangle", "from": 220, "to": 220, "delay": 0.3, "seconds": 2.2, "volume": 0.18, "attack": 0.7 },
+      { "wave": "sine", "from": 330, "to": 330, "delay": 0.6, "seconds": 1.8, "volume": 0.1, "attack": 0.5 }
     ] },
     "wind": { "file": null, "volume": 0.3, "loop": true, "layers": [
       { "wave": "noise", "from": 500, "to": 500, "delay": 0, "seconds": 10, "volume": 0.9, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.1, "depth": 0.7 } },

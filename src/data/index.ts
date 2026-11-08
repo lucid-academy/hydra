@@ -147,6 +147,10 @@ export function checkCrossReferences(
       const id = data.sounds.ambience[place];
       if (id !== null && !(id in data.sounds.sounds)) problems.push(`  - src/data/sounds.json, ambience.${place}: no sound "${id}"; known: ${Object.keys(data.sounds.sounds).join(', ')}`);
     }
+    for (const [biome, id] of Object.entries(data.sounds.ambience.biomes ?? {})) {
+      if (data.biomes && !(biome in data.biomes.biomes)) problems.push(`  - src/data/sounds.json, ambience.biomes.${biome}: no such biome; known: ${Object.keys(data.biomes.biomes).join(', ')}`);
+      if (id !== null && !(id in data.sounds.sounds)) problems.push(`  - src/data/sounds.json, ambience.biomes.${biome}: no sound "${id}"; known: ${Object.keys(data.sounds.sounds).join(', ')}`);
+    }
   }
   if (data.castle && data.manifest) {
     // Every arena of the castle needs its battle board's tile.

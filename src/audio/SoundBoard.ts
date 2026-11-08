@@ -55,9 +55,13 @@ export class SoundBoard {
     if (id) this.play(id);
   }
 
-  /** The background of a place (sounds.json ambience), looped; the one before fades out. null: none. */
-  ambience(place: AmbiencePlace | null): void {
-    const id = place ? this.data.ambience[place] : null;
+  /**
+   * The background of a place (sounds.json ambience), looped; the one before fades out. null: none. Underground,
+   * the biome the hydra is in may have its own.
+   */
+  ambience(place: AmbiencePlace | null, biome?: string): void {
+    const ofBiome = place === 'underground' && biome !== undefined ? this.data.ambience.biomes?.[biome] : undefined;
+    const id = ofBiome !== undefined ? ofBiome : place ? this.data.ambience[place] : null;
     if ((this.ambient?.id ?? null) === id) return;
     if (this.ambient) this.fade(this.ambient.sound, 0, true);
     this.ambient = null;
@@ -141,6 +145,6 @@ export function playCue(scene: Phaser.Scene, group: keyof SoundsData['cues'], na
 }
 
 /** The background sound of a place (sounds.json ambience), from any scene; null: silence. */
-export function setAmbience(scene: Phaser.Scene, place: AmbiencePlace | null): void {
-  soundBoard(scene, getContext(scene).data.sounds).ambience(place);
+export function setAmbience(scene: Phaser.Scene, place: AmbiencePlace | null, biome?: string): void {
+  soundBoard(scene, getContext(scene).data.sounds).ambience(place, biome);
 }

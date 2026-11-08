@@ -398,3 +398,28 @@ describe('unlocks', () => {
     expect(modifierFor(profile, lineage, { ...lineageRules, normalYearWeight: 0 })).toBe('wetYear');
   });
 });
+
+describe('lands found (the Big World, GAME_DESIGN.md §9.2)', () => {
+  it('the Book keeps the first hydra who entered each biome, and only her', () => {
+    const profile = newProfile();
+    const lineage = startLineage(profile, 321, lineageRules);
+    const first = hatch(profile, lineage);
+    first.story.biomesEntered.push('floodedCaves');
+    const firstName = lineage.hydraName;
+    slay(first, 'patrol');
+    hydraDied(profile, lineage, first, lineageRules);
+    expect(profile.knowledge.landsFound).toEqual([
+      { biome: data.biomes.lairBiome, hydra: firstName, lineage: lineage.name, generation: 1 },
+      { biome: 'floodedCaves', hydra: firstName, lineage: lineage.name, generation: 1 },
+    ]);
+    chooseEgg(lineage, 0);
+    const second = hatch(profile, lineage);
+    second.story.biomesEntered.push('floodedCaves', 'oldCrypts');
+    remember(profile, lineage, second, lineageRules);
+    expect(profile.knowledge.landsFound?.map((l) => [l.biome, l.generation])).toEqual([
+      [data.biomes.lairBiome, 1],
+      ['floodedCaves', 1],
+      ['oldCrypts', 2],
+    ]);
+  });
+});
