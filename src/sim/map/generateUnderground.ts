@@ -12,6 +12,7 @@ import { Rng } from '../rng';
 import { paintBiomes } from './generator/biomes';
 import { carveCaves } from './generator/caves';
 import { placeContents } from './generator/contents';
+import { layFastLanes } from './generator/lanes';
 import { HexGrid, shuffled } from './generator/grid';
 import type { UndergroundGeneratorSettings } from './generator/settings';
 import { ZONE_BAND, ZONE_LAIR, ZONE_OUTSIDE, makeShape, ringWidths } from './generator/shape';
@@ -90,5 +91,7 @@ function tryGenerate(rng: Rng, grid: HexGrid, s: UndergroundGeneratorSettings, t
   const map: HexMap = { radius: s.radius, tiles, lair: { q: 0, r: 0 }, layout };
   const problems = ringConnectionProblems(map, terrain);
   if (problems.length > 0) return `connections: ${problems.join('; ')}`;
+  // Lanes last: they only change what steps cost, never where she can go.
+  layFastLanes(map, rng.int(0, 0x7fffffff), s.fastLanes);
   return map;
 }

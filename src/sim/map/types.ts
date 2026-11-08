@@ -84,6 +84,19 @@ export interface Tile {
   readonly region: Region;
   terrain: TerrainType;
   object: MapObject | null;
+  /**
+   * A fast lane on this hex (GAME_DESIGN.md §5.2): a current flowing towards neighbour `flow<d>` (d indexes
+   * HEX_DIRECTIONS), or an old corridor. Most hexes have none.
+   */
+  lane?: Lane;
+}
+
+export type Lane = 'corridor' | `flow${0 | 1 | 2 | 3 | 4 | 5}`;
+
+/** The direction a current flows on a hex (index into HEX_DIRECTIONS), or null when it has none. */
+export function laneFlow(tile: Tile | undefined): number | null {
+  const lane = tile?.lane;
+  return lane !== undefined && lane.startsWith('flow') ? Number(lane.slice(4)) : null;
 }
 
 /** A cave chamber, as the generator made it. */

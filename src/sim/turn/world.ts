@@ -516,7 +516,9 @@ export function startCondition(state: RunState, id: string, turns: number, rules
 /** Movement points the hydra gets at the start of a turn: its own, changed by its conditions. */
 export function movementForTurn(state: RunState, rules: RunRules): number {
   const change = state.hydra.conditions.reduce((sum, c) => sum + (rules.conditions[c.id]?.movement ?? 0), 0);
-  return Math.max(1, state.hydra.movementPerTurn + change);
+  // Eel-Spined: more when the turn starts with her in water.
+  const inWater = tileHere(state, state.hydra.position)?.terrain === 'water' ? mutationTotal(state.hydra, rules, 'movementInWater') : 0;
+  return Math.max(1, state.hydra.movementPerTurn + change + inWater);
 }
 
 /** One turn passes for every condition; those used up end (call before working out the next turn's movement). */

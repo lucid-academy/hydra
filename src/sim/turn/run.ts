@@ -3,9 +3,9 @@
 // What the hydra meets on the way (thresholds, places, remains, hints) is in ./world.
 
 import type { BattleResult, BattleSetup } from '../battle';
-import { hexDistance, hexEquals, hexKey, hexNeighbors } from '../hex';
+import { HEX_DIRECTIONS, hexAdd, hexDistance, hexEquals, hexKey, hexNeighbors } from '../hex';
 import type { Hex } from '../hex';
-import { generateUnderground, updateVisibility } from '../map';
+import { generateUnderground, laneFlow, updateVisibility } from '../map';
 import type { Layer, MapObject, Tile } from '../map';
 import { Rng } from '../rng';
 import { beginAssault, castlePartWon, reachCastle } from './castle';
@@ -186,7 +186,7 @@ export function plannedJourney(state: RunState, target: Hex, rules: RunRules): J
   // An Exposed hydra's crawl onto bare ground takes the rest of the turn (surface.ts canCrawl).
   const crawls = state.hydra.layer === 'surface' && canCrawl(state, rules);
   for (const [i, step] of route.path.entries()) {
-    const terrainCost = rules.terrain[tileHere(state, step)!.terrain].moveCost!;
+    const terrainCost = hydraStepCost(state, i === 0 ? state.hydra.position : route.path[i - 1]!, step, rules)!;
     const cost = i === 0 && crawls && !hasMist(state, step) ? Math.max(terrainCost, left) : terrainCost;
     while (cost > left) {
       // A step dearer than a whole turn (a slow hydra in salt) is still taken, with a fresh turn's movement.
@@ -224,7 +224,7 @@ function cheapestPaths(state: RunState, rules: RunRules, limit: number): Map<str
       const key = hexKey(next);
       const nextTile = tiles.get(key);
       if (!nextTile || !visibility.has(key) || closedToTheHydra(nextTile.object)) continue;
-      const stepCost = rules.terrain[nextTile.terrain].moveCost;
+      const stepCost = hydraStepCost(state, current, next, rules);
       if (stepCost === null) continue;
       let cost = here.cost + stepCost;
       let moisture = here.moisture ?? 0;
@@ -244,6 +244,23 @@ function cheapestPaths(state: RunState, rules: RunRules, limit: number): Map<str
   }
   best.delete(hexKey(start));
   return best;
+}
+
+/**
+ * What one step of the hydra costs (null: she can't go there): the ground's cost, cheaper for some mutations
+ * (Root-Slither, Salt-Crusted Belly: never below 1); on a fast lane (GAME_DESIGN.md §5.2) free with a current and a
+ * share of it onto an old corridor.
+ */
+export function hydraStepCost(state: RunState, from: Hex, to: Hex, rules: RunRules): number | null {
+  const tile = tileHere(state, to);
+  if (!tile) return null;
+  const base = rules.terrain[tile.terrain].moveCost;
+  if (base === null) return null;
+  const flow = laneFlow(tileHere(state, from));
+  if (flow !== null && hexEquals(hexAdd(from, HEX_DIRECTIONS[flow]!), to)) return rules.fastLanes.currentCost;
+  const change = tile.terrain === 'roots' ? mutationTotal(state.hydra, rules, 'rootsCost') : tile.terrain === 'salt' ? mutationTotal(state.hydra, rules, 'saltCost') : 0;
+  const cost = change !== 0 ? Math.max(1, base + change) : base;
+  return tile.lane === 'corridor' ? cost * rules.fastLanes.corridorCostShare : cost;
 }
 
 /** A way that takes less movement, or as much and less Moisture. */
@@ -267,7 +284,7 @@ export function moveHydra(state: RunState, target: Hex, rules: RunRules): RunEve
   let discovered = 0;
   let stopped = false;
   for (const step of route.path) {
-    const tile = tileHere(state, step)!;
+    const from = walked.length > 0 ? walked[walked.length - 1]! : state.hydra.position;
     walked.push(step);
     // On the surface, mist goes ahead of her: breathed onto the hex before she steps on it.
     const ahead = rules.surface.mist.breatheAhead;
@@ -275,7 +292,7 @@ export function moveHydra(state: RunState, target: Hex, rules: RunRules): RunEve
       // Exposed with nothing to breathe: she crawls, and that takes the turn.
       state.hydra.movementLeft = 0;
     } else {
-      state.hydra.movementLeft -= rules.terrain[tile.terrain].moveCost!;
+      state.hydra.movementLeft -= hydraStepCost(state, from, step, rules)!;
       if (surface && ahead && !hasMist(state, step)) {
         state.resources.moisture -= ahead.moisture;
         moisture += ahead.moisture;
@@ -621,6 +638,9 @@ export function endTurn(state: RunState, rules: RunRules): RunEvent[] {
   tickConditions(state, events);
   coolTunnels(state, events);
   hydra.movementLeft = movementForTurn(state, rules);
+  // Restless: she can't sit still, and the Order hears it.
+  const restless = mutationTotal(hydra, rules, 'alertPerTurn');
+  if (restless !== 0) raiseAlert(state, restless, rules);
   // Out of the mist, nothing heals (GAME_DESIGN.md §5.6).
   if (!exposedNow(state)) {
     hydra.bodyHp = Math.min(hydra.bodyMaxHp, hydra.bodyHp + hydra.regeneration);

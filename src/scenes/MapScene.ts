@@ -11,8 +11,9 @@
 import * as Phaser from 'phaser';
 import { GLOWING_DECORATIONS, MAP_COLUMN_WIDTH, MAP_FEET_BELOW_HEX_CENTER, MAP_GATE_FEET_BELOW_HEX_CENTER, MAP_ROW_HEIGHT } from '../assets/mapArt';
 import type { DecorationKind } from '../assets/mapArt';
-import { hex, hexDistance, hexEquals, hexKey, hexNeighbors, hexToPixel, pixelToHex } from '../sim/hex';
+import { HEX_DIRECTIONS, hex, hexAdd, hexDistance, hexEquals, hexKey, hexNeighbors, hexToPixel, pixelToHex } from '../sim/hex';
 import type { Hex, HexLayout } from '../sim/hex';
+import { laneFlow } from '../sim/map';
 import type { Layer, LayerMap, MapObject, Tile, Visibility } from '../sim/map';
 import { Rng } from '../sim/rng';
 import { encountersRevealed, isNight, knownDraughts, mapOf, mistAt, visibilityOf } from '../sim/turn';
@@ -32,7 +33,7 @@ import { lineages } from './LineageKeeper';
 import { getRun, startNewRun } from './RunController';
 import type { RunController } from './RunController';
 import { SceneKey } from './sceneKeys';
-import { pageScale, pinnedToScreen, viewScale } from './view';
+import { HD_DENSITY, pageScale, pinnedToScreen, useDensity, viewScale } from './view';
 import { FONT } from '../ui/fonts';
 import { playCue, setAmbience, soundBoard } from '../audio/SoundBoard';
 import { saveSettings } from '../save/settings';
@@ -168,6 +169,14 @@ const PATCHES = { chance: 0.4, alpha: 0.9 } as const;
  * within `teaserReach` hexes of what the hydra sees, glows faintly through the dark, so a new land calls from the edge.
  */
 const BIOME_LIGHT = { strength: 0.16, radiusPerHex: 4, minRadius: 40, teaserReach: 5, teaserAlpha: 0.12, teaserSize: 0.7, teaserPulseMs: 2200 } as const;
+/**
+ * Fast lanes: flecks on each hex of a current (how many, how bright, how long one takes to slide a hex; the current's
+ * picture is drawn this much smaller), and how strong an old corridor's slabs show.
+ */
+const LANES = { flecks: 2, fleckAlpha: 0.75, fleckMs: 1400, artScale: 0.5, corridorAlpha: 0.5 } as const;
+/** Code-drawn pictures of the lanes, until (or besides) art for them. */
+const CURRENT_TEXTURE = 'map_lane_current';
+const CORRIDOR_TEXTURE = 'map_lane_corridor';
 /** Big clumps (map_clump_*) stand on a shadow this share of their width. */
 const BIG_CLUMP_SHADOW = 0.7;
 /** On the surface: trees on every forest hex (from, to), and how often an open hex gets a lone decoration. */
@@ -372,6 +381,7 @@ export class MapScene extends Phaser.Scene {
 
   private drawMap(): void {
     this.scenery = new Map();
+    makeLaneTextures(this);
     const clumps = this.onSurface ? new Map<string, Piece[]>() : this.planClumps();
     const bigClumps = this.onSurface ? [] : planBigClumps(this.run.state.map, this.run.state.seed, (biome) => this.sceneryOf(biome));
     const bigAt = new Map(bigClumps.map((c) => [hexKey(c.anchor), c.key]));
@@ -416,6 +426,7 @@ export class MapScene extends Phaser.Scene {
         const key = hexKey(tile.hex);
         if (this.onSurface) this.decorateSurface(view, x, y);
         else {
+          this.drawLane(view, x, y);
           this.patchGround(view, x, y);
           const big = bigAt.get(key);
           if (big) this.putBigClump(view, x, y, big);
@@ -582,6 +593,51 @@ export class MapScene extends Phaser.Scene {
       if (!flat) view.shadows.push(this.contactShadow(px, py, prop.width));
       const glowing = sheet ? scenery.glowingProps.includes(piece as number) : GLOWING_DECORATIONS.includes(piece as DecorationKind);
       if (glowing) view.propGlows.push(this.glow(px, py - Math.min(9, prop.height / 2), biome.colors.glow, 0.55, 0.5, py));
+    }
+  }
+
+  /**
+   * A fast lane (GAME_DESIGN.md §5.2): flecks of foam sliding the way a current flows (map_current once drawn), or
+   * the worn slabs of an old corridor.
+   */
+  private drawLane(view: HexView, x: number, y: number): void {
+    const lane = view.tile.lane;
+    if (!lane) return;
+    const rng = new Rng(this.hexSeed(view.tile.hex) ^ 0x1a4e);
+    if (lane === 'corridor') {
+      const slabs = this.add
+        .image(x + rng.int(-2, 2), y + rng.int(-1, 1), CORRIDOR_TEXTURE)
+        .setFlipX(rng.chance(0.5))
+        .setFlipY(rng.chance(0.5))
+        .setAlpha(LANES.corridorAlpha)
+        .setDepth(DEPTH.decal);
+      view.props.push(slabs);
+      return;
+    }
+    const flow = laneFlow(view.tile);
+    if (flow === null) return;
+    const to = hexToPixel(LAYOUT, hexAdd(view.tile.hex, HEX_DIRECTIONS[flow]!));
+    const angle = Math.atan2(to.y - y, to.x - x);
+    const art = hasPicture(this, getContext(this).data, 'map_current');
+    const frames = art ? Math.max(1, this.textures.get('map_current').frameTotal - 1) : 1;
+    for (let i = 0; i < LANES.flecks; i++) {
+      const fleck = (art ? this.add.image(x, y, 'map_current', rng.int(0, frames - 1)) : this.add.image(x, y, CURRENT_TEXTURE)).setRotation(angle).setAlpha(0).setDepth(DEPTH.decal);
+      if (art) fleck.setScale(LANES.artScale);
+      view.props.push(fleck);
+      const side = rng.int(-4, 4);
+      const from = { x: x - (to.x - x) * 0.5 + side * Math.sin(angle), y: y - (to.y - y) * 0.5 - side * Math.cos(angle) * 0.6 };
+      this.tweens.add({
+        targets: fleck,
+        props: {
+          x: { from: from.x, to: from.x + (to.x - x) },
+          y: { from: from.y, to: from.y + (to.y - y) },
+          alpha: { from: 0, to: LANES.fleckAlpha, yoyo: true, duration: LANES.fleckMs / 2 },
+        },
+        duration: LANES.fleckMs,
+        delay: rng.int(0, LANES.fleckMs),
+        repeat: -1,
+        repeatDelay: rng.int(0, 300),
+      });
     }
   }
 
@@ -1610,5 +1666,34 @@ export class MapScene extends Phaser.Scene {
         shrinesPutOut: surface.shrinesPutOut,
       };
     });
+  }
+}
+
+/** The lanes' code-drawn pictures (in HD pixels, two to a screen unit): a streak of foam, and worn slabs. */
+function makeLaneTextures(scene: Phaser.Scene): void {
+  if (!scene.textures.exists(CURRENT_TEXTURE)) {
+    const texture = scene.textures.createCanvas(CURRENT_TEXTURE, 16, 4)!;
+    const c = texture.context;
+    // Brightest at the head (the right, the way it flows), trailing off behind.
+    for (let x = 0; x < 16; x++) {
+      c.fillStyle = `rgba(200,236,236,${((x + 1) / 16) * 0.9})`;
+      c.fillRect(x, x > 10 ? 1 : 2, 1, x > 10 ? 2 : 1);
+    }
+    texture.refresh();
+    useDensity(texture, HD_DENSITY);
+  }
+  if (!scene.textures.exists(CORRIDOR_TEXTURE)) {
+    const texture = scene.textures.createCanvas(CORRIDOR_TEXTURE, 40, 24)!;
+    const c = texture.context;
+    const slabs: Array<[number, number, number, number]> = [[2, 4, 12, 7], [16, 2, 10, 8], [28, 6, 10, 7], [6, 13, 11, 8], [19, 12, 13, 7]];
+    for (const [x, y, w, h] of slabs) {
+      c.fillStyle = 'rgba(176,168,150,0.55)';
+      c.fillRect(x, y, w, h);
+      c.fillStyle = 'rgba(40,36,30,0.6)';
+      c.fillRect(x, y + h - 1, w, 1);
+      c.fillRect(x + w - 1, y, 1, h);
+    }
+    texture.refresh();
+    useDensity(texture, HD_DENSITY);
   }
 }

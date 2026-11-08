@@ -121,6 +121,8 @@ export interface UndergroundGeneratorSettings {
   maxRarePlaces: number;
   /** Hexes the Undertow carries the hydra. */
   undertowLength: Range;
+  /** Fast lanes (GAME_DESIGN.md §5.2): currents along the water of some biomes, old corridors in others. */
+  fastLanes: { currentBiomes: readonly string[]; currents: Range; currentLength: Range; corridorBiomes: readonly string[] };
   /** What a patch of each biome holds when the biome has no location left. */
   patchFinds: Readonly<Record<string, PatchFind>>;
   /** Number of remains lines in each pool: "any", or a biome id for remains found in that biome. */
