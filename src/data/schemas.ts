@@ -346,6 +346,14 @@ export const biomesSchema = section({
       ground: z.partialRecord(z.enum(GROUND_TYPES), share),
       // How likely encounters are here compared with other biomes (1 = normal, 1.5 = half as many again).
       encounterDensity: z.number().positive().optional(),
+      // How its Big World pictures are used once they exist (map_props_, map_clump_; GAME_DESIGN.md §13).
+      scenery: section({
+        clumps: z.array(z.string().min(1)),
+        clumpsInWater: z.array(z.string().min(1)),
+        // Prop numbers as in the prompt: 1 is the sheet's first.
+        propsInWater: z.array(z.number().int().min(1).max(12)),
+        glowingProps: z.array(z.number().int().min(1).max(12)),
+      }).optional(),
       // grounds: a colour for each kind of ground, for its placeholder until its texture exists (else ground or water).
       colors: section({ ground: hexColor, detail: hexColor, water: hexColor, rock: hexColor, glow: hexColor, grounds: z.partialRecord(z.enum(GROUND_TYPES), hexColor).optional() }),
     }),
@@ -361,6 +369,9 @@ export const biomesSchema = section({
   for (const [id, biome] of Object.entries(data.biomes)) {
     const sum = Object.values(biome.ground).reduce((a, b) => a + (b ?? 0), 0);
     if (Math.abs(sum - 1) > 0.001) ctx.addIssue({ code: 'custom', path: ['biomes', id, 'ground'], message: `shares must add up to 1 (now ${sum})` });
+    for (const name of biome.scenery?.clumpsInWater ?? []) {
+      if (!biome.scenery?.clumps.includes(name)) ctx.addIssue({ code: 'custom', path: ['biomes', id, 'scenery', 'clumpsInWater'], message: `"${name}" is not one of its clumps` });
+    }
     const above = Object.keys(biome.ground).filter((g) => SURFACE_GROUND.includes(g));
     if (id !== data.surfaceBiome && above.length > 0) ctx.addIssue({ code: 'custom', path: ['biomes', id, 'ground'], message: `${above.join(', ')}: only the surface has this ground` });
   }
