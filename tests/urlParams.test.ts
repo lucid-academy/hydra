@@ -26,6 +26,7 @@ describe('parseUrlParams', () => {
       hidden: false,
       heads: [],
       level: null,
+      mutations: [],
       ults: false,
       surface: false,
       night: false,
@@ -39,7 +40,7 @@ describe('parseUrlParams', () => {
   });
 
   it('returns defaults when nothing is given', () => {
-    expect(parseUrlParams('')).toEqual({ seed: null, scene: null, debug: false, group: null, hp: null, allies: null, speed: null, near: null, reveal: false, modifiers: [], zoom: null, say: null, event: null, flags: [], conditions: [], alert: null, units: [], ancestors: null, eggs: null, hidden: false, heads: [], level: null, ults: false, surface: false, night: false, exposed: false, castle: null });
+    expect(parseUrlParams('')).toEqual({ seed: null, scene: null, debug: false, group: null, hp: null, allies: null, speed: null, near: null, reveal: false, modifiers: [], zoom: null, say: null, event: null, flags: [], conditions: [], alert: null, units: [], ancestors: null, eggs: null, hidden: false, heads: [], level: null, mutations: [], ults: false, surface: false, night: false, exposed: false, castle: null });
     expect(parseUrlParams('?reveal=1').reveal).toBe(true);
     // ?castle= counts from 0 (the gate), so 0 is a value too.
     expect(parseUrlParams('?castle=0').castle).toBe(0);

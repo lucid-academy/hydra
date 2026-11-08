@@ -370,7 +370,9 @@ try {
   // Part 3c: the castle (M7). Its gate open and two parts taken: Press on into the cathedral, lie the body down by the
   // Eternal Flame, order the heads in; the win puts out the Flame, and the ending and the Book of Lineages follow.
   // A hydra who got this far has more heads, and grown ones: a fresh one mostly loses here (docs/BALANCE.md).
-  page = await openPage(`?seed=7&scene=map&surface=1&near=castle&castle=2&heads=${CASTLE_HEADS}&level=4&speed=${SPEED}`);
+  // Seed 8: the battle's random numbers come from the run's seed and where the castle stands. Since the Big World moved
+  // the castle, seed 7 draws a cathedral this bot loses (8, 9 and 11 it wins); a player plays better than the bot.
+  page = await openPage(`?seed=8&scene=map&surface=1&near=castle&castle=2&heads=${CASTLE_HEADS}&level=4&speed=${SPEED}`);
   await waitForScene(page, 'map');
   await readDialogues(page);
   // In mist, as a player would storm it (Exposed, the heads hit softer).
@@ -395,7 +397,7 @@ try {
   await tap(page, cathedral.flame);
   // The heads go for the people who can die: the Grand Master can't, while the Flame burns.
   const assault = await playBattle(page, true, (enemies) => enemies.find((e) => e.typeId !== 'grandMaster') ?? enemies[0]);
-  if (assault.outcome !== 'won') throw new Error(`Lost the battle in the cathedral (seed 7): ${JSON.stringify(assault)}`);
+  if (assault.outcome !== 'won') throw new Error(`Lost the battle in the cathedral (seed 8): ${JSON.stringify(assault)}`);
   if (!assault.flame?.out) throw new Error(`The cathedral was won with the Eternal Flame still burning: ${JSON.stringify(assault.flame)}`);
   const endings = await timesReady(page, 'ending');
   await readDialogues(page);

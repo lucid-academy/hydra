@@ -140,6 +140,8 @@ const SHOTS = [
   { name: 'map-start', query: '?seed=123&scene=map&debug=1', viewport: DESKTOP, scene: 'map' },
   { name: 'map-after-moves', query: '?seed=123&scene=map&debug=1', viewport: DESKTOP, scene: 'map', act: async (page) => {
     await moveFarthest(page);
+    // A walk can use up the whole turn's movement.
+    if ((await page.evaluate(() => window.__hydra.reachableOnScreen())).length === 0) await endTurn(page);
     await moveFarthest(page);
   } },
   { name: 'map-shrine', query: '?seed=123&scene=map&near=shrine', viewport: DESKTOP, scene: 'map', act: async (page) => {

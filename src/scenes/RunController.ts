@@ -17,6 +17,7 @@ import {
   endTurn,
   exhaleMist,
   finishBattle,
+  gainMutation,
   growHeads,
   hatchEgg,
   hideEgg,
@@ -27,6 +28,7 @@ import {
   lookAround,
   mapOf,
   moveHydra,
+  movementForTurn,
   noteSightings,
   openSealed,
   orderUnitAt,
@@ -51,7 +53,8 @@ export class RunController extends Phaser.Events.EventEmitter {
   readonly rules: RunRules;
   readonly battleRules: BattleRules;
   readonly state: RunState;
-  /** Biomes the player has already been shown the name of (only for the screen; not part of the game state). */
+  /** Biomes the player has already been shown the name of (only for the screen; not part of the game state). A saved
+   * run starts with those it has been in, so a loaded game doesn't announce them again. */
   readonly knownBiomes = new Set<string>();
   /** Events of the last command, for a scene that starts right after it (e.g. the map after a battle). */
   lastEvents: RunEvent[] = [];
@@ -68,6 +71,7 @@ export class RunController extends Phaser.Events.EventEmitter {
     this.rules = rules;
     this.battleRules = battleRules;
     this.state = state;
+    for (const biome of state.story.biomesEntered) this.knownBiomes.add(biome);
   }
 
   reachable(): Map<string, Reachable> {
@@ -222,6 +226,13 @@ export class RunController extends Phaser.Events.EventEmitter {
     this.state.surface.mist[hexKey(this.state.hydra.position)] = this.rules.surface.mist.exhale.turns;
     this.state.pendingBattle = { at: castle, layer: 'surface', groupId: parts[index]!.groupId, castlePart: index };
     if (bodyHp !== null) this.state.hydra.bodyHp = Math.min(this.state.hydra.bodyMaxHp, bodyHp);
+  }
+
+  /** For `?mutations=` with ?scene=map: she gains these mutations (unknown ids are skipped). Testing only. */
+  mutationsForTest(ids: readonly string[]): void {
+    const events: RunEvent[] = [];
+    for (const id of ids) if (id in this.rules.mutations) gainMutation(this.state, id, this.rules, events);
+    this.state.hydra.movementLeft = movementForTurn(this.state, this.rules);
   }
 
   /**

@@ -25,6 +25,7 @@
 //   ?hidden=1     with ?ancestors=: Old Mother Toad has an egg of the lineage hidden
 //   ?heads=strangler,lantern,tender  with ?scene=battle: the test battle's heads, by class (heads.json)
 //   ?level=3      with ?scene=battle: the test battle's heads are this level
+//   ?mutations=eelSpined,restless  with ?scene=map: the hydra has these mutations (mutations.json), as if gained
 //   ?ults=1       ultimate skills (key E) can be used in battle
 //   ?surface=1    with ?scene=map: the hydra starts up on the surface, on the first Passage (with ?near=, next to
 //                 the nearest of that kind up there: flameShrine, castle, settlement, find...); with ?scene=battle:
@@ -83,6 +84,8 @@ export interface UrlParams {
   heads: string[];
   /** Level of the test battle's heads, or with scene=map of the hydra's heads (null = as they are). */
   level: number | null;
+  /** With scene=map: mutations the hydra has (empty = her own). */
+  mutations: string[];
   /** Ultimate skills can be used in battle. */
   ults: boolean;
   /** Start on the surface. */
@@ -130,6 +133,7 @@ export function parseUrlParams(search: string): UrlParams {
     hidden: params.get('hidden') === '1' || params.get('hidden') === 'true',
     heads: (params.get('heads') ?? '').split(',').map((h) => h.trim()).filter((h) => h !== ''),
     level: positive('level') === null ? null : Math.floor(positive('level')!),
+    mutations: list('mutations'),
     ults: params.get('ults') === '1' || params.get('ults') === 'true',
     surface: params.get('surface') === '1' || params.get('surface') === 'true',
     night: params.get('night') === '1' || params.get('night') === 'true',
@@ -162,6 +166,7 @@ export function testUrl(params: UrlParams): boolean {
     params.hidden ||
     params.heads.length > 0 ||
     params.level !== null ||
+    params.mutations.length > 0 ||
     params.ults ||
     params.surface ||
     params.night ||

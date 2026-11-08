@@ -8,32 +8,32 @@ Turn and hexes: the middle run, and in brackets the range of the middle 80% of r
 
 | Moment | Runs that got there | Turn | Hexes known |
 | --- | --- | --- | --- |
-| Alert 25 (morePatrols) | 98% | 9 (6–14) | 143 (113–184) |
-| Alert 50 (expeditions) | 94% | 18 (13–30) | 215 (183–300) |
-| Alert 75 (newEnemies) | 90% | 34 (19–52) | 286 (198–396) |
-| Alert 100 (greatBurning) | 90% | 47 (33–75) | 323 (206–486) |
-| First expedition marches | 88% | 20 (15–33) | 241 (184–319) |
-| Great Burning marches | 88% | 47 (33–79) | 323 (206–442) |
+| Alert 25 (morePatrols) | 98% | 20 (14–33) | 472 (342–570) |
+| Alert 50 (expeditions) | 96% | 41 (26–54) | 629 (464–919) |
+| Alert 75 (newEnemies) | 92% | 58 (43–79) | 736 (548–1220) |
+| Alert 100 (greatBurning) | 88% | 76 (57–101) | 850 (581–1342) |
+| First expedition marches | 94% | 43 (28–56) | 637 (465–951) |
+| Great Burning marches | 88% | 76 (57–102) | 850 (581–1434) |
 
-**§8 target:** 40–80 hexes known when the first expedition marches. 0 of the 44 runs that saw one were in that range.
+**§8 target:** 40–80 hexes known when the first expedition marches. 0 of the 47 runs that saw one were in that range.
 
 ## How the runs went
 
-- Won (the Eternal Flame put out): 0%. Died: 4% (censerWalk 1, greatBurning 1); alive after 120 turns: 96%.
-- Turns played: 120 (120–120). Hexes known at the end: 496 (208–768). Alert at the end: 61 (8–100).
-- Battles per run: 12.0, won 100% of them.
-- Messengers per run: 9.3 sent, 7.7 got away, 1.3 eaten.
-- Expeditions camped in the empty lair: 1.0 raids per run, 0.0 eggs broken in lost battles for the lair.
-- The Great Burning beaten in 72% of runs. Head levels gained per run: 25.5.
+- Won (the Eternal Flame put out): 0%. Died: 8% (greatBurning 3, brazierCrew 1); alive after 120 turns: 92%.
+- Turns played: 120 (120–120). Hexes known at the end: 1110 (622–1765). Alert at the end: 97 (22–100).
+- Battles per run: 9.2, won 99% of them.
+- Messengers per run: 7.5 sent, 5.3 got away, 1.5 eaten.
+- Expeditions camped in the empty lair: 1.1 raids per run, 0.0 eggs broken in lost battles for the lair.
+- The Great Burning beaten in 34% of runs. Head levels gained per run: 19.8.
 
 ## The surface
 
 The bot goes up from turn 20 (or once nothing is left to find below) when healthy and with 24+ Moisture. Up there it makes for a burning Flame Shrine it can reach, or scouts towards one it knows of from afar (or away from the Passages), and goes back down when hurt or when its Moisture would only just breathe mist to the nearest safe hex (plus 4).
 
-- Went up in 82% of runs, first on turn 28 (21–61), 1.5 times per run.
-- Turns up there per run: 13 (0–43); of them Exposed: 4 (0–25).
-- Flame Shrines put out per run: 2 (0–4) (all 5 in 6% of runs); lit again by the Order: 1.7 per run.
-- Battles up there: 2.9 per run, won 99% of them. Died up there: 2% of runs.
+- Went up in 92% of runs, first on turn 30 (22–79), 2.2 times per run.
+- Turns up there per run: 26 (5–48); of them Exposed: 13 (0–38).
+- Flame Shrines put out per run: 1 (0–3) (all 5 in 0% of runs); lit again by the Order: 1.2 per run.
+- Battles up there: 1.9 per run, won 99% of them. Died up there: 2% of runs.
 
 ## The castle
 
@@ -47,6 +47,6 @@ The gate opens when 5 Flame Shrines are out at once. The bot, healthy, then goes
 
 The same 50 runs, but from turn 60 the gate stands open whatever the shrines, to see how a hydra the bot has grown that far does in the assault.
 
-- Stormed the castle in 26% of runs; in the others the bot never got to its walls by turn 120 (or died before). Battles at the castle: 0.7 per run.
-- Parts taken in the runs that stormed it: 3 (2–3). Gate taken: 26% of runs, cloister: 24%, cathedral (the Flame out): 22%.
-- Won on turn 81 (68–99). Died at the castle: 2% of runs; died anywhere: 8%.
+- Stormed the castle in 22% of runs; in the others the bot never got to its walls by turn 120 (or died before). Battles at the castle: 0.7 per run.
+- Parts taken in the runs that stormed it: 3 (3–3). Gate taken: 22% of runs, cloister: 22%, cathedral (the Flame out): 22%.
+- Won on turn 86 (66–110). Died at the castle: 0% of runs; died anywhere: 14%.
