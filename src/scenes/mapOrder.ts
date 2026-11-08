@@ -52,6 +52,8 @@ export class OrderTokens {
   /** Eggs and guards drawn round the lair. */
   private brood: Phaser.GameObjects.Image[] = [];
   private ghosts = new Map<string, Token & { label: Phaser.GameObjects.Text; key: string }>();
+  /** How much bigger the pictures are drawn when the map is zoomed out (the view "far"), so they stay readable. */
+  private iconScale = 1;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -149,6 +151,14 @@ export class OrderTokens {
     return running > 0;
   }
 
+  /** Draws every picture this much bigger (1 = as drawn); new ones take it too. */
+  setIconScale(scale: number): void {
+    if (scale === this.iconScale) return;
+    this.iconScale = scale;
+    for (const token of [...this.live.values(), ...this.ghosts.values()]) token.image.setScale(scale);
+    for (const image of this.brood) image.setScale(scale);
+  }
+
   destroy(): void {
     for (const image of this.brood) image.destroy();
     this.brood = [];
@@ -172,20 +182,20 @@ export class OrderTokens {
     const { x, y } = this.drawing.feet(state.map.lair);
     state.lair.eggs.slice(0, EGG_SPOTS.length).forEach((egg, i) => {
       const [dx, dy] = EGG_SPOTS[i]!;
-      const image = this.scene.add.image(x + dx, y + dy, 'map_egg').setOrigin(0.5, 1).setDepth(this.drawing.depth(y + dy));
+      const image = this.scene.add.image(x + dx, y + dy, 'map_egg').setOrigin(0.5, 1).setScale(this.iconScale).setDepth(this.drawing.depth(y + dy));
       if (egg.hatching) this.scene.tweens.add({ targets: image, angle: { from: -8, to: 8 }, duration: 260, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       this.brood.push(image);
     });
     for (let i = 0; i < Math.min(state.lair.defenders, GUARD_SPOTS.length); i++) {
       const [dx, dy] = GUARD_SPOTS[i]!;
-      this.brood.push(this.scene.add.image(x + dx, y + dy, 'map_broodling').setOrigin(0.5, 1).setFlipX(dx > 0).setDepth(this.drawing.depth(y + dy)));
+      this.brood.push(this.scene.add.image(x + dx, y + dy, 'map_broodling').setOrigin(0.5, 1).setScale(this.iconScale).setFlipX(dx > 0).setDepth(this.drawing.depth(y + dy)));
     }
   }
 
   private tokenFor(unit: Pick<OrderUnit, 'id' | 'tier'> & { kind: OrderUnit['kind'] | 'scout' }): Token {
     let token = this.live.get(unit.id);
     if (!token) {
-      const image = this.scene.add.image(0, 0, imageKey(unit.kind, unit.tier)).setOrigin(0.5, 1);
+      const image = this.scene.add.image(0, 0, imageKey(unit.kind, unit.tier)).setOrigin(0.5, 1).setScale(this.iconScale);
       token = { image, shadow: this.drawing.shadow(0, 0, image.width) };
       this.live.set(unit.id, token);
     }
@@ -216,7 +226,7 @@ export class OrderTokens {
         ghost.key = key;
       }
       if (!ghost) {
-        const image = this.scene.add.image(0, 0, key).setOrigin(0.5, 1).setAlpha(GHOST.alpha).setTint(GHOST.tint);
+        const image = this.scene.add.image(0, 0, key).setOrigin(0.5, 1).setScale(this.iconScale).setAlpha(GHOST.alpha).setTint(GHOST.tint);
         const label = this.scene.add
           .text(0, 0, '', { fontFamily: FONT.text, fontSize: '8px', color: '#c8c8d8', backgroundColor: '#05090acc', padding: { x: 2, y: 0 } })
           .setOrigin(0.5, 0)

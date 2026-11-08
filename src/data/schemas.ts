@@ -56,6 +56,8 @@ export const balanceSchema = section({
     undergroundRadius: z.number().int().min(8),
     landmarkSightRange: z.number().int().min(0),
     echoRange: z.number().int().min(0),
+    // The Near / Far views of the map (GAME_DESIGN.md §5.9): its zoom, 1 = the usual size on a computer.
+    view: section({ near: z.number().positive(), far: z.number().positive() }),
   }),
   terrain: section({
     water: terrainRulesSchema,
@@ -681,6 +683,9 @@ export const textSchema = z
       muck: z.string().min(1),
       alert: z.string().min(1),
       endTurn: z.string().min(1),
+      // The Big World: the button that switches the map between its Near and Far views.
+      zoomIn: z.string().min(1),
+      zoomOut: z.string().min(1),
       moisture: z.string().min(1),
       bones: z.string().min(1),
       rested: z.string().min(1),
@@ -874,6 +879,9 @@ export const textSchema = z
       seed: z.string().min(1),
       quit: z.string().min(1),
       quitBattle: z.string().min(1),
+      // The Big World: the map's Near and Far views.
+      viewNear: z.string().min(1),
+      viewFar: z.string().min(1),
     }),
   })
   .strict();

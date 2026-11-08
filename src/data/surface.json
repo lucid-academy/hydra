@@ -1,32 +1,32 @@
 {
-  "//": "TODO(design): the surface (GAME_DESIGN.md §5.6, §5.7; M4). Working values and texts by Claude; change them freely. The surface is a second map over the underground, the same size; every Passage has its hex on both. Up there the hydra needs Mist: a turn ended without mist under her leaves her Exposed. The Order lives here, in its castle and camps, and keeps Flame Shrines burning; every shrine put out leaves mist that never fades.",
+  "//": "TODO(design): the surface (GAME_DESIGN.md §5.6, §5.7; M4). Working values and texts by Claude; change them freely. The surface is a second map over the underground, the same size (it grew with it in the Big World, 2026-11-07: counts of crags, camps, settlements, finds and event sites about tripled, distances doubled, the Alert per hex discovered quartered; still 5 Flame Shrines); every Passage has its hex on both. Up there the hydra needs Mist: a turn ended without mist under her leaves her Exposed. The Order lives here, in its castle and camps, and keeps Flame Shrines burning; every shrine put out leaves mist that never fades.",
   "generator": {
     "//": "How the surface is laid out. castle: this many hexes in from the edge, on the far side from the first Passage, on a hill this many hexes round. forest and hills: share of the land, and smoothing (more = bigger blobs). crags: clumps of bare rock nobody crosses ([from, to] clumps, [from, to] hexes each). river: crosses from edge to edge; winding: how much it wanders. flameShrines: how many, at least minApart steps from each other, minFromPassage from any Passage, minFromCastle from the castle; tierByCastleDistance: a shrine this many steps from the castle or closer is one tier stronger, for each number (so [14, 8]: tier 1 far out, tier 2 within 14, tier 3 within 8); groupsByTier: who guards a shrine of each tier (encounter groups from enemies.json, by weight). camps: where the Order sets out from on the surface, with the castle. settlements: by = what they like to stand next to (river, hill or field). finds: things lying about, from the list under finds below. eventSites: hexes where a surface event waits. spacing: objects keep at least this many steps apart.",
-    "castle": { "fromEdge": 2, "hillRadius": 2 },
+    "castle": { "fromEdge": 3, "hillRadius": 3 },
     "forest": { "share": 0.22, "smoothing": 3 },
     "hills": { "share": 0.08, "smoothing": 3 },
-    "crags": { "count": [3, 6], "size": [2, 5] },
+    "crags": { "count": [10, 18], "size": [3, 8] },
     "river": { "winding": 2.5 },
     "flameShrines": {
       "count": 5,
-      "minApart": 6,
-      "minFromPassage": 5,
-      "minFromCastle": 4,
-      "tierByCastleDistance": [14, 8],
+      "minApart": 12,
+      "minFromPassage": 8,
+      "minFromCastle": 8,
+      "tierByCastleDistance": [28, 16],
       "groupsByTier": { "1": { "shrineWatch": 1 }, "2": { "shrineVigil": 1 }, "3": { "shrineBastion": 1 } }
     },
-    "camps": { "count": 2, "minFromPassage": 6, "minFromCastle": 5 },
+    "camps": { "count": 5, "minFromPassage": 8, "minFromCastle": 8 },
     "settlements": [
-      { "id": "village", "count": 3, "by": "field" },
-      { "id": "mill", "count": 1, "by": "river" },
-      { "id": "watchtower", "count": 2, "by": "hill" }
+      { "id": "village", "count": 10, "by": "field" },
+      { "id": "mill", "count": 3, "by": "river" },
+      { "id": "watchtower", "count": 6, "by": "hill" }
     ],
-    "finds": { "count": 5, "minFromPassage": 2 },
-    "eventSites": 2,
+    "finds": { "count": 16, "minFromPassage": 2 },
+    "eventSites": 6,
     "spacing": 3
   },
   "passageMovement": 1,
-  "alertPerHexDiscovered": 0.05,
+  "alertPerHexDiscovered": 0.0125,
   "seenFromAfar": {
     "//": "TODO(design): things up there the hydra knows of from the start, without seeing them, because they stand out from far away (the castle on its hill, the shrines' flames burning day and night). They show on the map as remembered, dimmed, until she sees them. Kinds: castle, flameShrine, settlement, passage. An empty list: she finds everything by looking.",
     "kinds": ["castle", "flameShrine"]

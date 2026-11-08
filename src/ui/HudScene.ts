@@ -46,6 +46,7 @@ import { GameMenu } from './GameMenu';
 import { lineages } from '../scenes/LineageKeeper';
 import { onKeyDown } from './keys';
 import { Minimap } from './Minimap';
+import type { MapView } from '../save/settings';
 import { PlacePanel } from './PlacePanel';
 import type { PlacePanelView } from './PlacePanel';
 import { ShrinePanel } from './ShrinePanel';
@@ -69,6 +70,7 @@ const PASSAGE = '__passage';
 /** Action id in the castle's panel: storm its next part. */
 const CASTLE_STORM = '__castle:storm';
 const ALERT_BAR_WIDTH = 100;
+const VIEW_BUTTON = { width: 56, height: 14 } as const;
 /** Where each resource counter starts in the top bar. */
 const RESOURCE_X = { muck: 228, moisture: 296, bones: 390 } as const;
 const TOAST_MS = 2400;
@@ -89,6 +91,8 @@ export class HudScene extends Phaser.Scene {
   private exhaleButton!: Button;
   private surfaceText!: Phaser.GameObjects.Text;
   private minimap!: Minimap;
+  /** Above the minimap: switches the map between the Near and Far views (GAME_DESIGN.md §5.9); key Z. */
+  private viewButton!: Button;
   /** The hydra's name, generation and mutations, at the bottom. */
   private nameText!: Phaser.GameObjects.Text;
   private shrinePanel!: ShrinePanel;
@@ -167,12 +171,21 @@ export class HudScene extends Phaser.Scene {
       }
       if (this.menu.visible) return;
       if (event.key === 'Enter') this.run.endTurn();
+      if (event.key === 'z' || event.key === 'Z') this.mapView()?.toggleView();
       if ((event.key === 'm' || event.key === 'M') && this.run.state.hydra.layer === 'surface' && !this.placePanel.visible) this.run.exhaleMist();
       if (event.key === 'Escape' && this.placePanel.visible) this.run.leavePlace();
     });
     this.conditionsText = this.add.text(6, BAR_HEIGHT + 2, '', { ...mono, fontSize: '9px', color: '#e0c890', backgroundColor: '#05090acc', padding: { x: 3, y: 1 } });
 
     this.minimap = new Minimap(this, 4, height - 4, this.run, getContext(this).data, (h) => this.lookAt(h));
+    this.viewButton = new Button(
+      this,
+      this.minimap.left + VIEW_BUTTON.width / 2,
+      this.minimap.top - VIEW_BUTTON.height / 2 - 2,
+      '',
+      { ...VIEW_BUTTON, fill: color(palette.underground.deepTeal), border: color(palette.underground.bioluminescence), textColor: '#e8f0e0', fontSize: '9px' },
+      () => this.mapView()?.toggleView(),
+    );
     this.shrinePanel = new ShrinePanel(this, getContext(this).data, () => this.run.acceptBlessing(), () => this.run.refuseBlessing());
     this.placePanel = new PlacePanel(
       this,
@@ -197,6 +210,7 @@ export class HudScene extends Phaser.Scene {
     this.menu = new GameMenu(this, MENU_DEPTH, {
       seed: lineages(this).lineage()?.seed ?? getContext(this).seed,
       inBattle: false,
+      view: { now: () => this.mapView()?.viewNow() ?? null, toggle: () => this.mapView()?.toggleView() },
       onQuit: () => {
         this.scene.stop(SceneKey.Dialogue);
         this.scene.stop(SceneKey.Map);
@@ -206,6 +220,10 @@ export class HudScene extends Phaser.Scene {
     new Button(this, MENU_BUTTON.width / 2 + 3, BAR_HEIGHT / 2, text.menu.button, { ...MENU_BUTTON, fill: color(palette.underground.deepTeal), border: color(palette.underground.bioluminescence), textColor: '#e8f0e0' }, () => this.menu.open());
 
     const onChanged = (): void => this.refresh();
+    const onZoomed = (): void => this.showView();
+    const mapEvents = this.scene.get(SceneKey.Map).events;
+    mapEvents.on('zoomed', onZoomed);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => mapEvents.off('zoomed', onZoomed));
     const onEvents = (events: RunEvent[]): void => this.announce(events);
     const onNotice = (id: 'outOfReach' | 'noWayThere' | 'journeyWaits'): void => this.toast(text.hud[id], '#c8c0b0');
     const onUnlocked = (ids: string[]): void => this.announceUnlocks(ids);
@@ -554,6 +572,19 @@ export class HudScene extends Phaser.Scene {
     });
   }
 
+  /** The map screen's view controls, when it is running. */
+  private mapView(): { viewNow: () => MapView; toggleView: () => void } | null {
+    if (!this.scene.isActive(SceneKey.Map)) return null;
+    return this.scene.get(SceneKey.Map) as unknown as { viewNow: () => MapView; toggleView: () => void };
+  }
+
+  /** The view button offers the other view: Zoom out when near, Zoom in when far. */
+  private showView(): void {
+    const view = this.mapView()?.viewNow() ?? 'near';
+    const { hud } = getContext(this).data.text;
+    this.viewButton.setLabel(view === 'far' ? hud.zoomIn : hud.zoomOut);
+  }
+
   private lookAt(h: Hex): void {
     const map = this.scene.get(SceneKey.Map) as unknown as { lookAt?: (h: Hex) => void };
     map.lookAt?.(h);
@@ -594,6 +625,7 @@ export class HudScene extends Phaser.Scene {
     const name = fillText(text.lineages.hudName, { name: hydra.name, generation: this.run.state.generation });
     this.nameText.setText([name, ...hydra.mutations.map((id) => mutationName(data, id))].join('  ·  ')).setVisible(hydra.name !== '');
     this.minimap.redraw();
+    this.showView();
   }
 
   /** On the surface: Exhale Mist and its cost, and the line on day or night, the flames and the mist. */

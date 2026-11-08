@@ -130,19 +130,18 @@ describe('a mutation gained in her life', () => {
 
   it('Echo-eared: echoes are heard from further away', () => {
     const heard = (mutations: string[]) => {
-      const state = runOn(flatMap(9, (tiles) => {
+      const state = runOn(flatMap(testRules.echoRange + 4, (tiles) => {
         // A wall all around the lair, so nothing beyond it is seen.
         for (const [key, t] of tiles) if (t.hex.q === 2) tiles.set(key, { ...t, terrain: 'rock' });
       }));
       state.visibility = new Map();
-      state.map = { ...state.map, layout: { ...state.map.layout, echoSources: [{ at: hex(6, 0), placeId: 'test', biome: 'lairSwamp' }] } };
+      state.map = { ...state.map, layout: { ...state.map.layout, echoSources: [{ at: hex(testRules.echoRange + 1, 0), placeId: 'test', biome: 'lairSwamp' }] } };
       for (const id of mutations) gainMutation(state, id, testRules, []);
       const events: RunEvent[] = [];
       lookAround(state, testRules, events);
       return events.some((e) => e.type === 'echoHeard');
     };
-    expect(testRules.echoRange).toBeLessThan(6);
-    expect(testRules.echoRange + (testRules.mutations.echoEared?.echoRange ?? 0)).toBeGreaterThanOrEqual(6);
+    expect(testRules.mutations.echoEared?.echoRange ?? 0).toBeGreaterThanOrEqual(1);
     expect(heard([])).toBe(false);
     expect(heard(['echoEared'])).toBe(true);
   });
@@ -172,7 +171,7 @@ describe('marking shrines', () => {
     }
     expect(marked).toBeGreaterThan(20);
     expect(marked).toBeLessThan(60);
-  });
+  }, 60_000);
 
   it('accepting the mark gives the mutation instead of the blessing', () => {
     const state = markedRun();

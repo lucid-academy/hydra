@@ -10,13 +10,21 @@ import { hexKey, hexRound } from '../sim/hex';
 import type { Hex } from '../sim/hex';
 import { hasMist, mapOf, visibilityOf } from '../sim/turn';
 
-/** Size of one hex on the minimap, in screen pixels: across, and from row to row. */
+/** Size of one hex on the minimap, in screen pixels: across, and from row to row (for a map of FULL_SIZE_RADIUS or less). */
 const DOT = { across: 2.2, down: 1.85 };
+/** A bigger map (the Big World, GAME_DESIGN.md §5.1) gets smaller dots, so the minimap keeps its size on the screen. */
+const FULL_SIZE_RADIUS = 20;
 const PADDING = 4;
 
 export class Minimap {
   private readonly graphics: Phaser.GameObjects.Graphics;
   private readonly center: { x: number; y: number };
+  /** One hex on this minimap: across, from row to row, and the side of a dot. */
+  private readonly cell: { across: number; down: number; scale: number };
+  /** Where the minimap's panel starts on the screen (things above it line up with it). */
+  readonly top: number;
+  readonly left: number;
+  readonly width: number;
 
   constructor(
     scene: Phaser.Scene,
@@ -27,9 +35,14 @@ export class Minimap {
     onLookAt: (h: Hex) => void,
   ) {
     const radius = run.state.map.radius;
-    const width = Math.ceil((radius * 2 + 1) * DOT.across) + PADDING * 2;
-    const height = Math.ceil((radius * 2 + 1) * DOT.down) + PADDING * 2;
+    const scale = Math.min(1, FULL_SIZE_RADIUS / radius);
+    this.cell = { across: DOT.across * scale, down: DOT.down * scale, scale };
+    const width = Math.ceil((radius * 2 + 1) * this.cell.across) + PADDING * 2;
+    const height = Math.ceil((radius * 2 + 1) * this.cell.down) + PADDING * 2;
     const top = bottom - height;
+    this.top = top;
+    this.left = left;
+    this.width = width;
     this.center = { x: left + width / 2, y: top + height / 2 };
     const panel = scene.add
       .rectangle(left, top, width, height, color(data.palette.underground.black), 0.85)
@@ -39,8 +52,8 @@ export class Minimap {
     panel.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       // Pointer positions are canvas pixels; the HUD's camera turns them into screen units (they differ in HD).
       const at = scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
-      const r = (at.y - this.center.y) / DOT.down;
-      const q = (at.x - this.center.x) / DOT.across - r / 2;
+      const r = (at.y - this.center.y) / this.cell.down;
+      const q = (at.x - this.center.x) / this.cell.across - r / 2;
       onLookAt(hexRound(q, r));
     });
     this.graphics = scene.add.graphics();
@@ -56,9 +69,11 @@ export class Minimap {
     const up = hydra.layer === 'surface';
     const echoes = up ? [] : state.echoes;
     // Terrain dots are a little taller than the row step, so rows touch instead of leaving dark stripes between them.
+    const { across, down, scale } = this.cell;
     const dot = (h: Hex, fill: number, alpha = 1, size = 2) => {
+      const side = Math.max(1, size * scale);
       g.fillStyle(fill, alpha);
-      g.fillRect(Math.round(this.center.x + (h.q + h.r / 2) * DOT.across - size / 2), Math.round(this.center.y + h.r * DOT.down - size / 2), size + 1, size + 1);
+      g.fillRect(this.center.x + (h.q + h.r / 2) * across - side / 2, this.center.y + h.r * down - side / 2, side + scale, side + scale);
     };
     for (const [key, seen] of visibility) {
       const tile = map.tiles.get(key);
