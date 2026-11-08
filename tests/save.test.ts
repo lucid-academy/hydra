@@ -48,8 +48,9 @@ describe('the saved run', () => {
   it('is small enough for the browser to keep', () => {
     const state = createRun(123, rules);
     for (const key of state.map.tiles.keys()) state.visibility.set(key, 'remembered');
-    // localStorage keeps about 5 MB per site; a run should take a small part of it.
-    expect(writeRun({ lineage: 1, generation: 1, state }).length).toBeLessThan(1_000_000);
+    for (const key of state.surface.map.tiles.keys()) state.surface.visibility.set(key, 'remembered');
+    // localStorage keeps about 5 MB per site; a run should take a small part of it, even on the Big World's maps.
+    expect(writeRun({ lineage: 1, generation: 1, state }).length).toBeLessThan(600_000);
     expect(state.visibility.get(hexKey(state.map.lair))).toBeDefined();
   });
 });

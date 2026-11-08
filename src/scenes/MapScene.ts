@@ -31,7 +31,9 @@ import type { RunController } from './RunController';
 import { SceneKey } from './sceneKeys';
 import { pageScale, pinnedToScreen, viewScale } from './view';
 import { FONT } from '../ui/fonts';
-import { setAmbience } from '../audio/SoundBoard';
+import { setAmbience, soundBoard } from '../audio/SoundBoard';
+import { saveSettings } from '../save/settings';
+import type { MapView, Settings } from '../save/settings';
 
 const LAYOUT: HexLayout = { columnWidth: MAP_COLUMN_WIDTH, rowHeight: MAP_ROW_HEIGHT, originX: 0, originY: 0 };
 const WORLD_MARGIN = 60;
@@ -48,7 +50,18 @@ const SLITHER = { sway: 5, stretch: 0.07, carriedSway: 2 } as const;
 /** Below this page zoom (small screens, e.g. phones) the map camera zooms in 2×, so hexes are big enough for fingers. */
 const SMALL_SCREEN_ZOOM = 2;
 /** The player's zoom of the map (wheel, pinch), within these bounds, a wheel notch changing it this many times. */
-const MAP_ZOOM = { min: 0.5, max: 3, wheelStep: 1.2 } as const;
+const MAP_ZOOM = { min: 0.4, max: 3, wheelStep: 1.2 } as const;
+/** Switching between the Near and Far views (GAME_DESIGN.md §5.9) takes this long. */
+const VIEW_SWITCH_MS = 350;
+/**
+ * Zoomed out, the things worth finding (places, the Order's people, shrines) grow against the ground, so they don't
+ * vanish (GAME_DESIGN.md §5.9): by one over the zoom, up to this much.
+ */
+const ICON_GROWTH_MAX = 1.6;
+/** A zoom up to this much closer than the Far view still counts as Far. */
+const FAR_VIEW_LEEWAY = 1.25;
+/** Objects that keep their size however far the view: they lie on or fill their hex. */
+const FLAT_OBJECTS: ReadonlyArray<MapObject['kind']> = ['threshold', 'lair'];
 /** The player's own zoom, kept for the rest of the game (null: the usual one). */
 let playerZoom: number | null = null;
 /** Hexes seen before but out of sight now are drawn this much darker. */
@@ -188,6 +201,10 @@ export class MapScene extends Phaser.Scene {
   private tokenShadow!: Phaser.GameObjects.Image;
   private views = new Map<string, HexView>();
   private token!: Phaser.GameObjects.Image;
+  /** How much bigger the hydra and the things worth finding are drawn now (the Far view grows them). */
+  private iconScale = 1;
+  /** The view the player last switched to (until the wheel or fingers zoom the map again). */
+  private chosenView: MapView | null = null;
   private animating = false;
   private press: { x: number; y: number; dragging: boolean } | null = null;
   /** How far apart two fingers pinching the map were at the last move, or null. */
@@ -245,6 +262,8 @@ export class MapScene extends Phaser.Scene {
     this.heat = new Map();
     this.animating = false;
     this.run.animating = false;
+    this.iconScale = 1;
+    this.chosenView = null;
     this.press = null;
     this.biomeNames = [];
     this.showingBiomeName = false;
@@ -534,6 +553,7 @@ export class MapScene extends Phaser.Scene {
     }
     if (object.kind === 'castle') light(palette.order.fire, 0.8, 0.55, 46);
     if (object.kind === 'settlement' && object.settlementId === 'camp') light(palette.order.orange, 0.5, 0.5, 4);
+    if (this.iconScale !== 1) this.growObject(view);
   }
 
   /** A light at (x, y), over something whose feet are at `groundY`. */
@@ -924,7 +944,7 @@ export class MapScene extends Phaser.Scene {
         duration,
         onUpdate: (tween) => {
           const swing = Math.sin(tween.progress * Math.PI);
-          this.token.setAngle(side * sway * swing).setScale(1 - (stretch / 2) * swing, 1 + stretch * swing);
+          this.token.setAngle(side * sway * swing).setScale((1 - (stretch / 2) * swing) * this.iconScale, (1 + stretch * swing) * this.iconScale);
         },
       });
     };
@@ -961,7 +981,7 @@ export class MapScene extends Phaser.Scene {
       },
       onComplete: () => {
         this.animating = false;
-        this.token.setAngle(0).setScale(1);
+        this.token.setAngle(0).setScale(this.iconScale);
         if (this.journey && hexEquals(this.journey, this.run.state.hydra.position)) this.journey = null;
         if (!this.run.state.pendingBattle) this.panTo(revealed?.at ?? this.run.state.hydra.position);
         this.run.animating = false;
@@ -1055,11 +1075,77 @@ export class MapScene extends Phaser.Scene {
     const { x, y } = hexToPixel(LAYOUT, this.run.state.hydra.position);
     cam.centerOn(x, y);
     this.coverScreen();
+    this.growIcons();
   }
 
-  /** The map's zoom before the player changes it: ?zoom=, else 2× on small screens. */
+  /** The map's zoom before the player changes it: ?zoom=, else the view the player chose, else 2× on small screens. */
   private usualZoom(): number {
-    return getContext(this).params.zoom ?? (pageScale(this) < SMALL_SCREEN_ZOOM ? 2 : 1);
+    const { params, data } = getContext(this);
+    if (params.zoom !== null && params.zoom !== undefined) return params.zoom;
+    const view = this.settings().mapView;
+    if (view) return data.balance.map.view[view];
+    return pageScale(this) < SMALL_SCREEN_ZOOM ? 2 : 1;
+  }
+
+  /** The player's settings (kept with the sound's, so one copy is saved). */
+  private settings(): Settings {
+    return soundBoard(this, getContext(this).data.sounds).settings;
+  }
+
+  /** The map's zoom now, without the screen's own scale (1 = the usual size on a computer). */
+  private zoomNow(): number {
+    return this.cameras.main.zoom / viewScale(this);
+  }
+
+  /**
+   * The view now: the one just chosen, else Far when the map is zoomed out to about the Far view, else Near (the usual
+   * size on a computer counts as Near, so its button offers to zoom out).
+   */
+  viewNow(): MapView {
+    if (this.chosenView) return this.chosenView;
+    const { far } = getContext(this).data.balance.map.view;
+    return this.zoomNow() <= far * FAR_VIEW_LEEWAY ? 'far' : 'near';
+  }
+
+  /** Switches between the Near and Far views (the HUD's button, the menu, the Z key); the choice is remembered. */
+  toggleView(): void {
+    this.setView(this.viewNow() === 'near' ? 'far' : 'near');
+  }
+
+  setView(view: MapView): void {
+    const settings = this.settings();
+    settings.mapView = view;
+    saveSettings(settings);
+    this.chosenView = view;
+    const target = getContext(this).data.balance.map.view[view];
+    playerZoom = target;
+    const cam = this.cameras.main;
+    const { x, y } = hexToPixel(LAYOUT, this.run.state.hydra.position);
+    cam.stopFollow();
+    cam.pan(x, y, VIEW_SWITCH_MS, 'Sine.easeInOut', true);
+    cam.zoomTo(target * viewScale(this), VIEW_SWITCH_MS, 'Sine.easeInOut', true, (_cam: Phaser.Cameras.Scene2D.Camera, progress: number) => {
+      this.coverScreen();
+      this.growIcons();
+      if (progress >= 1) this.events.emit('zoomed');
+    });
+  }
+
+  /** Things worth finding grow against the ground when the view is far (GAME_DESIGN.md §5.9). */
+  private growIcons(): void {
+    const scale = Math.min(ICON_GROWTH_MAX, Math.max(1, 1 / this.zoomNow()));
+    if (Math.abs(scale - this.iconScale) < 0.01) return;
+    this.iconScale = scale;
+    for (const view of this.views.values()) this.growObject(view);
+    if (!this.animating) this.token.setScale(scale);
+    this.order?.setIconScale(scale);
+  }
+
+  /** The object on a hex at the size the view wants (flat ones lie on the ground and keep theirs). */
+  private growObject(view: HexView): void {
+    const kind = view.tile.object?.kind;
+    if (!view.object || !kind || FLAT_OBJECTS.includes(kind)) return;
+    view.object.setScale(this.iconScale);
+    for (const extra of view.objectExtras) extra.setScale(this.iconScale);
   }
 
   /**
@@ -1080,7 +1166,10 @@ export class MapScene extends Phaser.Scene {
     cam.scrollX += before.x - after.x;
     cam.scrollY += before.y - after.y;
     playerZoom = next;
+    this.chosenView = null;
     this.coverScreen();
+    this.growIcons();
+    this.events.emit('zoomed');
   }
 
   /** Stretches the input zone over the whole screen, whatever the camera's zoom. */

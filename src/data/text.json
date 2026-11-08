@@ -9,6 +9,8 @@
     "muck": "Muck",
     "alert": "Alert",
     "endTurn": "End Turn",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
     "moisture": "Moisture",
     "bones": "Bones",
     "rested": "The hydra sleeps in its lair. Wounds close. Burnt stumps itch, and sprout.",
@@ -215,6 +217,8 @@
     "soundOff": "Sound: off",
     "seed": "Lineage seed {seed}",
     "quit": "Quit to the title",
-    "quitBattle": "The game is saved. A battle left now starts over."
+    "quitBattle": "The game is saved. A battle left now starts over.",
+    "viewNear": "Map: near",
+    "viewFar": "Map: far"
   }
 }

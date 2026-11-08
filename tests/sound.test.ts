@@ -95,11 +95,12 @@ describe('the synth', () => {
 
 describe('sound settings', () => {
   it('survive being saved, and anything broken or of another format is ignored', () => {
-    expect(readSettings(writeSettings({ volume: 0.3, muted: true }))).toEqual({ volume: 0.3, muted: true });
+    expect(readSettings(writeSettings({ volume: 0.3, muted: true, mapView: 'far' }))).toEqual({ volume: 0.3, muted: true, mapView: 'far' });
     expect(readSettings(null)).toBeNull();
     expect(readSettings('not json')).toBeNull();
     expect(readSettings(JSON.stringify({ format: 99, volume: 0.3, muted: false }))).toBeNull();
     expect(readSettings(JSON.stringify({ format: 1, volume: 'loud', muted: false }))).toBeNull();
-    expect(readSettings(JSON.stringify({ format: 1, volume: 7, muted: false }))).toEqual({ volume: 1, muted: false });
+    // Settings from before the Big World have no map view: the usual one.
+    expect(readSettings(JSON.stringify({ format: 1, volume: 7, muted: false }))).toEqual({ volume: 1, muted: false, mapView: null });
   });
 });

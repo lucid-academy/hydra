@@ -271,12 +271,14 @@ describe('finds and hints', () => {
   });
 
   it('a place not seen yet is heard from the edge of the known map, once', () => {
-    const state = runOn(flatMap(8));
-    state.map = { ...state.map, layout: { ...state.map.layout, echoSources: [{ at: hex(5, 0), placeId: 'ninefoldCamp', biome: 'saltMines' }] } };
+    // Just out of hearing from the lair, in hearing one step closer.
+    const far = testRules.echoRange + 1;
+    const state = runOn(flatMap(far + 2));
+    state.map = { ...state.map, layout: { ...state.map.layout, echoSources: [{ at: hex(far, 0), placeId: 'ninefoldCamp', biome: 'saltMines' }] } };
     state.visibility = new Map([['0,0', 'visible'], ['1,0', 'visible']]);
     const events = moveHydra(state, hex(1, 0), testRules);
     const echo = events.find((e) => e.type === 'echoHeard');
-    expect(echo).toMatchObject({ echo: { placeId: 'ninefoldCamp', source: hex(5, 0) } });
+    expect(echo).toMatchObject({ echo: { placeId: 'ninefoldCamp', source: hex(far, 0) } });
     expect(state.echoes).toHaveLength(1);
     moveHydra(state, hex(0, 0), testRules);
     expect(state.echoes).toHaveLength(1);
