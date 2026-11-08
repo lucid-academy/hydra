@@ -9,5 +9,8 @@ export default defineConfig({
   },
   test: {
     include: ['tests/**/*.test.ts'],
+    // Many tests build whole worlds (radius 40 since the Big World), which takes 3-8 s on a GitHub runner; the default
+    // 5 s failed a deploy once. Tests that go through hundreds of worlds still set their own, longer timeout.
+    testTimeout: 30_000,
   },
 });

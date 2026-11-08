@@ -85,9 +85,13 @@ async function button(page, name) {
   return point;
 }
 
-/** Waits until the map has shown the last move: the hydra has walked and the view has followed it. */
+/**
+ * Waits until the map has shown the last move: the hydra has walked, the view has followed it, and a new land's card
+ * has had its time when a dialogue waits behind it. 40 s: on a phone-sized canvas software WebGL draws a few frames a
+ * second, and the card's 5 s then take about 12.
+ */
 async function waitForMap(page) {
-  await page.waitForFunction(() => !window.__hydra.mapBusy?.(), null, { timeout: 15_000 });
+  await page.waitForFunction(() => !window.__hydra.mapBusy?.(), null, { timeout: 40_000 });
   await page.waitForTimeout(100);
 }
 
@@ -97,8 +101,16 @@ async function waitForScene(page, scene, timesBefore = 0) {
   await page.waitForTimeout(400); // let it draw
 }
 
-/** One step on the map: into an encounter if one is in reach, otherwise towards unexplored ground. */
+/** How many map steps in a row have found no new hex (a bot can circle round ground it can never see). */
+let stalled = { explored: -1, steps: 0 };
+
+/**
+ * One step on the map: into an encounter if one is in reach, otherwise towards unexplored ground; after a few steps
+ * that found nothing new, as far as she can go, a different way each time.
+ */
 async function mapStep(page, step) {
+  const { explored } = await page.evaluate(() => window.__hydra.runSummary());
+  stalled = explored === stalled.explored ? { explored, steps: stalled.steps + 1 } : { explored, steps: 0 };
   const points = (await page.evaluate(() => window.__hydra.reachableOnScreen())).filter(
     (p) =>
       p.x > MAP_TAP_AREA.left &&
@@ -114,8 +126,10 @@ async function mapStep(page, step) {
     return;
   }
   const mostNew = Math.max(...points.map((p) => p.unexploredNear));
+  const farthest = [...points].sort((a, b) => b.cost - a.cost).slice(0, 6);
   const target =
     points.find((p) => p.encounter) ??
+    (stalled.steps >= 6 ? farthest[step % farthest.length] : undefined) ??
     (mostNew > 0 ? points.find((p) => p.unexploredNear === mostNew) : points[(step * 7) % points.length]);
   await goTo(page, target);
   await waitForMap(page);

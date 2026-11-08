@@ -1683,7 +1683,13 @@ export class MapScene extends Phaser.Scene {
       return [...this.run.reachable().entries()].map(([key, { cost }]) => {
         const tile = map.tiles.get(key)!;
         const around = [tile.hex, ...hexNeighbors(tile.hex)].flatMap((h) => [h, ...hexNeighbors(h)]);
-        const unexploredNear = new Set(around.map(hexKey).filter((k) => map.tiles.has(k) && !visibility.has(k))).size;
+        // Only ground she could walk on counts: rock deep in a wall is never seen, and would draw a bot to it for ever.
+        const unexploredNear = new Set(
+          around.map(hexKey).filter((k) => {
+            const near = map.tiles.get(k);
+            return near !== undefined && !visibility.has(k) && this.run.rules.terrain[near.terrain].moveCost !== null;
+          }),
+        ).size;
         const object = tile.object;
         return {
           ...this.onScreen(tile.hex),
