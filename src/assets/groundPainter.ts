@@ -17,6 +17,11 @@ import type { Pixels } from './terrain';
 export interface HexLook {
   texture: number;
   rock: boolean;
+  /**
+   * How many terrace steps its ground stands above the lowest ground (0 when left out). Only a look: the painter draws
+   * a low face where higher ground meets lower, and nothing on the hex moves. Rock ignores it.
+   */
+  level?: number;
 }
 
 /** The hexes as the painter sees them: looks and what the hydra knows, in arrays indexed by axial (q, r). */
@@ -27,6 +32,10 @@ export class HexGrid {
   readonly texture: Int16Array;
   readonly rock: Uint8Array;
   readonly known: Uint8Array;
+  /** Terrace steps of each hex's ground (HexLook.level). */
+  readonly level: Uint8Array;
+  /** How many hexes stand above level 0, so painting can skip terraces when there are none. */
+  raised = 0;
   private readonly offset: number;
 
   /** A grid for every hex up to `radius` steps from (0, 0). */
@@ -36,6 +45,7 @@ export class HexGrid {
     this.texture = new Int16Array(this.size * this.size).fill(-1);
     this.rock = new Uint8Array(this.size * this.size);
     this.known = new Uint8Array(this.size * this.size);
+    this.level = new Uint8Array(this.size * this.size);
   }
 
   /** Index of hex (q, r) in the arrays, or -1 when it is off the grid. */
@@ -55,9 +65,12 @@ export class HexGrid {
     const i = this.index(q, r);
     if (i < 0) return false;
     const rock = look.rock ? 1 : 0;
-    if (this.texture[i] === look.texture && this.rock[i] === rock) return false;
+    const level = look.rock ? 0 : (look.level ?? 0);
+    if (this.texture[i] === look.texture && this.rock[i] === rock && this.level[i] === level) return false;
     this.texture[i] = look.texture;
     this.rock[i] = rock;
+    this.raised += (level > 0 ? 1 : 0) - (this.level[i]! > 0 ? 1 : 0);
+    this.level[i] = level;
     return true;
   }
 
@@ -82,6 +95,8 @@ export interface GroundTexture {
    * the foot. Without it, cliffs show the rock texture, shaded.
    */
   wall?: Pixels;
+  /** Ground only: the texture (by index) a terrace's face of this ground shows, e.g. its biome's rock. Its own, darker, without. */
+  terraceFace?: number;
 }
 
 export interface GroundSpec {
@@ -130,6 +145,11 @@ const CLIFF = { left: 0.66, middle: 0.52, right: 0.4, foot: 0.75, topLine: 1.25 
 const WALL = { left: 1, middle: 0.9, right: 0.78, topLine: 1.15 };
 /** Ground in the shadow of rock (to its lower right), how dark at most and how far it reaches (screen units). */
 const SHADOW = { darkest: 0.5, steps: 5, stepX: 1.4, stepY: 1, footDark: 0.78 };
+/**
+ * Terraces (HexLook.level): the last `step` screen units of higher ground before lower ground are its face, shaded like
+ * a low cliff, with a bright line along the top; the higher ground is a little lighter, the lower darker at the foot.
+ */
+const TERRACE = { step: 6, left: 0.66, middle: 0.52, right: 0.4, foot: 0.75, topLine: 1.4, raised: 1.1, footShade: 0.68, footReach: 4, backLip: 1.25 };
 /** Water's edge: wet ground darker, a light line on the water. */
 const SHORE = { reach: 1.5, wetGround: 0.82, waterLine: 1.18 };
 /** Slow patches of lighter and darker ground, so a big area of one texture doesn't look repeated. */
@@ -149,6 +169,7 @@ export class GroundPainter {
     offsetX: number;
     offsetY: number;
     wall: { data: Uint8ClampedArray; width: number; height: number } | null;
+    terraceFace: number;
   }>;
   /** Which hex each pixel lies in (borders already wandering), worked out in tiles of 64×64 pixels when first needed. */
   private readonly idTiles = new Map<number, Int32Array>();
@@ -170,6 +191,7 @@ export class GroundPainter {
       offsetX: Math.floor(hash(i, 1, spec.seed) * t.pixels.width),
       offsetY: Math.floor(hash(i, 2, spec.seed) * t.pixels.height),
       wall: t.wall ? calm(t.wall, 'rock') : null,
+      terraceFace: t.terraceFace ?? i,
     }));
     this.water = Uint8Array.from(textures, (t) => (t.kind === 'water' ? 1 : 0));
   }
@@ -180,6 +202,11 @@ export class GroundPainter {
 
   get height(): number {
     return this.spec.height;
+  }
+
+  /** The seed its borders wander by. */
+  get seed(): number {
+    return this.spec.seed;
   }
 
   /** World position (screen units) of the top-left pixel. */
@@ -215,7 +242,7 @@ export class GroundPainter {
     const x1 = Math.min(rect.x1, outX + out.width, this.spec.width);
     const y1 = Math.min(rect.y1, outY + out.height, this.spec.height);
     if (x1 <= x0 || y1 <= y0) return;
-    const { texture: lookTexture, rock, known } = this.grid;
+    const { texture: lookTexture, rock, known, level } = this.grid;
     const lift = this.liftPx;
     const d = this.spec.density;
 
@@ -245,6 +272,14 @@ export class GroundPainter {
       test(x - shore, y) || test(x + shore, y) || test(x, y - shore) || test(x, y + shore);
     const inner = Math.round(ROCK_TOP.innerReach * d);
     const facingStep = 2 * d;
+    const terraced = this.grid.raised > 0;
+    const terraceStep = Math.round(TERRACE.step * d);
+    const footReach = Math.max(1, Math.round(TERRACE.footReach * d));
+    /** The terrace level of known, walkable ground at a pixel, or -1 (rock, unknown, off the map). */
+    const groundLevel = (x: number, y: number): number => {
+      const id = idAt(x, y);
+      return id >= 0 && rock[id] === 0 && known[id] === 1 ? level[id]! : -1;
+    };
 
     for (let y = y0; y < y1; y++) {
       for (let x = x0; x < x1; x++) {
@@ -300,6 +335,35 @@ export class GroundPainter {
         }
         const texture = lookTexture[id]!;
         let shade = 1;
+        const height = terraced ? level[id]! : 0;
+        if (height > 0) {
+          // A terrace's face: lower known ground less than a step below this pixel.
+          let drop = 0;
+          for (let k = 1; k <= terraceStep && drop === 0; k++) {
+            const below = groundLevel(x, y + k);
+            if (below >= 0 && below < height) drop = k;
+          }
+          if (drop > 0) {
+            const rim = y + drop - 1;
+            const facing = (groundLevel(x - facingStep, rim) >= height ? 1 : 0) - (groundLevel(x + facingStep, rim) >= height ? 1 : 0);
+            let faceShade = facing < 0 ? TERRACE.left : facing > 0 ? TERRACE.right : TERRACE.middle;
+            faceShade *= TERRACE.foot + (1 - TERRACE.foot) * (drop / terraceStep);
+            if (drop === terraceStep) faceShade *= TERRACE.topLine;
+            put(out.data, o, this.sample(this.textures[texture]!.terraceFace, x, y), faceShade);
+            continue;
+          }
+          shade *= TERRACE.raised ** height;
+          // Its back edge, where lower ground lies just behind it, catches the light.
+          const behind = groundLevel(x, y - d);
+          if (behind >= 0 && behind < height) shade *= TERRACE.backLip;
+        }
+        // Darker at the foot of a terrace's face.
+        for (let k = 1; terraced && k <= footReach; k++) {
+          if (groundLevel(x, y - k) > height) {
+            shade *= TERRACE.footShade;
+            break;
+          }
+        }
         // The shadow of rock standing to the upper left, and darker right at the foot of a cliff.
         let shadow = 0;
         for (let k = 1; k <= SHADOW.steps; k++) {

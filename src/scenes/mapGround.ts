@@ -6,7 +6,7 @@
 // of the known map fading softly into the dark. Things standing on the map are dimmed by their own hex instead.
 
 import * as Phaser from 'phaser';
-import { GroundPainter, HexGrid } from '../assets/groundPainter';
+import { GroundPainter, HexGrid, noise } from '../assets/groundPainter';
 import type { GroundTexture, HexLook, PixelRect } from '../assets/groundPainter';
 import { MAP_ROCK_LIFT, MAP_TILE } from '../assets/mapArt';
 import { groundTextureKey, rockTextureKey } from '../assets/terrain';
@@ -32,6 +32,12 @@ const DARKNESS = { cell: 4, blur: 2, remembered: 0.45 };
 const REMEMBERED_TINT = 0x808080;
 /** Points checked across a thing (this many each way) to find the rock in front of it. */
 const SEE_THROUGH_SAMPLES = 4;
+/**
+ * A look to try (?terraces=1, off by default): walkable ground of the rings rises in broad patches one or two terrace
+ * steps above the rest. Only drawn; nothing about moving changes. `size` is how many hexes across a patch is about,
+ * `levels` the noise (-1..1) above which ground stands one and two steps high. TODO(design): keep, tune or drop.
+ */
+const TERRACES = { size: 6, levels: [0.15, 0.55] } as const;
 
 /** One rock picture: where it is on its sheet, and the frame that shows it. */
 interface Block {
@@ -53,6 +59,8 @@ interface Painted {
   slotSize: { width: number; height: number; across: number; perSheet: number };
   blocks: Map<number, Block>;
   textureIndex: Map<string, number>;
+  /** The terrace look is on (?terraces=1). */
+  terraces: boolean;
   /** Looks are set, and what is known painted, at least once. */
   started: boolean;
 }
@@ -79,10 +87,11 @@ export class MapGround {
     private readonly layout: HexLayout,
     seed: number,
     private readonly depths: { ground: number; darkness: number; standing: (feetY: number) => number },
+    terraces = false,
   ) {
-    if (painted?.map !== map) {
+    if (painted?.map !== map || painted.terraces !== terraces) {
       if (painted) forget(scene, painted);
-      painted = prepare(scene, map, data, layout, seed);
+      painted = prepare(scene, map, data, layout, seed, terraces);
     }
     this.painted = painted;
     for (const [index, texture] of this.painted.chunks) this.showChunk(index, texture);
@@ -118,7 +127,7 @@ export class MapGround {
     for (const tile of p.map.tiles.values()) {
       const { q, r } = tile.hex;
       // The first time, the looks are only noted: nothing has been painted yet.
-      if (p.grid.setLook(q, r, lookOf(tile, p.textureIndex)) && p.started) {
+      if (p.grid.setLook(q, r, lookOf(tile, p.textureIndex, p.terraces ? p.painter.seed : null)) && p.started) {
         dirty.push(p.painter.changedRect(q, r));
         reshaped.push(p.grid.index(q, r));
         for (const h of [tile.hex, ...hexNeighbors(tile.hex)]) rockToCheck.add(p.grid.index(h.q, h.r));
@@ -335,7 +344,7 @@ export class MapGround {
 
 // ------------------------------------------------------------ setting up and clearing away
 
-function prepare(scene: Phaser.Scene, map: LayerMap, data: GameData, layout: HexLayout, seed: number): Painted {
+function prepare(scene: Phaser.Scene, map: LayerMap, data: GameData, layout: HexLayout, seed: number, terraces: boolean): Painted {
   // Textures: each biome's grounds and its rock, read at the density they were loaded with.
   const textures: GroundTexture[] = [];
   const textureIndex = new Map<string, number>();
@@ -344,6 +353,8 @@ function prepare(scene: Phaser.Scene, map: LayerMap, data: GameData, layout: Hex
       ...Object.keys(def.ground).map((terrain): [string, GroundTexture['kind'], string] => [groundTextureKey(biome, terrain), terrain === 'water' ? 'water' : 'ground', terrain]),
       [rockTextureKey(biome), 'rock', 'rock'],
     ];
+    // A terrace's face shows the biome's rock, which comes last in its list.
+    const rockIndex = textures.length + keys.length - 1;
     for (const [key, kind, terrain] of keys) {
       textureIndex.set(key, textures.length);
       const grounds: Readonly<Record<string, string | undefined>> = def.colors.grounds ?? {};
@@ -354,6 +365,7 @@ function prepare(scene: Phaser.Scene, map: LayerMap, data: GameData, layout: Hex
         kind,
         pixels: hasPicture(key) ? readPixels(scene, key) : speckled(colour, key),
         ...(kind === 'rock' && hasPicture(wallKey) ? { wall: readPixels(scene, wallKey) } : {}),
+        ...(kind === 'rock' ? {} : { terraceFace: rockIndex }),
       });
     }
   }
@@ -390,6 +402,7 @@ function prepare(scene: Phaser.Scene, map: LayerMap, data: GameData, layout: Hex
     slotSize: { ...slot, across, perSheet: across * Math.floor(SHEET / slot.height) },
     blocks: new Map(),
     textureIndex,
+    terraces,
     started: false,
   };
 }
@@ -409,11 +422,19 @@ function forget(scene: Phaser.Scene, p: Painted): void {
 }
 
 /** How a hex looks: a closed threshold shows the floor it will have (its obstacle stands on it); a hidden one is rock. */
-function lookOf(tile: Tile, textureIndex: Map<string, number>): HexLook {
+function lookOf(tile: Tile, textureIndex: Map<string, number>, terraceSeed: number | null): HexLook {
   const object = tile.object;
   const terrain = object?.kind === 'threshold' && object.state !== 'hidden' ? object.floor : tile.terrain;
   const key = terrain === 'rock' ? rockTextureKey(tile.biome) : groundTextureKey(tile.biome, terrain);
-  return { texture: textureIndex.get(key) ?? 0, rock: terrain === 'rock' };
+  const look: HexLook = { texture: textureIndex.get(key) ?? 0, rock: terrain === 'rock' };
+  // Terraces (a look to try): not in the lair's swamp or on the surface (ring 0), not on water or rock.
+  if (terraceSeed !== null && tile.ring > 0 && terrain !== 'rock' && terrain !== 'water') {
+    const { q, r } = tile.hex;
+    // Axial columns lean: (q + r / 2, r * 0.866) are the hex's place on a square grid, so the patches come out round.
+    const n = noise((q + r / 2) / TERRACES.size, (r * 0.866) / TERRACES.size, terraceSeed ^ 0x7e7ace5);
+    look.level = TERRACES.levels.filter((above) => n > above).length;
+  }
+  return look;
 }
 
 /** A box blur along rows (`across`) or columns. Values beyond the edge count as the edge's own. */

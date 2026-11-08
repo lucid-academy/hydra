@@ -404,11 +404,15 @@ export class MapScene extends Phaser.Scene {
     const covered = new Set(bigClumps.flatMap((c) => c.covers.map(hexKey)));
     this.chamberGlows = this.onSurface ? [] : this.planChamberGlows();
     const { data } = getContext(this);
-    this.ground = new MapGround(this, this.shown, data, LAYOUT, this.run.state.seed, {
-      ground: DEPTH.ground,
-      darkness: DEPTH.darkness,
-      standing: (y) => this.standingDepth(y),
-    });
+    this.ground = new MapGround(
+      this,
+      this.shown,
+      data,
+      LAYOUT,
+      this.run.state.seed,
+      { ground: DEPTH.ground, darkness: DEPTH.darkness, standing: (y) => this.standingDepth(y) },
+      getContext(this).params.terraces,
+    );
     this.light = new MapLight(this, this.ground.area, DEPTH.light);
     this.reach = {
       glow: this.add.graphics().setDepth(DEPTH.mark).setBlendMode(Phaser.BlendModes.ADD),

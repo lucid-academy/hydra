@@ -238,6 +238,8 @@ const SHOTS = [
     await page.waitForTimeout(300);
   } },
   { name: 'map-landmark', query: '?seed=123&scene=map&near=sunkenOak', viewport: DESKTOP, scene: 'map' },
+  // A look to try, off by default: terraces (?terraces=1), next to a chamber with a few of them.
+  { name: 'map-terraces', query: '?seed=123&scene=map&reveal=1&near=saltSaint&terraces=1', viewport: DESKTOP, scene: 'map' },
   // M5: dialogues (Old Mother Toad, heads, the Serpent, an answer to pick) and events.
   { name: 'dialogue-toad', query: '?seed=123&scene=map', viewport: DESKTOP, scene: 'map', act: async (page) => {
     await tapGame(page, { x: 590, y: 340 }); // End Turn in the lair: Old Mother Toad speaks
