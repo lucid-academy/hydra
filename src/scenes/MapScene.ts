@@ -23,6 +23,7 @@ import { color, getContext } from './context';
 import { hexOutlines, roundCorners } from './hexOutline';
 import { MapGround } from './mapGround';
 import { OrderTokens } from './mapOrder';
+import { MapLife } from './mapLife';
 import { biomeScenery, hasPicture, planBigClumps } from './mapScenery';
 import type { BiomeScenery } from './mapScenery';
 import { LIGHT_TEXTURE, LIGHT_TEXTURE_SIZE, MapLight, SHADOW_TEXTURE, SHADOW_TEXTURE_WIDTH, SURFACE_AMBIENT, makeSoftTextures } from './mapLight';
@@ -33,7 +34,7 @@ import type { RunController } from './RunController';
 import { SceneKey } from './sceneKeys';
 import { pageScale, pinnedToScreen, viewScale } from './view';
 import { FONT } from '../ui/fonts';
-import { setAmbience, soundBoard } from '../audio/SoundBoard';
+import { playCue, setAmbience, soundBoard } from '../audio/SoundBoard';
 import { saveSettings } from '../save/settings';
 import type { MapView, Settings } from '../save/settings';
 
@@ -161,6 +162,12 @@ const CLUMP = { pieces: [3, 7] as const, perChamberHexes: 9, loneChance: 0.12, f
 type Piece = DecorationKind | number;
 /** Flat patches on the ground (map_patches_<biome>): how often an open hex gets one, and how strong they are. */
 const PATCHES = { chance: 0.4, alpha: 0.9 } as const;
+/**
+ * Each biome's own light in its chambers (GAME_DESIGN.md §9.2, §13): a faint wash of its glow colour once any of the
+ * chamber is known, as wide as this per hex of the chamber (at least `minRadius`). A chamber of a biome not found yet,
+ * within `teaserReach` hexes of what the hydra sees, glows faintly through the dark, so a new land calls from the edge.
+ */
+const BIOME_LIGHT = { strength: 0.16, radiusPerHex: 4, minRadius: 40, teaserReach: 5, teaserAlpha: 0.12, teaserSize: 0.7, teaserPulseMs: 2200 } as const;
 /** Big clumps (map_clump_*) stand on a shadow this share of their width. */
 const BIG_CLUMP_SHADOW = 0.7;
 /** On the surface: trees on every forest hex (from, to), and how often an open hex gets a lone decoration. */
@@ -176,6 +183,18 @@ let shownLayer: Layer | null = null;
 
 /** A light over something: its picture, how bright it is when seen, and the light it casts on the ground around it. */
 type Glow = { image: Phaser.GameObjects.Image; alpha: number; groundY: number; radius: number; color: number };
+
+/** A chamber's own light, and its glow through the dark while it is not found yet. */
+interface ChamberGlow {
+  x: number;
+  y: number;
+  center: Hex;
+  biome: string;
+  hexes: string[];
+  color: number;
+  radius: number;
+  teaser: Phaser.GameObjects.Image | null;
+}
 
 /** Everything drawn for one hex, so it can be shown, dimmed, redrawn or hidden together. */
 interface HexView {
@@ -236,6 +255,9 @@ export class MapScene extends Phaser.Scene {
   private heat = new Map<string, Glow>();
   /** The Order's people walking the map. */
   private order!: OrderTokens;
+  /** Fireflies, drips, spores (underground only). */
+  private life: MapLife | null = null;
+  private chamberGlows: ChamberGlow[] = [];
   /** The map drawn: the one the hydra was on when the scene started. */
   private layer: Layer = 'underground';
   /** Clouds of mist over the surface, by hex key. */
@@ -300,6 +322,12 @@ export class MapScene extends Phaser.Scene {
     this.token = this.add.image(0, 0, 'map_hydra').setOrigin(0.5, 1);
     this.tokenShadow = this.contactShadow(0, 0, this.token.width);
     this.placeToken(this.run.state.hydra.position);
+    this.life = this.onSurface
+      ? null
+      : new MapLife(this, LAYOUT, { dust: DEPTH.light - 1, glow: DEPTH.glow }, (h) => {
+          const key = hexKey(h);
+          return this.known.get(key) === 'visible' ? (this.shown.tiles.get(key) ?? null) : null;
+        });
     this.setUpCamera();
     this.setUpInput();
     const onResize = (): void => this.fitCameraZoom();
@@ -320,8 +348,8 @@ export class MapScene extends Phaser.Scene {
     });
 
     this.refresh();
-    // Dripping caves below, wind up there (the scene starts again after a Passage).
-    setAmbience(this, this.run.state.hydra.layer);
+    // Dripping caves below (each biome its own), wind up there (the scene starts again after a Passage).
+    this.playAmbience();
     this.scene.launch(SceneKey.Hud);
     this.exposeTestHooks();
     markReady(SceneKey.Map);
@@ -348,6 +376,7 @@ export class MapScene extends Phaser.Scene {
     const bigClumps = this.onSurface ? [] : planBigClumps(this.run.state.map, this.run.state.seed, (biome) => this.sceneryOf(biome));
     const bigAt = new Map(bigClumps.map((c) => [hexKey(c.anchor), c.key]));
     const covered = new Set(bigClumps.flatMap((c) => c.covers.map(hexKey)));
+    this.chamberGlows = this.onSurface ? [] : this.planChamberGlows();
     const { data } = getContext(this);
     this.ground = new MapGround(this, this.shown, data, LAYOUT, this.run.state.seed, {
       ground: DEPTH.ground,
@@ -395,6 +424,58 @@ export class MapScene extends Phaser.Scene {
       }
       this.views.set(hexKey(tile.hex), view);
       this.syncObject(view);
+    }
+  }
+
+  /** The chambers' own lights (and the lair swamp's), in their biome's glow colour. */
+  private planChamberGlows(): ChamberGlow[] {
+    const { biomes } = getContext(this).data;
+    const map = this.run.state.map;
+    const lairSwamp = [...map.tiles.values()].filter((t) => t.region === 'lair' && t.terrain !== 'rock').map((t) => t.hex);
+    return [...map.layout.chambers.map((c) => c.hexes), lairSwamp].flatMap((hexes) => {
+      if (hexes.length === 0) return [];
+      const points = hexes.map((h) => hexToPixel(LAYOUT, h));
+      const x = points.reduce((sum, p) => sum + p.x, 0) / points.length;
+      const y = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+      const center = pixelToHex(LAYOUT, x, y);
+      const biome = map.tiles.get(hexKey(hexes[0]!))?.biome ?? '';
+      const glow = biomes.biomes[biome]?.colors.glow;
+      if (!glow) return [];
+      return [{ x, y, center, biome, hexes: hexes.map(hexKey), color: color(glow), radius: Math.max(BIOME_LIGHT.minRadius, hexes.length * BIOME_LIGHT.radiusPerHex), teaser: null }];
+    });
+  }
+
+  /** The background sound of where the hydra is: underground, of the biome she is in. */
+  private playAmbience(): void {
+    const { hydra } = this.run.state;
+    setAmbience(this, hydra.layer, hydra.layer === 'underground' ? this.run.state.map.tiles.get(hexKey(hydra.position))?.biome : undefined);
+  }
+
+  /** Chambers of biomes not found yet glow through the dark near what the hydra sees; found ones stop. */
+  private refreshChamberTeasers(): void {
+    const known = this.known;
+    const reach = this.run.state.hydra.sightRange + BIOME_LIGHT.teaserReach;
+    const here = this.run.state.hydra.position;
+    for (const chamber of this.chamberGlows) {
+      const wanted = !this.run.knownBiomes.has(chamber.biome) && !chamber.hexes.some((k) => known.has(k)) && hexDistance(chamber.center, here) <= reach;
+      if (!wanted) {
+        if (chamber.teaser) {
+          this.tweens.killTweensOf(chamber.teaser);
+          chamber.teaser.destroy();
+          chamber.teaser = null;
+        }
+        continue;
+      }
+      if (chamber.teaser) continue;
+      const scale = (chamber.radius * 2 * BIOME_LIGHT.teaserSize) / LIGHT_TEXTURE_SIZE;
+      chamber.teaser = this.add
+        .image(chamber.x, chamber.y, LIGHT_TEXTURE)
+        .setTint(chamber.color)
+        .setScale(scale, scale * 0.6)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(DEPTH.glow)
+        .setAlpha(0);
+      this.tweens.add({ targets: chamber.teaser, alpha: { from: BIOME_LIGHT.teaserAlpha * 0.4, to: BIOME_LIGHT.teaserAlpha }, duration: BIOME_LIGHT.teaserPulseMs, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     }
   }
 
@@ -718,6 +799,8 @@ export class MapScene extends Phaser.Scene {
     this.drawLights();
     this.seeThroughTallPlaces();
     this.announceNewBiomes();
+    this.refreshChamberTeasers();
+    this.playAmbience();
     this.continueStory();
   }
 
@@ -871,6 +954,12 @@ export class MapScene extends Phaser.Scene {
       lights.push({ x: glow.image.x, y: glow.groundY, radius: glow.radius * LIGHTS.glowReach, color: glow.color, strength: glow.alpha * LIGHTS.glowStrength });
     }
     lights.push(...this.order.lights());
+    if (this.chamberGlows.length > 0) {
+      const known = this.known;
+      for (const chamber of this.chamberGlows) {
+        if (chamber.hexes.some((k) => known.has(k))) lights.push({ x: chamber.x, y: chamber.y, radius: chamber.radius, color: chamber.color, strength: BIOME_LIGHT.strength });
+      }
+    }
     this.light.draw(lights, this.ambient());
   }
 
@@ -976,7 +1065,11 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
-  /** The first time the hydra sees a biome other than its own swamp, the biome's name comes up. */
+  /**
+   * The first time the hydra sees a biome other than its own swamp, it comes up as the title of a new land
+   * (GAME_DESIGN.md §9.2): its name and line over its vista (discovery_<biome>, once drawn), bigger and with a chord
+   * when no hydra of the account has found it before.
+   */
   private announceNewBiomes(): void {
     const { biomes } = getContext(this).data;
     const map = this.shown;
@@ -985,38 +1078,66 @@ export class MapScene extends Phaser.Scene {
       const biomeId = map.tiles.get(key)!.biome;
       if (this.run.knownBiomes.has(biomeId)) continue;
       this.run.knownBiomes.add(biomeId);
-      const name = biomes.biomes[biomeId]?.displayName;
-      if (name && biomeId !== biomes.lairBiome) this.biomeNames.push(name);
+      if (biomes.biomes[biomeId] && biomeId !== biomes.lairBiome) this.biomeNames.push(biomeId);
     }
     this.showNextBiomeName();
   }
 
   private showNextBiomeName(): void {
-    const name = this.biomeNames.shift();
-    if (name === undefined || this.showingBiomeName) {
-      if (name !== undefined) this.biomeNames.unshift(name);
+    const biomeId = this.biomeNames.shift();
+    if (biomeId === undefined || this.showingBiomeName) {
+      if (biomeId !== undefined) this.biomeNames.unshift(biomeId);
       return;
     }
+    const { biomes, text } = getContext(this).data;
+    const biome = biomes.biomes[biomeId];
+    if (!biome) return;
     this.showingBiomeName = true;
-    // The camera zooms even what doesn't scroll (2× on phones), so the label is placed and sized to undo that.
+    const keeper = lineages(this);
+    const firstEver = !(keeper.profile.knowledge.landsFound ?? []).some((l) => l.biome === biomeId);
+    if (firstEver) playCue(this, 'map', 'newLand');
+    // The camera zooms even what doesn't scroll (2× on phones), so the card is placed and sized to undo that.
     // Low on the screen, clear of the HUD's messages at the top.
-    const at = pinnedToScreen(this, SCREEN.width / 2, SCREEN.height - 64);
-    const label = this.add
-      .text(at.x, at.y, name, { fontFamily: FONT.title, fontSize: '15px', color: '#e8e0d0', backgroundColor: '#05090acc', padding: { x: 8, y: 3 } })
-      .setOrigin(0.5, 0)
-      .setScale(at.scale)
-      .setScrollFactor(0)
-      .setDepth(100)
-      .setAlpha(0);
+    const middle = SCREEN.height - (firstEver ? 120 : 64);
+    const parts: Phaser.GameObjects.GameObject[] = [];
+    const pin = <T extends Phaser.GameObjects.Image | Phaser.GameObjects.Text | Phaser.GameObjects.Rectangle>(thing: T, x: number, y: number): T => {
+      const at = pinnedToScreen(this, x, y);
+      thing.setPosition(at.x, at.y).setScale(at.scale).setScrollFactor(0).setDepth(100).setAlpha(0);
+      parts.push(thing);
+      return thing;
+    };
+    const vista = `discovery_${biomeId}`;
+    if (firstEver && hasPicture(this, getContext(this).data, vista)) {
+      pin(this.add.image(0, 0, vista).setOrigin(0.5, 0.5), SCREEN.width / 2, middle);
+    } else if (firstEver) {
+      // Without its vista: a dark band across the screen, the land's glow behind the name.
+      pin(this.add.rectangle(0, 0, SCREEN.width, 74, color('#05090a'), 0.8).setOrigin(0.5, 0.5), SCREEN.width / 2, middle);
+      pin(this.add.image(0, 0, LIGHT_TEXTURE).setTint(color(biome.colors.glow)).setBlendMode(Phaser.BlendModes.ADD).setDisplaySize(360, 70), SCREEN.width / 2, middle);
+    }
+    const nameStyle = firstEver
+      ? { fontFamily: FONT.title, fontSize: '24px', color: '#f0e8d8', stroke: '#05090a', strokeThickness: 4 }
+      : { fontFamily: FONT.title, fontSize: '15px', color: '#e8e0d0', backgroundColor: '#05090acc', padding: { x: 8, y: 3 } };
+    pin(this.add.text(0, 0, biome.displayName, nameStyle).setOrigin(0.5, firstEver ? 1 : 0), SCREEN.width / 2, firstEver ? middle + 4 : middle);
+    if (firstEver) {
+      if (biome.discoveryLine) {
+        pin(
+          this.add.text(0, 0, biome.discoveryLine, { fontFamily: FONT.story, fontSize: '11px', fontStyle: 'italic', color: '#d8d0c0', stroke: '#05090a', strokeThickness: 3, align: 'center', wordWrap: { width: 420 } }).setOrigin(0.5, 0),
+          SCREEN.width / 2,
+          middle + 8,
+        );
+      }
+      pin(this.add.text(0, 0, text.lineages.landDiscovered, { fontFamily: FONT.text, fontSize: '9px', color: getContext(this).data.palette.order.gold, stroke: '#05090a', strokeThickness: 3 }).setOrigin(0.5, 0), SCREEN.width / 2, middle + 26);
+    }
+    const hold = firstEver ? BIOME_LABEL_MS * 1.6 : BIOME_LABEL_MS;
     this.tweens.chain({
-      targets: label,
+      targets: parts,
       tweens: [
-        { alpha: 1, duration: 400 },
-        { alpha: 1, duration: BIOME_LABEL_MS - 900 },
-        { alpha: 0, duration: 500 },
+        { alpha: 1, duration: firstEver ? 700 : 400 },
+        { alpha: 1, duration: hold - 900 },
+        { alpha: 0, duration: firstEver ? 800 : 500 },
       ],
       onComplete: () => {
-        label.destroy();
+        for (const part of parts) part.destroy();
         this.showingBiomeName = false;
         this.showNextBiomeName();
       },
@@ -1134,6 +1255,10 @@ export class MapScene extends Phaser.Scene {
     const { x, y } = this.tokenPosition(h);
     this.token.setPosition(x, y).setDepth(this.tokenDepth(y));
     this.tokenShadow.setPosition(x, y - 1);
+  }
+
+  override update(_time: number, delta: number): void {
+    this.life?.update(delta);
   }
 
   // ------------------------------------------------------------ camera

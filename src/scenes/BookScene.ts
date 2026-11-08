@@ -65,7 +65,7 @@ export class BookScene extends Phaser.Scene {
 
   /** Everything the book says, line by line: lineages newest first, then the run modifiers. */
   private lines(): Line[] {
-    const { palette, text, world } = getContext(this).data;
+    const { palette, text, world, biomes } = getContext(this).data;
     const words = text.lineages;
     const keeper = lineages(this);
     const lines: Line[] = [];
@@ -90,6 +90,25 @@ export class BookScene extends Phaser.Scene {
       }
     }
     if (lines.length === 0) lines.push({ text: words.bookEmpty, style: { fontFamily: FONT.story, fontSize: '12px', fontStyle: 'italic', color: palette.mist }, gapBefore: 0, indent: 0 });
+
+    // The lands any hydra has entered (the Big World, GAME_DESIGN.md §9.2), and who was first; the rest unknown.
+    lines.push(heading(words.bookLands));
+    const found = [...(keeper.profile.knowledge.landsFound ?? [])];
+    const live = keeper.liveRun();
+    if (living && live) {
+      for (const biome of live.state.story.biomesEntered) {
+        if (!found.some((l) => l.biome === biome)) found.push({ biome, hydra: living.hydraName, lineage: living.name, generation: living.generation });
+      }
+    }
+    for (const [id, biome] of Object.entries(biomes.biomes)) {
+      const land = found.find((l) => l.biome === id);
+      lines.push({
+        text: land ? fillText(words.bookLandFound, { biome: biome.displayName, hydra: land.hydra, lineage: land.lineage }) : words.bookLandUnknown,
+        style: { fontFamily: FONT.text, fontSize: '10px', color: land ? '#d8d0c0' : palette.mist },
+        gapBefore: 4,
+        indent: 10,
+      });
+    }
 
     lines.push(heading(words.bookUnlocks));
     for (const [id, modifier] of Object.entries(world.runModifiers)) {
