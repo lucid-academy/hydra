@@ -89,6 +89,12 @@ export function generatorSettingsFrom(data: GameData): UndergroundGeneratorSetti
     locationsPerBiome: gen.locationsPerBiome,
     maxRarePlaces: gen.maxRarePlaces,
     undertowLength: gen.undertowLength,
+    fastLanes: {
+      currentBiomes: gen.fastLanes.currentBiomes,
+      currents: gen.fastLanes.currents,
+      currentLength: gen.fastLanes.currentLength,
+      corridorBiomes: gen.fastLanes.corridorBiomes,
+    },
     patchFinds: world.patchFinds,
     remainsLines: Object.fromEntries(Object.entries(world.remains.lines).map(([pool, lines]) => [pool, lines.length])),
     remainsLoot: world.remains.loot,
@@ -114,6 +120,7 @@ export function runRulesFrom(data: GameData): RunRules {
     sightRangeHexes: map.sightRangeHexes,
     landmarkSightRange: map.landmarkSightRange,
     echoRange: map.echoRange,
+    fastLanes: { currentCost: map.fastLanes.currentCost, corridorCostShare: map.fastLanes.corridorCostShare },
     terrain: {
       water: terrainRule(terrain.water),
       mud: terrainRule(terrain.mud),

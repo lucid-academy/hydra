@@ -43,6 +43,13 @@ export interface MutationEffects {
   cauterizePercent?: number;
   /** Exposed on the surface, she loses this many percent more body HP (negative: less). */
   exposedDamagePercent?: number;
+  /** Movement more in a turn that starts with her in water (Eel-Spined). */
+  movementInWater?: number;
+  /** Change to what a step onto roots, or salt, costs (never below 1). */
+  rootsCost?: number;
+  saltCost?: number;
+  /** The Alert rises this much at the end of every turn (Restless). */
+  alertPerTurn?: number;
 }
 
 /** What a hydra hatches with (GAME_DESIGN.md §12), given by her lineage (sim/lineage). */
@@ -556,6 +563,8 @@ export interface RunRules {
   landmarkSightRange: number;
   /** An echo is heard when a place or patch not yet seen is this many hexes away or closer. */
   echoRange: number;
+  /** Fast lanes (GAME_DESIGN.md §5.2): a step with a current costs this; a step onto an old corridor this share of its usual cost. */
+  fastLanes: { currentCost: number; corridorCostShare: number };
   terrain: TerrainTable;
   alertMin: number;
   alertMax: number;

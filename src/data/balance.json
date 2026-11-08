@@ -6,7 +6,8 @@
     "undergroundRadius": 40,
     "landmarkSightRange": 10,
     "echoRange": 6,
-    "view": { "//": "The map's Near and Far views (GAME_DESIGN.md §5.9): its zoom, 1 = the usual size on a computer, where about 21 hexes fit across the screen. The wheel and two fingers zoom between 0.4 and 3.", "near": 2, "far": 0.6 }
+    "view": { "//": "The map's Near and Far views (GAME_DESIGN.md §5.9): its zoom, 1 = the usual size on a computer, where about 21 hexes fit across the screen. The wheel and two fingers zoom between 0.4 and 3.", "near": 2, "far": 0.6 },
+    "fastLanes": { "//": "TODO(design): working values (GAME_DESIGN.md §5.2). currentCost: movement for a step with a current (0 = it carries her for free). corridorCostShare: a step along an old corridor costs this share of its ground's usual cost (0.5 = half, so mud costs 0.5 and salt 1.5).", "currentCost": 0, "corridorCostShare": 0.5 }
   },
   "terrain": {
     "water": {
@@ -68,6 +69,13 @@
     "maxRarePlaces": 2,
     "seenRarePlaceChance": 0.5,
     "undertowLength": [6, 10],
+    "fastLanes": {
+      "//": "TODO(design): working values (Big World, GAME_DESIGN.md §5.2). Currents: this many per world, each this many hexes long, laid along the water of these biomes; a step with the current costs map.fastLanes.currentCost. Old corridors: the narrow tunnels between the chambers of these biomes; a step along one costs map.fastLanes.corridorCostShare of the ground's usual cost.",
+      "currentBiomes": ["floodedCaves"],
+      "currents": [3, 6],
+      "currentLength": [5, 12],
+      "corridorBiomes": ["oldCrypts", "saltMines"]
+    },
     "rings": [
       {
         "outerEdge": 15,

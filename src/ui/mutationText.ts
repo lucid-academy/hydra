@@ -5,6 +5,9 @@ import type { MUTATION_EFFECTS } from '../data/schemas';
 
 type Effect = (typeof MUTATION_EFFECTS)[number];
 
+/** Effects where less is good for the hydra. */
+const LOWER_IS_BETTER: readonly Effect[] = ['alertPercent', 'alertPerTurn', 'rootsCost', 'saltCost'];
+
 export interface MutationEffectText {
   text: string;
   /** Good for the hydra (shown in green), or the catch (in orange). */
@@ -17,8 +20,8 @@ export function mutationEffects(data: GameData, mutationId: string): MutationEff
   if (!mutation) return [];
   return (Object.entries(mutation.effects) as Array<[Effect, number]>).map(([effect, n]) => ({
     text: data.text.lineages.effects[effect].replace('{n}', n > 0 ? `+${n}` : String(n)),
-    // The Alert rising slower is the good kind.
-    good: effect === 'alertPercent' ? n < 0 : n > 0,
+    // The Alert rising slower, and ground costing less, are the good kind.
+    good: LOWER_IS_BETTER.includes(effect) ? n < 0 : n > 0,
   }));
 }
 

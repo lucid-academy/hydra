@@ -58,6 +58,8 @@ export const balanceSchema = section({
     echoRange: z.number().int().min(0),
     // The Near / Far views of the map (GAME_DESIGN.md §5.9): its zoom, 1 = the usual size on a computer.
     view: section({ near: z.number().positive(), far: z.number().positive() }),
+    // Fast lanes (GAME_DESIGN.md §5.2): what a step costs with a current, and a corridor's share of the usual cost.
+    fastLanes: section({ currentCost: z.number().min(0), corridorCostShare: z.number().positive().max(1) }),
   }),
   terrain: section({
     water: terrainRulesSchema,
@@ -89,6 +91,13 @@ export const balanceSchema = section({
     maxRarePlaces: z.number().int().min(0),
     seenRarePlaceChance: share,
     undertowLength: intRange(2),
+    // Fast lanes (GAME_DESIGN.md §5.2): currents laid along the water of these biomes, old corridors in these.
+    fastLanes: section({
+      currentBiomes: z.array(z.string().min(1)),
+      currents: intRange(0),
+      currentLength: intRange(2),
+      corridorBiomes: z.array(z.string().min(1)),
+    }),
     rings: z
       .array(
         section({
@@ -382,7 +391,23 @@ export const biomesSchema = section({
 /** What a blessing can change (see shrines.json). */
 export const BLESSING_EFFECTS = ['movement', 'sight', 'bodyMaxHp', 'regeneration', 'alert', 'muck', 'moisture'] as const;
 /** What a mutation can change (see mutations.json). */
-export const MUTATION_EFFECTS = ['movement', 'sight', 'bodyMaxHp', 'regeneration', 'headMaxHpPercent', 'startingHeads', 'alertPercent', 'findsPercent', 'echoRange', 'cauterizePercent', 'exposedDamagePercent'] as const;
+export const MUTATION_EFFECTS = [
+  'movement',
+  'sight',
+  'bodyMaxHp',
+  'regeneration',
+  'headMaxHpPercent',
+  'startingHeads',
+  'alertPercent',
+  'findsPercent',
+  'echoRange',
+  'cauterizePercent',
+  'exposedDamagePercent',
+  'movementInWater',
+  'rootsCost',
+  'saltCost',
+  'alertPerTurn',
+] as const;
 
 export const shrinesSchema = section({
   blessings: z

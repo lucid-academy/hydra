@@ -50,6 +50,34 @@
       "effects": { "echoRange": 3 }
     },
     {
+      "id": "eelSpined",
+      "name": "Eel-Spined",
+      "//": "Big World (GAME_DESIGN.md §5.2, 2026-11-07). movementInWater: movement more in a turn that starts with her in water.",
+      "text": "A spine that ripples like an eel's. In water she is very fast. Out of it she is mostly ripples.",
+      "effects": { "movementInWater": 2, "bodyMaxHp": -20 }
+    },
+    {
+      "id": "rootSlither",
+      "name": "Root-Slither",
+      "//": "Big World (GAME_DESIGN.md §5.2). rootsCost: change to what a step onto roots costs (never below 1).",
+      "text": "Slides between roots as if they had been grown for her. She keeps her eyes shut while she does it, which helps the sliding and not the looking.",
+      "effects": { "rootsCost": -1, "sight": -1 }
+    },
+    {
+      "id": "saltCrustedBelly",
+      "name": "Salt-Crusted Belly",
+      "//": "Big World (GAME_DESIGN.md §5.2). saltCost: change to what a step onto salt costs (never below 1).",
+      "text": "A belly crusted hard with salt. She crosses the salt pans like a sledge. The salt does not let wounds close.",
+      "effects": { "saltCost": -2, "regeneration": -2 }
+    },
+    {
+      "id": "restless",
+      "name": "Restless",
+      "//": "Big World (GAME_DESIGN.md §5.2). alertPerTurn: the Alert rises this much at the end of every turn.",
+      "text": "Cannot stay still. Covers a great deal of ground and makes a great deal of noise about it.",
+      "effects": { "movement": 2, "alertPerTurn": 1 }
+    },
+    {
       "id": "fireproofScales",
       "name": "Fireproof Scales",
       "//": "Only from eating a Master of the Order (order.json greatBurning mutations); a marking shrine never offers it (bossOnly). cauterizePercent: burning a stump shut takes this many percent longer.",
