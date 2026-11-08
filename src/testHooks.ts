@@ -36,6 +36,8 @@ declare global {
       inspectableOnScreen?: () => InspectablePoint[];
       /** The map is still showing a move (the hydra walking, the view following it): taps now may land elsewhere. */
       mapBusy?: () => boolean;
+      /** How much the map scene draws: game objects in it, those shown, and those the camera skips as off screen. */
+      mapLoad?: () => { objects: number; shown: number; offScreen: number };
       /** The open place or threshold panel: where its buttons are (game pixels), or null when none is open. */
       placePanel?: () => { leave: { x: number; y: number } | null; actions: Array<{ id: string; x: number; y: number; enabled: boolean }> } | null;
       /** The dialogue on screen: its id, the line shown, and where its answers are (game pixels); null when none. */
@@ -122,6 +124,10 @@ export function exposeReachable(probe: () => ScreenPoint[]): void {
 
 export function exposeInspectable(probe: () => InspectablePoint[]): void {
   hooks().inspectableOnScreen = probe;
+}
+
+export function exposeMapLoad(probe: () => { objects: number; shown: number; offScreen: number }): void {
+  hooks().mapLoad = probe;
 }
 
 export function exposeMapBusy(probe: () => boolean): void {

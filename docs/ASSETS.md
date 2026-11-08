@@ -502,3 +502,4 @@ Sizes are screen units (the file has twice the pixels in each direction, §13).
 
 - **Sets** (`map_props_`, `map_patches_`, `map_current`): the import finds the separate pieces on the picture, top row first, and shrinks them all by one scale, so their sizes stay as drawn relative to each other. A piece smaller than 3% of the biggest joins the nearest one (a glint drawn apart from its lily).
 - **Walls** (`texture_wall_`): cut from the middle of the picture to 3:1 and shrunk, not squashed (they are seen from the front).
+- **Drawn in code, no picture planned:** the old corridors of the Old Crypts and the Salt Mines (`map_lane_corridor`, worn slabs under everything), the flecks of a current until `map_current` has a picture (`map_lane_current`), and the small life over the map (`map_life_dot` for dust; glows use the light texture). All three are made in `MapScene.ts` / `mapLife.ts` at twice the density, like the rest of the HD map.

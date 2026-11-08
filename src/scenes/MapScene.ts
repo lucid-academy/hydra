@@ -19,7 +19,7 @@ import { Rng } from '../sim/rng';
 import { encountersRevealed, isNight, knownDraughts, mapOf, mistAt, visibilityOf } from '../sim/turn';
 import type { RunEvent } from '../sim/turn';
 import { SCREEN } from '../scaling';
-import { exposeInspectable, exposeMapBusy, exposeReachable, exposeRunSummary, markReady } from '../testHooks';
+import { exposeInspectable, exposeMapBusy, exposeMapLoad, exposeReachable, exposeRunSummary, markReady } from '../testHooks';
 import { color, getContext } from './context';
 import { hexOutlines, roundCorners } from './hexOutline';
 import { MapGround } from './mapGround';
@@ -173,6 +173,11 @@ const BIOME_LIGHT = { strength: 0.16, radiusPerHex: 4, minRadius: 40, teaserReac
  * Fast lanes: flecks on each hex of a current (how many, how bright, how long one takes to slide a hex; the current's
  * picture is drawn this much smaller), and how strong an old corridor's slabs show.
  */
+/**
+ * Hexes this far outside the view (world units) are skipped when drawing: things stand up from their feet, so more is
+ * kept below the view than above it. The check runs again after the view moves this far.
+ */
+const CULL = { side: 120, above: 60, below: 200, step: 24 } as const;
 const LANES = { flecks: 2, fleckAlpha: 0.75, fleckMs: 1400, artScale: 0.5, corridorAlpha: 0.5 } as const;
 /** Code-drawn pictures of the lanes, until (or besides) art for them. */
 const CURRENT_TEXTURE = 'map_lane_current';
@@ -220,6 +225,8 @@ interface HexView {
   objectShadows: Phaser.GameObjects.Image[];
   /** People standing by the object: the guard of a burning Flame Shrine. */
   objectExtras: Phaser.GameObjects.Image[];
+  /** A big clump standing on this hex (the Big World's scenery); it turns see-through over the hydra like a landmark. */
+  clump?: Phaser.GameObjects.Image;
   /** An encounter out of sight that the mycelium tells about. */
   whispered: boolean;
 }
@@ -239,6 +246,9 @@ export class MapScene extends Phaser.Scene {
   private journeyTurns!: Phaser.GameObjects.Text;
   private tokenShadow!: Phaser.GameObjects.Image;
   private views = new Map<string, HexView>();
+  /** Hexes skipped when drawing, as off screen; and the view they were worked out for. */
+  private culled = new Set<string>();
+  private culledFor = { x: Number.NaN, y: Number.NaN, width: 0, height: 0 };
   private token!: Phaser.GameObjects.Image;
   /** How much bigger the hydra and the things worth finding are drawn now (the Far view grows them). */
   private iconScale = 1;
@@ -255,6 +265,8 @@ export class MapScene extends Phaser.Scene {
   /** Biome names waiting to be shown, one after another (two at once would overlap). */
   private biomeNames: string[] = [];
   private showingBiomeName = false;
+  /** Ends the land's card on screen at once (a tap skips it), or null when none is shown. */
+  private endBiomeName: (() => void) | null = null;
   /** The battle is about to start: the map takes no more taps. */
   private leaving = false;
   /** Draught wisps and echo marks on the map, by hex key. */
@@ -288,6 +300,7 @@ export class MapScene extends Phaser.Scene {
     if (firstTime && surface) this.run.surfaceForTest();
     if (firstTime && getContext(this).params.castle !== null) this.run.castleForTest(getContext(this).params.castle!);
     if (firstTime && night) this.run.nightForTest();
+    if (firstTime && getContext(this).params.mutations.length > 0) this.run.mutationsForTest(getContext(this).params.mutations);
     if (firstTime && (getContext(this).params.heads.length > 0 || getContext(this).params.level !== null)) this.run.headsForTest(getContext(this).params.heads, getContext(this).params.level);
     if (firstTime && flags.length > 0) this.run.flagsForTest(flags);
     if (firstTime && conditions.length > 0) this.run.conditionsForTest(conditions);
@@ -300,6 +313,8 @@ export class MapScene extends Phaser.Scene {
     if (firstTime && say) this.run.sayForTest(say, lineages(this).motherFacts());
     this.layer = this.run.state.hydra.layer;
     this.views = new Map();
+    this.culled = new Set();
+    this.culledFor = { x: Number.NaN, y: Number.NaN, width: 0, height: 0 };
     this.mist = new Map();
     this.draughts = new Map();
     this.echoes = new Map();
@@ -311,6 +326,7 @@ export class MapScene extends Phaser.Scene {
     this.press = null;
     this.biomeNames = [];
     this.showingBiomeName = false;
+    this.endBiomeName = null;
     this.leaving = false;
     this.cameras.main.setBackgroundColor(color(getContext(this).data.palette.underground.black));
     // Coming up or down a Passage, the new map fades in.
@@ -660,6 +676,7 @@ export class MapScene extends Phaser.Scene {
     const feet = y + MAP_FEET_BELOW_HEX_CENTER;
     const clump = this.add.image(x, feet, key).setOrigin(0.5, 1).setFlipX(new Rng(this.hexSeed(view.tile.hex)).chance(0.5)).setDepth(this.standingDepth(feet));
     view.props.push(clump);
+    view.clump = clump;
     view.shadows.push(this.add.image(x, feet - 1, SHADOW_TEXTURE).setScale((clump.width * BIG_CLUMP_SHADOW) / SHADOW_TEXTURE_WIDTH).setAlpha(PLACE_FOOTING.alpha).setDepth(DEPTH.shadow));
   }
 
@@ -857,7 +874,14 @@ export class MapScene extends Phaser.Scene {
     this.announceNewBiomes();
     this.refreshChamberTeasers();
     this.playAmbience();
+    this.cullOffScreen(true);
     this.continueStory();
+  }
+
+  /** A dialogue, a battle or the ending waits for the name of a new land to go: the map takes no moves meanwhile. */
+  private storyWaits(): boolean {
+    const { state } = this.run;
+    return this.showingBiomeName && (this.run.nextDialogue() !== null || !!state.pendingBattle || !!state.won);
   }
 
   /**
@@ -867,6 +891,8 @@ export class MapScene extends Phaser.Scene {
   private continueStory(): void {
     const { run } = this;
     if (this.animating || run.talking || this.leaving || run.state.pendingEvent || run.state.over) return;
+    // The name of a new land first; the heads talk about it (and the battle starts) after.
+    if (this.showingBiomeName) return;
     if (run.nextDialogue()) {
       run.talking = true;
       this.path.clear();
@@ -891,6 +917,7 @@ export class MapScene extends Phaser.Scene {
     const behind: Phaser.GameObjects.Image[] = [this.token];
     const tall: Phaser.GameObjects.Image[] = [];
     for (const view of this.views.values()) {
+      if (view.clump?.visible) tall.push(view.clump);
       const object = view.tile.object;
       if (!object || !view.object?.visible) continue;
       if ((object.kind === 'place' || object.kind === 'castle' || object.kind === 'settlement') && view.object.height >= SEE_THROUGH.minHeight) tall.push(view.object);
@@ -1122,17 +1149,15 @@ export class MapScene extends Phaser.Scene {
   }
 
   /**
-   * The first time the hydra sees a biome other than its own swamp, it comes up as the title of a new land
-   * (GAME_DESIGN.md §9.2): its name and line over its vista (discovery_<biome>, once drawn), bigger and with a chord
-   * when no hydra of the account has found it before.
+   * The first step into a biome this hydra has not been in comes up as the title of a new land (GAME_DESIGN.md §9.2):
+   * its name and line over its vista (discovery_<biome>, once drawn), bigger and with a chord when no hydra of the
+   * account has found it before. Only lands of this map (the surface has its own).
    */
   private announceNewBiomes(): void {
     const { biomes } = getContext(this).data;
-    const map = this.shown;
-    for (const [key, state] of this.known) {
-      if (state !== 'visible') continue;
-      const biomeId = map.tiles.get(key)!.biome;
-      if (this.run.knownBiomes.has(biomeId)) continue;
+    const here = new Set([...this.shown.tiles.values()].map((t) => t.biome));
+    for (const biomeId of this.run.state.story.biomesEntered) {
+      if (this.run.knownBiomes.has(biomeId) || !here.has(biomeId)) continue;
       this.run.knownBiomes.add(biomeId);
       if (biomes.biomes[biomeId] && biomeId !== biomes.lairBiome) this.biomeNames.push(biomeId);
     }
@@ -1141,7 +1166,7 @@ export class MapScene extends Phaser.Scene {
 
   private showNextBiomeName(): void {
     const biomeId = this.biomeNames.shift();
-    if (biomeId === undefined || this.showingBiomeName) {
+    if (biomeId === undefined || this.showingBiomeName || this.run.talking) {
       if (biomeId !== undefined) this.biomeNames.unshift(biomeId);
       return;
     }
@@ -1185,19 +1210,27 @@ export class MapScene extends Phaser.Scene {
       pin(this.add.text(0, 0, text.lineages.landDiscovered, { fontFamily: FONT.text, fontSize: '9px', color: getContext(this).data.palette.order.gold, stroke: '#05090a', strokeThickness: 3 }).setOrigin(0.5, 0), SCREEN.width / 2, middle + 26);
     }
     const hold = firstEver ? BIOME_LABEL_MS * 1.6 : BIOME_LABEL_MS;
-    this.tweens.chain({
+    let ended = false;
+    const end = (): void => {
+      if (ended) return;
+      ended = true;
+      chain.stop();
+      for (const part of parts) part.destroy();
+      this.showingBiomeName = false;
+      this.endBiomeName = null;
+      this.showNextBiomeName();
+      this.continueStory();
+    };
+    const chain = this.tweens.chain({
       targets: parts,
       tweens: [
         { alpha: 1, duration: firstEver ? 700 : 400 },
         { alpha: 1, duration: hold - 900 },
         { alpha: 0, duration: firstEver ? 800 : 500 },
       ],
-      onComplete: () => {
-        for (const part of parts) part.destroy();
-        this.showingBiomeName = false;
-        this.showNextBiomeName();
-      },
+      onComplete: end,
     });
+    this.endBiomeName = end;
   }
 
   /** Walks (or floats, carried by a current) the hydra along the path it took, then shows the new state. */
@@ -1315,6 +1348,45 @@ export class MapScene extends Phaser.Scene {
 
   override update(_time: number, delta: number): void {
     this.life?.update(delta);
+    this.cullOffScreen(false);
+  }
+
+  /**
+   * The camera skips everything standing on hexes well off the screen (a big map has tens of thousands of pictures).
+   * This uses the camera filter, not visibility, so what the hydra knows still decides what is shown. `all` sets it
+   * again on every picture (after a refresh, which may have made new ones).
+   */
+  private cullOffScreen(all: boolean): void {
+    const camera = this.cameras.main;
+    // Worked out from the scroll and zoom now (the camera's worldView is the last frame's, which lags a jump).
+    const width = camera.width / camera.zoom;
+    const height = camera.height / camera.zoom;
+    const x = camera.scrollX + camera.width / 2 - width / 2;
+    const y = camera.scrollY + camera.height / 2 - height / 2;
+    const view = { x, y, width, height, right: x + width, bottom: y + height };
+    const last = this.culledFor;
+    const moved = Math.abs(view.x - last.x) >= CULL.step || Math.abs(view.y - last.y) >= CULL.step || view.width !== last.width || view.height !== last.height;
+    if (!all && !moved) return;
+    this.culledFor = { x: view.x, y: view.y, width: view.width, height: view.height };
+    const left = view.x - CULL.side;
+    const right = view.right + CULL.side;
+    const top = view.y - CULL.above;
+    const bottom = view.bottom + CULL.below;
+    for (const [key, hexView] of this.views) {
+      const at = hexToPixel(LAYOUT, hexView.tile.hex);
+      const off = at.x < left || at.x > right || at.y < top || at.y > bottom;
+      if (!all && off === this.culled.has(key)) continue;
+      if (off) this.culled.add(key);
+      else this.culled.delete(key);
+      const filter = off ? camera.id : 0;
+      for (const image of hexView.props) image.cameraFilter = filter;
+      for (const image of hexView.shadows) image.cameraFilter = filter;
+      for (const image of hexView.objectShadows) image.cameraFilter = filter;
+      for (const image of hexView.objectExtras) image.cameraFilter = filter;
+      for (const glow of hexView.propGlows) glow.image.cameraFilter = filter;
+      for (const glow of hexView.objectGlows) glow.image.cameraFilter = filter;
+      if (hexView.object) hexView.object.cameraFilter = filter;
+    }
   }
 
   // ------------------------------------------------------------ camera
@@ -1522,6 +1594,11 @@ export class MapScene extends Phaser.Scene {
       const press = this.press;
       this.press = null;
       if (!press || press.dragging || this.animating || this.run.talking || this.leaving) return;
+      // While a dialogue or a battle waits for the name of a new land, a tap skips the name.
+      if (this.storyWaits()) {
+        this.endBiomeName?.();
+        return;
+      }
       const reachable = this.run.reachable();
       const target = this.pointedHex(pointer, reachable);
       if (target && !reachable.has(hexKey(target))) {
@@ -1629,7 +1706,16 @@ export class MapScene extends Phaser.Scene {
           distance: hexDistance(t.hex, hydra.position),
         }));
     });
-    exposeMapBusy(() => this.animating || this.run.animating || this.cameras.main.panEffect.isRunning);
+    exposeMapBusy(() => this.animating || this.run.animating || this.cameras.main.panEffect.isRunning || this.storyWaits());
+    exposeMapLoad(() => {
+      const list = this.children.list;
+      const camera = this.cameras.main;
+      return {
+        objects: list.length,
+        shown: list.filter((o) => o.willRender(camera)).length,
+        offScreen: list.filter((o) => o.cameraFilter !== 0).length,
+      };
+    });
     exposeRunSummary(() => {
       const { turn, resources, alert, pendingBattle, pendingShrine, pendingPlace, pendingEvent, visibility, hydra, echoes, draughtsFelt, story, generation, surface } = this.run.state;
       return {
