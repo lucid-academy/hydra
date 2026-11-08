@@ -32,6 +32,7 @@ describe('parseUrlParams', () => {
       night: false,
       exposed: false,
       castle: null,
+      terraces: false,
     });
   });
 
@@ -40,7 +41,7 @@ describe('parseUrlParams', () => {
   });
 
   it('returns defaults when nothing is given', () => {
-    expect(parseUrlParams('')).toEqual({ seed: null, scene: null, debug: false, group: null, hp: null, allies: null, speed: null, near: null, reveal: false, modifiers: [], zoom: null, say: null, event: null, flags: [], conditions: [], alert: null, units: [], ancestors: null, eggs: null, hidden: false, heads: [], level: null, mutations: [], ults: false, surface: false, night: false, exposed: false, castle: null });
+    expect(parseUrlParams('')).toEqual({ seed: null, scene: null, debug: false, group: null, hp: null, allies: null, speed: null, near: null, reveal: false, modifiers: [], zoom: null, say: null, event: null, flags: [], conditions: [], alert: null, units: [], ancestors: null, eggs: null, hidden: false, heads: [], level: null, mutations: [], ults: false, surface: false, night: false, exposed: false, castle: null, terraces: false });
     expect(parseUrlParams('?reveal=1').reveal).toBe(true);
     // ?castle= counts from 0 (the gate), so 0 is a value too.
     expect(parseUrlParams('?castle=0').castle).toBe(0);
@@ -73,7 +74,8 @@ describe('parseUrlParams', () => {
 
 describe('testUrl', () => {
   it('a URL that starts elsewhere than the title or changes the run is a test, which never touches the saved game', () => {
-    for (const query of ['', '?seed=7', '?seed=7&debug=1&speed=4&zoom=2', '?scene=title', '?scene=title&seed=3']) expect(testUrl(parseUrlParams(query)), query).toBe(false);
+    for (const query of ['', '?seed=7', '?seed=7&debug=1&speed=4&zoom=2', '?scene=title', '?scene=title&seed=3', '?terraces=1']) expect(testUrl(parseUrlParams(query)), query).toBe(false);
+    expect(parseUrlParams('?terraces=1').terraces).toBe(true);
     for (const query of ['?scene=map', '?scene=battle', '?near=shrine', '?event=titheBox', '?say=toadWelcome', '?flags=surveyChain', '?conditions=warmed', '?alert=60', '?units=patrol', '?reveal=1', '?modifiers=wetYear', '?group=patrol', '?hp=3', '?allies=2', '?ancestors=2', '?eggs=0', '?hidden=1', '?heads=tender', '?level=3', '?ults=1']) {
       expect(testUrl(parseUrlParams(query)), query).toBe(true);
     }

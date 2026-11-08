@@ -134,6 +134,50 @@ describe('painting the map ground', () => {
     expect(differences(pieces.data, whole.data)).toBe(0);
   });
 
+  it('draws a terrace where higher ground meets lower: a darker face along its front, its top a little lighter', () => {
+    const { painter, grid } = makePainter(() => true);
+    const flatPicture = paintAll(painter);
+    const raised = { q: -2, r: 0 };
+    grid.setLook(raised.q, raised.r, { texture: MOSS, rock: false, level: 1 });
+    const terraced = paintAll(painter);
+    const brightness = (p: Pixels, x: number, y: number): number => {
+      const i = (y * p.width + x) * 4;
+      return p.data[i]! + p.data[i + 1]! + p.data[i + 2]!;
+    };
+    const middle = hexToPixel(LAYOUT, raised);
+    expect(brightness(terraced, ...pixelOf(middle.x, middle.y))).toBeGreaterThan(brightness(flatPicture, ...pixelOf(middle.x, middle.y)));
+    // The face: pixels of the raised hex, in its lower half, much darker than before.
+    let face = 0;
+    for (let y = 0; y < SIZE.height; y++) {
+      for (let x = 0; x < SIZE.width; x++) {
+        if (painter.ownerAt(x, y) !== grid.index(raised.q, raised.r)) continue;
+        if (y > pixelOf(middle.x, middle.y)[1] && brightness(terraced, x, y) < brightness(flatPicture, x, y) * 0.8) face++;
+      }
+    }
+    expect(face).toBeGreaterThan(100);
+    // Same ground everywhere else but near it.
+    const farAway = hexToPixel(LAYOUT, { q: 2, r: 1 });
+    expect(brightness(terraced, ...pixelOf(farAway.x, farAway.y))).toBe(brightness(flatPicture, ...pixelOf(farAway.x, farAway.y)));
+  });
+
+  it('paints terraces the same in pieces as all at once', () => {
+    const { painter, grid } = makePainter(() => true);
+    for (const [q, r, level] of [[-2, 0, 1], [-1, -1, 2], [1, 1, 1], [2, -1, 2]] as const) grid.setLook(q, r, { texture: MOSS, rock: false, level });
+    const whole = paintAll(painter);
+    const pieces = { width: SIZE.width, height: SIZE.height, data: new Uint8ClampedArray(SIZE.width * SIZE.height * 4) };
+    for (const [x0, y0, x1, y1] of [
+      [0, 0, 260, 210],
+      [260, 0, SIZE.width, 210],
+      [0, 210, 260, SIZE.height],
+      [260, 210, SIZE.width, SIZE.height],
+    ] as const) {
+      const part = { width: x1 - x0, height: y1 - y0, data: new Uint8ClampedArray((x1 - x0) * (y1 - y0) * 4) };
+      painter.paint({ x0, y0, x1, y1 }, part, x0, y0);
+      for (let y = y0; y < y1; y++) pieces.data.set(part.data.subarray((y - y0) * part.width * 4, (y - y0 + 1) * part.width * 4), (y * SIZE.width + x0) * 4);
+    }
+    expect(differences(pieces.data, whole.data)).toBe(0);
+  });
+
   it("paints a rock's own picture with just its pixels, all inside its rectangle", () => {
     const { painter, grid } = makePainter(() => true);
     const rock = grid.index(0, 0);

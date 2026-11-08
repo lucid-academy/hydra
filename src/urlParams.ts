@@ -35,7 +35,8 @@
 //   ?castle=2     with ?scene=battle: the test battle is that part of the castle's assault (castle.json parts, from 0;
 //                 the last has the Eternal Flame); with ?scene=map: the castle's gate stands open and that many parts
 //                 are taken (with ?surface=1&near=castle she starts at its walls)
-// A URL with any of these but seed, debug, speed and zoom is a test: the saved game is neither loaded nor saved
+//   ?terraces=1   a look to try: the ground of the underground map rises in terraces (only drawn, see mapGround.ts)
+// A URL with any of these but seed, debug, speed, zoom and terraces is a test: the saved game is neither loaded nor saved
 // (testUrl). ?seed= alone picks the world of a lineage started from the title.
 
 import { seedFromString } from './sim/rng';
@@ -96,6 +97,8 @@ export interface UrlParams {
   exposed: boolean;
   /** The castle's gate open and this many parts taken (a test battle: this part of the assault), or null. */
   castle: number | null;
+  /** The terrace look on the underground map (only drawn; not a test, so the saved game plays with it). */
+  terraces: boolean;
 }
 
 export function parseUrlParams(search: string): UrlParams {
@@ -139,6 +142,7 @@ export function parseUrlParams(search: string): UrlParams {
     night: params.get('night') === '1' || params.get('night') === 'true',
     exposed: params.get('exposed') === '1' || params.get('exposed') === 'true',
     castle: (params.get('castle') ?? '').trim() !== '' && Number.isInteger(Number(params.get('castle'))) && Number(params.get('castle')) >= 0 ? Number(params.get('castle')) : null,
+    terraces: params.get('terraces') === '1' || params.get('terraces') === 'true',
   };
 }
 
