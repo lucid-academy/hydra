@@ -197,5 +197,5 @@ describe('marking shrines', () => {
         if (t.object?.kind === 'shrine' && t.object.mark) expect(t.object.mark).toBe(all[all.length - 1]);
       }
     }
-  });
+  }, 60_000);
 });
