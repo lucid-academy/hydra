@@ -16,7 +16,7 @@ import type { Hex, HexLayout } from '../sim/hex';
 import { laneFlow } from '../sim/map';
 import type { Layer, LayerMap, MapObject, Tile, Visibility } from '../sim/map';
 import { Rng } from '../sim/rng';
-import { encountersRevealed, isNight, knownDraughts, mapOf, mistAt, visibilityOf } from '../sim/turn';
+import { encountersRevealed, isNight, knownDraughts, mapOf, mistAt, sporeCloudKeys, visibilityOf } from '../sim/turn';
 import type { RunEvent } from '../sim/turn';
 import { SCREEN } from '../scaling';
 import { exposeInspectable, exposeMapBusy, exposeMapLoad, exposeReachable, exposeRunSummary, markReady } from '../testHooks';
@@ -25,7 +25,7 @@ import { hexOutlines, roundCorners } from './hexOutline';
 import { MapGround } from './mapGround';
 import { OrderTokens } from './mapOrder';
 import { MapLife } from './mapLife';
-import { biomeScenery, hasPicture, planBigClumps } from './mapScenery';
+import { biomeScenery, framesOf, hasPicture, planBigClumps } from './mapScenery';
 import type { BiomeScenery } from './mapScenery';
 import { LIGHT_TEXTURE, LIGHT_TEXTURE_SIZE, MapLight, SHADOW_TEXTURE, SHADOW_TEXTURE_WIDTH, SURFACE_AMBIENT, makeSoftTextures } from './mapLight';
 import type { Light } from './mapLight';
@@ -76,6 +76,8 @@ const SPENT_TINT = 0x5a5a5a;
 const WHISPERED_TINT = 0xc89ad8;
 const WHISPERED_ALPHA = 0.55;
 const BIOME_LABEL_MS = 2600;
+/** A land with its own rule (GAME_DESIGN.md §9.2) keeps its card up this much longer, to read the rule. */
+const BIOME_RULE_EXTRA_MS = 1600;
 /**
  * A landmark at least this tall (pixels) turns see-through while it stands in front of the hydra, a closed threshold,
  * an encounter or a shrine. `inset` is how much of its width, on each side, is left out when checking (empty air).
@@ -170,15 +172,15 @@ const PATCHES = { chance: 0.4, alpha: 0.9 } as const;
  */
 const BIOME_LIGHT = { strength: 0.16, radiusPerHex: 4, minRadius: 40, teaserReach: 5, teaserAlpha: 0.12, teaserSize: 0.7, teaserPulseMs: 2200 } as const;
 /**
- * Fast lanes: flecks on each hex of a current (how many, how bright, how long one takes to slide a hex; the current's
- * picture is drawn this much smaller), and how strong an old corridor's slabs show.
- */
-/**
  * Hexes this far outside the view (world units) are skipped when drawing: things stand up from their feet, so more is
  * kept below the view than above it. The check runs again after the view moves this far.
  */
 const CULL = { side: 120, above: 60, below: 200, step: 24 } as const;
-const LANES = { flecks: 2, fleckAlpha: 0.75, fleckMs: 1400, artScale: 0.5, corridorAlpha: 0.5 } as const;
+/**
+ * Fast lanes: flecks on each hex of a current (how many, how bright, how long one takes to slide a hex; the current's
+ * picture is drawn this much smaller), and how strong an old corridor's slabs show (drawn in code, or map_corridor).
+ */
+const LANES = { flecks: 2, fleckAlpha: 0.75, fleckMs: 1400, artScale: 0.5, corridorAlpha: 0.5, corridorArtAlpha: 0.9 } as const;
 /** Code-drawn pictures of the lanes, until (or besides) art for them. */
 const CURRENT_TEXTURE = 'map_lane_current';
 const CORRIDOR_TEXTURE = 'map_lane_corridor';
@@ -191,6 +193,11 @@ const SURFACE_DECOR = { trees: [2, 3] as const, loneChance: 0.18 };
  * (`alpha` from thin to thick), drifting a little; the size of a cloud, times a hex's width.
  */
 const MIST = { size: 2.1, tint: '#e4ece6', alpha: [0.3, 0.68] as const, drift: 3, driftMs: 2600 } as const;
+/**
+ * Spore clouds of the Fungal Deeps (GAME_DESIGN.md §9.2), drawn over the hexes the hydra sees now: a soft cloud in a
+ * pale shade of the biome's glow (`whiten` of the way to white), drifting a little; size times a hex's width.
+ */
+const SPORES = { size: 1.9, whiten: 0.45, alpha: 0.5, drift: 4, driftMs: 3200 } as const;
 
 /** The map the last map scene showed, so going up or down a Passage fades the new one in. */
 let shownLayer: Layer | null = null;
@@ -283,6 +290,7 @@ export class MapScene extends Phaser.Scene {
   private layer: Layer = 'underground';
   /** Clouds of mist over the surface, by hex key. */
   private mist = new Map<string, Phaser.GameObjects.Image>();
+  private spores = new Map<string, Phaser.GameObjects.Image>();
 
   constructor() {
     super(SceneKey.Map);
@@ -316,6 +324,7 @@ export class MapScene extends Phaser.Scene {
     this.culled = new Set();
     this.culledFor = { x: Number.NaN, y: Number.NaN, width: 0, height: 0 };
     this.mist = new Map();
+    this.spores = new Map();
     this.draughts = new Map();
     this.echoes = new Map();
     this.heat = new Map();
@@ -625,11 +634,12 @@ export class MapScene extends Phaser.Scene {
     if (!lane) return;
     const rng = new Rng(this.hexSeed(view.tile.hex) ^ 0x1a4e);
     if (lane === 'corridor') {
-      const slabs = this.add
-        .image(x + rng.int(-2, 2), y + rng.int(-1, 1), CORRIDOR_TEXTURE)
+      // Piotr's slabs (map_corridor, a set) once drawn, else the ones made in code.
+      const art = framesOf(this, getContext(this).data, 'map_corridor');
+      const slabs = (art > 0 ? this.add.image(x, y, 'map_corridor', rng.int(0, art - 1)) : this.add.image(x, y, CORRIDOR_TEXTURE).setFlipY(rng.chance(0.5)))
+        .setPosition(x + rng.int(-2, 2), y + rng.int(-1, 1))
         .setFlipX(rng.chance(0.5))
-        .setFlipY(rng.chance(0.5))
-        .setAlpha(LANES.corridorAlpha)
+        .setAlpha(art > 0 ? LANES.corridorArtAlpha : LANES.corridorAlpha)
         .setDepth(DEPTH.decal);
       view.props.push(slabs);
       return;
@@ -872,6 +882,7 @@ export class MapScene extends Phaser.Scene {
     this.drawJourney();
     this.refreshHints();
     this.refreshMist();
+    this.refreshSpores();
     this.order.sync(this.run.state);
     this.drawLights();
     this.seeThroughTallPlaces();
@@ -1092,6 +1103,41 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
+  /** Spore clouds over the underground hexes the hydra sees now (they drift with the turns, so remembered ones would lie). */
+  private refreshSpores(): void {
+    if (this.onSurface) return;
+    const { state, rules } = this.run;
+    const { biomes } = getContext(this).data;
+    const seen = [...this.known].flatMap(([key, v]) => (v === 'visible' ? [key] : []));
+    const wanted = sporeCloudKeys(state, seen, rules);
+    for (const key of wanted) {
+      if (this.spores.has(key)) continue;
+      const tile = state.map.tiles.get(key)!;
+      const { x, y } = hexToPixel(LAYOUT, tile.hex);
+      const glow = color(biomes.biomes[tile.biome]?.colors.glow ?? '#c65bd6');
+      const toWhite = (shift: number): number => {
+        const c = (glow >> shift) & 0xff;
+        return Math.round(c + (0xff - c) * SPORES.whiten) << shift;
+      };
+      const cloud = this.add
+        .image(x, y - 4, LIGHT_TEXTURE)
+        .setTint(toWhite(16) | toWhite(8) | toWhite(0))
+        .setScale((SPORES.size * MAP_COLUMN_WIDTH) / LIGHT_TEXTURE_SIZE, (SPORES.size * MAP_COLUMN_WIDTH * 0.7) / LIGHT_TEXTURE_SIZE)
+        .setDepth(DEPTH.light - 1)
+        .setAlpha(0);
+      const seed = Math.abs(tile.hex.q * 5 + tile.hex.r * 11) % 7;
+      this.tweens.add({ targets: cloud, y: y - 4 - SPORES.drift, duration: SPORES.driftMs + seed * 250, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: seed * 180 });
+      this.tweens.add({ targets: cloud, alpha: SPORES.alpha, duration: 500 });
+      this.spores.set(key, cloud);
+    }
+    for (const [key, cloud] of this.spores) {
+      if (wanted.has(key)) continue;
+      this.tweens.killTweensOf(cloud);
+      this.spores.delete(key);
+      this.tweens.add({ targets: cloud, alpha: 0, duration: 500, onComplete: () => cloud.destroy() });
+    }
+  }
+
   /** Draughts drift over hexes next to hidden thresholds; echoes pulse where they were heard, until their source is seen. */
   private refreshHints(): void {
     const { state } = this.run;
@@ -1213,7 +1259,18 @@ export class MapScene extends Phaser.Scene {
       }
       pin(this.add.text(0, 0, text.lineages.landDiscovered, { fontFamily: FONT.text, fontSize: '9px', color: getContext(this).data.palette.order.gold, stroke: '#05090a', strokeThickness: 3 }).setOrigin(0.5, 0), SCREEN.width / 2, middle + 26);
     }
-    const hold = firstEver ? BIOME_LABEL_MS * 1.6 : BIOME_LABEL_MS;
+    // The land's own rule (GAME_DESIGN.md §9.2), under all that: the hydra learns it the moment it starts to matter.
+    const rule = biome.mapRule?.text;
+    if (rule) {
+      pin(
+        this.add
+          .text(0, 0, rule, { fontFamily: FONT.text, fontSize: '9px', color: '#d8e0d0', backgroundColor: '#05090acc', padding: { x: 6, y: 3 }, align: 'center', wordWrap: { width: 380 } })
+          .setOrigin(0.5, 0),
+        SCREEN.width / 2,
+        middle + (firstEver ? 42 : 26),
+      );
+    }
+    const hold = (firstEver ? BIOME_LABEL_MS * 1.6 : BIOME_LABEL_MS) + (rule ? BIOME_RULE_EXTRA_MS : 0);
     let ended = false;
     const end = (): void => {
       if (ended) return;

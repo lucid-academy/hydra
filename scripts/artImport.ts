@@ -43,7 +43,7 @@ const TINTED = /^(battle_head|battle_head_jaw|battle_mist_puff|battle_shadow|bat
 const CLASS_HEAD = /^battle_head_([a-z][A-Za-z]*?)(_jaw)?$/;
 const STANDING = /^(battle_body|battle_enemy_.+|map_deco_.+|map_props_.+|map_clump_.+|map_landmark_.+|map_encounter_.+|map_place_.+|map_(lair|shrine|passage|muck|moisture|hydra|remains|hoard|muck_rich|moisture_rich)|portrait_.+)$/;
 /** Sets of variants on one picture (GAME_DESIGN.md §13, "Mapa bliżej Songs of Conquest"). */
-const SET = /^(map_props_.+|map_patches_.+|map_current)$/;
+const SET = /^(map_props_.+|map_patches_.+|map_current|map_corridor)$/;
 /** A set keeps at most this many pieces. */
 export const MAX_SET_PIECES = 12;
 /** Open thresholds lie flat on the hex, centred on it, except the timber frame of the Old Workings, which stands. */
