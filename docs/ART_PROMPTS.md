@@ -1787,7 +1787,7 @@ Nowe grafiki do etapu „Wielki świat” (decyzja z 2026-11-07, `GAME_DESIGN.md
 
 Na co uważać przy nowych rodzajach:
 
-- **Arkusze (`map_props_…`, `map_patches_…`, `map_current`):** rzeczy nie mogą się stykać, między nimi ma być magenta. Liczba nie musi się zgadzać co do sztuki: gra weźmie tyle, ile znajdzie (do 12). Jeśli GPT skleja rzeczy albo dorysowuje podłogę, dopisz: „more magenta space between the props, no floor”.
+- **Arkusze (`map_props_…`, `map_patches_…`, `map_current`, `map_corridor`):** rzeczy nie mogą się stykać, między nimi ma być magenta. Liczba nie musi się zgadzać co do sztuki: gra weźmie tyle, ile znajdzie (do 12). Jeśli GPT skleja rzeczy albo dorysowuje podłogę, dopisz: „more magenta space between the props, no floor”.
 - **Drobiazgi** rysuj w prawdziwych proporcjach względem siebie: kamyk ma być dużo mniejszy niż stalagmit, bo gra zmniejsza cały arkusz tak samo.
 - **Plamy** mają być ciemne i spokojne, prawie w kolorze podłoża. Jasne plamy będą wyglądały jak dziury w mapie.
 - **Ściana (`texture_wall_…`)** wypełnia cały obrazek, bez magenty, poziomo. Gra powtarza ją w bok, więc nie może mieć nic dużego tylko w jednym miejscu.
@@ -2271,6 +2271,21 @@ Background: one flat, solid magenta #FF00FF everywhere around the subject, with 
 Request: a wide scene that fills the whole picture edge to edge (no magenta, no border, no text): a pixel art vista the game shows across the screen when the player first enters this part of the underworld, like the title card of a new land. Landscape picture with deep perspective into the distance, darkness all around, the only light from glows. Keep everything important in the middle band of the picture: the top and bottom fifth will be cut off.
 Subject: an endless underground necropolis: rows of stone tombs and pillars going far into the darkness, walls of skulls in niches, warm candlelight (#e0b060) flickering here and there, a bone cathedral glowing faintly in the far distance, grey-brown stone and dust.
 Size: shown about 1280 by 480 pixels in the game. Draw it as pixel art about 480 by 320 pixels scaled up, with big square pixels, dithering for the darkness, no smooth gradients.
+```
+
+### `map_corridor.png`: stare korytarze Old Crypts i Salt Mines (arkusz 4)
+
+Korytarze to szybkie szlaki między komorami tych dwóch biomów (krok kosztuje pół ruchu). Gra kładzie jeden kawałek na każdym heksie korytarza, z losowym odbiciem, pod wszystkim innym. Bez obrazka zostają płyty rysowane w kodzie. Kawałki mają być płaskie i spokojne, jak plamy, ale z wyraźnym śladem drogi, żeby gracz widział szlak.
+
+```text
+Pixel art game asset for "Hydra", a dark fantasy roguelite about a hydra from an underground swamp. Crisp low-resolution pixel art with big, clearly visible square pixels: no anti-aliasing, no blur, no soft gradients (dithering only), no text, no signature, no frame, no border.
+Colours: a cold, dark underground of near-black #05090a, deep teal #0e3b3f, swamp green #2f4a2a and sickly yellow-green bioluminescence #c6e04a; the Order of the Eternal Flame brings warm gold #d9a93b, orange #e0702a, banner red #9e2323 and fire #ffcf5c; mist is pale greenish grey #a9b8a8. Muted and dark overall, only glows and fire are bright.
+Camera: one angle for the whole game, a three-quarter view from above, about 45 degrees above the ground; light from the upper left.
+Background: one flat, solid magenta #FF00FF everywhere around the subject, with no shadow, gradient or floor on it, unless the request below says the image is a texture that fills the whole picture.
+
+Request: a sheet of four separate flat patches on the flat magenta background, side by side with wide gaps of magenta between them: no patch may touch another. Each patch lies flat on the cave floor, seen from the game's angle, so it is a wide, low shape about twice as wide as tall, and the game lays one on each tile of an old road, so it must read as a piece of a worn path, not as an object. Ragged edges broken into single pixels, no outline, dark and low in contrast, only a little lighter than the floor around. Nothing stands up out of them. No floor around them, no shadow, no hexagon, no labels or numbers.
+Subject: worn paving of an ancient corridor the Order still walks: grey-brown flagstones (#6e6658, #4a443a) cracked and sunk unevenly, dark gaps between them, a faint pale groove worn down the middle by countless boots, here and there a tiny chip of salt crystal (#cfd8dc) or a pinch of bone dust. Four variants: whole slabs; slabs with one missing; slabs split by a crack; slabs half buried in dust.
+Size: each about 48 by 28 pixels in the game. Chunky pixel art with big square pixels, 3 to 5 colours each.
 ```
 
 ## Wielki świat: Salt Mines
