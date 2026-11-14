@@ -107,6 +107,14 @@ async function readThroughToShrine(page) {
   await page.waitForTimeout(600);
 }
 
+/** One step to a plain hex next to the hydra (with ?near= on the edge of a land she hasn't been in, into it). */
+async function stepIntoNewLand(page) {
+  const points = await page.evaluate(() => window.__hydra.reachableOnScreen());
+  const step = points.find((p) => p.cost === 1 && p.object === null);
+  if (!step) throw new Error('Nowhere to step');
+  await goTo(page, step);
+}
+
 /** Taps through any dialogue on screen. */
 async function readThrough(page) {
   for (let i = 0; i < 40; i++) {
@@ -240,6 +248,20 @@ const SHOTS = [
   { name: 'map-landmark', query: '?seed=123&scene=map&near=sunkenOak', viewport: DESKTOP, scene: 'map' },
   // A look to try, off by default: terraces (?terraces=1), next to a chamber with a few of them.
   { name: 'map-terraces', query: '?seed=123&scene=map&reveal=1&near=saltSaint&terraces=1', viewport: DESKTOP, scene: 'map' },
+  // Biome rules (GAME_DESIGN.md §9.2): spore clouds in the Fungal Deeps, and the land's rule on its card.
+  // One step on from the Mother Cap (seed 99 has clouds around it): the land's card with its rule, then the clouds.
+  { name: 'map-new-land-rule', query: '?seed=99&scene=map&near=motherCap', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await stepIntoNewLand(page);
+    await page.waitForTimeout(2200);
+  } },
+  { name: 'map-spores', query: '?seed=99&scene=map&near=motherCap', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await stepIntoNewLand(page);
+    await page.waitForTimeout(7500);
+    for (let i = 0; i < 3; i++) {
+      await readThrough(page);
+      await page.waitForTimeout(800);
+    }
+  } },
   // M5: dialogues (Old Mother Toad, heads, the Serpent, an answer to pick) and events.
   { name: 'dialogue-toad', query: '?seed=123&scene=map', viewport: DESKTOP, scene: 'map', act: async (page) => {
     await tapGame(page, { x: 590, y: 340 }); // End Turn in the lair: Old Mother Toad speaks

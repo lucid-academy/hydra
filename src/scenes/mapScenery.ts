@@ -33,7 +33,7 @@ export function hasPicture(scene: Phaser.Scene, data: GameData, key: string): bo
 }
 
 /** The frames of a sheet with a picture (a set may have more or fewer than the prompt asked for), else 0. */
-function framesOf(scene: Phaser.Scene, data: GameData, key: string): number {
+export function framesOf(scene: Phaser.Scene, data: GameData, key: string): number {
   if (!hasPicture(scene, data, key)) return 0;
   // Phaser counts the whole picture as one more frame.
   return Math.max(1, scene.textures.get(key).frameTotal - 1);
