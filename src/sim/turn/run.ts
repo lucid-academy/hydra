@@ -8,6 +8,7 @@ import type { Hex } from '../hex';
 import { generateUnderground, laneFlow, updateVisibility } from '../map';
 import type { Layer, MapObject, Tile } from '../map';
 import { Rng } from '../rng';
+import { biomeRuleAt, sightBlockedBy } from './biomeRules';
 import { beginAssault, castlePartWon, reachCastle } from './castle';
 import { gainExperience } from './experience';
 import { applyBirthMutations, gainMutation, headMaxHp, mutationTotal, startingHeadCount } from './mutations';
@@ -560,7 +561,9 @@ export function finishBattle(state: RunState, result: BattleResult, rules: RunRu
   state.hydra.scars += result.newScars;
   if (pending.defense && result.alliesLeft !== undefined) state.lair.defenders = Math.min(state.lair.defenders, result.alliesLeft);
   const silenced = battleSilenced(state, pending.at, rules);
-  if (!silenced) raiseAlert(state, rules.alertPerBattle, rules);
+  // The Old Crypts carry the noise of a fight further (GAME_DESIGN.md §9.2).
+  const loud = 1 + (biomeRuleAt(state, pending.layer, pending.at, rules)?.battleAlertPercent ?? 0) / 100;
+  if (!silenced) raiseAlert(state, rules.alertPerBattle * loud, rules);
 
   if (result.outcome === 'lost') {
     // Losing the battle for the lair, she loses eggs too.
@@ -638,6 +641,8 @@ export function endTurn(state: RunState, rules: RunRules): RunEvent[] {
   tickConditions(state, events);
   coolTunnels(state, events);
   hydra.movementLeft = movementForTurn(state, rules);
+  // Spore clouds drift with the turns (GAME_DESIGN.md §9.2): she sees what they let her see now.
+  if (sightBlockedBy(state, hydra.layer, rules)) look(state, rules);
   // Restless: she can't sit still, and the Order hears it.
   const restless = mutationTotal(hydra, rules, 'alertPerTurn');
   if (restless !== 0) raiseAlert(state, restless, rules);

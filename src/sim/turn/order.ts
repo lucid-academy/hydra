@@ -9,6 +9,7 @@ import { hasLineOfSight, hexDistance, hexEquals, hexKey, hexNeighbors, hexesInRa
 import type { Hex } from '../hex';
 import type { Layer, Tile } from '../map';
 import { Rng } from '../rng';
+import { biomeRuleHere, hiddenUnlessWithin, sightBlockedBy } from './biomeRules';
 import { gainMutation } from './mutations';
 import { meetEnemies, storyMoment } from './story';
 import { clearMist, hasMist, relightShrine } from './surface';
@@ -227,11 +228,15 @@ function seesHydra(state: RunState, unit: OrderUnit, rules: RunRules): boolean {
   if (unit.layer === 'surface') {
     const { order, dayNight } = rules.surface;
     range = hasMist(state, to) ? order.sightInMist : Math.max(1, order.sight - (isNight(state.turn, rules) ? dayNight.nightSight : 0));
+  } else {
+    // Her biome's rule (GAME_DESIGN.md §9.2): salt glare shows her from further; roots and spore clouds hide her.
+    range = Math.min(range + (biomeRuleHere(state, rules)?.seenFrom ?? 0), hiddenUnlessWithin(state, rules));
   }
   if (hexDistance(unit.at, to) > range) return false;
+  const clouds = sightBlockedBy(state, unit.layer, rules);
   return hasLineOfSight(unit.at, to, (h) => {
     const tile = tileOn(state, unit.layer, h);
-    return !tile || rules.terrain[tile.terrain].blocksSight;
+    return !tile || rules.terrain[tile.terrain].blocksSight || (clouds?.(h) ?? false);
   });
 }
 

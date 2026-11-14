@@ -6,6 +6,7 @@ import type { Hex } from '../hex';
 import { hexesSeenFrom, updateVisibility } from '../map';
 import type { HexMap, Layer, LayerMap, Loot, MapObject, Tile, Visibility } from '../map';
 import { Rng } from '../rng';
+import { biomeRuleHere, sightBlockedBy } from './biomeRules';
 import { headMaxHp, mutationTotal } from './mutations';
 import type { HeardEcho, PlaceAction, RunEvent, RunRules, RunState } from './types';
 
@@ -61,10 +62,11 @@ export function hydraOn(state: RunState, layer: Layer): Hex | null {
   return state.hydra.layer === layer ? state.hydra.position : null;
 }
 
-/** How far the hydra sees now: on the surface at night, less (GAME_DESIGN.md §5.3). */
+/** How far the hydra sees now: on the surface at night, less (GAME_DESIGN.md §5.3); in the Salt Mines, further (§9.2). */
 export function sightNow(state: RunState, rules: RunRules): number {
   const night = state.hydra.layer === 'surface' && isNight(state.turn, rules);
-  return Math.max(1, state.hydra.sightRange - (night ? rules.surface.dayNight.nightSight : 0));
+  const biome = biomeRuleHere(state, rules)?.sight ?? 0;
+  return Math.max(1, state.hydra.sightRange + biome - (night ? rules.surface.dayNight.nightSight : 0));
 }
 
 /** Night on the surface (GAME_DESIGN.md §5.2): each day is dayTurns turns of daylight, then nightTurns of night. */
@@ -75,7 +77,8 @@ export function isNight(turn: number, rules: RunRules): boolean {
 
 /** Looks around from where the hydra stands, on her map. Returns how many hexes it saw for the first time. */
 export function look(state: RunState, rules: RunRules): number {
-  return updateVisibility(visibilityOf(state), hexesSeenFrom(mapOf(state), state.hydra.position, sightNow(state, rules), rules.terrain));
+  const clouds = sightBlockedBy(state, state.hydra.layer, rules);
+  return updateVisibility(visibilityOf(state), hexesSeenFrom(mapOf(state), state.hydra.position, sightNow(state, rules), rules.terrain, clouds));
 }
 
 /** Changes the Alert. A rise is faster or slower with the hydra's mutations (Bog-scented: slower). */
@@ -235,9 +238,11 @@ export function knownDraughts(state: RunState): Hex[] {
 
 /** A place or a patch not yet seen, close enough, is heard: an echo marked at the known hex nearest to it. */
 function hearEchoes(state: RunState, rules: RunRules, events: RunEvent[]): void {
+  // The Old Crypts carry sound (GAME_DESIGN.md §9.2).
+  const echoRange = rules.echoRange * (biomeRuleHere(state, rules)?.echoRangeTimes ?? 1) + mutationTotal(state.hydra, rules, 'echoRange');
   for (const source of state.map.layout.echoSources) {
     if (state.visibility.has(hexKey(source.at)) || state.echoes.some((e) => hexEquals(e.source, source.at))) continue;
-    if (hexDistance(state.hydra.position, source.at) > rules.echoRange + mutationTotal(state.hydra, rules, 'echoRange')) continue;
+    if (hexDistance(state.hydra.position, source.at) > echoRange) continue;
     const echo: HeardEcho = { source: source.at, mark: nearestSeenHex(state, source.at), placeId: source.placeId, biome: source.biome };
     state.echoes.push(echo);
     events.push({ type: 'echoHeard', echo });

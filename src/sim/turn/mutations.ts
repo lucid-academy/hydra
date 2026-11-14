@@ -2,6 +2,7 @@
 // mutations.json; this file applies them to the hydra, at birth or when she gains one in her life.
 
 import { hexesSeenFrom, updateVisibility } from '../map';
+import { biomeRuleHere, sightBlockedBy } from './biomeRules';
 import type { Hydra, MutationEffects, RunEvent, RunRules, RunState } from './types';
 
 type Effect = keyof MutationEffects;
@@ -37,7 +38,8 @@ function applyLasting(state: RunState, effects: MutationEffects, rules: RunRules
     hydra.sightRange = Math.max(1, hydra.sightRange + effects.sight);
     // What she sees on the map she is on (the run's own state for the underground, its surface for the surface).
     const here = hydra.layer === 'surface' ? state.surface : state;
-    updateVisibility(here.visibility, hexesSeenFrom(here.map, hydra.position, hydra.sightRange, rules.terrain));
+    const range = hydra.sightRange + (biomeRuleHere(state, rules)?.sight ?? 0);
+    updateVisibility(here.visibility, hexesSeenFrom(here.map, hydra.position, range, rules.terrain, sightBlockedBy(state, hydra.layer, rules)));
   }
   if (effects.bodyMaxHp) {
     const before = hydra.bodyMaxHp;

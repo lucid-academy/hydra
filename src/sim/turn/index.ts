@@ -8,3 +8,4 @@ export * from './lair';
 export * from './experience';
 export * from './surface';
 export * from './castle';
+export * from './biomeRules';

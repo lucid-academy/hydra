@@ -556,6 +556,32 @@ export interface SurfaceState {
   rngState: number;
 }
 
+/**
+ * A biome's own rule on the map (GAME_DESIGN.md §9.2, the Big World). Each field is optional; a biome without a rule
+ * has none. It applies where the hydra stands (or, for battles, where the battle is), on the underground only.
+ */
+export interface BiomeMapRule {
+  /** What the player is told about it, on the new land's card. */
+  text: string;
+  /** The hydra sees this many hexes further while she stands here. */
+  sight?: number;
+  /** The Order sees her from this many hexes further while she stands here. */
+  seenFrom?: number;
+  /** Echoes are heard this many times as far while she stands here. */
+  echoRangeTimes?: number;
+  /** A battle fought here raises the Alert this many percent more. */
+  battleAlertPercent?: number;
+  /** On these grounds the Order notices her only from this close. */
+  hiding?: { grounds: readonly string[]; seenWithin: number };
+  /**
+   * Clouds of spores drift over its open ground: nobody sees through them, and the Order notices the hydra under one
+   * only from `seenWithin` hexes. Where they are comes from smooth noise over the hexes, moved `driftPerTurn` hexes
+   * each turn the same way: noise above `thickerThan` (-1..1) is cloud, so a higher number makes fewer clouds;
+   * `size` is about how many hexes across a cloud is.
+   */
+  sporeClouds?: { size: number; thickerThan: number; driftPerTurn: number; seenWithin: number };
+}
+
 export interface RunRules {
   movementPointsPerTurn: number;
   sightRangeHexes: number;
@@ -570,6 +596,8 @@ export interface RunRules {
   alertMax: number;
   alertPerHexDiscovered: number;
   alertPerBattle: number;
+  /** Each biome's own rule on the map, by biome id (biomes.json mapRule). */
+  biomeRules: Readonly<Record<string, BiomeMapRule>>;
   generator: UndergroundGeneratorSettings;
   bodyMaxHp: number;
   startingHeads: ReadonlyArray<{ classId: string; maxHp: number }>;

@@ -8,11 +8,11 @@ import type { LayerMap, TerrainTable } from './types';
 export type VisibilityState = 'visible' | 'remembered';
 export type Visibility = Map<string, VisibilityState>;
 
-/** Keys of hexes seen from `from` within `range`, with rock blocking sight. */
-export function hexesSeenFrom(map: LayerMap, from: Hex, range: number, terrain: TerrainTable): Set<string> {
+/** Keys of hexes seen from `from` within `range`, with rock (and whatever `alsoBlocks` says, e.g. spore clouds) blocking sight. */
+export function hexesSeenFrom(map: LayerMap, from: Hex, range: number, terrain: TerrainTable, alsoBlocks?: (h: Hex) => boolean): Set<string> {
   const blocksSight = (h: Hex): boolean => {
     const tile = map.tiles.get(hexKey(h));
-    return !tile || terrain[tile.terrain].blocksSight;
+    return !tile || terrain[tile.terrain].blocksSight || (alsoBlocks?.(h) ?? false);
   };
   const seen = new Set<string>();
   for (const h of hexesInRange(from, range)) {

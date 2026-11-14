@@ -135,6 +135,7 @@ export function runRulesFrom(data: GameData): RunRules {
     alertMax: alert.max,
     alertPerHexDiscovered: alert.perHexDiscovered,
     alertPerBattle: alert.perBattle,
+    biomeRules: Object.fromEntries(Object.entries(data.biomes.biomes).flatMap(([id, b]) => (b.mapRule ? [[id, b.mapRule]] : []))),
     generator: generatorSettingsFrom(data),
     bodyMaxHp: balance.battle.bodyMaxHp,
     startingHeads: heads.startingHeads.map((classId) => ({ classId, maxHp: heads.classes[classId]!.maxHp })),
