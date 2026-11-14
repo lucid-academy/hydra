@@ -402,7 +402,17 @@ Wtrącenie to cała komora w obcym biomie, zawsze z jedną rzeczą z tego biomu.
 - **Duże, zwarte biomy:** pierścień ma 2–3 biomy po roboczo 300–800 heksów, czyli kilka ekranów każdy. Wtrącenia zostają jako zapowiedź.
 - **Zapowiedź z daleka:** światło i kolor biomu prześwitują przez ciemność na jego granicy; landmarki widać przez skałę, echa słychać zza zakrętu (§9.4).
 - **Moment odkrycia:** pierwszy krok w biom, którego ta hydra jeszcze nie widziała: duża nazwa biomu na ekranie, własny dźwięk tła biomu, krótka kwestia którejś głowy. Księga zapisuje, które pokolenie odkryło biom pierwsze.
-- **Coś, czego nie ma gdzie indziej:** każdy biom ma własne znaleziska i jedną własną zasadę na mapie (lista do zatwierdzenia, §16).
+- **Coś, czego nie ma gdzie indziej:** każdy biom ma własne znaleziska i jedną własną zasadę na mapie. Zasada działa tam, gdzie stoi hydra (bitwa: tam, gdzie się toczy), i gracz poznaje ją z karty nowej krainy. Liczby są robocze i żyją w danych.
+
+**Zasady biomów** (decyzja Piotra z 2026-11-14, warianty A z dokumentu Claude „Hydra: Wielki świat, co sprawdzić”):
+
+| Biom | Zasada na mapie |
+|---|---|
+| Flooded Caves | Prądy niosą hydrę za darmo w stronę nurtu (szybkie szlaki, §5.2). |
+| Root Tangle | Korzenie kryją: na korzeniach patrol Zakonu zauważa hydrę dopiero z sąsiedniego heksa. Biom do skradania się. |
+| Old Crypts | Krypty niosą dźwięk: echa słychać dwa razy dalej, ale każda bitwa tutaj podnosi Alert o 50% więcej. |
+| Salt Mines | Sól odbija światło: wzrok +1, ale Zakon też widzi hydrę o heks dalej. |
+| Fungal Deeps | Chmury zarodników dryfują co turę i zasłaniają widok. Pod chmurą Zakon widzi hydrę tylko z sąsiedniego heksa. |
 - **Zajrzeć i uciec:** na dużej mapie hydra często widzi krawędź groźniejszego biomu, zanim jest na niego gotowa.
 
 ### 9.3 Thresholds
@@ -572,8 +582,6 @@ Gotowe, gdy: da się rozegrać kilka bitw pod linkiem, testy przechodzą, a zrzu
 **Wielki świat** (decyzja Piotra z 2026-11-07, dokument Claude „Hydra: większy świat i eksploracja”; zgoda na wszystkie polecane odpowiedzi). Podziemia i powierzchnia o promieniu 40 (§5.1, §5.6, §9), duże biomy z momentem odkrycia (§9.2), wzrok 5 i ruch 8, szybkie szlaki i mutacje ruchu (§5.2, §5.3), widok Blisko / Daleko (§5.9), mapa bliżej Songs of Conquest (§13). Grafiki: najpierw próba Flooded Caves, pozostałe biomy po akceptacji. Pytania o bitwy z M3, M4 i M7 (§16) czekają; gra działa na polecanych odpowiedziach.
 
 ## 16. Otwarte pytania (decyduje Piotr, nie zgadywać)
-
-- **Zasady biomów na mapie (Wielki świat, §9.2):** każdy biom ma mieć jedną własną zasadę na mapie. Prądy we Flooded Caves są już zatwierdzone jako szybkie szlaki (§5.2). Propozycje Claude dla reszty do zatwierdzenia, np. chmury zarodników w Fungal Deeps zasłaniają widok.
 
 - Ile kapliczek Płomienia trzeba zgasić, żeby zamek stał się celem (roboczo: wszystkie).
 - **Odrost (pomysł Piotra po playteście M1b):** nowe głowy są mniejsze i na początku zadają połowę obrażeń, żeby odrost nie dawał od razu siły. Głowy potem rosną, i dlatego z czasem hydra jest mocna. Do ustalenia: od czego rosną (doświadczenie z walk, błogosławieństwa, czas). Decyzja Piotra z 2026-10-23: jeszcze nie wprowadzamy; najpierw gra z pełnym składem klas.
