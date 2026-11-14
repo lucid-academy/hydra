@@ -17,6 +17,8 @@
     "outOfReach": "Too far to reach this turn.",
     "noWayThere": "There is no known way there.",
     "journeyWaits": "No movement left. End the turn to travel on.",
+    "hiddenNextTo": "Hidden: the Order notices you only from next to you",
+    "hiddenWithin": "Hidden: the Order notices you only within {n} hexes",
     "landmarkSighted": "In the distance: {name}.",
     "richDeposit": "A rich deposit.",
     "silenced": "The Silent Bell hums. The Order heard nothing.",

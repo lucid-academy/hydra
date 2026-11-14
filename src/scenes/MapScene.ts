@@ -16,7 +16,7 @@ import type { Hex, HexLayout } from '../sim/hex';
 import { laneFlow } from '../sim/map';
 import type { Layer, LayerMap, MapObject, Tile, Visibility } from '../sim/map';
 import { Rng } from '../sim/rng';
-import { encountersRevealed, isNight, knownDraughts, mapOf, mistAt, sporeCloudKeys, visibilityOf } from '../sim/turn';
+import { encountersRevealed, hiddenUnlessWithin, isNight, knownDraughts, mapOf, mistAt, sporeCloudKeys, visibilityOf } from '../sim/turn';
 import type { RunEvent } from '../sim/turn';
 import { SCREEN } from '../scaling';
 import { exposeInspectable, exposeMapBusy, exposeMapLoad, exposeReachable, exposeRunSummary, markReady } from '../testHooks';
@@ -55,6 +55,8 @@ const SLITHER = { sway: 5, stretch: 0.07, carriedSway: 2 } as const;
 const SMALL_SCREEN_ZOOM = 2;
 /** The player's zoom of the map (wheel, pinch), within these bounds, a wheel notch changing it this many times. */
 const MAP_ZOOM = { min: 0.4, max: 3, wheelStep: 1.2 } as const;
+/** The zoom is saved this long after the wheel or fingers last changed it. */
+const ZOOM_SAVE_DELAY_MS = 600;
 /** Switching between the Near and Far views (GAME_DESIGN.md §5.9) takes this long. */
 const VIEW_SWITCH_MS = 350;
 /**
@@ -78,6 +80,8 @@ const WHISPERED_ALPHA = 0.55;
 const BIOME_LABEL_MS = 2600;
 /** A land with its own rule (GAME_DESIGN.md §9.2) keeps its card up this much longer, to read the rule. */
 const BIOME_RULE_EXTRA_MS = 1600;
+/** With another new land's card waiting behind it (a step through two lands), a card stays up only this share as long. */
+const BIOME_LABEL_QUEUED_SHARE = 0.6;
 /**
  * A landmark at least this tall (pixels) turns see-through while it stands in front of the hydra, a closed threshold,
  * an encounter or a shrine. `inset` is how much of its width, on each side, is left out when checking (empty air).
@@ -194,10 +198,13 @@ const SURFACE_DECOR = { trees: [2, 3] as const, loneChance: 0.18 };
  */
 const MIST = { size: 2.1, tint: '#e4ece6', alpha: [0.3, 0.68] as const, drift: 3, driftMs: 2600 } as const;
 /**
- * Spore clouds of the Fungal Deeps (GAME_DESIGN.md §9.2), drawn over the hexes the hydra sees now: a soft cloud in a
- * pale shade of the biome's glow (`whiten` of the way to white), drifting a little; size times a hex's width.
+ * Spore clouds of the Fungal Deeps (GAME_DESIGN.md §9.2), drawn over the hexes the hydra sees now: a few soft puffs
+ * per hex, of the biome's glow greyed (`grey` of the way to `greyTint`), each a little bigger or smaller (`sizes`, times
+ * a hex's width) and off the hex's middle by up to `spread` px, drifting sideways.
  */
-const SPORES = { size: 1.9, whiten: 0.45, alpha: 0.5, drift: 4, driftMs: 3200 } as const;
+const SPORES = { puffs: 2, sizes: [1.3, 2] as const, spread: 6, grey: 0.6, greyTint: '#b8b0bc', alpha: 0.42, drift: 5, driftMs: 3600 } as const;
+/** Hidden in the roots or under a spore cloud (GAME_DESIGN.md §9.2), the hydra shows this faded. */
+const HIDDEN_ALPHA = 0.6;
 
 /** The map the last map scene showed, so going up or down a Passage fades the new one in. */
 let shownLayer: Layer | null = null;
@@ -265,6 +272,8 @@ export class MapScene extends Phaser.Scene {
   private chosenView: MapView | null = null;
   private animating = false;
   private press: { x: number; y: number; dragging: boolean } | null = null;
+  /** Waits to save the zoom until the wheel or fingers stop. */
+  private zoomSave: Phaser.Time.TimerEvent | null = null;
   /** How far apart two fingers pinching the map were at the last move, or null. */
   private pinch: number | null = null;
   /** Catches presses on the map: it covers the whole screen, which depends on the camera's zoom. */
@@ -290,7 +299,7 @@ export class MapScene extends Phaser.Scene {
   private layer: Layer = 'underground';
   /** Clouds of mist over the surface, by hex key. */
   private mist = new Map<string, Phaser.GameObjects.Image>();
-  private spores = new Map<string, Phaser.GameObjects.Image>();
+  private spores = new Map<string, Phaser.GameObjects.Image[]>();
 
   constructor() {
     super(SceneKey.Map);
@@ -325,6 +334,7 @@ export class MapScene extends Phaser.Scene {
     this.culledFor = { x: Number.NaN, y: Number.NaN, width: 0, height: 0 };
     this.mist = new Map();
     this.spores = new Map();
+    this.zoomSave = null;
     this.draughts = new Map();
     this.echoes = new Map();
     this.heat = new Map();
@@ -412,6 +422,7 @@ export class MapScene extends Phaser.Scene {
     const bigAt = new Map(bigClumps.map((c) => [hexKey(c.anchor), c.key]));
     const covered = new Set(bigClumps.flatMap((c) => c.covers.map(hexKey)));
     this.chamberGlows = this.onSurface ? [] : this.planChamberGlows();
+    const carried = this.onSurface ? new Map<string, Hex>() : this.carriedAlong();
     const { data } = getContext(this);
     this.ground = new MapGround(
       this,
@@ -455,7 +466,7 @@ export class MapScene extends Phaser.Scene {
         const key = hexKey(tile.hex);
         if (this.onSurface) this.decorateSurface(view, x, y);
         else {
-          this.drawLane(view, x, y);
+          this.drawLane(view, x, y, carried.get(key));
           this.patchGround(view, x, y);
           const big = bigAt.get(key);
           if (big) this.putBigClump(view, x, y, big);
@@ -625,13 +636,23 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
+  /** Where a place's current (the Undertow) carries the hydra from each hex of its way, but the last (it lets go there). */
+  private carriedAlong(): Map<string, Hex> {
+    const next = new Map<string, Hex>();
+    for (const tile of this.shown.tiles.values()) {
+      const path = tile.object?.kind === 'place' ? tile.object.carryPath : null;
+      if (path) path.slice(0, -1).forEach((h, i) => next.set(hexKey(h), path[i + 1]!));
+    }
+    return next;
+  }
+
   /**
    * A fast lane (GAME_DESIGN.md §5.2): flecks of foam sliding the way a current flows (map_current once drawn), or
-   * the worn slabs of an old corridor.
+   * the worn slabs of an old corridor. The way a place's current carries the hydra (`carriedTo`) gets flecks too.
    */
-  private drawLane(view: HexView, x: number, y: number): void {
+  private drawLane(view: HexView, x: number, y: number, carriedTo?: Hex): void {
     const lane = view.tile.lane;
-    if (!lane) return;
+    if (!lane && !carriedTo) return;
     const rng = new Rng(this.hexSeed(view.tile.hex) ^ 0x1a4e);
     if (lane === 'corridor') {
       // Piotr's slabs (map_corridor, a set) once drawn, else the ones made in code.
@@ -644,9 +665,10 @@ export class MapScene extends Phaser.Scene {
       view.props.push(slabs);
       return;
     }
-    const flow = laneFlow(view.tile);
-    if (flow === null) return;
-    const to = hexToPixel(LAYOUT, hexAdd(view.tile.hex, HEX_DIRECTIONS[flow]!));
+    const flow = lane ? laneFlow(view.tile) : null;
+    const toHex = flow !== null ? hexAdd(view.tile.hex, HEX_DIRECTIONS[flow]!) : carriedTo;
+    if (!toHex) return;
+    const to = hexToPixel(LAYOUT, toHex);
     const angle = Math.atan2(to.y - y, to.x - x);
     const art = hasPicture(this, getContext(this).data, 'map_current');
     const frames = art ? Math.max(1, this.textures.get('map_current').frameTotal - 1) : 1;
@@ -883,6 +905,7 @@ export class MapScene extends Phaser.Scene {
     this.refreshHints();
     this.refreshMist();
     this.refreshSpores();
+    this.showHidden();
     this.order.sync(this.run.state);
     this.drawLights();
     this.seeThroughTallPlaces();
@@ -1103,6 +1126,12 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
+  /** Hidden in the roots or a spore cloud, the hydra fades a little, so the player sees she is. */
+  private showHidden(): void {
+    const hidden = !this.onSurface && Number.isFinite(hiddenUnlessWithin(this.run.state, this.run.rules));
+    this.tweens.add({ targets: [this.token, this.tokenShadow], alpha: hidden ? HIDDEN_ALPHA : 1, duration: 300 });
+  }
+
   /** Spore clouds over the underground hexes the hydra sees now (they drift with the turns, so remembered ones would lie). */
   private refreshSpores(): void {
     if (this.onSurface) return;
@@ -1115,26 +1144,35 @@ export class MapScene extends Phaser.Scene {
       const tile = state.map.tiles.get(key)!;
       const { x, y } = hexToPixel(LAYOUT, tile.hex);
       const glow = color(biomes.biomes[tile.biome]?.colors.glow ?? '#c65bd6');
-      const toWhite = (shift: number): number => {
-        const c = (glow >> shift) & 0xff;
-        return Math.round(c + (0xff - c) * SPORES.whiten) << shift;
+      const grey = color(SPORES.greyTint);
+      const channel = (shift: number): number => {
+        const from = (glow >> shift) & 0xff;
+        return Math.round(from + (((grey >> shift) & 0xff) - from) * SPORES.grey) << shift;
       };
-      const cloud = this.add
-        .image(x, y - 4, LIGHT_TEXTURE)
-        .setTint(toWhite(16) | toWhite(8) | toWhite(0))
-        .setScale((SPORES.size * MAP_COLUMN_WIDTH) / LIGHT_TEXTURE_SIZE, (SPORES.size * MAP_COLUMN_WIDTH * 0.7) / LIGHT_TEXTURE_SIZE)
-        .setDepth(DEPTH.light - 1)
-        .setAlpha(0);
-      const seed = Math.abs(tile.hex.q * 5 + tile.hex.r * 11) % 7;
-      this.tweens.add({ targets: cloud, y: y - 4 - SPORES.drift, duration: SPORES.driftMs + seed * 250, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: seed * 180 });
-      this.tweens.add({ targets: cloud, alpha: SPORES.alpha, duration: 500 });
-      this.spores.set(key, cloud);
+      const tint = channel(16) | channel(8) | channel(0);
+      const rng = new Rng(this.hexSeed(tile.hex) ^ 0x5b0e);
+      const puffs: Phaser.GameObjects.Image[] = [];
+      for (let i = 0; i < SPORES.puffs; i++) {
+        const size = (SPORES.sizes[0] + rng.next() * (SPORES.sizes[1] - SPORES.sizes[0])) * MAP_COLUMN_WIDTH;
+        const px = x + rng.int(-SPORES.spread, SPORES.spread);
+        const py = y - 4 + rng.int(-SPORES.spread, SPORES.spread) * 0.6;
+        const puff = this.add
+          .image(px, py, LIGHT_TEXTURE)
+          .setTint(tint)
+          .setScale(size / LIGHT_TEXTURE_SIZE, (size * 0.6) / LIGHT_TEXTURE_SIZE)
+          .setDepth(DEPTH.light - 1)
+          .setAlpha(0);
+        this.tweens.add({ targets: puff, x: px + SPORES.drift * (i % 2 === 0 ? 1 : -1), duration: SPORES.driftMs + rng.int(0, 1200), yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: rng.int(0, 900) });
+        this.tweens.add({ targets: puff, alpha: SPORES.alpha, duration: 500 });
+        puffs.push(puff);
+      }
+      this.spores.set(key, puffs);
     }
-    for (const [key, cloud] of this.spores) {
+    for (const [key, puffs] of this.spores) {
       if (wanted.has(key)) continue;
-      this.tweens.killTweensOf(cloud);
+      this.tweens.killTweensOf(puffs);
       this.spores.delete(key);
-      this.tweens.add({ targets: cloud, alpha: 0, duration: 500, onComplete: () => cloud.destroy() });
+      this.tweens.add({ targets: puffs, alpha: 0, duration: 500, onComplete: () => puffs.forEach((puff) => puff.destroy()) });
     }
   }
 
@@ -1270,7 +1308,8 @@ export class MapScene extends Phaser.Scene {
         middle + (firstEver ? 42 : 26),
       );
     }
-    const hold = (firstEver ? BIOME_LABEL_MS * 1.6 : BIOME_LABEL_MS) + (rule ? BIOME_RULE_EXTRA_MS : 0);
+    const queued = this.biomeNames.length > 0 ? BIOME_LABEL_QUEUED_SHARE : 1;
+    const hold = ((firstEver ? BIOME_LABEL_MS * 1.6 : BIOME_LABEL_MS) + (rule ? BIOME_RULE_EXTRA_MS : 0)) * queued;
     let ended = false;
     const end = (): void => {
       if (ended) return;
@@ -1481,10 +1520,15 @@ export class MapScene extends Phaser.Scene {
     this.growIcons();
   }
 
-  /** The map's zoom before the player changes it: ?zoom=, else the view the player chose, else 2× on small screens. */
+  /**
+   * The map's zoom before the player changes it in this page: ?zoom=, else the zoom the player last set with the wheel
+   * or fingers, else the view the player chose, else 2× on small screens.
+   */
   private usualZoom(): number {
     const { params, data } = getContext(this);
     if (params.zoom !== null && params.zoom !== undefined) return params.zoom;
+    const { mapZoom } = this.settings();
+    if (mapZoom !== null) return Math.min(MAP_ZOOM.max, Math.max(MAP_ZOOM.min, mapZoom));
     const view = this.settings().mapView;
     if (view) return data.balance.map.view[view];
     return pageScale(this) < SMALL_SCREEN_ZOOM ? 2 : 1;
@@ -1518,6 +1562,7 @@ export class MapScene extends Phaser.Scene {
   setView(view: MapView): void {
     const settings = this.settings();
     settings.mapView = view;
+    settings.mapZoom = null;
     saveSettings(settings);
     this.chosenView = view;
     const target = getContext(this).data.balance.map.view[view];
@@ -1573,6 +1618,17 @@ export class MapScene extends Phaser.Scene {
     this.coverScreen();
     this.growIcons();
     this.events.emit('zoomed');
+    this.rememberZoom();
+  }
+
+  /** The zoom set with the wheel or fingers is saved once they stop (not on every notch), for the next visit. */
+  private rememberZoom(): void {
+    this.zoomSave?.remove();
+    this.zoomSave = this.time.delayedCall(ZOOM_SAVE_DELAY_MS, () => {
+      const settings = this.settings();
+      settings.mapZoom = playerZoom;
+      saveSettings(settings);
+    });
   }
 
   /** Stretches the input zone over the whole screen, whatever the camera's zoom. */

@@ -13,6 +13,8 @@ export interface Settings {
   muted: boolean;
   /** The map's view the player chose (GAME_DESIGN.md §5.9), or null for the usual one of the screen. */
   mapView: MapView | null;
+  /** The map's zoom the player last set with the wheel or two fingers (1 = the usual size), or null; over mapView. */
+  mapZoom: number | null;
 }
 
 export type MapView = 'near' | 'far';
@@ -23,10 +25,15 @@ export function readSettings(text: string | null): Settings | null {
   try {
     const saved: unknown = JSON.parse(text);
     if (typeof saved !== 'object' || saved === null) return null;
-    const { format, volume, muted, mapView } = saved as Record<string, unknown>;
+    const { format, volume, muted, mapView, mapZoom } = saved as Record<string, unknown>;
     if (format !== SETTINGS_FORMAT || typeof volume !== 'number' || !Number.isFinite(volume) || typeof muted !== 'boolean') return null;
-    // Settings saved before the Big World have no view yet.
-    return { volume: Math.min(1, Math.max(0, volume)), muted, mapView: mapView === 'near' || mapView === 'far' ? mapView : null };
+    // Settings saved before the Big World have no view yet, and none before 2026-11-14 a zoom.
+    return {
+      volume: Math.min(1, Math.max(0, volume)),
+      muted,
+      mapView: mapView === 'near' || mapView === 'far' ? mapView : null,
+      mapZoom: typeof mapZoom === 'number' && Number.isFinite(mapZoom) && mapZoom > 0 ? mapZoom : null,
+    };
   } catch {
     return null;
   }
@@ -37,7 +44,7 @@ export function writeSettings(settings: Settings): string {
 }
 
 export function loadSettings(defaultVolume: number): Settings {
-  return readSettings(readSaved(SETTINGS_KEY)) ?? { volume: defaultVolume, muted: false, mapView: null };
+  return readSettings(readSaved(SETTINGS_KEY)) ?? { volume: defaultVolume, muted: false, mapView: null, mapZoom: null };
 }
 
 export function saveSettings(settings: Settings): void {
