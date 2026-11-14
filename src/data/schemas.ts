@@ -367,6 +367,21 @@ export const biomesSchema = section({
       }).optional(),
       // grounds: a colour for each kind of ground, for its placeholder until its texture exists (else ground or water).
       colors: section({ ground: hexColor, detail: hexColor, water: hexColor, rock: hexColor, glow: hexColor, grounds: z.partialRecord(z.enum(GROUND_TYPES), hexColor).optional() }),
+      // Its own rule on the map (GAME_DESIGN.md §9.2): what the player is told, and the numbers (all optional).
+      mapRule: section({
+        text: z.string().min(1),
+        sight: z.number().int().optional(),
+        seenFrom: z.number().int().optional(),
+        echoRangeTimes: z.number().positive().optional(),
+        battleAlertPercent: z.number().optional(),
+        hiding: section({ grounds: z.array(z.enum(GROUND_TYPES)).min(1), seenWithin: z.number().int().min(0) }).optional(),
+        sporeClouds: section({
+          size: z.number().positive(),
+          thickerThan: z.number().min(-1).max(1),
+          driftPerTurn: z.number().min(0),
+          seenWithin: z.number().int().min(0),
+        }).optional(),
+      }).optional(),
     }),
   ),
 }).superRefine((data, ctx) => {
