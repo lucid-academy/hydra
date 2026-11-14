@@ -307,6 +307,8 @@ export class LineageKeeper {
       }
       if (hidden && i === 0) hideEgg(lineage, eggMutations(state.hydra.mutations, [], this.runRules.brood.inheritedShare, rng));
       state.turn = rng.int(4, 30);
+      // Each wandered one land further than the one before, so the Book has lands found (and their rules) to show.
+      for (const biome of Object.keys(this.runRules.biomeRules).slice(0, i + 1)) if (!state.story.biomesEntered.includes(biome)) state.story.biomesEntered.push(biome);
       const encounters = [...state.map.tiles.values()].flatMap((t) => (t.object?.kind === 'encounter' ? [{ at: t.hex, layer: 'underground' as const, groupId: t.object.groupId }] : []));
       if (encounters.length > 0) {
         state.pendingBattle = rng.pick(encounters);

@@ -108,6 +108,8 @@ export class BookScene extends Phaser.Scene {
         gapBefore: 4,
         indent: 10,
       });
+      // A found land's own rule (GAME_DESIGN.md §9.2), under its name.
+      if (land && biome.mapRule) lines.push({ text: biome.mapRule.text, style: { fontFamily: FONT.text, fontSize: '9px', color: palette.mist }, gapBefore: 1, indent: 22 });
     }
 
     lines.push(heading(words.bookUnlocks));

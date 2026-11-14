@@ -370,6 +370,7 @@ export const biomesSchema = section({
       // Its own rule on the map (GAME_DESIGN.md §9.2): what the player is told, and the numbers (all optional).
       mapRule: section({
         text: z.string().min(1),
+        short: z.string().min(1),
         sight: z.number().int().optional(),
         seenFrom: z.number().int().optional(),
         echoRangeTimes: z.number().positive().optional(),
@@ -745,6 +746,9 @@ export const textSchema = z
       outOfReach: z.string().min(1),
       noWayThere: z.string().min(1),
       journeyWaits: z.string().min(1),
+      // Underground, under the top bar: where the hydra stands is hidden (roots, a spore cloud); {n}: hexes.
+      hiddenNextTo: z.string().min(1),
+      hiddenWithin: z.string().min(1),
       // {name}: the landmark's name.
       landmarkSighted: z.string().min(1),
       richDeposit: z.string().min(1),

@@ -248,11 +248,17 @@ const SHOTS = [
   { name: 'map-landmark', query: '?seed=123&scene=map&near=sunkenOak', viewport: DESKTOP, scene: 'map' },
   // A look to try, off by default: terraces (?terraces=1), next to a chamber with a few of them.
   { name: 'map-terraces', query: '?seed=123&scene=map&reveal=1&near=saltSaint&terraces=1', viewport: DESKTOP, scene: 'map' },
+  // The Undertow's current is drawn on the water, the way it carries the hydra.
+  { name: 'map-undertow', query: '?seed=123&scene=map&reveal=1&near=undertow&zoom=2.5', viewport: DESKTOP, scene: 'map' },
   // Biome rules (GAME_DESIGN.md §9.2): spore clouds in the Fungal Deeps, and the land's rule on its card.
   // One step on from the Mother Cap (seed 99 has clouds around it): the land's card with its rule, then the clouds.
   { name: 'map-new-land-rule', query: '?seed=99&scene=map&near=motherCap', viewport: DESKTOP, scene: 'map', act: async (page) => {
     await stepIntoNewLand(page);
     await page.waitForTimeout(2200);
+  } },
+  { name: 'map-new-land-rule-phone', query: '?seed=99&scene=map&near=motherCap', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map', act: async (page) => {
+    await stepIntoNewLand(page);
+    await page.waitForTimeout(3000);
   } },
   { name: 'map-spores', query: '?seed=99&scene=map&near=motherCap', viewport: DESKTOP, scene: 'map', act: async (page) => {
     await stepIntoNewLand(page);
@@ -345,6 +351,11 @@ const SHOTS = [
   { name: 'generation-phone', query: '?seed=123&scene=generation&ancestors=3&eggs=3', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'generation' },
   { name: 'generation-extinct', query: '?seed=123&scene=generation&ancestors=2&eggs=0&hidden=1', viewport: DESKTOP, scene: 'generation' },
   { name: 'book', query: '?seed=123&scene=book&ancestors=6', viewport: DESKTOP, scene: 'book' },
+  // Its second page: the lands found, each with its own rule (GAME_DESIGN.md §9.2).
+  { name: 'book-lands', query: '?seed=123&scene=book&ancestors=6', viewport: DESKTOP, scene: 'book', act: async (page) => {
+    await tapGame(page, { x: 600, y: 334 });
+    await page.waitForTimeout(400);
+  } },
   { name: 'heiress-greeted', query: '?seed=123&scene=map&ancestors=3', viewport: DESKTOP, scene: 'map', act: async (page) => readDialogueTo(page, 1) },
   { name: 'dialogue-ancestor', query: '?seed=123&scene=map&ancestors=1&say=dreamDeeper', viewport: DESKTOP, scene: 'map', act: async (page) => readUntilDialogue(page, 'dreamDeeper') },
   { name: 'map-mark', query: '?seed=123&scene=map&near=mark', viewport: DESKTOP, scene: 'map', act: async (page) => {

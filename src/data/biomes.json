@@ -1,5 +1,5 @@
 {
-  "//": "TODO(design): working values. The underground is split into biomes: the swamp round the lair, and the biomes of the rings (which ring has which: balance.json undergroundGenerator.rings). ground: share of each kind of open ground (water, mud, roots, salt) in the biome; rock is wherever the caves are not. decorations: what is scattered over its ground (a kind listed twice comes up twice as often; kinds: reeds, bones, pebbles, stalagmite, puddle, roots, sprout, mushroom, glowMushroom, crystal, urn, brokenPillar). encounterDensity: how likely encounters are here (1 = normal). discoveryLine: the line under its name when a hydra first finds it (TODO(design): working texts by Claude). colors: for the placeholder graphics, until real art exists. scenery: how the Big World art of the biome is used once its pictures exist (docs/ART_PROMPTS.md): clumps, the names of its map_clump_<biome>_<name> pictures; clumpsInWater, the ones that may stand in water; propsInWater, the numbers (1-8, as in the prompt) of the props of map_props_<biome> that stand in water, the others stand on dry ground; glowingProps, the props that give off light in the biome's glow colour. mapRule (GAME_DESIGN.md §9.2, Piotr's choice of 2026-11-14; TODO(design): the numbers are working values): the biome's own rule on the map, where the hydra stands (a battle: where it is fought), told on the new land's card by text. sight: she sees this many hexes further; seenFrom: the Order sees her from this many hexes further; echoRangeTimes: echoes are heard this many times as far; battleAlertPercent: a battle here raises the Alert this many percent more; hiding: on these grounds the Order notices her only from seenWithin hexes; sporeClouds: clouds over its open ground that nobody sees through, about size hexes across, drifting driftPerTurn hexes a turn (thickerThan, from -1 to 1: higher means fewer clouds), and under one the Order notices her only from seenWithin hexes. The currents of the Flooded Caves are fast lanes (balance.json map.fastLanes).",
+  "//": "TODO(design): working values. The underground is split into biomes: the swamp round the lair, and the biomes of the rings (which ring has which: balance.json undergroundGenerator.rings). ground: share of each kind of open ground (water, mud, roots, salt) in the biome; rock is wherever the caves are not. decorations: what is scattered over its ground (a kind listed twice comes up twice as often; kinds: reeds, bones, pebbles, stalagmite, puddle, roots, sprout, mushroom, glowMushroom, crystal, urn, brokenPillar). encounterDensity: how likely encounters are here (1 = normal). discoveryLine: the line under its name when a hydra first finds it (TODO(design): working texts by Claude). colors: for the placeholder graphics, until real art exists. scenery: how the Big World art of the biome is used once its pictures exist (docs/ART_PROMPTS.md): clumps, the names of its map_clump_<biome>_<name> pictures; clumpsInWater, the ones that may stand in water; propsInWater, the numbers (1-8, as in the prompt) of the props of map_props_<biome> that stand in water, the others stand on dry ground; glowingProps, the props that give off light in the biome's glow colour. mapRule (GAME_DESIGN.md §9.2, Piotr's choice of 2026-11-14; TODO(design): the numbers are working values): the biome's own rule on the map, where the hydra stands (a battle: where it is fought), told on the new land's card by text, and in a few words (short) on the line under the top bar while the hydra is there. sight: she sees this many hexes further; seenFrom: the Order sees her from this many hexes further; echoRangeTimes: echoes are heard this many times as far; battleAlertPercent: a battle here raises the Alert this many percent more; hiding: on these grounds the Order notices her only from seenWithin hexes; sporeClouds: clouds over its open ground that nobody sees through, about size hexes across, drifting driftPerTurn hexes a turn (thickerThan, from -1 to 1: higher means fewer clouds), and under one the Order notices her only from seenWithin hexes. The currents of the Flooded Caves are fast lanes (balance.json map.fastLanes).",
   "lairBiome": "lairSwamp",
   "surfaceBiome": "surface",
   "biomes": {
@@ -18,7 +18,7 @@
       "scenery": { "clumps": ["stalagmites", "rimstone", "reedbed"], "clumpsInWater": ["reedbed", "rimstone"], "propsInWater": [3, 4], "glowingProps": [4, 5] },
       "ground": { "water": 0.55, "mud": 0.45 },
       "colors": { "ground": "#1d3833", "detail": "#2d5a4a", "water": "#0f3a3d", "rock": "#2e3436", "glow": "#7fd0e0" },
-      "mapRule": { "text": "Currents carry you for free, the way they flow." }
+      "mapRule": { "text": "Currents carry you for free, the way they flow.", "short": "Currents carry you" }
     },
     "rootTangle": {
       "displayName": "Root Tangle",
@@ -27,7 +27,7 @@
       "scenery": { "clumps": ["rootarches", "stump", "rootnest"], "clumpsInWater": [], "propsInWater": [], "glowingProps": [4] },
       "ground": { "mud": 0.45, "roots": 0.55 },
       "colors": { "ground": "#33261a", "detail": "#4a3a22", "water": "#1d3330", "rock": "#3a2f25", "glow": "#d9a93b" },
-      "mapRule": { "text": "Among the roots a patrol notices you only when it could step on you.", "hiding": { "grounds": ["roots"], "seenWithin": 1 } }
+      "mapRule": { "text": "Among the roots a patrol notices you only when it could step on you.", "short": "The roots hide you", "hiding": { "grounds": ["roots"], "seenWithin": 1 } }
     },
     "oldCrypts": {
       "displayName": "Old Crypts",
@@ -37,7 +37,7 @@
       "ground": { "water": 0.15, "mud": 0.85 },
       "encounterDensity": 1.2,
       "colors": { "ground": "#2e2b27", "detail": "#4a4540", "water": "#1c2a2c", "rock": "#3b3732", "glow": "#e0b060" },
-      "mapRule": { "text": "The crypts carry sound. Echoes reach you from twice as far, and the Order hears every fight here a good deal better.", "echoRangeTimes": 2, "battleAlertPercent": 50 }
+      "mapRule": { "text": "The crypts carry sound. Echoes reach you from twice as far, and the Order hears every fight here a good deal better.", "short": "Echoes carry, and so do fights", "echoRangeTimes": 2, "battleAlertPercent": 50 }
     },
     "saltMines": {
       "displayName": "Salt Mines",
@@ -47,7 +47,7 @@
       "ground": { "mud": 0.35, "salt": 0.65 },
       "encounterDensity": 1.5,
       "colors": { "ground": "#4a4440", "detail": "#8a8078", "water": "#2a3a40", "rock": "#5a524c", "glow": "#f0d8d0" },
-      "mapRule": { "text": "The salt throws the light about. You see a hex further here, and so does the Order.", "sight": 1, "seenFrom": 1 }
+      "mapRule": { "text": "The salt throws the light about. You see a hex further here, and so does the Order.", "short": "Salt glare: you see further, and are seen", "sight": 1, "seenFrom": 1 }
     },
     "surface": {
       "//": "TODO(design): M4, the land above (GAME_DESIGN.md §5.6, §9). Its ground is laid out by the surface's own generator (surface.json), not by these shares; they only tell which ground looks it has.",
@@ -71,7 +71,7 @@
       "scenery": { "clumps": ["giantcaps", "puffballs", "myceliummound"], "clumpsInWater": [], "propsInWater": [], "glowingProps": [2] },
       "ground": { "water": 0.15, "mud": 0.85 },
       "colors": { "ground": "#2a2032", "detail": "#5a3d66", "water": "#1a2a3a", "rock": "#2f2836", "glow": "#c65bd6" },
-      "mapRule": { "text": "Spore clouds drift through the deeps. Nobody sees through them, the Order least of all.", "sporeClouds": { "size": 4, "thickerThan": 0.25, "driftPerTurn": 0.5, "seenWithin": 1 } }
+      "mapRule": { "text": "Spore clouds drift through the deeps. Nobody sees through them, the Order least of all.", "short": "Spore clouds block all sight", "sporeClouds": { "size": 4, "thickerThan": 0.25, "driftPerTurn": 0.5, "seenWithin": 1 } }
     }
   }
 }

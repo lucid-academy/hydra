@@ -16,6 +16,7 @@ import { FONT } from './fonts';
 import type { Hex } from '../sim/hex';
 import type { Loot } from '../sim/map';
 import {
+  biomeRuleHere,
   canChooseEventOption,
   canDoPlaceAction,
   canStormCastle,
@@ -28,6 +29,7 @@ import {
   canUsePassage,
   canWorkThreshold,
   hasMist,
+  hiddenUnlessWithin,
   isNight,
   nextCastlePart,
   pendingEventRules,
@@ -74,6 +76,8 @@ const VIEW_BUTTON = { width: 56, height: 14 } as const;
 /** Where each resource counter starts in the top bar. */
 const RESOURCE_X = { muck: 228, moisture: 296, bones: 390 } as const;
 const TOAST_MS = 2400;
+/** Messages start below the line under the top bar (the land, or day and night on the surface) and the conditions. */
+const TOAST_TOP = BAR_HEIGHT + 18;
 /** Longer messages stay a little longer: this much per character on top of TOAST_MS. */
 const TOAST_MS_PER_CHAR = 25;
 /** Mutations: messages and the line at the bottom. */
@@ -90,6 +94,8 @@ export class HudScene extends Phaser.Scene {
   /** On the surface: Exhale Mist (key M), and a line on day or night, the flames and the mist. */
   private exhaleButton!: Button;
   private surfaceText!: Phaser.GameObjects.Text;
+  /** Underground, in the same place: the land the hydra stands in and its rule in a few words, or that she is hidden. */
+  private landText!: Phaser.GameObjects.Text;
   private minimap!: Minimap;
   /** Above the minimap: switches the map between the Near and Far views (GAME_DESIGN.md §5.9); key Z. */
   private viewButton!: Button;
@@ -162,6 +168,7 @@ export class HudScene extends Phaser.Scene {
       () => this.run.exhaleMist(),
     );
     this.surfaceText = this.add.text(width - 6, BAR_HEIGHT + 2, '', { ...mono, fontSize: '9px', color: '#e8e0c0', backgroundColor: '#05090acc', padding: { x: 3, y: 1 } }).setOrigin(1, 0);
+    this.landText = this.add.text(width - 6, BAR_HEIGHT + 2, '', { ...mono, fontSize: '9px', color: '#e8e0c0', backgroundColor: '#05090acc', padding: { x: 3, y: 1 } }).setOrigin(1, 0);
     onKeyDown(this, (event) => {
       if (this.run.talking) return;
       // Esc opens and closes the menu (with a panel open, it leaves the panel instead).
@@ -548,7 +555,7 @@ export class HudScene extends Phaser.Scene {
     const { width } = SCREEN;
     const last = this.toasts[this.toasts.length - 1];
     const label = this.add
-      .text(width / 2, last ? last.y + last.height + 2 : BAR_HEIGHT + 6, message, {
+      .text(width / 2, last ? last.y + last.height + 2 : TOAST_TOP, message, {
         fontFamily: FONT.text,
         fontSize: '10px',
         color: textColor,
@@ -621,11 +628,29 @@ export class HudScene extends Phaser.Scene {
     const restingPanel = panel === 'lair' || panel === 'passage' || panel === 'castle';
     this.endTurnButton.setEnabled(pendingBattle === null && pendingShrine === null && (pendingPlace === null || restingPanel) && this.run.state.pendingEvent === null && !this.run.talking && !over);
     this.refreshSurface();
+    this.refreshLand();
     const data = getContext(this).data;
     const name = fillText(text.lineages.hudName, { name: hydra.name, generation: this.run.state.generation });
     this.nameText.setText([name, ...hydra.mutations.map((id) => mutationName(data, id))].join('  ·  ')).setVisible(hydra.name !== '');
     this.minimap.redraw();
     this.showView();
+  }
+
+  /**
+   * Underground: the land the hydra stands in, and its rule in a few words (GAME_DESIGN.md §9.2), or, where the roots
+   * or a spore cloud hide her, that she is hidden.
+   */
+  private refreshLand(): void {
+    const { state, rules } = this.run;
+    const { biomes, text, palette } = getContext(this).data;
+    const tile = state.hydra.layer === 'underground' ? state.map.tiles.get(hexKey(state.hydra.position)) : undefined;
+    const biome = tile ? biomes.biomes[tile.biome] : undefined;
+    this.landText.setVisible(biome !== undefined);
+    if (!biome) return;
+    const within = hiddenUnlessWithin(state, rules);
+    const hidden = Number.isFinite(within) ? (within <= 1 ? text.hud.hiddenNextTo : fillText(text.hud.hiddenWithin, { n: within })) : null;
+    this.landText.setText([biome.displayName, hidden ?? biomeRuleHere(state, rules)?.short].filter((part) => part).join('  ·  '));
+    this.landText.setColor(hidden ? palette.underground.bioluminescence : '#e8e0c0');
   }
 
   /** On the surface: Exhale Mist and its cost, and the line on day or night, the flames and the mist. */

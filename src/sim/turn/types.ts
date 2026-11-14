@@ -563,6 +563,8 @@ export interface SurfaceState {
 export interface BiomeMapRule {
   /** What the player is told about it, on the new land's card. */
   text: string;
+  /** The same in a few words, on the line under the top bar while the hydra is there. */
+  short: string;
   /** The hydra sees this many hexes further while she stands here. */
   sight?: number;
   /** The Order sees her from this many hexes further while she stands here. */
