@@ -8,7 +8,7 @@
 // ({"colors": ["#rrggbb", ...]}) colours are matched to it.
 // A picture uploaded under another name is listed in art/aliases.json ({"file name": "manifest key"}).
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, parse, resolve } from 'node:path';
+import { join, parse, relative, resolve } from 'node:path';
 import sharp from 'sharp';
 import { runnerImport } from 'vite';
 
@@ -27,9 +27,19 @@ const manifest = JSON.parse(readFileSync(MANIFEST, 'utf8'));
 const palette = existsSync(PALETTE) ? JSON.parse(readFileSync(PALETTE, 'utf8')).colors.map(art.parseHexColor) : null;
 const aliases = existsSync(ALIASES) ? JSON.parse(readFileSync(ALIASES, 'utf8')) : {};
 
+/** Every picture under a folder, as paths relative to RAW: Piotr sometimes uploads into a subfolder of art/raw/. */
+function listPictures(dir) {
+  const found = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) found.push(...listPictures(join(dir, entry.name)));
+    else found.push(relative(RAW, join(dir, entry.name)));
+  }
+  return found.sort();
+}
+
 // Pictures grouped by key; frames of one animation go together, in order.
 const groups = new Map();
-for (const name of existsSync(RAW) ? readdirSync(RAW).sort() : []) {
+for (const name of existsSync(RAW) ? listPictures(RAW) : []) {
   if (!PICTURE.test(name)) continue;
   const base = parse(name).name;
   const frame = /^(.+)_frame(\d+)$/.exec(base);
