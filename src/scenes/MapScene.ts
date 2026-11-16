@@ -1365,7 +1365,8 @@ export class MapScene extends Phaser.Scene {
     // Something far off opened: the camera goes to show it.
     const revealed = events.find((e) => e.type === 'thresholdRevealed' || e.type === 'tunnelBored' || e.type === 'leadPlaced') as { at: Hex } | undefined;
     if (steps.length === 0) {
-      if (revealed) this.panTo(revealed.at);
+      // Even if the camera is still settling on the hydra (a lead appears right after she steps on an event).
+      if (revealed) this.panTo(revealed.at, true);
       this.animateOrder(events);
       return;
     }
@@ -1681,9 +1682,9 @@ export class MapScene extends Phaser.Scene {
     this.inputZone.setPosition(corner.x, corner.y).setSize(SCREEN.width * corner.scale, SCREEN.height * corner.scale);
   }
 
-  private panTo(h: Hex): void {
+  private panTo(h: Hex, force = false): void {
     const { x, y } = hexToPixel(LAYOUT, h);
-    this.cameras.main.pan(x, y, 300, 'Sine.easeOut');
+    this.cameras.main.pan(x, y, 300, 'Sine.easeOut', force);
   }
 
   /** Moves the view to a hex (used by the minimap). */
