@@ -51,6 +51,12 @@ const CARRIED_STEP_MS = 80;
  * stretches up a little (share of its height). Carried by a current, it only rocks a little.
  */
 const SLITHER = { sway: 5, stretch: 0.07, carriedSway: 2 } as const;
+/**
+ * The walk is one smooth curve through the hexes, not a line from hex to hex: it speeds up over the first `rampSteps`
+ * steps' time and slows down over the last ones. While it walks, the camera keeps it in the middle `freeShare` of the
+ * view, moving only when it would leave that.
+ */
+const WALK = { rampSteps: 1.2, freeShare: 0.5 } as const;
 /** Below this page zoom (small screens, e.g. phones) the map camera zooms in 2×, so hexes are big enough for fingers. */
 const SMALL_SCREEN_ZOOM = 2;
 /**
@@ -84,6 +90,27 @@ const WHISPERED_ALPHA = 0.55;
 const BIOME_LABEL_MS = 2600;
 /** A land with its own rule (GAME_DESIGN.md §9.2) keeps its card up this much longer, to read the rule. */
 const BIOME_RULE_EXTRA_MS = 1600;
+/**
+ * The moment a new land comes into sight (GAME_DESIGN.md §9.2): its light sweeps out from the hydra this many hexes
+ * (one sweep, two for a land no hydra has found, the second this much later), and its ground she sees lights up hex by
+ * hex, `perHexMs` later for each hex further, each glow this big (times a hex's width) with a mote rising off it. The
+ * name of a land found for the first time closes its letters up from `letterSpacing[0]` to `[1]` px.
+ */
+const LAND_REVEAL = {
+  sweepHexes: 9,
+  sweepMs: 1700,
+  secondSweepMs: 350,
+  sweepAlpha: 0.5,
+  maxHexes: 90,
+  firstHexMs: 150,
+  perHexMs: 110,
+  hexMs: 900,
+  hexGlowSize: 1.6,
+  hexAlpha: 0.55,
+  moteRise: 14,
+  letterSpacing: [14, 0] as const,
+  titleMs: 1600,
+} as const;
 /** With another new land's card waiting behind it (a step through two lands), a card stays up only this share as long. */
 const BIOME_LABEL_QUEUED_SHARE = 0.6;
 /**
@@ -212,6 +239,14 @@ const HIDDEN_ALPHA = 0.6;
 
 /** The map the last map scene showed, so going up or down a Passage fades the new one in. */
 let shownLayer: Layer | null = null;
+
+/** A stretch of the hydra's walk: the hexes, how long a step takes, and how much it sways and stretches on each. */
+interface WalkLeg {
+  hexes: Hex[];
+  stepMs: number;
+  sway: number;
+  stretch: number;
+}
 
 /** A light over something: its picture, how bright it is when seen, and the light it casts on the ground around it. */
 type Glow = { image: Phaser.GameObjects.Image; alpha: number; groundY: number; radius: number; color: number };
@@ -1271,7 +1306,7 @@ export class MapScene extends Phaser.Scene {
     this.showingBiomeName = true;
     const keeper = lineages(this);
     const firstEver = !(keeper.profile.knowledge.landsFound ?? []).some((l) => l.biome === biomeId);
-    if (firstEver) playCue(this, 'map', 'newLand');
+    playCue(this, 'map', firstEver ? 'newLand' : 'landEntered');
     // The camera zooms even what doesn't scroll (2× on phones), so the card is placed and sized to undo that.
     // Low on the screen, clear of the HUD's messages at the top.
     const middle = SCREEN.height - (firstEver ? 120 : 64);
@@ -1293,7 +1328,9 @@ export class MapScene extends Phaser.Scene {
     const nameStyle = firstEver
       ? { fontFamily: FONT.title, fontSize: '24px', color: '#f0e8d8', stroke: '#05090a', strokeThickness: 4 }
       : { fontFamily: FONT.title, fontSize: '15px', color: '#e8e0d0', backgroundColor: '#05090acc', padding: { x: 8, y: 3 } };
-    pin(this.add.text(0, 0, biome.displayName, nameStyle).setOrigin(0.5, firstEver ? 1 : 0), SCREEN.width / 2, firstEver ? middle + 4 : middle);
+    const title = pin(this.add.text(0, 0, biome.displayName, nameStyle).setOrigin(0.5, firstEver ? 1 : 0), SCREEN.width / 2, firstEver ? middle + 4 : middle);
+    if (firstEver) this.spreadTitle(title);
+    this.revealLand(biomeId, biome.colors.glow, firstEver);
     if (firstEver) {
       if (biome.discoveryLine) {
         pin(
@@ -1340,31 +1377,95 @@ export class MapScene extends Phaser.Scene {
     this.endBiomeName = end;
   }
 
+  /** The name of a land found for the first time draws itself together, its letters closing up as it fades in. */
+  private spreadTitle(title: Phaser.GameObjects.Text): void {
+    const [wide, usual] = LAND_REVEAL.letterSpacing;
+    this.tweens.addCounter({
+      from: wide,
+      to: usual,
+      duration: LAND_REVEAL.titleMs,
+      ease: 'Cubic.easeOut',
+      onUpdate: (tween) => {
+        if (!title.active) return;
+        title.letterSpacing = tween.getValue() ?? usual;
+        title.updateText();
+      },
+    });
+  }
+
+  /**
+   * A new land comes into sight (GAME_DESIGN.md §9.2): its light sweeps out from the hydra over the map, and its
+   * ground that she sees lights up hex by hex, nearest first, like a wave. Bigger for a land no hydra has found.
+   */
+  private revealLand(biomeId: string, glow: string, big: boolean): void {
+    const { state } = this.run;
+    const here = state.hydra.position;
+    const { x, y } = hexToPixel(LAYOUT, here);
+    const tint = color(glow);
+    const reach = (LAND_REVEAL.sweepHexes * MAP_COLUMN_WIDTH * 2) / LIGHT_TEXTURE_SIZE;
+    for (let i = 0; i < (big ? 2 : 1); i++) {
+      const sweep = this.add.image(x, y, LIGHT_TEXTURE).setTint(tint).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.glow).setScale(0.05).setAlpha(0);
+      const delay = i * LAND_REVEAL.secondSweepMs;
+      this.tweens.add({ targets: sweep, scaleX: reach, scaleY: reach * 0.62, duration: LAND_REVEAL.sweepMs, delay, ease: 'Cubic.easeOut', onComplete: () => sweep.destroy() });
+      // It brightens as it spreads, then fades: never a hot spot on the hydra.
+      const peak = big ? LAND_REVEAL.sweepAlpha : LAND_REVEAL.sweepAlpha * 0.6;
+      this.tweens.chain({
+        targets: sweep,
+        tweens: [
+          { alpha: peak, duration: LAND_REVEAL.sweepMs * 0.3, delay, ease: 'Sine.easeOut' },
+          { alpha: 0, duration: LAND_REVEAL.sweepMs * 0.7, ease: 'Sine.easeIn' },
+        ],
+      });
+    }
+    const ground = [...this.known]
+      .flatMap(([key, seen]) => {
+        const tile = seen === 'visible' ? this.shown.tiles.get(key) : undefined;
+        return tile && tile.biome === biomeId && tile.terrain !== 'rock' ? [tile] : [];
+      })
+      .map((tile) => ({ tile, distance: hexDistance(here, tile.hex) }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, LAND_REVEAL.maxHexes);
+    const size = (MAP_COLUMN_WIDTH * LAND_REVEAL.hexGlowSize) / LIGHT_TEXTURE_SIZE;
+    for (const { tile, distance } of ground) {
+      const at = hexToPixel(LAYOUT, tile.hex);
+      const light = this.add.image(at.x, at.y, LIGHT_TEXTURE).setTint(tint).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.glow).setScale(size, size * 0.62).setAlpha(0);
+      this.tweens.add({
+        targets: light,
+        alpha: { from: 0, to: big ? LAND_REVEAL.hexAlpha : LAND_REVEAL.hexAlpha * 0.7 },
+        duration: LAND_REVEAL.hexMs / 2,
+        delay: LAND_REVEAL.firstHexMs + distance * LAND_REVEAL.perHexMs,
+        yoyo: true,
+        ease: 'Sine.easeInOut',
+        onComplete: () => light.destroy(),
+      });
+      // A mote rises off it and fades, as if the land breathed out.
+      const mote = this.add.image(at.x, at.y - 2, LIGHT_TEXTURE).setTint(tint).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.glow).setScale(size * 0.18).setAlpha(0);
+      this.tweens.add({
+        targets: mote,
+        y: at.y - 2 - LAND_REVEAL.moteRise,
+        alpha: { from: 0.9, to: 0 },
+        duration: LAND_REVEAL.hexMs * 1.4,
+        delay: LAND_REVEAL.firstHexMs + distance * LAND_REVEAL.perHexMs + LAND_REVEAL.hexMs / 3,
+        ease: 'Quad.easeOut',
+        onComplete: () => mote.destroy(),
+      });
+    }
+  }
+
   /** Walks (or floats, carried by a current) the hydra along the path it took, then shows the new state. */
   private animate(events: RunEvent[]): void {
-    const steps: Array<{ x: number; y: number; duration: number; onUpdate: (tween: Phaser.Tweens.Tween) => void }> = [];
-    const step = (h: Hex, duration: number, sway: number, stretch: number): void => {
-      const side = steps.length % 2 === 0 ? 1 : -1;
-      steps.push({
-        ...this.tokenPosition(h),
-        duration,
-        onUpdate: (tween) => {
-          const swing = Math.sin(tween.progress * Math.PI);
-          this.token.setAngle(side * sway * swing).setScale((1 - (stretch / 2) * swing) * this.iconScale, (1 + stretch * swing) * this.iconScale);
-        },
-      });
-    };
     if (events.some((e) => e.type === 'climbed')) {
       this.changeLayer();
       return;
     }
+    const legs: WalkLeg[] = [];
     for (const event of events) {
-      if (event.type === 'moved') for (const h of event.path) step(h, STEP_DURATION_MS, SLITHER.sway, SLITHER.stretch);
-      if (event.type === 'carried') for (const h of event.path) step(h, CARRIED_STEP_MS, SLITHER.carriedSway, 0);
+      if (event.type === 'moved' && event.path.length > 0) legs.push({ hexes: event.path, stepMs: STEP_DURATION_MS, sway: SLITHER.sway, stretch: SLITHER.stretch });
+      if (event.type === 'carried' && event.path.length > 0) legs.push({ hexes: event.path, stepMs: CARRIED_STEP_MS, sway: SLITHER.carriedSway, stretch: 0 });
     }
     // Something far off opened: the camera goes to show it.
     const revealed = events.find((e) => e.type === 'thresholdRevealed' || e.type === 'tunnelBored' || e.type === 'leadPlaced') as { at: Hex } | undefined;
-    if (steps.length === 0) {
+    if (legs.length === 0) {
       // Even if the camera is still settling on the hydra (a lead appears right after she steps on an event).
       if (revealed) this.panTo(revealed.at, true);
       this.animateOrder(events);
@@ -1378,15 +1479,20 @@ export class MapScene extends Phaser.Scene {
     this.path.clear();
     this.journeyDots.clear();
     this.journeyTurns.setVisible(false);
-    this.tweens.chain({
-      targets: this.token,
-      tweens: steps,
-      onUpdate: () => {
+    const walk = this.walkAlong(legs);
+    this.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: walk.duration,
+      onUpdate: (tween) => {
+        walk.at(tween.getValue() ?? 0);
         this.token.setDepth(this.tokenDepth(this.token.y));
         this.tokenShadow.setPosition(this.token.x, this.token.y - 1);
+        this.keepInView(this.token.x, this.token.y);
         this.drawLights();
       },
       onComplete: () => {
+        walk.at(1);
         this.animating = false;
         this.token.setAngle(0).setScale(this.iconScale);
         if (this.journey && hexEquals(this.journey, this.run.state.hydra.position)) this.journey = null;
@@ -1396,6 +1502,54 @@ export class MapScene extends Phaser.Scene {
         this.run.settle();
       },
     });
+  }
+
+  /**
+   * The hydra's walk along legs of hexes (walked, or carried faster by a current): one smooth curve from where it
+   * stands through every hex, and a function that puts it where it is at a share of the walk's time (0..1), swaying
+   * and stretching as it slithers. It speeds up at the start and slows down at the end (WALK.rampSteps).
+   */
+  private walkAlong(legs: WalkLeg[]): { duration: number; at: (share: number) => void } {
+    const steps = legs.flatMap((leg) => leg.hexes.map(() => leg));
+    const points = [new Phaser.Math.Vector2(this.token.x, this.token.y), ...legs.flatMap((leg) => leg.hexes.map((h) => new Phaser.Math.Vector2(this.tokenPosition(h).x, this.tokenPosition(h).y)))];
+    const curve = new Phaser.Curves.Spline(points);
+    // When each step starts and ends, in ms from the start.
+    const ends: number[] = [];
+    let total = 0;
+    for (const step of steps) ends.push((total += step.stepMs));
+    const ramp = Math.min(0.5, (STEP_DURATION_MS * WALK.rampSteps) / total);
+    // Speed up, go on evenly, slow down: the share of the way gone at a share of the time.
+    const gone = (t: number): number => {
+      const v = 1 / (1 - ramp);
+      if (t < ramp) return (v * t * t) / (2 * ramp);
+      if (t > 1 - ramp) return 1 - (v * (1 - t) * (1 - t)) / (2 * ramp);
+      return v * (t - ramp / 2);
+    };
+    const at = (share: number): void => {
+      // The way is measured in time at each leg's own pace (a current is quicker), so it is found step by step.
+      const time = Phaser.Math.Clamp(gone(share), 0, 1) * total;
+      let index = ends.findIndex((end) => time <= end);
+      if (index < 0) index = steps.length - 1;
+      const step = steps[index]!;
+      const within = Phaser.Math.Clamp((time - (ends[index]! - step.stepMs)) / step.stepMs, 0, 1);
+      const travelled = index + within;
+      const point = curve.getPoint(travelled / steps.length);
+      const swing = Math.sin(Math.PI * travelled);
+      this.token.setPosition(point.x, point.y);
+      this.token.setAngle(step.sway * swing).setScale((1 - (step.stretch / 2) * Math.abs(swing)) * this.iconScale, (1 + step.stretch * Math.abs(swing)) * this.iconScale);
+    };
+    return { duration: total, at };
+  }
+
+  /** While the hydra walks, the camera moves only to keep it in the middle of the view (WALK.freeShare). */
+  private keepInView(x: number, y: number): void {
+    const cam = this.cameras.main;
+    const freeX = (cam.width / cam.zoom) * WALK.freeShare * 0.5;
+    const freeY = (cam.height / cam.zoom) * WALK.freeShare * 0.5;
+    const dx = x - (cam.scrollX + cam.width / 2);
+    const dy = y - (cam.scrollY + cam.height / 2);
+    if (Math.abs(dx) > freeX) cam.scrollX += dx - Math.sign(dx) * freeX;
+    if (Math.abs(dy) > freeY) cam.scrollY += dy - Math.sign(dy) * freeY;
   }
 
   /** The Order's people walk (the world turn), then the map shows the new state; a patrol that found the hydra fights her. */

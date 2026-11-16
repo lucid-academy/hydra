@@ -654,6 +654,8 @@ export class HudScene extends Phaser.Scene {
    * or a spore cloud hide her, that she is hidden.
    */
   private refreshLand(): void {
+    // While the map still shows the walk there, the line keeps the land she set off from.
+    if (this.run.animating) return;
     const { state, rules } = this.run;
     const { biomes, text, palette } = getContext(this).data;
     const tile = state.hydra.layer === 'underground' ? state.map.tiles.get(hexKey(state.hydra.position)) : undefined;

@@ -256,6 +256,11 @@ const SHOTS = [
     await stepIntoNewLand(page);
     await page.waitForTimeout(2200);
   } },
+  // The moment itself: the land's light sweeping out and its ground lighting up hex by hex.
+  { name: 'map-land-reveal', query: '?seed=99&scene=map&near=motherCap', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await stepIntoNewLand(page);
+    await page.waitForTimeout(900);
+  } },
   { name: 'map-new-land-rule-phone', query: '?seed=99&scene=map&near=motherCap', viewport: { width: 844, height: 390 }, dpr: 2, scene: 'map', act: async (page) => {
     await stepIntoNewLand(page);
     await page.waitForTimeout(3000);
