@@ -1363,7 +1363,7 @@ export class MapScene extends Phaser.Scene {
       if (event.type === 'carried') for (const h of event.path) step(h, CARRIED_STEP_MS, SLITHER.carriedSway, 0);
     }
     // Something far off opened: the camera goes to show it.
-    const revealed = events.find((e) => e.type === 'thresholdRevealed' || e.type === 'tunnelBored') as { at: Hex } | undefined;
+    const revealed = events.find((e) => e.type === 'thresholdRevealed' || e.type === 'tunnelBored' || e.type === 'leadPlaced') as { at: Hex } | undefined;
     if (steps.length === 0) {
       if (revealed) this.panTo(revealed.at);
       this.animateOrder(events);

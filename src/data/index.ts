@@ -21,7 +21,7 @@ import castleJson from './castle.json';
 import soundsJson from './sounds.json';
 import manifestJson from '../assets/manifest.json';
 import { battleProblems } from './battleChecks';
-import { balanceSchema, biomesSchema, broodSchema, castleSchema, combosSchema, soundsSchema, dialoguesSchema, eventsSchema, flagsSchema, lineageSchema, mutationsSchema, orderSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, surfaceSchema, textSchema, worldSchema } from './schemas';
+import { balanceSchema, biomesSchema, broodSchema, castleSchema, combosSchema, soundsSchema, dialoguesSchema, eventsSchema, flagsSchema, lineageSchema, mutationsSchema, orderSchema, shrinesSchema, enemiesSchema, headsSchema, manifestSchema, paletteSchema, surfaceSchema, textSchema, worldSchema, eachEventChoice } from './schemas';
 import type {
   AssetManifest,
   Balance,
@@ -227,21 +227,24 @@ function storyProblems(data: GameData): string[] {
     (d.choices ?? []).forEach((c, j) => (c.reply ?? []).forEach((l, k) => checkSpeaker(`${path}.choices.${j}.reply.${k}`, l.speaker)));
   });
   const eventIds = data.events.events.map((e) => e.id);
+  const leadTargets = new Set<string>();
+  for (const e of data.events.events) eachEventChoice(e.choices, (_c, _at, outcomes) => outcomes.forEach(([, o]) => o.lead && leadTargets.add(o.lead.event)));
   data.events.events.forEach((e, i) => {
     const path = `events.${i} (${e.id})`;
     if (eventIds.indexOf(e.id) !== i) where('events.json', path, `the id "${e.id}" is used twice`);
     checkConditions('events.json', `${path}.conditions`, e.conditions);
-    e.choices.forEach((c, j) => {
-      if (c.needsHead && !classes.includes(c.needsHead)) where('events.json', `${path}.choices.${j}.needsHead`, `unknown head class "${c.needsHead}"; ${known(classes)}`);
-      if (c.needsCondition && !data.world.conditions[c.needsCondition]) where('events.json', `${path}.choices.${j}.needsCondition`, `unknown condition "${c.needsCondition}"; ${known(Object.keys(data.world.conditions))}`);
-      for (const [name, o] of [['outcome', c.outcome], ['success', c.success], ['failure', c.failure]] as const) {
-        if (!o) continue;
-        const at = `${path}.choices.${j}.${name}`;
+    if (e.byLeadOnly && !leadTargets.has(e.id)) where('events.json', `${path}.byLeadOnly`, 'no lead (an outcome\'s "lead") points to this event, so it can never happen');
+    eachEventChoice(e.choices, (c, at, outcomes) => {
+      if (c.needsHead && !classes.includes(c.needsHead)) where('events.json', `${path}.${at}.needsHead`, `unknown head class "${c.needsHead}"; ${known(classes)}`);
+      if (c.needsCondition && !data.world.conditions[c.needsCondition]) where('events.json', `${path}.${at}.needsCondition`, `unknown condition "${c.needsCondition}"; ${known(Object.keys(data.world.conditions))}`);
+      for (const [name, o] of outcomes) {
+        const at = `${path}.${name}`;
         if (o.battle && !groups.includes(o.battle)) where('events.json', `${at}.battle`, `unknown enemy group "${o.battle}"; ${known(groups)}`);
         if (o.dialogue && !dialogueIds.includes(o.dialogue)) where('events.json', `${at}.dialogue`, `unknown dialogue "${o.dialogue}" (dialogues.json)`);
         if (o.condition && !data.world.conditions[o.condition.id]) where('events.json', `${at}.condition`, `unknown condition "${o.condition.id}"; ${known(Object.keys(data.world.conditions))}`);
         if (o.newHead && !classes.includes(o.newHead)) where('events.json', `${at}.newHead`, `unknown head class "${o.newHead}"; ${known(classes)}`);
         if (o.bore && !Object.values(data.world.thresholds).some((t) => t.bore)) where('events.json', `${at}.bore`, 'no threshold in world.json has "bore" (how the tunnel is melted)');
+        if (o.lead && !eventIds.includes(o.lead.event)) where('events.json', `${at}.lead.event`, `unknown event "${o.lead.event}"`);
       }
     });
   });
@@ -284,11 +287,10 @@ function generationProblems(data: GameData): string[] {
     const path = `events.${i} (${e.id})`;
     if (dialogueIds.has(e.id)) where('events.json', path, `"${e.id}" is also the id of a dialogue; give one of them another id`);
     checkConditions('events.json', `${path}.conditions`, e.conditions);
-    e.choices.forEach((c, j) => {
-      for (const [name, o] of [['outcome', c.outcome], ['success', c.success], ['failure', c.failure]] as const) {
-        if (!o) continue;
-        checkFlags('events.json', `${path}.choices.${j}.${name}.setFlags`, o.setFlags);
-        if (o.mutation && !mutations.includes(o.mutation)) where('events.json', `${path}.choices.${j}.${name}.mutation`, `unknown mutation "${o.mutation}" (mutations.json)`);
+    eachEventChoice(e.choices, (_c, _at, outcomes) => {
+      for (const [name, o] of outcomes) {
+        checkFlags('events.json', `${path}.${name}.setFlags`, o.setFlags);
+        if (o.mutation && !mutations.includes(o.mutation)) where('events.json', `${path}.${name}.mutation`, `unknown mutation "${o.mutation}" (mutations.json)`);
         // A quest's flags are remembered by the next generations: a step done once must not come again.
         const set = o.setFlags ?? [];
         if (e.quest && set.length > 0 && !set.some((f) => e.conditions?.notFlags?.includes(f))) {

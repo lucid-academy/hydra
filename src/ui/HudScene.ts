@@ -33,6 +33,7 @@ import {
   isNight,
   nextCastlePart,
   pendingEventRules,
+  currentEventStage,
   pendingPlaceTile,
   pendingThreshold,
   shrinesBurning,
@@ -343,6 +344,14 @@ export class HudScene extends Phaser.Scene {
         case 'boreFailed':
           this.toast(text.hud.boreFailed, '#c8c0b0');
           break;
+        case 'leadPlaced': {
+          const title = this.run.rules.story.events.find((e) => e.id === event.eventId)?.title ?? event.eventId;
+          this.toast(fill(text.hud.leadPlaced, { name: title, direction: this.directionWord(this.run.state.hydra.position, event.at) }), palette.underground.bioluminescence);
+          break;
+        }
+        case 'leadLost':
+          this.toast(text.hud.leadLost, '#c8c0b0');
+          break;
         case 'burned':
           this.toast(fill(text.hud.burned, { n: -event.amount }), palette.order.orange);
           break;
@@ -531,6 +540,7 @@ export class HudScene extends Phaser.Scene {
       o.reveal > 0 ? effects.reveal : '',
       o.battle ? effects.battle : '',
       o.mutation ? fill(effects.mutation, { name: mutationName(getContext(this).data, o.mutation) }) : '',
+      o.lead ? effects.lead : '',
     ].filter((part) => part);
     return parts.map((part) => (/[.!?]$/.test(part) ? part : `${part}.`)).join(' ');
   }
@@ -798,21 +808,24 @@ export class HudScene extends Phaser.Scene {
     const why = (reason: string, values: Record<string, string | number> = {}) => fill(text.place.why[reason as keyof typeof text.place.why] ?? reason, values);
 
     const event = pendingEventRules(state, rules);
-    if (event && state.pendingEvent) {
-      const { result } = state.pendingEvent;
+    const stage = currentEventStage(state, rules);
+    if (event && stage && state.pendingEvent) {
+      const { result, previous, shown } = state.pendingEvent;
       const { event: words } = text;
       const priced = (cost: Loot) => this.lootText(cost).replace(/\+/g, '');
-      const outcome = result ? (result.success ? event.choices[result.choice]!.success : event.choices[result.choice]!.failure!) : null;
+      const said = (o: EventOutcome) => [o.text, this.effectsText(o)].filter((part) => part).join(' ');
       return {
         kind: event.quest ? fill(words.questKind, { quest: event.quest }) : words.kind,
         name: event.title,
-        text: event.text,
+        // A later scene of the event: what came of the last choice leads on.
+        text: previous ? said(previous) : event.text,
         status: null,
-        result: outcome ? [outcome.text, this.effectsText(outcome)].filter((part) => part).join(' ') : null,
+        result: result ? said(result.outcome) : null,
         leave: result ? words.continueButton : null,
         actions: result
           ? []
-          : event.choices.map((choice, i) => {
+          : shown.map((i) => {
+              const choice = stage.choices[i]!;
               const check = canChooseEventOption(state, rules, i);
               const cost = priced(choice.cost);
               const label = [

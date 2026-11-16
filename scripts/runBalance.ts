@@ -48,7 +48,7 @@ import {
   moveHydra,
   nextCastlePart,
   pendingBattleSetup,
-  pendingEventRules,
+  currentEventStage,
   plannedJourney,
   reachableHexes,
   stormCastle,
@@ -306,9 +306,12 @@ function answerWhatWaits(state: RunState, events: RunEvent[]): void {
   while (state.story.dialogues.length > 0) dialogueShown(state, rules, null);
   if (state.pendingShrine) events.push(...acceptBlessing(state, rules));
   if (state.pendingEvent) {
-    const event = pendingEventRules(state, rules);
-    const choice = event?.choices.findIndex((_, i) => canChooseEventOption(state, rules, i).can) ?? -1;
-    if (choice >= 0) events.push(...chooseEventOption(state, rules, choice));
+    // Scene after scene (an event can go on), the first choice she can take.
+    for (let scene = 0; scene < 10 && state.pendingEvent && !state.pendingEvent.result; scene++) {
+      const choice = currentEventStage(state, rules)?.choices.findIndex((_, i) => canChooseEventOption(state, rules, i).can) ?? -1;
+      if (choice < 0) break;
+      events.push(...chooseEventOption(state, rules, choice));
+    }
     closeEvent(state);
     // An event none of whose choices she can take: a player would walk away from it.
     state.pendingEvent = null;

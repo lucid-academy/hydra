@@ -61,7 +61,7 @@ function withEvent(event: EventRules): RunRules {
 
 /** An event with one choice, right where the hydra stands, its panel open. */
 function standAtEvent(state: RunState, eventId: string): void {
-  state.pendingEvent = { at: state.hydra.position, eventId, result: null };
+  state.pendingEvent = { at: state.hydra.position, eventId, path: [], shown: [0], previous: null, result: null };
 }
 
 describe('the Sealed Door', () => {

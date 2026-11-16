@@ -244,6 +244,25 @@ export interface EventOutcome {
   bore: boolean;
   /** The hydra gains this mutation (mutations.json), for herself and her heiresses. */
   mutation: string | null;
+  /**
+   * Numbers rolled when the outcome happens (GAME_DESIGN.md §10, FTL-style rewards): each one, from min to max,
+   * replaces the fixed number above. Absent: the fixed numbers.
+   */
+  ranges?: Partial<Record<RolledField, readonly [number, number]>>;
+  /** The story goes on: a next scene of the same event, with its own choices (null: the event ends here). */
+  then?: EventStage | null;
+  /** A lead: an event site with this event appears on the map, this many hexes away, and is known at once. */
+  lead?: { eventId: string; distance: readonly [number, number] } | null;
+}
+
+/** The numbers of an outcome that can be rolled from a range. */
+export type RolledField = 'muck' | 'moisture' | 'bones' | 'alert' | 'bodyHp' | 'headsHp';
+
+/** A scene of an event: its choices, and how many of them are shown (drawn at random; null: all). */
+export interface EventStage {
+  choices: readonly EventChoiceRules[];
+  /** Show only so many choices, drawn at random each time (those marked `always` are always among them). */
+  drawChoices: number | null;
 }
 
 export interface EventChoiceRules {
@@ -256,6 +275,8 @@ export interface EventChoiceRules {
   cost: { muck: number; moisture: number; bones: number };
   /** A gamble: `success` with this chance, else `failure`. Null: always `success`. */
   chance: number | null;
+  /** When the event draws only some of its choices, this one is always shown. */
+  always?: boolean;
   success: EventOutcome;
   failure: EventOutcome | null;
 }
@@ -271,6 +292,10 @@ export interface EventRules {
   once: boolean;
   conditions: StoryConditions;
   choices: readonly EventChoiceRules[];
+  /** Show only so many of the first scene's choices, drawn at random (null: all). */
+  drawChoices?: number | null;
+  /** Never drawn for an event site: it happens only where a lead (an outcome's `lead`) put it. */
+  byLeadOnly?: boolean;
 }
 
 export interface StoryRules {
@@ -719,13 +744,27 @@ export interface RunState {
   deathCause: { at: Hex; groupId: string; enemyTypes: string[] } | null;
   story: StoryState;
   /** The event the hydra stands at, until its panel is closed; `result` once a choice is made. */
-  pendingEvent: { at: Hex; eventId: string; result: { text: string; choice: number; success: boolean } | null } | null;
+  pendingEvent: PendingEvent | null;
   /** Hexes of a fresh Cinder Bore that still burn: hex key → the last turn they burn. */
   hotUntil: Record<string, number>;
   /** The Order of the Eternal Flame: how alarmed it is, and who it has sent down. */
   order: OrderState;
   lair: LairState;
   surface: SurfaceState;
+}
+
+/** The event the hydra stands at (GAME_DESIGN.md §10). */
+export interface PendingEvent {
+  at: Hex;
+  eventId: string;
+  /** The choices made so far in its earlier scenes (a choice's index in its scene, and whether its gamble won). */
+  path: Array<{ choice: number; success: boolean }>;
+  /** Which choices of the scene now open are shown (indices), when the scene draws only some. */
+  shown: number[];
+  /** What came of the last scene, as rolled (shown above the choices of the next one); null in the first scene. */
+  previous: EventOutcome | null;
+  /** The end of the event: what came of the last choice, as rolled. */
+  result: { text: string; choice: number; success: boolean; outcome: EventOutcome } | null;
 }
 
 export type RunEvent =
@@ -765,6 +804,10 @@ export type RunEvent =
   | { type: 'hydraDied' }
   | { type: 'eventReached'; at: Hex; eventId: string }
   | { type: 'eventResolved'; at: Hex; eventId: string; choice: number; success: boolean }
+  /** An event led on: a new event site (with this event) lies at `at`, known on the map. */
+  | { type: 'leadPlaced'; at: Hex; eventId: string }
+  /** A lead found no free hex far enough away: nothing was placed. */
+  | { type: 'leadLost'; eventId: string }
   | { type: 'dialogueQueued'; id: string }
   /** The Alert reached a stage (order.json alertStages): the Order does more from now on. */
   | { type: 'alertStage'; stageId: string }

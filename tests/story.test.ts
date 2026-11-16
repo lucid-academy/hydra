@@ -2,19 +2,21 @@ import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../src/data';
 import { generateUnderground } from '../src/sim/map';
 import { generatorSettingsFrom } from '../src/data/runRules';
-import { hex, hexKey } from '../src/sim/hex';
+import { hex, hexDistance, hexKey } from '../src/sim/hex';
+import type { Hex } from '../src/sim/hex';
 import {
   canChooseEventOption,
   chooseEventOption,
   closeEvent,
   conditionsHold,
+  currentEventStage,
   dialogueShown,
   endTurn,
   moveHydra,
   serpentInBattle,
   storyMoment,
 } from '../src/sim/turn';
-import type { DialogueRules, EventRules, RunEvent, RunRules, RunState } from '../src/sim/turn';
+import type { DialogueRules, EventChoiceRules, EventOutcome, EventRules, EventStage, RunEvent, RunRules, RunState } from '../src/sim/turn';
 import { flatMap, rules, runOn, testRules } from './runHelpers';
 
 function dialogue(over: Partial<DialogueRules> & { id: string }): DialogueRules {
@@ -267,8 +269,89 @@ describe('events', () => {
     }
   });
 
-  it('every event in the data has a choice anyone can pick', () => {
-    for (const e of rules.story.events) expect(e.choices.some((c) => c.needsHead === null && c.cost.muck + c.cost.moisture + c.cost.bones === 0), e.id).toBe(true);
+  it('every scene of every event in the data has a choice anyone can pick, and it is always shown', () => {
+    const free = (c: EventChoiceRules) => c.needsHead === null && c.needsCondition === null && c.cost.muck + c.cost.moisture + c.cost.bones === 0;
+    const check = (stage: EventStage, where: string): void => {
+      expect(stage.choices.some((c) => free(c) && (stage.drawChoices === null || c.always)), where).toBe(true);
+      if (stage.drawChoices !== null) expect(stage.choices.filter((c) => c.always).length, `${where}: more "always" choices than are drawn`).toBeLessThanOrEqual(stage.drawChoices);
+      stage.choices.forEach((c, i) => {
+        for (const o of [c.success, c.failure]) if (o?.then) check(o.then, `${where} > ${i}`);
+      });
+    };
+    for (const e of rules.story.events) check({ choices: e.choices, drawChoices: e.drawChoices ?? null }, e.id);
+  });
+
+  const take = (over: Partial<EventOutcome> = {}): EventOutcome => ({ text: 'Got it.', loot: { muck: 0, moisture: 0, bones: 0 }, alert: 0, bodyHp: 0, headsHp: 0, condition: null, reveal: 0, battle: null, setFlags: [], dialogue: null, newHead: null, bore: false, mutation: null, ...over });
+  const pick = (text: string, success: EventOutcome, over: Partial<EventChoiceRules> = {}): EventChoiceRules => ({ text, needsHead: null, needsCondition: null, cost: { muck: 0, moisture: 0, bones: 0 }, chance: null, success, failure: null, ...over });
+
+  it('a choice can lead to a next scene with its own choices, and the event ends after the last one', () => {
+    const second = { choices: [pick('Dig', take({ text: 'Bones!', loot: { muck: 0, moisture: 0, bones: 3 } })), pick('Leave', take({ text: 'Bye.' }))], drawChoices: null };
+    const r = withStory(testRules, { events: [event({ id: 'deep', choices: [pick('Look', take({ text: 'A hole.', loot: { muck: 2, moisture: 0, bones: 0 }, then: second }))] })] });
+    const state = runWithEventSite();
+    stepOnEvent(state, r);
+    const { muck, bones } = state.resources;
+    chooseEventOption(state, r, 0);
+    expect(state.resources.muck).toBe(muck + 2);
+    expect(state.pendingEvent?.result).toBeNull();
+    expect(state.pendingEvent?.previous?.text).toBe('A hole.');
+    expect(currentEventStage(state, r)?.choices[0]?.text).toBe('Dig');
+    chooseEventOption(state, r, 0);
+    expect(state.resources.bones).toBe(bones + 3);
+    expect(state.pendingEvent?.result?.text).toBe('Bones!');
+    closeEvent(state);
+    expect(state.pendingEvent).toBeNull();
+  });
+
+  it('rolls ranges into numbers, within them, the same way for the same seed', () => {
+    const r = withStory(testRules, { events: [event({ id: 'roll', choices: [pick('Grab', take({ ranges: { muck: [3, 9], alert: [1, 4] } }))] })] });
+    const gains = new Set<number>();
+    for (let seed = 1; seed <= 40; seed++) {
+      const state = runWithEventSite();
+      state.story.rngState = seed;
+      stepOnEvent(state, r);
+      const muck = state.resources.muck;
+      chooseEventOption(state, r, 0);
+      const got = state.resources.muck - muck;
+      expect(got).toBeGreaterThanOrEqual(3);
+      expect(got).toBeLessThanOrEqual(9);
+      expect(state.pendingEvent?.result?.outcome.loot.muck).toBe(got);
+      gains.add(got);
+    }
+    expect(gains.size).toBeGreaterThan(3);
+  });
+
+  it('shows only some choices when it draws them, always with those marked always', () => {
+    const choices = ['a', 'b', 'c', 'd', 'e'].map((t, i) => pick(t, take(), { always: i === 4 }));
+    const r = withStory(testRules, { events: [event({ id: 'pedlar', choices, drawChoices: 3 })] });
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 30; seed++) {
+      const state = runWithEventSite();
+      state.story.rngState = seed;
+      stepOnEvent(state, r);
+      const shown = state.pendingEvent!.shown;
+      expect(shown).toHaveLength(3);
+      expect(shown).toContain(4);
+      seen.add(shown.join());
+      const hidden = [0, 1, 2, 3].find((i) => !shown.includes(i))!;
+      expect(canChooseEventOption(state, r, hidden).can).toBe(false);
+    }
+    expect(seen.size).toBeGreaterThan(2);
+  });
+
+  it('a lead puts an event site with its event far enough away, known on the map, and only there does that event happen', () => {
+    const lead = take({ text: 'He points.', lead: { eventId: 'stash', distance: [3, 4] } });
+    const r = withStory(testRules, { events: [event({ id: 'map', choices: [pick('Ask', lead)] }), event({ id: 'stash', byLeadOnly: true, priority: 9 })] });
+    const state = runOn(flatMap(6, (tiles) => (tiles.get(hexKey(hex(2, 0)))!.object = { kind: 'event', eventId: null, done: false })));
+    stepOnEvent(state, r);
+    expect(state.pendingEvent?.eventId).toBe('map');
+    const events = chooseEventOption(state, r, 0);
+    const placed = events.find((e) => e.type === 'leadPlaced');
+    expect(placed).toBeDefined();
+    const at = (placed as { at: Hex }).at;
+    expect(hexDistance(at, hex(2, 0))).toBeGreaterThanOrEqual(3);
+    expect(hexDistance(at, hex(2, 0))).toBeLessThanOrEqual(4);
+    expect(state.map.tiles.get(hexKey(at))?.object).toEqual({ kind: 'event', eventId: 'stash', done: false });
+    expect(state.visibility.has(hexKey(at))).toBe(true);
   });
 });
 

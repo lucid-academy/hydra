@@ -2,7 +2,7 @@
 // and mini quests (events chained by flags). All of it is data (src/data/dialogues.json, events.json); this file
 // decides which dialogue or event fits a moment, and applies what a choice does.
 
-import { hexKey, hexesInRange } from '../hex';
+import { hexDistance, hexKey, hexesInRange } from '../hex';
 import type { Hex } from '../hex';
 import { Rng } from '../rng';
 import type {
@@ -10,6 +10,8 @@ import type {
   DialogueRules,
   EventOutcome,
   EventRules,
+  EventStage,
+  RolledField,
   RunEvent,
   RunRules,
   RunState,
@@ -221,20 +223,22 @@ export function eventArrived(state: RunState, at: Hex, rules: RunRules, events: 
   const tile = tileHere(state, at);
   const object = tile?.object;
   if (object?.kind !== 'event' || object.done) return false;
+  const { story } = state;
   if (object.eventId === null) {
-    const { story } = state;
-    // On the surface, only events that name its biome: the rest happen underground.
+    // On the surface, only events that name its biome: the rest happen underground. Events a lead places never come by chance.
     const fitsHere = (e: EventRules) => state.hydra.layer !== 'surface' || (e.conditions.biomes ?? []).includes(tile!.biome);
-    const fitting = rules.story.events.filter((e) => fitsHere(e) && !(e.once && story.seen.includes(e.id)) && conditionsHold(state, e.conditions));
+    const fitting = rules.story.events.filter((e) => !e.byLeadOnly && fitsHere(e) && !(e.once && story.seen.includes(e.id)) && conditionsHold(state, e.conditions));
     if (fitting.length === 0) {
       object.done = true;
       return false;
     }
     const picked = withRng(story, (rng) => rng.weightedPick(best(fitting)));
     object.eventId = picked.id;
-    if (!story.seen.includes(picked.id)) story.seen.push(picked.id);
   }
-  state.pendingEvent = { at, eventId: object.eventId, result: null };
+  if (!story.seen.includes(object.eventId)) story.seen.push(object.eventId);
+  const event = rules.story.events.find((e) => e.id === object.eventId);
+  const shown = event ? drawShown(state, { choices: event.choices, drawChoices: event.drawChoices ?? null }) : [];
+  state.pendingEvent = { at, eventId: object.eventId, path: [], shown, previous: null, result: null };
   events.push({ type: 'eventReached', at, eventId: object.eventId });
   return true;
 }
@@ -244,11 +248,39 @@ export function pendingEventRules(state: RunState, rules: RunRules): EventRules 
   return id ? (rules.story.events.find((e) => e.id === id) ?? null) : null;
 }
 
+/** The scene of the event that is open now: the first one, or the one its earlier choices led to. */
+export function currentEventStage(state: RunState, rules: RunRules): EventStage | null {
+  const event = pendingEventRules(state, rules);
+  const pending = state.pendingEvent;
+  if (!event || !pending) return null;
+  let stage: EventStage = { choices: event.choices, drawChoices: event.drawChoices ?? null };
+  for (const step of pending.path) {
+    const choice = stage.choices[step.choice];
+    const outcome = choice ? (step.success || !choice.failure ? choice.success : choice.failure) : null;
+    if (!outcome?.then) return null;
+    stage = outcome.then;
+  }
+  return stage;
+}
+
+/** Indices of the choices of a scene shown this time: all, or those marked `always` and a random draw of the rest. */
+function drawShown(state: RunState, stage: EventStage): number[] {
+  const all = stage.choices.map((_, i) => i);
+  if (stage.drawChoices === null || stage.drawChoices >= all.length) return all;
+  const kept = all.filter((i) => stage.choices[i]!.always);
+  const rest = all.filter((i) => !stage.choices[i]!.always);
+  withRng(state.story, (rng) => {
+    while (kept.length < stage.drawChoices! && rest.length > 0) kept.push(rest.splice(rng.int(0, rest.length - 1), 1)[0]!);
+  });
+  return kept.sort((a, b) => a - b);
+}
+
 export type EventChoiceCheck = { can: true } | { can: false; why: 'needsHead' | 'needsCondition' | 'cost' | 'done' };
 
 export function canChooseEventOption(state: RunState, rules: RunRules, index: number): EventChoiceCheck {
-  const choice = pendingEventRules(state, rules)?.choices[index];
-  if (!choice || state.pendingEvent?.result) return { can: false, why: 'done' };
+  const pending = state.pendingEvent;
+  const choice = currentEventStage(state, rules)?.choices[index];
+  if (!choice || !pending || pending.result || !pending.shown.includes(index)) return { can: false, why: 'done' };
   if (choice.needsHead && !state.hydra.heads.some((h) => h.classId === choice.needsHead && h.hp > 0)) return { can: false, why: 'needsHead' };
   if (choice.needsCondition && !state.hydra.conditions.some((c) => c.id === choice.needsCondition)) return { can: false, why: 'needsCondition' };
   const { resources } = state;
@@ -256,27 +288,81 @@ export function canChooseEventOption(state: RunState, rules: RunRules, index: nu
   return { can: true };
 }
 
-/** Picks a choice of the event the hydra stands at: pays its cost, rolls a gamble, and applies what comes of it. */
+/** An outcome with its ranges rolled into plain numbers. */
+function rollOutcome(state: RunState, o: EventOutcome): EventOutcome {
+  const ranges = o.ranges;
+  if (!ranges || Object.keys(ranges).length === 0) return o;
+  return withRng(state.story, (rng) => {
+    const roll = (field: RolledField, fixed: number) => {
+      const range = ranges[field];
+      return range ? rng.int(range[0], range[1]) : fixed;
+    };
+    return {
+      ...o,
+      loot: { muck: roll('muck', o.loot.muck), moisture: roll('moisture', o.loot.moisture), bones: roll('bones', o.loot.bones) },
+      alert: roll('alert', o.alert),
+      bodyHp: roll('bodyHp', o.bodyHp),
+      headsHp: roll('headsHp', o.headsHp),
+      ranges: {},
+    };
+  });
+}
+
+/**
+ * Picks a choice of the event's open scene: pays its cost, rolls a gamble and the outcome's ranges, and applies what
+ * comes of it. If the outcome goes on (`then`), the next scene opens; otherwise the event ends with this result.
+ */
 export function chooseEventOption(state: RunState, rules: RunRules, index: number): RunEvent[] {
   const pending = state.pendingEvent;
   const event = pendingEventRules(state, rules);
-  if (!pending || !event || !canChooseEventOption(state, rules, index).can) return [];
-  const choice = event.choices[index]!;
+  const stage = currentEventStage(state, rules);
+  if (!pending || !event || !stage || !canChooseEventOption(state, rules, index).can) return [];
+  const choice = stage.choices[index]!;
   for (const kind of ['muck', 'moisture', 'bones'] as const) state.resources[kind] -= choice.cost[kind];
   const success = choice.chance === null || choice.failure === null || withRng(state.story, (rng) => rng.chance(choice.chance!));
-  const outcome = success ? choice.success : choice.failure!;
+  const outcome = rollOutcome(state, success ? choice.success : choice.failure!);
   const events: RunEvent[] = [];
   applyOutcome(state, rules, outcome, pending.at, events);
-  pending.result = { text: outcome.text, choice: index, success };
+  events.unshift({ type: 'eventResolved', at: pending.at, eventId: event.id, choice: index, success });
+  if (outcome.then && outcome.then.choices.length > 0) {
+    pending.path.push({ choice: index, success });
+    pending.previous = outcome;
+    pending.shown = drawShown(state, outcome.then);
+    return events;
+  }
+  pending.result = { text: outcome.text, choice: index, success, outcome };
   const object = tileHere(state, pending.at)?.object;
   if (object?.kind === 'event') object.done = true;
-  events.unshift({ type: 'eventResolved', at: pending.at, eventId: event.id, choice: index, success });
   return events;
 }
 
 /** Closes the event's panel (after its choice). A battle it started waits on the map. */
 export function closeEvent(state: RunState): void {
   if (state.pendingEvent?.result) state.pendingEvent = null;
+}
+
+/**
+ * A lead: an event site with `eventId` on a free hex of this layer, `distance` hexes from the hydra (one she doesn't
+ * know yet if there is one), marked as known so it shows on the map. Null when no hex fits.
+ */
+export function placeLead(state: RunState, rules: RunRules, eventId: string, distance: readonly [number, number]): Hex | null {
+  const map = mapOf(state);
+  const visibility = visibilityOf(state);
+  const from = state.hydra.position;
+  const taken = new Set(state.order.units.filter((u) => u.layer === state.hydra.layer).map((u) => hexKey(u.at)));
+  const free: Hex[] = [];
+  for (const tile of map.tiles.values()) {
+    const d = hexDistance(from, tile.hex);
+    if (d < distance[0] || d > distance[1] || tile.object !== null || tile.ring === 0) continue;
+    if (rules.terrain[tile.terrain].moveCost === null || taken.has(hexKey(tile.hex))) continue;
+    free.push(tile.hex);
+  }
+  if (free.length === 0) return null;
+  const unknown = free.filter((h) => !visibility.has(hexKey(h)));
+  const at = withRng(state.story, (rng) => rng.pick(unknown.length > 0 ? unknown : free));
+  map.tiles.get(hexKey(at))!.object = { kind: 'event', eventId, done: false };
+  if (!visibility.has(hexKey(at))) visibility.set(hexKey(at), 'remembered');
+  return at;
 }
 
 function applyOutcome(state: RunState, rules: RunRules, o: EventOutcome, at: Hex, events: RunEvent[]): void {
@@ -296,6 +382,10 @@ function applyOutcome(state: RunState, rules: RunRules, o: EventOutcome, at: Hex
   setFlags(state, o.setFlags);
   if (o.newHead) growHeads(state, rules, 1, o.newHead);
   if (o.mutation) gainMutation(state, o.mutation, rules, events);
+  if (o.lead) {
+    const placed = placeLead(state, rules, o.lead.eventId, o.lead.distance);
+    events.push(placed ? { type: 'leadPlaced', at: placed, eventId: o.lead.eventId } : { type: 'leadLost', eventId: o.lead.eventId });
+  }
   if (o.bore) {
     const tunnel = withRng(state.story, (rng) => boreTunnel(state, rules, at, rng));
     events.push(tunnel ? { type: 'tunnelBored', at: tunnel.at, path: tunnel.path } : { type: 'boreFailed' });
