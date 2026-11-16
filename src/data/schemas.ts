@@ -364,6 +364,12 @@ export const biomesSchema = section({
         // Prop numbers as in the prompt: 1 is the sheet's first.
         propsInWater: z.array(z.number().int().min(1).max(12)),
         glowingProps: z.array(z.number().int().min(1).max(12)),
+        // Man-made or odd props (a helmet, a cart): never a clump's favourite, at most one in a clump.
+        rareProps: z.array(z.number().int().min(1).max(12)).optional(),
+        // The light its glowing props give (size and strength override the usual 0.55 / 0.5): tighter and dimmer in a biome that drowned in light.
+        propGlow: section({ scale: z.number().positive(), alpha: z.number().min(0).max(1) }).optional(),
+        // The chamber light of this biome, against BIOME_LIGHT.strength (1 = as other biomes).
+        chamberLight: z.number().min(0).max(2).optional(),
       }).optional(),
       // grounds: a colour for each kind of ground, for its placeholder until its texture exists (else ground or water).
       colors: section({ ground: hexColor, detail: hexColor, water: hexColor, rock: hexColor, glow: hexColor, grounds: z.partialRecord(z.enum(GROUND_TYPES), hexColor).optional() }),

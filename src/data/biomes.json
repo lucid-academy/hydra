@@ -7,7 +7,7 @@
       "displayName": "Lair Swamp",
       "discoveryLine": "Home. It smells of home, which is to say of mud, eggs and old victories.",
       "decorations": ["reeds", "bones", "pebbles", "stalagmite"],
-      "scenery": { "clumps": ["reedbed", "bogmound", "spawn"], "clumpsInWater": ["reedbed", "spawn"], "propsInWater": [1, 3], "glowingProps": [2, 3] },
+      "scenery": { "clumps": ["reedbed", "bogmound", "spawn"], "clumpsInWater": ["reedbed", "spawn"], "propsInWater": [1, 3], "glowingProps": [2, 3], "rareProps": [4] },
       "ground": { "water": 0.3, "mud": 0.7 },
       "colors": { "ground": "#2c3420", "detail": "#3f5a2c", "water": "#12393a", "rock": "#3a3129", "glow": "#c6e04a" }
     },
@@ -15,7 +15,7 @@
       "displayName": "Flooded Caves",
       "discoveryLine": "Black water, still as a held breath. Somewhere under it, a bell that no longer rings.",
       "decorations": ["reeds", "puddle", "stalagmite", "pebbles"],
-      "scenery": { "clumps": ["stalagmites", "rimstone", "reedbed"], "clumpsInWater": ["reedbed", "rimstone"], "propsInWater": [3, 4], "glowingProps": [4, 5] },
+      "scenery": { "clumps": ["stalagmites", "rimstone", "reedbed"], "clumpsInWater": ["reedbed", "rimstone"], "propsInWater": [3, 4], "glowingProps": [4, 5], "rareProps": [6] },
       "ground": { "water": 0.55, "mud": 0.45 },
       "colors": { "ground": "#1d3833", "detail": "#2d5a4a", "water": "#0f3a3d", "rock": "#2e3436", "glow": "#7fd0e0" },
       "mapRule": { "text": "Currents carry you for free, the way they flow.", "short": "Currents carry you" }
@@ -24,7 +24,7 @@
       "displayName": "Root Tangle",
       "discoveryLine": "The roots of the world above came down to see what was here. They never left.",
       "decorations": ["roots", "sprout", "roots", "pebbles"],
-      "scenery": { "clumps": ["rootarches", "stump", "rootnest"], "clumpsInWater": [], "propsInWater": [], "glowingProps": [4] },
+      "scenery": { "clumps": ["rootarches", "stump", "rootnest"], "clumpsInWater": [], "propsInWater": [], "glowingProps": [4], "rareProps": [7] },
       "ground": { "mud": 0.45, "roots": 0.55 },
       "colors": { "ground": "#33261a", "detail": "#4a3a22", "water": "#1d3330", "rock": "#3a2f25", "glow": "#d9a93b" },
       "mapRule": { "text": "Among the roots a patrol notices you only when it could step on you.", "short": "The roots hide you", "hiding": { "grounds": ["roots"], "seenWithin": 1 } }
@@ -33,7 +33,7 @@
       "displayName": "Old Crypts",
       "discoveryLine": "The Order buried its saints here, with full honours. Not deep enough.",
       "decorations": ["urn", "bones", "brokenPillar", "bones", "pebbles"],
-      "scenery": { "clumps": ["sarcophagi", "colonnade", "skullshelves"], "clumpsInWater": [], "propsInWater": [], "glowingProps": [4, 6] },
+      "scenery": { "clumps": ["sarcophagi", "colonnade", "skullshelves"], "clumpsInWater": [], "propsInWater": [], "glowingProps": [4, 6], "rareProps": [1, 2, 6, 7] },
       "ground": { "water": 0.15, "mud": 0.85 },
       "encounterDensity": 1.2,
       "colors": { "ground": "#2e2b27", "detail": "#4a4540", "water": "#1c2a2c", "rock": "#3b3732", "glow": "#e0b060" },
@@ -43,7 +43,7 @@
       "displayName": "Salt Mines",
       "discoveryLine": "Men cut salt here to keep things from rotting. The salt outlasted the men.",
       "decorations": ["crystal", "crystal", "pebbles", "bones"],
-      "scenery": { "clumps": ["crystals", "timbering", "saltpile"], "clumpsInWater": [], "propsInWater": [], "glowingProps": [6] },
+      "scenery": { "clumps": ["crystals", "timbering", "saltpile"], "clumpsInWater": [], "propsInWater": [], "glowingProps": [6], "rareProps": [3, 4, 5, 6, 7] },
       "ground": { "mud": 0.35, "salt": 0.65 },
       "encounterDensity": 1.5,
       "colors": { "ground": "#4a4440", "detail": "#8a8078", "water": "#2a3a40", "rock": "#5a524c", "glow": "#f0d8d0" },
@@ -68,9 +68,9 @@
       "displayName": "Fungal Deeps",
       "discoveryLine": "Everything here is eating everything else, very slowly, and glowing about it.",
       "decorations": ["mushroom", "glowMushroom", "glowMushroom", "pebbles"],
-      "scenery": { "clumps": ["giantcaps", "puffballs", "myceliummound"], "clumpsInWater": [], "propsInWater": [], "glowingProps": [2] },
+      "scenery": { "clumps": ["giantcaps", "puffballs", "myceliummound"], "clumpsInWater": [], "propsInWater": [], "glowingProps": [2], "rareProps": [5], "propGlow": { "scale": 0.45, "alpha": 0.6 }, "chamberLight": 0.55 },
       "ground": { "water": 0.15, "mud": 0.85 },
-      "colors": { "ground": "#2a2032", "detail": "#5a3d66", "water": "#1a2a3a", "rock": "#2f2836", "glow": "#c65bd6" },
+      "colors": { "ground": "#2a2032", "detail": "#5a3d66", "water": "#1a2a3a", "rock": "#2f2836", "glow": "#8a46dd" },
       "mapRule": { "text": "Spore clouds drift through the deeps. Nobody sees through them, the Order least of all.", "short": "Spore clouds block all sight", "sporeClouds": { "size": 4, "thickerThan": 0.25, "driftPerTurn": 0.5, "seenWithin": 1 } }
     }
   }

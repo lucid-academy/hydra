@@ -17,6 +17,12 @@ export interface BiomeScenery {
   propsInWater: number[];
   propsOnGround: number[];
   glowingProps: number[];
+  /** Props that never lead a clump and come at most once per clump (a helmet, a cart). */
+  rareProps: number[];
+  /** The light of a glowing prop: its size and strength, where the biome overrides the usual ones. */
+  propGlow: { scale: number; alpha: number };
+  /** The chamber light of this biome, against BIOME_LIGHT.strength. */
+  chamberLight: number;
   /** Frames of map_patches_<biome>; 0 while it has no picture. */
   patches: number;
   /** Image keys of the clumps that have pictures: any of them on dry ground, these in water. */
@@ -50,6 +56,9 @@ export function biomeScenery(scene: Phaser.Scene, data: GameData, biome: string)
     propsInWater,
     propsOnGround: Array.from({ length: props }, (_, i) => i).filter((f) => !propsInWater.includes(f)),
     glowingProps: frames(def?.glowingProps),
+    rareProps: frames(def?.rareProps),
+    propGlow: def?.propGlow ?? { scale: 0.55, alpha: 0.5 },
+    chamberLight: def?.chamberLight ?? 1,
     patches: framesOf(scene, data, `map_patches_${biome}`),
     clumps,
     clumpsInWater: (def?.clumpsInWater ?? []).map((name) => `map_clump_${biome}_${name}`).filter((key) => clumps.includes(key)),
