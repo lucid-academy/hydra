@@ -193,6 +193,8 @@ const PLACE_GLOWS: Readonly<Record<string, { tint: string; scale: number; alpha:
 
 /** Decorations come in clumps around an anchor hex (a ring of mushrooms, a heap of bones), not sprinkled evenly. */
 const CLUMP = { pieces: [3, 7] as const, perChamberHexes: 9, loneChance: 0.12, favouriteShare: 0.7 };
+/** Props from a biome's sheet are drawn this much smaller than the sheet's own size, so they sit inside their hex. */
+const PROP_SCALE = 0.7;
 /**
  * One small decoration: an older one by its kind (map_deco_<kind>), or a frame of the biome's props sheet
  * (map_props_<biome>) once it has one.
@@ -233,7 +235,7 @@ const MIST = { size: 2.1, tint: '#e4ece6', alpha: [0.3, 0.68] as const, drift: 3
  * per hex, of the biome's glow greyed (`grey` of the way to `greyTint`), each a little bigger or smaller (`sizes`, times
  * a hex's width) and off the hex's middle by up to `spread` px, drifting sideways.
  */
-const SPORES = { puffs: 2, sizes: [1.3, 2] as const, spread: 6, grey: 0.6, greyTint: '#b8b0bc', alpha: 0.42, drift: 5, driftMs: 3600 } as const;
+const SPORES = { puffs: 2, sizes: [1.3, 2] as const, spread: 6, grey: 0.6, greyTint: '#a89cb0', alpha: 0.34, drift: 5, driftMs: 3600 } as const;
 /** Hidden in the roots or under a spore cloud (GAME_DESIGN.md §9.2), the hydra shows this faded. */
 const HIDDEN_ALPHA = 0.6;
 
@@ -260,6 +262,8 @@ interface ChamberGlow {
   hexes: string[];
   color: number;
   radius: number;
+  /** How strong its light is: BIOME_LIGHT.strength, scaled by the biome's scenery.chamberLight. */
+  strength: number;
   teaser: Phaser.GameObjects.Image | null;
 }
 
@@ -534,7 +538,19 @@ export class MapScene extends Phaser.Scene {
       const biome = map.tiles.get(hexKey(hexes[0]!))?.biome ?? '';
       const glow = biomes.biomes[biome]?.colors.glow;
       if (!glow) return [];
-      return [{ x, y, center, biome, hexes: hexes.map(hexKey), color: color(glow), radius: Math.max(BIOME_LIGHT.minRadius, hexes.length * BIOME_LIGHT.radiusPerHex), teaser: null }];
+      return [
+        {
+          x,
+          y,
+          center,
+          biome,
+          hexes: hexes.map(hexKey),
+          color: color(glow),
+          radius: Math.max(BIOME_LIGHT.minRadius, hexes.length * BIOME_LIGHT.radiusPerHex),
+          strength: BIOME_LIGHT.strength * this.sceneryOf(biome).chamberLight,
+          teaser: null,
+        },
+      ];
     });
   }
 
@@ -605,7 +621,11 @@ export class MapScene extends Phaser.Scene {
       const biome = map.tiles.get(hexKey(anchor))?.biome ?? '';
       const kinds = this.piecesOf(biome, biomes.biomes[biome]?.decorations ?? []);
       if (kinds.length === 0) continue;
-      const favourite = rng.pick(kinds);
+      // A helmet or a cart (rareProps) never leads a clump, and comes at most once in one.
+      const rare = new Set<Piece>(this.sceneryOf(biome).rareProps);
+      const common = kinds.filter((kind) => !rare.has(kind));
+      const favourite = rng.pick(common.length > 0 ? common : kinds);
+      let rareUsed = false;
       const spots = [anchor, ...hexNeighbors(anchor)].filter((h) => {
         const t = map.tiles.get(hexKey(h));
         return t !== undefined && t.terrain !== 'rock' && t.object === null;
@@ -617,7 +637,18 @@ export class MapScene extends Phaser.Scene {
         const spot = i < 2 ? spots[0]! : rng.pick(spots);
         const list = pieces.get(hexKey(spot)) ?? [];
         if (list.length >= 3) continue;
-        list.push(rng.chance(CLUMP.favouriteShare) ? favourite : rng.pick(kinds));
+        let pick = rng.chance(CLUMP.favouriteShare) ? favourite : rng.pick(kinds);
+        if (rare.has(pick)) {
+          if (rareUsed && common.length > 0) pick = rng.pick(common);
+          else rareUsed = true;
+        }
+        // The same picture twice on one hex reads as a copy, so a repeat picks something else.
+        if (typeof pick === 'number' && list.includes(pick)) {
+          const fresh = common.filter((kind) => typeof kind === 'number' && !list.includes(kind));
+          if (fresh.length === 0) continue;
+          pick = rng.pick(fresh);
+        }
+        list.push(pick);
         pieces.set(hexKey(spot), list);
       }
     }
@@ -670,11 +701,12 @@ export class MapScene extends Phaser.Scene {
         .setOrigin(0.5, 1)
         .setFlipX(rng.chance(0.5))
         .setDepth(this.standingDepth(py));
+      if (sheet) prop.setScale(PROP_SCALE);
       view.props.push(prop);
       const flat = !sheet && FLAT_DECORATIONS.includes(piece as DecorationKind);
-      if (!flat) view.shadows.push(this.contactShadow(px, py, prop.width));
+      if (!flat) view.shadows.push(this.contactShadow(px, py, prop.displayWidth));
       const glowing = sheet ? scenery.glowingProps.includes(piece as number) : GLOWING_DECORATIONS.includes(piece as DecorationKind);
-      if (glowing) view.propGlows.push(this.glow(px, py - Math.min(9, prop.height / 2), biome.colors.glow, 0.55, 0.5, py));
+      if (glowing) view.propGlows.push(this.glow(px, py - Math.min(9, prop.displayHeight / 2), biome.colors.glow, scenery.propGlow.scale, scenery.propGlow.alpha, py));
     }
   }
 
@@ -1120,7 +1152,7 @@ export class MapScene extends Phaser.Scene {
     if (this.chamberGlows.length > 0) {
       const known = this.known;
       for (const chamber of this.chamberGlows) {
-        if (chamber.hexes.some((k) => known.has(k))) lights.push({ x: chamber.x, y: chamber.y, radius: chamber.radius, color: chamber.color, strength: BIOME_LIGHT.strength });
+        if (chamber.hexes.some((k) => known.has(k))) lights.push({ x: chamber.x, y: chamber.y, radius: chamber.radius, color: chamber.color, strength: chamber.strength });
       }
     }
     this.light.draw(lights, this.ambient());
@@ -1319,7 +1351,8 @@ export class MapScene extends Phaser.Scene {
     };
     const vista = `discovery_${biomeId}`;
     if (firstEver && hasPicture(this, getContext(this).data, vista)) {
-      pin(this.add.image(0, 0, vista).setOrigin(0.5, 0.5), SCREEN.width / 2, middle);
+      // The land's wide view fills the whole screen, like a title card; the name stands in its lower third.
+      pin(this.add.image(0, 0, vista).setOrigin(0.5, 0.5), SCREEN.width / 2, SCREEN.height / 2);
     } else if (firstEver) {
       // Without its vista: a dark band across the screen, the land's glow behind the name.
       pin(this.add.rectangle(0, 0, SCREEN.width, 74, color('#05090a'), 0.8).setOrigin(0.5, 0.5), SCREEN.width / 2, middle);

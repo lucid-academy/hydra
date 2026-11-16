@@ -81,7 +81,7 @@
         "outerEdge": 15,
         "mainBiomes": ["floodedCaves", "rootTangle"],
         "mainBiomeShare": [0.3, 0.7],
-        "patches": [4, 6],
+        "patches": [1, 2],
         "patchBiomes": { "oldCrypts": 50, "saltMines": 50 },
         "chambers": [14, 18],
         "chamberSize": [12, 24],
