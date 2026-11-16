@@ -287,6 +287,23 @@ const SHOTS = [
     await tapGame(page, panel.actions[0]); // break it open
     await page.waitForTimeout(400);
   } },
+  // FTL-style events (2026-11-16): a second scene, a drawn set of wares, and a lead marked on the map.
+  { name: 'event-scene-two', query: '?seed=123&scene=map&event=eelsInSession', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await stepOntoEvent(page);
+    const panel = await page.evaluate(() => window.__hydra.placePanel());
+    await tapGame(page, panel.actions[0]); // take the floor
+    await page.waitForTimeout(400);
+  } },
+  { name: 'event-pedlar', query: '?seed=123&scene=map&event=pedlarOfWrongNotes', viewport: DESKTOP, scene: 'map', act: stepOntoEvent },
+  { name: 'event-lead', query: '?seed=123&scene=map&event=knottedPrayers', viewport: DESKTOP, scene: 'map', act: async (page) => {
+    await stepOntoEvent(page);
+    const panel = await page.evaluate(() => window.__hydra.placePanel());
+    await tapGame(page, panel.actions[0]); // follow the ribbons
+    await page.waitForTimeout(400);
+    const after = await page.evaluate(() => window.__hydra.placePanel());
+    await tapGame(page, after.leave); // Continue: the camera shows the lead
+    await page.waitForTimeout(1200);
+  } },
   // M5 thresholds of the story: the Sealed Door (a step of "The Silent Song") and a tunnel the Cinderkin melt.
   { name: 'sealed-door', query: '?seed=123&scene=map&near=sealedDoor', viewport: DESKTOP, scene: 'map', act: async (page) => tapThreshold(page, 'sealedDoor') },
   { name: 'sealed-door-open', query: '?seed=123&scene=map&near=sealedDoor&flags=hushedSongHeard', viewport: DESKTOP, scene: 'map', act: async (page) => {

@@ -1,6 +1,5 @@
 {
-  "//": "TODO(design): first batch of events, written by Claude for M5 (GAME_DESIGN.md §10, §14); texts and numbers are working values, change them freely. An event happens when the hydra steps on an event site on the map (balance.json undergroundGenerator.rings[].eventSites). Of the events that fit (conditions, as in dialogues.json), those with the highest priority are drawn by weight. once: happens at most once in a hydra's life (default true). A step of a mini quest also has notFlags with its own flags, so that a step done in an earlier generation doesn't come again (the quest's flags are world knowledge, flags.json). quest: the mini quest the event is a step of (steps are chained by flags: a step sets a flag, the next step needs it). A choice can need a head (needsHead: class id) or a condition on the hydra (needsCondition: world.json conditions, e.g. warmed), cost resources (cost), and either have one outcome, or be a gamble: chance (0–1) of success, otherwise failure. An outcome has a text and may: give or take muck, moisture, bones; change the alert; heal or hurt the body (bodyHp) and every head (headsHp, never below 1); put a condition on the hydra (condition, world.json); show the map around (reveal: hexes); start a battle (battle: an encounter group, enemies.json); set flags (setFlags); start a dialogue (dialogue: an id from dialogues.json); grow a head (newHead: class id); have the Cinderkin melt a tunnel through the rock nearby (bore: true; how, in world.json thresholds.cinderBore); give the hydra a mutation for her and her heiresses (mutation: an id from mutations.json).",
-  "//2": "FTL-style (2026-11-16, TODO(design)). A number of muck, moisture, bones, alert, bodyHp or headsHp can be a range [min, max], rolled when it happens: \"muck\": [4, 9]. An outcome can go on: \"then\": { \"choices\": [...] } is a next scene of the same event, with the outcome's text above its choices (the event ends at an outcome without then). drawChoices: n on an event (or in a then) shows only n of its choices, drawn at random each time; a choice with \"always\": true is always among them (keep a free choice always shown). A lead: \"lead\": { \"event\": \"<event id>\", \"distance\": [12, 20] } puts a new event site with that event this many hexes away, marked on the map. byLeadOnly: true on an event means it only happens where a lead put it.",
+  "//": "TODO(design): first batch of events, written by Claude for M5 (GAME_DESIGN.md §10, §14); texts and numbers are working values, change them freely. An event happens when the hydra steps on an event site on the map (balance.json undergroundGenerator.rings[].eventSites). Of the events that fit (conditions, as in dialogues.json), those with the highest priority are drawn by weight. once: happens at most once in a hydra's life (default true). A step of a mini quest also has notFlags with its own flags, so that a step done in an earlier generation doesn't come again (the quest's flags are world knowledge, flags.json). quest: the mini quest the event is a step of (steps are chained by flags: a step sets a flag, the next step needs it). A choice can need a head (needsHead: class id) or a condition on the hydra (needsCondition: world.json conditions, e.g. warmed), cost resources (cost), and either have one outcome, or be a gamble: chance (0–1) of success, otherwise failure. An outcome has a text and may: give or take muck, moisture, bones; change the alert; heal or hurt the body (bodyHp) and every head (headsHp, never below 1); put a condition on the hydra (condition, world.json); show the map around (reveal: hexes); start a battle (battle: an encounter group, enemies.json); set flags (setFlags); start a dialogue (dialogue: an id from dialogues.json); grow a head (newHead: class id); have the Cinderkin melt a tunnel through the rock nearby (bore: true; how, in world.json thresholds.cinderBore); give the hydra a mutation for her and her heiresses (mutation: an id from mutations.json). FTL-style (2026-11-16, TODO(design)). A number of muck, moisture, bones, alert, bodyHp or headsHp can be a range [min, max], rolled when it happens: \"muck\": [4, 9]. An outcome can go on: \"then\": { \"choices\": [...] } is a next scene of the same event, with the outcome's text above its choices (the event ends at an outcome without then). drawChoices: n on an event (or in a then) shows only n of its choices, drawn at random each time; a choice with \"always\": true is always among them (keep a free choice always shown). A lead: \"lead\": { \"event\": \"<event id>\", \"distance\": [12, 20] } puts a new event site with that event this many hexes away, marked on the map. byLeadOnly: true on an event means it only happens where a lead put it.",
 
   "events": [
     {
@@ -330,6 +329,456 @@
       "choices": [
         { "text": "Lie in the furrows.", "outcome": { "text": "Warm earth. The heads lie very still and pretend to be a hedge.", "bodyHp": 10 } },
         { "text": "Dig.", "outcome": { "text": "Turnips, mostly. And worms, which are better.", "muck": 4 } }
+      ]
+    },
+
+    {
+      "//": "FTL-style events per land (2026-11-16, TODO(design)): each underground biome has its own; some lead on to a second scene, some roll their rewards, some draw their choices, some leave a lead on the map.",
+      "id": "drownedBell",
+      "title": "The Drowned Bell",
+      "text": "A bell of the Order hangs from a beam under the water. The current swings it, slowly, and it rings once every few breaths. Somebody above must still be wondering where the sound comes from.",
+      "conditions": { "biomes": ["floodedCaves"] },
+      "choices": [
+        {
+          "text": "Ring it properly.",
+          "chance": 0.5,
+          "success": { "text": "One great note rolls out through the flooded halls and comes back from very far away, with the shape of the tunnels in it.", "reveal": 8 },
+          "failure": { "text": "One great note rolls out through the flooded halls and up a shaft, into the ears of a sexton who writes it down.", "alert": [4, 8] }
+        },
+        { "text": "Tear it loose.", "needsHead": "biter", "outcome": { "text": "The beam gives before the Biter does. Bronze, and a nest of things that lived inside the bell and now live inside you.", "muck": [5, 9], "bones": [1, 3] } },
+        { "text": "Let it ring.", "outcome": { "text": "It rings on behind you, once every few breaths, for nobody." } }
+      ]
+    },
+    {
+      "id": "eelsInSession",
+      "title": "Eels in Session",
+      "text": "Forty eels lie in a circle in the shallows. One of them is speaking, at length. As you come closer they all turn, and the speaking one says, 'The chair recognises the member with several heads.'",
+      "conditions": { "biomes": ["floodedCaves"] },
+      "choices": [
+        {
+          "text": "Take the floor.",
+          "outcome": {
+            "text": "The motion before the session: that the hydra is, for the purposes of the water rights, an eel. The heads look at each other.",
+            "then": {
+              "choices": [
+                {
+                  "text": "Argue that you are mostly eel.",
+                  "chance": 0.55,
+                  "success": { "text": "Carried, thirty-one to nine. You are granted the water rights of an eel, which turn out to be generous.", "moisture": [6, 12] },
+                  "failure": { "text": "The motion fails on a point of order raised by a very old eel. The heads argue about it for the rest of the day.", "headsHp": [-6, -2] }
+                },
+                { "text": "Eat the chair.", "outcome": { "text": "The session is adjourned. The eels elect a new chair at once, and he is much more agreeable.", "bones": [2, 4] } },
+                { "text": "Abstain.", "outcome": { "text": "Your abstention is noted, at length. You leave before the minutes are read." } }
+              ]
+            }
+          }
+        },
+        { "text": "Back away from the session.", "outcome": { "text": "Behind you the eel resumes speaking, from the beginning." } }
+      ]
+    },
+    {
+      "id": "floatingLedger",
+      "title": "A Floating Ledger",
+      "text": "A ledger of the Order drifts past on the current, swollen to twice its size. FLOOD DAMAGE, LOWER STORES, it says on the cover. Someone has underlined LOWER three times.",
+      "conditions": { "biomes": ["floodedCaves"] },
+      "choices": [
+        { "text": "Read it.", "needsHead": "acidSpitter", "outcome": { "text": "The Acid Spitter reads it aloud, correcting the spelling. The lower stores are not lost, only under water. The page has a little map.", "lead": { "event": "sunkenStores", "distance": [10, 18] } } },
+        {
+          "text": "Fish it out and look at the pictures.",
+          "chance": 0.6,
+          "success": { "text": "Mostly sums, but on one page there is a little map, with a cross and a drawing of a sad monk.", "lead": { "event": "sunkenStores", "distance": [10, 18] } },
+          "failure": { "text": "It falls apart in your jaws. The heads agree it was probably boring.", "muck": [1, 3] }
+        },
+        { "text": "Let it drift.", "outcome": { "text": "Somewhere downstream, a clerk is going to have a very bad day." } }
+      ]
+    },
+    {
+      "id": "sunkenStores",
+      "title": "The Sunken Stores",
+      "byLeadOnly": true,
+      "text": "The lower stores of the Order, exactly where the ledger said: barrels of lamp oil, sacks of something, and a monk's sandal floating in the doorway on its own. Everything is wet, and everything is still here.",
+      "choices": [
+        { "text": "Take everything.", "outcome": { "text": "Lamp oil for the muck, salt pork for the body. The Order will write to itself about this.", "muck": [10, 16], "bodyHp": [10, 20], "alert": [2, 5] } },
+        { "text": "Take only what won't be missed.", "outcome": { "text": "You take the sandal and one sack nobody had written down. Very tidy.", "muck": [4, 8] } }
+      ]
+    },
+    {
+      "id": "reflectionWithHeads",
+      "title": "A Reflection",
+      "text": "Still water, black as a mirror. The hydra in it has a different number of heads. Each of your heads counts them, and gets a different answer.",
+      "conditions": { "biomes": ["floodedCaves", "lairSwamp"] },
+      "choices": [
+        {
+          "text": "Look longer.",
+          "chance": 0.5,
+          "success": { "text": "The hydra in the water nods, once, as if to someone behind you. Your necks feel stronger for having been counted.", "headsHp": [4, 10] },
+          "failure": { "text": "The hydra in the water looks back at you, and then, slowly, away. Nobody sleeps well after that.", "headsHp": [-8, -3] }
+        },
+        { "text": "Breathe mist on it.", "needsHead": "mistBreather", "outcome": { "text": "The surface clouds over. The Mist Breather says it was only being polite, and that the other one started it.", "moisture": [3, 6] } },
+        { "text": "Don't look.", "outcome": { "text": "The heads do not look, all together, which is a first." } }
+      ]
+    },
+
+    {
+      "id": "rootConfessional",
+      "title": "The Root Confessional",
+      "text": "A novice of the Order has wedged himself into a knot of roots and is confessing to them. He has been at it some time. The roots seem to be listening; one of them has grown into his ear.",
+      "conditions": { "biomes": ["rootTangle"] },
+      "choices": [
+        {
+          "text": "Listen in.",
+          "outcome": {
+            "text": "He confesses to lying about vespers, to coveting a candle, and to having seen a hydra and told no one. Then he notices you.",
+            "then": {
+              "choices": [
+                { "text": "Absolve him.", "outcome": { "text": "You nod gravely, all of you. He weeps with relief, and swears never to mention you to anyone, which he keeps.", "alert": [-7, -3] } },
+                { "text": "Confess something yourselves.", "chance": 0.5, "success": { "text": "The heads confess each other's sins, in detail. The novice flees. The roots seem pleased, and loosen around a cache of old bones.", "bones": [3, 6] }, "failure": { "text": "The heads confess each other's sins, in detail, and then it becomes a fight. The roots take sides.", "headsHp": [-6, -2], "bodyHp": [-10, -5] } },
+                { "text": "Eat him.", "outcome": { "text": "Penance, of a kind.", "bones": [2, 4], "alert": [1, 3] } }
+              ]
+            }
+          }
+        },
+        { "text": "Untangle him.", "needsHead": "strangler", "outcome": { "text": "The Strangler unwinds the roots with professional respect. The novice runs, leaving his satchel and a strong opinion of you.", "muck": [4, 8], "alert": 2 } },
+        { "text": "Leave him to it.", "outcome": { "text": "He is on to his childhood now. It will be a while." } }
+      ]
+    },
+    {
+      "id": "hangingPods",
+      "title": "Hanging Pods",
+      "text": "Fat seed pods hang from the roots overhead, each the size of a head, each a different colour. Some of them are humming.",
+      "conditions": { "biomes": ["rootTangle"] },
+      "drawChoices": 3,
+      "choices": [
+        { "text": "Eat a red one.", "chance": 0.6, "success": { "text": "Sweet and hot. The body warms right through.", "bodyHp": [15, 30] }, "failure": { "text": "Very hot. Much too hot. The heads breathe out steam for an hour.", "bodyHp": [-15, -5], "moisture": [-4, -2] } },
+        { "text": "Eat a blue one.", "outcome": { "text": "Cold and wet inside, like a cave in a skin.", "moisture": [5, 10] } },
+        { "text": "Eat a grey one.", "chance": 0.5, "success": { "text": "It tastes of nothing, and then of everything you have ever eaten. The heads remember things they had better have forgotten, among them the way here.", "reveal": 6 }, "failure": { "text": "It tastes of nothing, and then of Old Mother Toad's cooking. Nobody speaks of it.", "headsHp": [-5, -2] } },
+        { "text": "Eat the humming one.", "chance": 0.4, "success": { "text": "The humming goes down and keeps on humming, lower, in the belly. It is not unpleasant. It may be permanent.", "mutation": "rootSlither" }, "failure": { "text": "The humming goes down, and comes back up, louder, in a different key.", "headsHp": [-8, -4] } },
+        { "text": "Leave them hanging.", "always": true, "outcome": { "text": "The pods sway after you, humming among themselves." } }
+      ]
+    },
+    {
+      "id": "knottedPrayers",
+      "title": "Knotted Prayers",
+      "text": "Ribbons of the Order are tied to the roots here, one every few yards, each with a prayer stitched on it. FOR THOSE WHO WALK THE ROOTS. FOR THOSE THE ROOTS WALK. FOR BROTHER EADMER, WHO WENT AHEAD.",
+      "conditions": { "biomes": ["rootTangle"] },
+      "choices": [
+        { "text": "Follow the ribbons.", "outcome": { "text": "They lead deeper, one after another, until you know where they are going even without them.", "lead": { "event": "brotherEadmer", "distance": [10, 18] } } },
+        { "text": "Eat the ribbons.", "outcome": { "text": "Linen and good intentions. Not filling.", "bodyHp": 5 } },
+        { "text": "Leave them be.", "outcome": { "text": "Behind you the ribbons stir, though there is no wind." } }
+      ]
+    },
+    {
+      "id": "brotherEadmer",
+      "title": "Brother Eadmer, Who Went Ahead",
+      "byLeadOnly": true,
+      "text": "At the end of the ribbons sits Brother Eadmer, or most of him. The roots have taken the rest. He is perfectly calm. 'Ah,' he says. 'Are you the next brother? You have more heads than they said.'",
+      "choices": [
+        { "text": "Say you are the next brother.", "outcome": { "text": "He gives you his blessing, his rosary and the key to a chest the roots have long since eaten. The rosary is mostly bone.", "bones": [5, 9], "bodyHp": [10, 20] } },
+        { "text": "Free him.", "needsHead": "strangler", "outcome": { "text": "The roots let him go reluctantly, and he walks off in the wrong direction, singing. The Order will count him as a miracle.", "alert": [-8, -4] } },
+        { "text": "Leave him with the roots.", "outcome": { "text": "'Tell them I went ahead,' he says. The roots tighten, kindly." } }
+      ]
+    },
+    {
+      "id": "ninefoldGardener",
+      "title": "The Gardener of the Ninefold",
+      "priority": 1,
+      "text": "A thin woman is training roots into a shape with nine long necks. She has been at it for years. When she sees you she drops her shears and kneels, and then gets up again, because her knees are not what they were.",
+      "conditions": { "biomes": ["rootTangle", "floodedCaves", "fungalDeeps"], "flags": ["ninefoldFriend"] },
+      "choices": [
+        { "text": "Admire the hedge.", "outcome": { "text": "You admire it from all angles at once. She cries a little, and gives you everything in her basket.", "muck": [6, 10], "moisture": [4, 8], "bodyHp": [10, 20] } },
+        { "text": "Ask what the Ninefold want.", "outcome": { "text": "'Only that you live,' she says, 'and grow, and that one day there are nine of you, and then the song will have a chorus.' She draws you a map to a quiet place.", "reveal": 10 } }
+      ]
+    },
+
+    {
+      "id": "ossuaryAudit",
+      "title": "The Ossuary Audit",
+      "text": "A friar of the Order sits among the stacked skulls with an abacus and a ledger. 'Four thousand and eleven,' he says, without looking up. 'It should be four thousand and fourteen. Someone has been at the bones.'",
+      "conditions": { "biomes": ["oldCrypts"] },
+      "choices": [
+        {
+          "text": "Offer to help count.",
+          "outcome": {
+            "text": "He hands you the abacus. You count with him for an hour. It comes to four thousand and eleven, then four thousand and twelve, then he looks at your heads and goes very quiet.",
+            "then": {
+              "choices": [
+                { "text": "Let him count you in.", "outcome": { "text": "He enters you in the ledger, carefully, as three assets. The books balance. He thanks you and leaves, and the Order will find nothing wrong.", "alert": [-6, -3] } },
+                { "text": "Take the three missing ones yourselves.", "outcome": { "text": "The books will never balance now, which keeps him busy for the rest of his life.", "bones": [4, 7] } },
+                { "text": "Eat the abacus.", "needsHead": "glutton", "outcome": { "text": "The Glutton eats the abacus, bead by bead. The friar watches the last of his arithmetic go down and resigns on the spot.", "bones": 2, "alert": -4, "bodyHp": 10 } }
+              ]
+            }
+          }
+        },
+        { "text": "Take a few bones on the way past.", "outcome": { "text": "Four thousand and eight, says the friar, behind you, in a very small voice.", "bones": [3, 6], "alert": [2, 4] } },
+        { "text": "Leave him to his sums.", "outcome": { "text": "You go quietly. Four thousand and eleven, he says again." } }
+      ]
+    },
+    {
+      "id": "epitaphsForSale",
+      "title": "Epitaphs, Reasonable Rates",
+      "text": "A gravedigger sits by a pile of headstones with no names on them yet. He chisels in his sleep. 'Epitaphs,' he says. 'Written in advance. The song tells me who will need which.' He has a few that would fit you.",
+      "conditions": { "biomes": ["oldCrypts"] },
+      "drawChoices": 3,
+      "choices": [
+        { "text": "Buy 'SHE WAS NEVER SEEN'.", "cost": { "bones": 4 }, "outcome": { "text": "He hands it over. It is very light for a stone. The Order forgets a little of what it knew about you.", "alert": [-10, -6], "setFlags": ["metDiscordant"] } },
+        { "text": "Buy 'SHE ATE WELL'.", "cost": { "bones": 3 }, "outcome": { "text": "Under the stone, by long tradition, is a little food for the dead. You are the dead, for the time being.", "bodyHp": [20, 35], "setFlags": ["metDiscordant"] } },
+        { "text": "Buy 'SHE WENT DEEPER'.", "cost": { "bones": 3 }, "outcome": { "text": "On the back of the stone is a map, scratched in by someone who did.", "reveal": 10, "setFlags": ["metDiscordant"] } },
+        { "text": "Buy 'SHE KEPT HER HEADS'.", "cost": { "bones": 5 }, "outcome": { "text": "The heads read it to each other several times. They feel better about everything.", "headsHp": [8, 14], "setFlags": ["metDiscordant"] } },
+        { "text": "Buy 'SHE TOOK WHAT WAS OWED'.", "cost": { "bones": 2 }, "outcome": { "text": "He winks, and lifts the corner of the stone. Muck, a great deal of it, owed to somebody.", "muck": [8, 14], "setFlags": ["metDiscordant"] } },
+        { "text": "Not today.", "always": true, "outcome": { "text": "'They all say that,' he says, and goes back to chiselling. You glimpse your name on the next stone.", "setFlags": ["metDiscordant"] } }
+      ]
+    },
+    {
+      "id": "sealedSarcophagus",
+      "title": "A Sealed Sarcophagus",
+      "text": "A stone coffin with the lid chained down. On the lid, a notice of the Order: DO NOT OPEN. THE OCCUPANT HAS BEEN DEALT WITH. Underneath, scratched from the inside: NOT ENTIRELY.",
+      "conditions": { "biomes": ["oldCrypts"] },
+      "choices": [
+        {
+          "text": "Open it.",
+          "chance": 0.5,
+          "success": { "text": "Inside is a long-dead abbot and everything he was buried with, which was a great deal. He has no objection.", "bones": [6, 12], "muck": [3, 6] },
+          "failure": { "text": "Inside is a long-dead abbot who has some objections. By the time he has made them all, every head is bleeding and the Order heard the shouting.", "headsHp": [-10, -4], "alert": [3, 6] }
+        },
+        {
+          "text": "Read the rest of the scratching.",
+          "needsHead": "acidSpitter",
+          "outcome": {
+            "text": "The Acid Spitter dissolves the grime. Under NOT ENTIRELY, smaller: LEFT HIS RING IN THE NORTH CHAPEL. TELL NO ONE. And then a little map of the crypts.",
+            "lead": { "event": "abbotsRing", "distance": [10, 18] }
+          }
+        },
+        { "text": "Respect the notice.", "outcome": { "text": "From inside the coffin, very faintly, a sigh of disappointment." } }
+      ]
+    },
+    {
+      "id": "abbotsRing",
+      "title": "The Abbot's Ring",
+      "byLeadOnly": true,
+      "text": "A small chapel, sealed for a hundred years, and on its altar a ring with a stone the size of an egg. The Order's records call it lost. The Order's records are about to be right.",
+      "choices": [
+        { "text": "Swallow the ring.", "outcome": { "text": "It goes down cold and stays cold, a little stone moon in the belly. Things in the dark seem to notice you less.", "mutation": "paranoid", "alert": [-5, -2] } },
+        { "text": "Pry out the stone and trade the rest.", "outcome": { "text": "Gold is only mud that shines, the heads agree, and mud is useful.", "muck": [12, 18] } }
+      ]
+    },
+    {
+      "id": "choirOfOne",
+      "title": "A Choir of One",
+      "text": "In a burial niche, a skeleton in a choir robe stands with its jaw open. Air moves through the crypt and through it, and it sings: one long note, slightly flat. The heads all want to correct it.",
+      "conditions": { "biomes": ["oldCrypts", "saltMines"] },
+      "choices": [
+        { "text": "Sing the note properly.", "needsHead": "screamer", "outcome": { "text": "The Screamer gives it the right note. The skeleton falls to pieces with relief, and somewhere a long way below, something else falls silent too.", "headsHp": [6, 10] } },
+        {
+          "text": "Hum along.",
+          "chance": 0.5,
+          "success": { "text": "Two flat notes make a strange chord, and the crypt opens up to the ear: every passage and turning sounds out at once.", "reveal": 7 },
+          "failure": { "text": "Two flat notes make a terrible chord. A brother of the Order upstairs drops a tray.", "alert": [3, 6] }
+        },
+        { "text": "Let it sing.", "outcome": { "text": "It sings on behind you, flat, and faithful." } }
+      ]
+    },
+
+    {
+      "id": "saltExcise",
+      "title": "The Salt Excise",
+      "text": "A clerk of the Order sits at a folding desk in the middle of the mine. A sign: SALT EXCISE. ALL SALT LEAVING THIS MINE IS SUBJECT TO DUTY. He looks at you. He looks at the salt on your scales. He takes out a form.",
+      "conditions": { "biomes": ["saltMines"] },
+      "choices": [
+        { "text": "Pay the duty.", "cost": { "muck": 6 }, "outcome": { "text": "He stamps your scales. You are now a legal export of the Order. Patrols will wave you through, for a while.", "alert": [-9, -5] } },
+        { "text": "Contest the assessment.", "needsHead": "screamer", "outcome": { "text": "The Screamer contests it at length, and at volume. The clerk files a complaint against himself and leaves the desk to you.", "muck": [4, 8], "alert": 1 } },
+        { "text": "Eat him.", "outcome": { "text": "Undeclared. The Order notices its clerks, if not its salt.", "bones": [2, 4], "alert": [3, 6] } },
+        { "text": "Declare nothing and walk on.", "outcome": { "text": "He writes something down. You suspect it is your description." } }
+      ]
+    },
+    {
+      "id": "brineSpring",
+      "title": "A Brine Spring",
+      "text": "Water wells up through a crack in the salt floor, clear as glass. Bubbles rise in it, though nothing is breathing down there that you know of.",
+      "conditions": { "biomes": ["saltMines"] },
+      "choices": [
+        { "text": "Drink deep.", "chance": 0.5, "success": { "text": "Salty but sweet underneath. Your belly fills like a cistern.", "moisture": [8, 14] }, "failure": { "text": "All salt, and then more salt. Your hide crackles as it dries.", "moisture": [-4, -1], "condition": { "id": "salted", "turns": 3 } } },
+        { "text": "Wallow in it.", "outcome": { "text": "The salt draws the ache out of old wounds. It also draws out a fair amount of skin.", "bodyHp": [10, 25], "condition": { "id": "salted", "turns": 2 } } },
+        { "text": "Just look.", "outcome": { "text": "The bubbles keep rising. Something down there is patient." } }
+      ]
+    },
+    {
+      "id": "lastShift",
+      "title": "The Last Shift",
+      "text": "A miner is digging at the end of an old gallery with his bare hands. His pick is long gone, and most of his nails. 'It's just behind here,' he says. 'The song. I can hear it in the salt. One more shift.'",
+      "conditions": { "biomes": ["saltMines"] },
+      "choices": [
+        {
+          "text": "Listen at the rock with him.",
+          "outcome": {
+            "text": "The heads press to the salt. There is something: a rhythm, very faint, very deep, and very wrong, like a heartbeat with a stammer.",
+            "setFlags": ["metDiscordant"],
+            "then": {
+              "choices": [
+                {
+                  "text": "Help him dig.",
+                  "chance": 0.5,
+                  "success": { "text": "The salt gives way into a gallery nobody has seen for centuries. The miner walks into it, singing, and does not come back. You can see a long way from here.", "reveal": 9 },
+                  "failure": { "text": "The salt gives way, and so does the ceiling. The miner is not seen again. Neither, for a while, is your tail.", "bodyHp": [-25, -10] }
+                },
+                { "text": "Pull him out of there.", "outcome": { "text": "He fights, then weeps, then sleeps. When he wakes he tells you where the miners hid their stores before the Order took the mine.", "lead": { "event": "minersCache", "distance": [12, 20] } } },
+                { "text": "Leave him to his shift.", "outcome": { "text": "Behind you the scraping goes on. It keeps time, almost." } }
+              ]
+            }
+          }
+        },
+        { "text": "Leave him digging.", "outcome": { "text": "Behind you the scraping goes on. It keeps time, almost.", "setFlags": ["metDiscordant"] } }
+      ]
+    },
+    {
+      "id": "minersCache",
+      "title": "The Miners' Cache",
+      "byLeadOnly": true,
+      "text": "Behind a false wall of salt bricks: the miners' cache, hidden from the Order the year it took the mine. Tools, lamp oil, dried fish, and a little wooden hydra somebody carved, with nine heads, for luck.",
+      "choices": [
+        { "text": "Take it all.", "outcome": { "text": "The fish is a hundred years old and still good, which says something about salt.", "muck": [8, 14], "bodyHp": [15, 25] } },
+        { "text": "Take the little hydra.", "outcome": { "text": "The heads pass it round and argue over which of them it looks like. Somewhere, the Ninefold would approve.", "setFlags": ["ninefoldFriend"], "headsHp": [6, 10] } }
+      ]
+    },
+
+    {
+      "id": "sporeCommunion",
+      "title": "The Communion",
+      "text": "A hollow full of soft blue light, where the spores hang in the air so thick they have weather. Spirals turn in it, slowly, and the spirals have a sound, and the sound has a colour.",
+      "conditions": { "biomes": ["fungalDeeps"] },
+      "choices": [
+        {
+          "text": "Breathe in.",
+          "outcome": {
+            "text": "The heads breathe in together. For a moment there is one hydra, very large, and very calm. Then the spiral opens like an eye.",
+            "setFlags": ["heardMycelium"],
+            "then": {
+              "choices": [
+                {
+                  "text": "Follow the spiral inwards.",
+                  "chance": 0.6,
+                  "success": { "text": "At the centre of the spiral is the song, coiled, and every root and thread of the Deeps hums along with it. You know where everything moves, for a while.", "condition": { "id": "myceliumWhisper", "turns": 5 } },
+                  "failure": { "text": "At the centre of the spiral is another spiral, and another, and the heads come back one at a time, and not in the right order.", "headsHp": [-10, -4] }
+                },
+                { "text": "Look back the way you came.", "outcome": { "text": "From inside the light, the whole of the Deeps is laid out like a drawing. Something on the far side of the drawing is looking too, and waves.", "reveal": 10 } },
+                { "text": "Hold your breath and leave.", "outcome": { "text": "The heads come out coughing blue. They agree it was wonderful, and refuse to say why." } }
+              ]
+            }
+          }
+        },
+        { "text": "Don't breathe.", "outcome": { "text": "You go round it with every mouth shut. The light dims a little, offended." } }
+      ]
+    },
+    {
+      "id": "capThatTrades",
+      "title": "A Cap That Trades",
+      "text": "A mushroom as tall as a man, with a cap like a shopkeeper's awning. When you come close it speaks, in a voice made of rustling. 'Memories,' it says. 'I trade in memories. Yours for mine. Fair rates.'",
+      "conditions": { "biomes": ["fungalDeeps"] },
+      "drawChoices": 3,
+      "choices": [
+        { "text": "Trade the memory of the lair.", "outcome": { "text": "You remember the lair perfectly well afterwards, but not how it smelled. In return the cap gives you the tunnels around it.", "reveal": 9 } },
+        { "text": "Trade the memory of your mother.", "outcome": { "text": "Something goes quiet in the heads, and something grows in the body instead. They don't talk about it.", "bodyHp": [20, 30], "headsHp": [-4, -2] } },
+        { "text": "Trade the memory of the Order.", "chance": 0.5, "success": { "text": "Without it you move through the dark a little easier, and the Order seems to have forgotten you back.", "alert": [-10, -5] }, "failure": { "text": "You forget them, but they do not forget you. You walk straight past a warning sign you no longer understand.", "alert": [4, 8] } },
+        { "text": "Trade the memory of hunger.", "outcome": { "text": "It takes the hunger, and gives you a heap of the stuff it grows in.", "muck": [10, 16] } },
+        { "text": "Trade a bad dream.", "outcome": { "text": "'Oh,' says the cap, 'this one is good.' It gives you a whole lake's worth of dew.", "moisture": [8, 12] } },
+        { "text": "Keep your memories.", "always": true, "outcome": { "text": "'Everyone does, at first,' says the cap." } }
+      ]
+    },
+    {
+      "id": "slowKnight",
+      "title": "The Knight Who Walks Slowly",
+      "text": "A knight of the Order walks past you, very slowly, in full armour. Pale threads grow out of his visor and his gauntlets. He is going somewhere with great purpose, one step a minute. He does not look round.",
+      "conditions": { "biomes": ["fungalDeeps"] },
+      "choices": [
+        { "text": "Follow him.", "outcome": { "text": "It takes a long time. Eventually you see where he is going, and it is somewhere the mycelium wants seen.", "lead": { "event": "mycelialGarden", "distance": [10, 18] } } },
+        {
+          "text": "Eat him.",
+          "chance": 0.5,
+          "success": { "text": "Crunchy outside, soft inside. The threads were only on the surface. Mostly.", "bones": [4, 7], "bodyHp": [5, 15] },
+          "failure": { "text": "The threads were not only on the surface. For an hour one of the heads walks very slowly, with great purpose.", "headsHp": [-8, -4] }
+        },
+        { "text": "Let him pass.", "outcome": { "text": "He walks on. Somewhere ahead, something has been waiting for him for a long time." } }
+      ]
+    },
+    {
+      "id": "mycelialGarden",
+      "title": "The Garden Below",
+      "byLeadOnly": true,
+      "text": "Where the knight was going: a garden of white threads, laid out in rings around a dozen other knights of the Order, all standing perfectly still, all slowly flowering. It is beautiful. It is very quiet. It is also, the heads note, a larder.",
+      "choices": [
+        { "text": "Eat the flowers.", "outcome": { "text": "The flowers taste of iron and of a very long sleep. Afterwards the Deeps seem to talk to you.", "condition": { "id": "myceliumWhisper", "turns": 6 }, "bodyHp": [10, 20] } },
+        { "text": "Take the knights' purses.", "outcome": { "text": "They do not object. They have more important things to do now.", "muck": [10, 15], "bones": [3, 5] } },
+        { "text": "Leave the garden alone.", "outcome": { "text": "You go quietly. One of the knights turns his head, very slowly, to watch you go." } }
+      ]
+    },
+
+    {
+      "id": "pedlarOfWrongNotes",
+      "title": "The Pedlar of Wrong Notes",
+      "once": false,
+      "weight": 0.6,
+      "text": "A man with a cart full of junk and a bell that rings slightly off. Bits of tin hang from his hat and chime against each other on purpose. 'The song is out of tune,' he says, 'so everything is for sale.' The wares are different every time you look.",
+      "drawChoices": 4,
+      "choices": [
+        { "text": "Buy a jar of fog.", "cost": { "bones": 3 }, "outcome": { "text": "You open it. It is fog. Good fog, though.", "moisture": [6, 11], "setFlags": ["metDiscordant"] } },
+        { "text": "Buy a map, mostly accurate.", "cost": { "bones": 4 }, "outcome": { "text": "Mostly. The bits that are wrong are wrong in an interesting way.", "reveal": 9, "setFlags": ["metDiscordant"] } },
+        { "text": "Buy wax for the ears.", "cost": { "muck": 5 }, "outcome": { "text": "The heads stop hearing each other for an afternoon, and all of them feel much better.", "headsHp": [6, 12], "setFlags": ["metDiscordant"] } },
+        { "text": "Buy a forged indulgence.", "cost": { "bones": 5 }, "outcome": { "text": "Signed by a bishop who does not exist, sealed by one who does. The Order accepts it with a sigh.", "alert": [-10, -6], "setFlags": ["metDiscordant"] } },
+        { "text": "Buy something warm in a box.", "cost": { "muck": 6 }, "outcome": { "text": "Don't open the box. You can feel it through the box. Things that eat heat will smell it on you.", "condition": { "id": "warmed", "turns": 6 }, "setFlags": ["metDiscordant"] } },
+        { "text": "Buy a rumour.", "cost": { "bones": 2 }, "outcome": { "text": "He leans in. 'A hoard,' he whispers, 'a real one, and nobody guarding it but a hole.' He points. You are fairly sure he points.", "lead": { "event": "pedlarsHoard", "distance": [12, 22] }, "setFlags": ["metDiscordant"] } },
+        { "text": "Sell him your shed skin.", "outcome": { "text": "He pays in muck, and wears the skin as a hat at once.", "muck": [3, 6], "bodyHp": -5, "setFlags": ["metDiscordant"] } },
+        { "text": "Move on.", "always": true, "outcome": { "text": "His bell rings off-key behind you for a long time.", "setFlags": ["metDiscordant"] } }
+      ]
+    },
+    {
+      "id": "pedlarsHoard",
+      "title": "The Rumoured Hoard",
+      "byLeadOnly": true,
+      "text": "Where the pedlar pointed: a hole. At the bottom of the hole, something glints. Next to the hole, a sign in the pedlar's handwriting: HOARD. NOT A TRAP.",
+      "choices": [
+        {
+          "text": "Climb down.",
+          "chance": 0.6,
+          "success": { "text": "It was not a trap. It was, against every expectation, a hoard.", "muck": [12, 20], "bones": [4, 8] },
+          "failure": { "text": "It was not a trap, strictly. It was a hole, and you were in it for some time.", "bodyHp": [-20, -10], "muck": [2, 5] }
+        },
+        { "text": "Lower a head.", "needsHead": "strangler", "outcome": { "text": "The Strangler's long neck reaches the glint without the rest of you. A small hoard, honestly come by.", "muck": [8, 12] } },
+        { "text": "Trust nothing.", "outcome": { "text": "Very wise. Somewhere the pedlar is a little hurt." } }
+      ]
+    },
+    {
+      "id": "deadLetterBox",
+      "title": "The Dead Letter Box",
+      "text": "A box nailed to a post where three tunnels meet: POST FOR THE BRETHREN BELOW. COLLECTED WEEKLY. Nobody has collected it in years. It is stuffed with letters.",
+      "drawChoices": 3,
+      "choices": [
+        { "text": "Read the one marked URGENT.", "outcome": { "text": "'Brother, the patrols are moved to the east galleries. Do not tell the hydra.' Nobody told the hydra. The hydra read it.", "alert": [-6, -3] } },
+        { "text": "Read the one with the map.", "outcome": { "text": "A brother's directions to a cellar where he hid his wine. He has, the letter says, 'probably drunk it'.", "lead": { "event": "brothersCellar", "distance": [10, 18] } } },
+        { "text": "Read the love letter.", "outcome": { "text": "It is very long and very sincere, and is about a candle. The heads are moved, against their will.", "headsHp": [3, 8] } },
+        { "text": "Read the complaint.", "outcome": { "text": "Forty pages on the state of the underground latrines. You learn where the latrines are, and that is information.", "reveal": 6 } },
+        { "text": "Eat the post.", "always": true, "outcome": { "text": "Paper and sealing wax. The brethren below will never know what they missed.", "bodyHp": 5 } }
+      ]
+    },
+    {
+      "id": "brothersCellar",
+      "title": "A Brother's Cellar",
+      "byLeadOnly": true,
+      "text": "A small cellar behind a loose stone. Inside: nine bottles, eight empty, one full, and a brother of the Order asleep among them, smiling.",
+      "choices": [
+        { "text": "Drink the full bottle.", "chance": 0.6, "success": { "text": "Strong, sweet, and holy. The heads sing. None of them in the same song.", "bodyHp": [20, 30], "moisture": [3, 6] }, "failure": { "text": "Strong, sweet and holy, and the heads sing very loudly, and the brother wakes up and joins in, and then runs.", "alert": [4, 8], "bodyHp": 10 } },
+        { "text": "Take the bottle, leave the brother.", "outcome": { "text": "Muck for the bottle, and the brother sleeps on. When he wakes, he will blame himself.", "muck": [5, 9] } },
+        { "text": "Eat the brother.", "outcome": { "text": "Very relaxed.", "bones": [2, 4] } }
+      ]
+    },
+    {
+      "id": "oneCoilRegards",
+      "title": "The One Coil Sends Regards",
+      "priority": 1,
+      "text": "Across the tunnel someone has stretched a rope with a single knot in it, and from the rope hangs a snake skin with every head but one cut off. A note: THE SERPENT IS ONE. YOU HAVE BEEN WARNED. THIS IS THE SECOND WARNING.",
+      "conditions": { "flags": ["angeredOneCoil"], "rings": [1, 2, 3] },
+      "choices": [
+        { "text": "Cut the rope.", "chance": 0.5, "success": { "text": "Nothing happens. Then, far off, someone curses in a voice that has only one opinion.", "bones": [1, 3] }, "failure": { "text": "The rope was tied to the ceiling. The ceiling was tied to nothing.", "bodyHp": [-20, -10] } },
+        { "text": "Add heads to the skin.", "outcome": { "text": "You tie on knots for the missing heads, nine in all. The heads are proud of this. The One Coil will not be.", "headsHp": [3, 6] } },
+        { "text": "Go round.", "outcome": { "text": "You take another tunnel. It is the long way, which is also a kind of warning." } }
       ]
     },
 
