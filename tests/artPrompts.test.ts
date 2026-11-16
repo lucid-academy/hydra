@@ -21,6 +21,12 @@ describe('docs/ART_PROMPTS.md', () => {
     blocks.slice(1).forEach((block, i) => expect(block.startsWith(style), `prompt ${i + 1}`).toBe(true));
   });
 
+  it('the opening prompt for a GPT conversation carries the style block word for word', () => {
+    const opening = /## Prompt startowy[\s\S]*?```txt\n([\s\S]*?)```/.exec(prompts)?.[1];
+    expect(opening, 'the ```txt block under "## Prompt startowy"').toBeDefined();
+    expect(opening).toContain(style.trim());
+  });
+
   it('every prompt is named after an image the game knows', () => {
     const files = [...prompts.matchAll(/^###.*`([A-Za-z0-9_]+)\.png`/gm)].map((m) => m[1]!);
     expect(files.length).toBe(blocks.length - 1);
