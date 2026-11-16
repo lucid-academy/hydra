@@ -179,6 +179,9 @@ export class HudScene extends Phaser.Scene {
       if (this.menu.visible) return;
       if (event.key === 'Enter') this.run.endTurn();
       if (event.key === 'z' || event.key === 'Z') this.mapView()?.toggleView();
+      // + and − zoom the map a step (= and _ too, the same keys without Shift).
+      if (event.key === '+' || event.key === '=') this.mapView()?.zoomStep(1);
+      if (event.key === '-' || event.key === '_') this.mapView()?.zoomStep(-1);
       if ((event.key === 'm' || event.key === 'M') && this.run.state.hydra.layer === 'surface' && !this.placePanel.visible) this.run.exhaleMist();
       if (event.key === 'Escape' && this.placePanel.visible) this.run.leavePlace();
     });
@@ -580,9 +583,9 @@ export class HudScene extends Phaser.Scene {
   }
 
   /** The map screen's view controls, when it is running. */
-  private mapView(): { viewNow: () => MapView; toggleView: () => void } | null {
+  private mapView(): { viewNow: () => MapView; toggleView: () => void; zoomStep: (direction: 1 | -1) => void } | null {
     if (!this.scene.isActive(SceneKey.Map)) return null;
-    return this.scene.get(SceneKey.Map) as unknown as { viewNow: () => MapView; toggleView: () => void };
+    return this.scene.get(SceneKey.Map) as unknown as { viewNow: () => MapView; toggleView: () => void; zoomStep: (direction: 1 | -1) => void };
   }
 
   /** The view button offers the other view: Zoom out when near, Zoom in when far. */

@@ -53,8 +53,12 @@ const CARRIED_STEP_MS = 80;
 const SLITHER = { sway: 5, stretch: 0.07, carriedSway: 2 } as const;
 /** Below this page zoom (small screens, e.g. phones) the map camera zooms in 2×, so hexes are big enough for fingers. */
 const SMALL_SCREEN_ZOOM = 2;
-/** The player's zoom of the map (wheel, pinch), within these bounds, a wheel notch changing it this many times. */
-const MAP_ZOOM = { min: 0.4, max: 3, wheelStep: 1.2 } as const;
+/**
+ * The player's zoom of the map (wheel, pinch, keys), within these bounds. The wheel zooms by how far it turns
+ * (`perWheelPixel`: a usual notch of 100 px is about 1.2 times; a touchpad's small turns zoom a little), a key press
+ * `keyStep` times; both glide there, closing this share of the way in each `easeMs`.
+ */
+const MAP_ZOOM = { min: 0.4, max: 3, perWheelPixel: 0.0018, maxWheelPixels: 240, pixelsPerWheelLine: 33, keyStep: 1.25, easeMs: 70 } as const;
 /** The zoom is saved this long after the wheel or fingers last changed it. */
 const ZOOM_SAVE_DELAY_MS = 600;
 /** Switching between the Near and Far views (GAME_DESIGN.md §5.9) takes this long. */
@@ -272,8 +276,10 @@ export class MapScene extends Phaser.Scene {
   private chosenView: MapView | null = null;
   private animating = false;
   private press: { x: number; y: number; dragging: boolean } | null = null;
+  /** Where a gliding zoom (wheel, keys) is heading, and the screen point that stays put; null when still. */
+  private zoomGoal: { zoom: number; x: number; y: number } | null = null;
   /** Waits to save the zoom until the wheel or fingers stop. */
-  private zoomSave: Phaser.Time.TimerEvent | null = null;
+  private zoomSave: number | null = null;
   /** How far apart two fingers pinching the map were at the last move, or null. */
   private pinch: number | null = null;
   /** Catches presses on the map: it covers the whole screen, which depends on the camera's zoom. */
@@ -335,6 +341,7 @@ export class MapScene extends Phaser.Scene {
     this.mist = new Map();
     this.spores = new Map();
     this.zoomSave = null;
+    this.zoomGoal = null;
     this.draughts = new Map();
     this.echoes = new Map();
     this.heat = new Map();
@@ -1447,6 +1454,7 @@ export class MapScene extends Phaser.Scene {
   }
 
   override update(_time: number, delta: number): void {
+    if (this.zoomGoal) this.glideZoom(delta);
     this.life?.update(delta);
     this.cullOffScreen(false);
   }
@@ -1564,6 +1572,7 @@ export class MapScene extends Phaser.Scene {
     settings.mapView = view;
     settings.mapZoom = null;
     saveSettings(settings);
+    this.zoomGoal = null;
     this.chosenView = view;
     const target = getContext(this).data.balance.map.view[view];
     playerZoom = target;
@@ -1597,15 +1606,45 @@ export class MapScene extends Phaser.Scene {
   }
 
   /**
-   * The player zooms the map (mouse wheel, two fingers): by `factor`, keeping the spot under (x, y) on the screen
-   * where it is. The zoom stays for the rest of the game, through battles and Passages.
+   * Two fingers zoom the map at once by `factor`, keeping the spot under (x, y) on the screen where it is. Any zoom
+   * the player sets stays for the rest of the game, through battles and Passages, and is remembered.
    */
   private zoomBy(factor: number, x: number, y: number): void {
+    this.zoomGoal = null;
+    this.zoomAround(this.zoomNow() * factor, x, y);
+  }
+
+  /** The wheel or a key: the zoom glides to `factor` times where it was heading, around (x, y) on the screen. */
+  private zoomSmoothly(factor: number, x: number, y: number): void {
+    const from = this.zoomGoal?.zoom ?? this.zoomNow();
+    this.zoomGoal = { zoom: Math.min(MAP_ZOOM.max, Math.max(MAP_ZOOM.min, from * factor)), x, y };
+  }
+
+  /** The keys + and −: zoom in or out a step, around the middle of the screen. */
+  zoomStep(direction: 1 | -1): void {
+    const { width, height } = this.cameras.main;
+    this.zoomSmoothly(direction > 0 ? MAP_ZOOM.keyStep : 1 / MAP_ZOOM.keyStep, width / 2, height / 2);
+  }
+
+  /** One frame of a gliding zoom. */
+  private glideZoom(delta: number): void {
+    const goal = this.zoomGoal!;
+    const now = this.zoomNow();
+    let next = now + (goal.zoom - now) * (1 - Math.exp(-delta / MAP_ZOOM.easeMs));
+    if (Math.abs(goal.zoom - next) < 0.002) {
+      next = goal.zoom;
+      this.zoomGoal = null;
+    }
+    this.zoomAround(next, goal.x, goal.y);
+  }
+
+  /** Sets the map's zoom (within bounds), keeping the spot under (x, y) on the screen where it is. */
+  private zoomAround(zoom: number, x: number, y: number): void {
     const cam = this.cameras.main;
     const scale = viewScale(this);
     const now = cam.zoom / scale;
-    const next = Math.min(MAP_ZOOM.max, Math.max(MAP_ZOOM.min, now * factor));
-    if (Math.abs(next - now) < 0.001) return;
+    const next = Math.min(MAP_ZOOM.max, Math.max(MAP_ZOOM.min, zoom));
+    if (Math.abs(next - now) < 0.0005) return;
     const before = cam.getWorldPoint(x, y);
     cam.stopFollow();
     cam.setZoom(next * scale);
@@ -1621,14 +1660,18 @@ export class MapScene extends Phaser.Scene {
     this.rememberZoom();
   }
 
-  /** The zoom set with the wheel or fingers is saved once they stop (not on every notch), for the next visit. */
+  /**
+   * The zoom set with the wheel, keys or fingers is saved once they stop (not on every notch), for the next visit. A
+   * browser timer, not the scene's clock: that one runs slow when frames are slow.
+   */
   private rememberZoom(): void {
-    this.zoomSave?.remove();
-    this.zoomSave = this.time.delayedCall(ZOOM_SAVE_DELAY_MS, () => {
-      const settings = this.settings();
+    if (this.zoomSave !== null) window.clearTimeout(this.zoomSave);
+    const settings = this.settings();
+    this.zoomSave = window.setTimeout(() => {
+      this.zoomSave = null;
       settings.mapZoom = playerZoom;
       saveSettings(settings);
-    });
+    }, ZOOM_SAVE_DELAY_MS);
   }
 
   /** Stretches the input zone over the whole screen, whatever the camera's zoom. */
@@ -1680,7 +1723,11 @@ export class MapScene extends Phaser.Scene {
     if (this.input.manager.pointersTotal < 3) this.input.addPointer(1);
     this.pinch = null;
     this.input.on('wheel', (pointer: Phaser.Input.Pointer, _over: unknown, _dx: number, dy: number) => {
-      if (dy !== 0) this.zoomBy(dy > 0 ? 1 / MAP_ZOOM.wheelStep : MAP_ZOOM.wheelStep, pointer.x, pointer.y);
+      if (dy === 0) return;
+      // A wheel that counts in lines (some mice, Firefox) turns as far as about 33 px a line.
+      const lines = (pointer.event as WheelEvent | undefined)?.deltaMode === 1;
+      const pixels = Phaser.Math.Clamp(lines ? dy * MAP_ZOOM.pixelsPerWheelLine : dy, -MAP_ZOOM.maxWheelPixels, MAP_ZOOM.maxWheelPixels);
+      this.zoomSmoothly(Math.exp(-pixels * MAP_ZOOM.perWheelPixel), pointer.x, pointer.y);
     });
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       const [one, two] = [this.input.pointer1, this.input.pointer2];
