@@ -3,9 +3,9 @@
   "defaultVolume": 0.6,
   "minGapSeconds": 0.06,
   "cues": {
-    "//": "Which sound plays when (names from sounds below; leave a cue out for silence). ui: button (any button pressed), ending (the ending screen opens). map: things that happen on the map, by the game's name for them (newLand: a biome no hydra of the account has found before comes into sight). battle: headHits (a head hits a man), hydraHurt (a man hits a head or the body), severed, regrown, cauterized, combo, skill (a skill used), devoured, enemyKilled, brazierOut, flameDoused, flameOut (the Eternal Flame), won, lost (the end of a battle).",
+    "//": "Which sound plays when (names from sounds below; leave a cue out for silence). ui: button (any button pressed), ending (the ending screen opens). map: things that happen on the map, by the game's name for them (newLand: the first step into a biome no hydra of the account has found before; landEntered: the first step of this hydra into a biome found before). battle: headHits (a head hits a man), hydraHurt (a man hits a head or the body), severed, regrown, cauterized, combo, skill (a skill used), devoured, enemyKilled, brazierOut, flameDoused, flameOut (the Eternal Flame), won, lost (the end of a battle).",
     "ui": { "button": "click", "ending": "ending" },
-    "map": { "moved": "slither", "mistExhaled": "exhale", "shrineOut": "hiss", "castleOpened": "gate", "castleShut": "gate", "rested": "regrow", "mutationGained": "regrow", "thresholdOpened": "fall", "newLand": "newLand" },
+    "map": { "moved": "slither", "mistExhaled": "exhale", "shrineOut": "hiss", "castleOpened": "gate", "castleShut": "gate", "rested": "regrow", "mutationGained": "regrow", "thresholdOpened": "fall", "newLand": "newLand", "landEntered": "shimmer" },
     "battle": { "headHits": "bite", "hydraHurt": "hurt", "severed": "sever", "regrown": "regrow", "cauterized": "sizzle", "combo": "combo", "skill": "skill", "devoured": "gulp", "enemyKilled": "fall", "brazierOut": "hiss", "flameDoused": "hiss", "flameOut": "flameOut", "won": "victory", "lost": "defeat" }
   },
   "ambience": {
@@ -148,11 +148,20 @@
       { "wave": "noise", "from": 1100, "to": 380, "delay": 6.0, "seconds": 0.3, "volume": 0.18, "attack": 0.03 },
       { "wave": "noise", "from": 1300, "to": 420, "delay": 7.1, "seconds": 0.25, "volume": 0.15, "attack": 0.03 }
     ] },
-    "newLand": { "file": null, "volume": 0.3, "layers": [
+    "newLand": { "file": null, "volume": 0.34, "layers": [
+      { "wave": "noise", "from": 260, "to": 90, "delay": 0, "seconds": 1.8, "volume": 0.3, "attack": 0.25 },
+      { "wave": "sine", "from": 55, "to": 55, "delay": 0, "seconds": 2.8, "volume": 0.35, "attack": 0.4 },
       { "wave": "sine", "from": 110, "to": 110, "delay": 0, "seconds": 2.6, "volume": 0.5, "attack": 0.7 },
       { "wave": "sine", "from": 165, "to": 165, "delay": 0.15, "seconds": 2.4, "volume": 0.35, "attack": 0.7 },
       { "wave": "triangle", "from": 220, "to": 220, "delay": 0.3, "seconds": 2.2, "volume": 0.18, "attack": 0.7 },
-      { "wave": "sine", "from": 330, "to": 330, "delay": 0.6, "seconds": 1.8, "volume": 0.1, "attack": 0.5 }
+      { "wave": "sine", "from": 330, "to": 330, "delay": 0.6, "seconds": 1.8, "volume": 0.1, "attack": 0.5 },
+      { "wave": "triangle", "from": 660, "to": 660, "delay": 0.9, "seconds": 1.4, "volume": 0.05, "attack": 0.3 },
+      { "wave": "sine", "from": 880, "to": 990, "delay": 1.1, "seconds": 1.5, "volume": 0.04, "attack": 0.4 }
+    ] },
+    "shimmer": { "file": null, "volume": 0.2, "layers": [
+      { "wave": "sine", "from": 220, "to": 220, "delay": 0, "seconds": 1.4, "volume": 0.35, "attack": 0.35 },
+      { "wave": "sine", "from": 330, "to": 330, "delay": 0.12, "seconds": 1.3, "volume": 0.25, "attack": 0.35 },
+      { "wave": "triangle", "from": 660, "to": 700, "delay": 0.3, "seconds": 1.1, "volume": 0.08, "attack": 0.25 }
     ] },
     "wind": { "file": null, "volume": 0.3, "loop": true, "layers": [
       { "wave": "noise", "from": 500, "to": 500, "delay": 0, "seconds": 10, "volume": 0.9, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.1, "depth": 0.7 } },

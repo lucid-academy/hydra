@@ -1523,7 +1523,7 @@ const soundLayerSchema = section({
 /** Moments that can have a sound (sounds.json cues); a new one needs code that plays it. */
 export const SOUND_CUES = {
   ui: ['button', 'ending'],
-  map: ['moved', 'mistExhaled', 'shrineOut', 'castleOpened', 'castleShut', 'rested', 'mutationGained', 'thresholdOpened', 'eggLaid', 'battleWon', 'findTaken', 'headLevelled', 'alertStage', 'climbed', 'newLand'],
+  map: ['moved', 'mistExhaled', 'shrineOut', 'castleOpened', 'castleShut', 'rested', 'mutationGained', 'thresholdOpened', 'eggLaid', 'battleWon', 'findTaken', 'headLevelled', 'alertStage', 'climbed', 'newLand', 'landEntered'],
   battle: ['headHits', 'hydraHurt', 'severed', 'regrown', 'cauterized', 'combo', 'skill', 'devoured', 'enemyKilled', 'brazierOut', 'flameDoused', 'flameOut', 'won', 'lost'],
 } as const;
 const cueList = <T extends readonly [string, ...string[]]>(names: T) => z.partialRecord(z.enum(names), z.string().min(1));
