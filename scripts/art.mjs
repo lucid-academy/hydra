@@ -44,6 +44,8 @@ for (const name of existsSync(RAW) ? listPictures(RAW) : []) {
   const base = parse(name).name;
   const frame = /^(.+)_frame(\d+)$/.exec(base);
   const own = frame ? frame[1] : base;
+  // null in aliases.json marks a spare picture (a second attempt Piotr kept): left where it is, not imported.
+  if (aliases[own] === null) continue;
   const key = typeof aliases[own] === 'string' ? aliases[own] : own;
   const list = groups.get(key) ?? [];
   list.push({ name, order: frame ? Number(frame[2]) : 0 });
