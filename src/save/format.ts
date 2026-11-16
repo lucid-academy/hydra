@@ -11,7 +11,7 @@ import type { Lineage, Profile } from '../sim/lineage';
 import type { RunState } from '../sim/turn';
 
 export const PROFILE_FORMAT = 2;
-export const RUN_FORMAT = 8;
+export const RUN_FORMAT = 9;
 
 /** The run of the living hydra, with whose it is (a lineage's number and the hydra's generation). */
 export interface SavedRun {

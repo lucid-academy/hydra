@@ -2,12 +2,11 @@
 
 import type { BiomeSettings, PlaceSettings, SurfaceGeneratorSettings, UndergroundGeneratorSettings } from '../sim/map';
 import type { LineageRules } from '../sim/lineage';
-import type { EventOutcome, OrderGroupRules, OrderRules, PlaceAction, RunRules, StoryRules, SurfaceRules } from '../sim/turn';
+import type { EventChoiceRules, EventOutcome, EventStage, OrderGroupRules, OrderRules, PlaceAction, RunRules, StoryRules, SurfaceRules } from '../sim/turn';
 import { experienceRulesFrom } from './battleRules';
 import type { GameData } from './index';
-import type { Balance, EventsData, OrderData } from './schemas';
+import type { AmountData, Balance, EventChoiceData, EventOutcomeData, OrderData } from './schemas';
 
-type OutcomeData = NonNullable<EventsData['events'][number]['choices'][number]['outcome']>;
 
 /** `{ "remains": 40, "shrine": 20 }` → `[{ id: "remains", weight: 40 }, ...]`, leaving out weights of 0. */
 function weighted<T extends string>(weights: Partial<Record<T, number>>): Array<{ id: T; weight: number }> {
@@ -311,21 +310,40 @@ export function orderRulesFrom(order: OrderData): OrderRules {
 export function storyRulesFrom(data: GameData): StoryRules {
   const { dialogues, events } = data;
   const lines = (list: ReadonlyArray<{ speaker: string; text: string }> | undefined) => (list ?? []).map((l) => ({ speaker: l.speaker, text: l.text }));
-  const outcome = (o: OutcomeData): EventOutcome => ({
-    text: o.text,
-    loot: { muck: o.muck ?? 0, moisture: o.moisture ?? 0, bones: o.bones ?? 0 },
-    alert: o.alert ?? 0,
-    bodyHp: o.bodyHp ?? 0,
-    headsHp: o.headsHp ?? 0,
-    condition: o.condition ?? null,
-    reveal: o.reveal ?? 0,
-    battle: o.battle ?? null,
-    setFlags: o.setFlags ?? [],
-    dialogue: o.dialogue ?? null,
-    newHead: o.newHead ?? null,
-    bore: o.bore === true,
-    mutation: o.mutation ?? null,
+  // A number, or a range rolled when it happens: the range's low end stands as the fixed number.
+  const fixed = (a: AmountData | undefined) => (a === undefined ? 0 : typeof a === 'number' ? a : a[0]);
+  const outcome = (o: EventOutcomeData): EventOutcome => {
+    const ranges = Object.fromEntries((['muck', 'moisture', 'bones', 'alert', 'bodyHp', 'headsHp'] as const).flatMap((k) => (Array.isArray(o[k]) ? [[k, o[k]]] : [])));
+    return {
+      text: o.text,
+      loot: { muck: fixed(o.muck), moisture: fixed(o.moisture), bones: fixed(o.bones) },
+      alert: fixed(o.alert),
+      bodyHp: fixed(o.bodyHp),
+      headsHp: fixed(o.headsHp),
+      condition: o.condition ? { id: o.condition.id, turns: o.condition.turns } : null,
+      reveal: o.reveal ?? 0,
+      battle: o.battle ?? null,
+      setFlags: o.setFlags ?? [],
+      dialogue: o.dialogue ?? null,
+      newHead: o.newHead ?? null,
+      bore: o.bore === true,
+      mutation: o.mutation ?? null,
+      ranges,
+      then: o.then ? stage(o.then.choices, o.then.drawChoices) : null,
+      lead: o.lead ? { eventId: o.lead.event, distance: o.lead.distance } : null,
+    };
+  };
+  const choice = (c: EventChoiceData): EventChoiceRules => ({
+    text: c.text,
+    always: c.always === true,
+    needsHead: c.needsHead ?? null,
+    needsCondition: c.needsCondition ?? null,
+    cost: { muck: c.cost?.muck ?? 0, moisture: c.cost?.moisture ?? 0, bones: c.cost?.bones ?? 0 },
+    chance: c.chance ?? null,
+    success: outcome((c.outcome ?? c.success)!),
+    failure: c.failure ? outcome(c.failure) : null,
   });
+  const stage = (choices: readonly EventChoiceData[], drawChoices: number | undefined): EventStage => ({ choices: choices.map(choice), drawChoices: drawChoices ?? null });
   return {
     speakerNames: dialogues.speakers,
     serpentVoice: dialogues.serpentVoice,
@@ -351,15 +369,9 @@ export function storyRulesFrom(data: GameData): StoryRules {
       weight: e.weight ?? 1,
       once: e.once ?? true,
       conditions: e.conditions ?? {},
-      choices: e.choices.map((c) => ({
-        text: c.text,
-        needsHead: c.needsHead ?? null,
-        needsCondition: c.needsCondition ?? null,
-        cost: { muck: c.cost?.muck ?? 0, moisture: c.cost?.moisture ?? 0, bones: c.cost?.bones ?? 0 },
-        chance: c.chance ?? null,
-        success: outcome((c.outcome ?? c.success)!),
-        failure: c.failure ? outcome(c.failure) : null,
-      })),
+      choices: e.choices.map(choice),
+      drawChoices: e.drawChoices ?? null,
+      byLeadOnly: e.byLeadOnly === true,
     })),
     biomeNames: Object.fromEntries(Object.entries(data.biomes.biomes).map(([id, b]) => [id, b.displayName])),
     headClassNames: Object.fromEntries(Object.entries(data.heads.classes).map(([id, c]) => [id, c.displayName])),

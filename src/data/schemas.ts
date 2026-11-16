@@ -760,6 +760,8 @@ export const textSchema = z
       // {direction}: one of `directions`.
       tunnelBored: z.string().min(1),
       boreFailed: z.string().min(1),
+      leadPlaced: z.string().min(1),
+      leadLost: z.string().min(1),
       // {n}: body HP lost, e.g. "-8".
       burned: z.string().min(1),
       tunnelCooled: z.string().min(1),
@@ -811,7 +813,7 @@ export const textSchema = z
       gamble: z.string().min(1),
       cantAfford: z.string().min(1),
       // {n}: the amount, with its sign. {name}: the head class.
-      effects: section({ alert: z.string().min(1), bodyHp: z.string().min(1), headsHp: z.string().min(1), reveal: z.string().min(1), battle: z.string().min(1), newHead: z.string().min(1), mutation: z.string().min(1) }),
+      effects: section({ alert: z.string().min(1), bodyHp: z.string().min(1), headsHp: z.string().min(1), reveal: z.string().min(1), battle: z.string().min(1), newHead: z.string().min(1), mutation: z.string().min(1), lead: z.string().min(1) }),
     }),
     dialogue: section({ tapToContinue: z.string().min(1) }),
     shrine: section({
@@ -995,14 +997,59 @@ export const dialoguesSchema = section({
   ),
 });
 
-const eventOutcomeSchema = section({
+/** A number in events.json, or a range [min, max] rolled when it happens. */
+export type AmountData = number | [number, number];
+export interface EventOutcomeData {
+  '//'?: string;
+  text: string;
+  muck?: AmountData;
+  moisture?: AmountData;
+  bones?: AmountData;
+  alert?: AmountData;
+  bodyHp?: AmountData;
+  headsHp?: AmountData;
+  condition?: { '//'?: string; id: string; turns: number };
+  reveal?: number;
+  battle?: string;
+  setFlags?: string[];
+  dialogue?: string;
+  newHead?: string;
+  bore?: boolean;
+  mutation?: string;
+  then?: EventStageData;
+  lead?: { '//'?: string; event: string; distance: [number, number] };
+}
+export interface EventChoiceData {
+  '//'?: string;
+  text: string;
+  always?: boolean;
+  needsHead?: string;
+  needsCondition?: string;
+  cost?: { '//'?: string; muck?: number; moisture?: number; bones?: number };
+  outcome?: EventOutcomeData;
+  chance?: number;
+  success?: EventOutcomeData;
+  failure?: EventOutcomeData;
+}
+export interface EventStageData {
+  '//'?: string;
+  drawChoices?: number;
+  choices: EventChoiceData[];
+}
+
+const ordered = (a: [number, number]) => a[0] <= a[1];
+const intAmount = z.union([z.number().int(), z.tuple([z.number().int(), z.number().int()]).refine(ordered, 'a range is [min, max], min first')]);
+const anyAmount = z.union([z.number(), z.tuple([z.number().int(), z.number().int()]).refine(ordered, 'a range is [min, max], min first')]);
+const costSchema = section({ muck: z.number().int().min(0).optional(), moisture: z.number().int().min(0).optional(), bones: z.number().int().min(0).optional() });
+
+const eventOutcomeSchema: z.ZodType<EventOutcomeData> = section({
   text: z.string().min(1),
-  muck: z.number().int().optional(),
-  moisture: z.number().int().optional(),
-  bones: z.number().int().optional(),
-  alert: z.number().optional(),
-  bodyHp: z.number().int().optional(),
-  headsHp: z.number().int().optional(),
+  muck: intAmount.optional(),
+  moisture: intAmount.optional(),
+  bones: intAmount.optional(),
+  alert: anyAmount.optional(),
+  bodyHp: intAmount.optional(),
+  headsHp: intAmount.optional(),
   condition: section({ id: z.string().min(1), turns: z.number().int().min(1) }).optional(),
   reveal: z.number().int().min(0).optional(),
   battle: z.string().min(1).optional(),
@@ -1011,8 +1058,32 @@ const eventOutcomeSchema = section({
   newHead: z.string().min(1).optional(),
   bore: z.boolean().optional(),
   mutation: z.string().min(1).optional(),
+  // The story goes on: a next scene of the same event, with its own choices.
+  then: z.lazy(() => eventStageSchema).optional(),
+  // A lead: an event site with this event appears on the map, `distance` [min, max] hexes away.
+  lead: section({ event: z.string().min(1), distance: z.tuple([z.number().int().min(1), z.number().int().min(1)]).refine(ordered, 'distance is [min, max], min first') }).optional(),
 });
-const costSchema = section({ muck: z.number().int().min(0).optional(), moisture: z.number().int().min(0).optional(), bones: z.number().int().min(0).optional() });
+
+const eventChoiceSchema: z.ZodType<EventChoiceData> = section({
+  text: z.string().min(1),
+  always: z.boolean().optional(),
+  needsHead: z.string().min(1).optional(),
+  needsCondition: z.string().min(1).optional(),
+  cost: costSchema.optional(),
+  outcome: eventOutcomeSchema.optional(),
+  chance: share.optional(),
+  success: eventOutcomeSchema.optional(),
+  failure: eventOutcomeSchema.optional(),
+}).superRefine((c, ctx) => {
+  const gamble = c.chance !== undefined;
+  if (gamble && (!c.success || !c.failure || c.outcome)) ctx.addIssue({ code: 'custom', message: 'a gamble ("chance") needs "success" and "failure", and no "outcome"' });
+  if (!gamble && (!c.outcome || c.success || c.failure)) ctx.addIssue({ code: 'custom', message: 'needs an "outcome" (or "chance" with "success" and "failure")' });
+});
+
+const eventStageSchema: z.ZodType<EventStageData> = section({
+  drawChoices: z.number().int().min(1).optional(),
+  choices: z.array(eventChoiceSchema).min(1),
+});
 
 export const eventsSchema = section({
   events: z.array(
@@ -1024,28 +1095,27 @@ export const eventsSchema = section({
       priority: z.number().optional(),
       weight: z.number().positive().optional(),
       once: z.boolean().optional(),
+      byLeadOnly: z.boolean().optional(),
       conditions: storyConditionsSchema.optional(),
-      choices: z
-        .array(
-          section({
-            text: z.string().min(1),
-            needsHead: z.string().min(1).optional(),
-            needsCondition: z.string().min(1).optional(),
-            cost: costSchema.optional(),
-            outcome: eventOutcomeSchema.optional(),
-            chance: share.optional(),
-            success: eventOutcomeSchema.optional(),
-            failure: eventOutcomeSchema.optional(),
-          }).superRefine((c, ctx) => {
-            const gamble = c.chance !== undefined;
-            if (gamble && (!c.success || !c.failure || c.outcome)) ctx.addIssue({ code: 'custom', message: 'a gamble ("chance") needs "success" and "failure", and no "outcome"' });
-            if (!gamble && (!c.outcome || c.success || c.failure)) ctx.addIssue({ code: 'custom', message: 'needs an "outcome" (or "chance" with "success" and "failure")' });
-          }),
-        )
-        .min(1),
+      drawChoices: z.number().int().min(1).optional(),
+      choices: z.array(eventChoiceSchema).min(1),
     }),
   ),
 });
+
+/**
+ * Every choice of an event, in every scene (`then`), with where it is ("choices.1.success.then.choices.0") and its
+ * outcomes by name.
+ */
+export function eachEventChoice(choices: readonly EventChoiceData[], visit: (c: EventChoiceData, path: string, outcomes: Array<[string, EventOutcomeData]>) => void, prefix = 'choices'): void {
+  choices.forEach((c, j) => {
+    const path = `${prefix}.${j}`;
+    const outcomes: Array<[string, EventOutcomeData]> = [];
+    for (const [name, o] of [['outcome', c.outcome], ['success', c.success], ['failure', c.failure]] as const) if (o) outcomes.push([`${path}.${name}`, o]);
+    visit(c, path, outcomes);
+    for (const [at, o] of outcomes) if (o.then) eachEventChoice(o.then.choices, visit, `${at}.then.choices`);
+  });
+}
 
 // ---------------------------------------------------------------- generations: mutations.json, lineage.json, flags.json
 

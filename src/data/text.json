@@ -26,6 +26,8 @@
     "conditionEnded": "{name} wears off.",
     "tunnelBored": "The Cinderkin melt a tunnel through the rock, to the {direction}. It will burn for a while.",
     "boreFailed": "The swarm finds no rock thin enough nearby, and drifts off to look for some.",
+    "leadPlaced": "A lead: {name}, to the {direction}. It is marked on the map.",
+    "leadLost": "The trail goes cold before it goes anywhere.",
     "burned": "The tunnel is still molten. Body {n}.",
     "tunnelCooled": "The Cinder Bore has cooled.",
     "lastSeen": "{n} turns ago",
@@ -77,7 +79,8 @@
       "reveal": "The way ahead is clearer.",
       "battle": "The Order attacks.",
       "newHead": "A new {name} head grows.",
-      "mutation": "Mutation: {name}"
+      "mutation": "Mutation: {name}",
+      "lead": "A lead is marked on the map."
     }
   },
   "dialogue": {
