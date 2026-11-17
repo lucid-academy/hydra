@@ -1545,6 +1545,34 @@ export const soundsSchema = section({
     surface: z.string().min(1).nullable(),
     battle: z.string().min(1).nullable(),
   }),
-  sounds: entries(section({ file: z.string().min(1).nullable(), volume: share, loop: z.boolean().optional(), layers: z.array(soundLayerSchema).min(1) })),
+  // Music (the Big World trial): a looped track per biome, written as notes in its sound's `notes`.
+  music: section({
+    volume: share,
+    biomes: z.record(z.string(), z.string().min(1).nullable()).optional(),
+  }).optional(),
+  sounds: entries(
+    section({
+      file: z.string().min(1).nullable(),
+      volume: share,
+      loop: z.boolean().optional(),
+      layers: z.array(soundLayerSchema).min(1),
+      // A track's score: each note becomes a layer (src/audio/music.ts). Times are in beats.
+      beatSeconds: z.number().positive().optional(),
+      notes: z
+        .array(
+          section({
+            note: z.string().regex(/^[A-G][#b]?-?\d$/, 'a note like "D3", "Bb2" or "F#4"'),
+            at: z.number().min(0),
+            beats: z.number().positive(),
+            slideTo: z.string().regex(/^[A-G][#b]?-?\d$/).optional(),
+            wave: z.enum(['sine', 'square', 'triangle', 'sawtooth']).optional(),
+            volume: share.optional(),
+            attack: z.number().min(0).optional(),
+            wobble: section({ hz: z.number().positive(), depth: share }).optional(),
+          }),
+        )
+        .optional(),
+    }),
+  ),
 });
 export type SoundsData = z.infer<typeof soundsSchema>;

@@ -1,6 +1,7 @@
 // M7: sounds made in code (src/audio/synth.ts, src/data/sounds.json) and the player's sound settings.
 
 import { describe, expect, it } from 'vitest';
+import { noteLayers } from '../src/audio/music';
 import { renderSound, soundSeconds } from '../src/audio/synth';
 import type { SoundRecipe } from '../src/audio/synth';
 import { loadGameData } from '../src/data';
@@ -64,11 +65,14 @@ describe('the synth', () => {
     expect(Math.abs(once[once.length - 1]!)).toBeLessThan(0.01);
   });
 
-  it('every sound in sounds.json makes a short, audible clip (a background loop, a longer one)', () => {
+  it('every sound in sounds.json makes a short, audible clip (a background loop, a longer one; music longer still)', () => {
     for (const [id, sound] of Object.entries(data.sounds.sounds)) {
-      const samples = renderSound(sound, RATE);
-      expect(samples.length / RATE, id).toBeLessThan(sound.loop ? 15 : 3);
+      // A track's notes become layers before the synth renders it, as in SoundBoard.
+      const layers = sound.notes ? [...sound.layers, ...noteLayers(sound.notes, sound.beatSeconds ?? 0.5)] : sound.layers;
+      const samples = renderSound({ volume: sound.volume, loop: sound.loop ?? false, layers }, RATE);
+      expect(samples.length / RATE, id).toBeLessThan(sound.notes ? 60 : sound.loop ? 15 : 3);
       expect(peak(samples), id).toBeGreaterThan(0.02);
+      expect(peak(samples), id).toBeLessThanOrEqual(1);
       expect(samples.every((s) => Number.isFinite(s)), id).toBe(true);
     }
   });
