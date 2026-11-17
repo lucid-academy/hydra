@@ -10,6 +10,7 @@ import type { SoundsData } from '../data/schemas';
 import { loadSettings, saveSettings } from '../save';
 import type { Settings } from '../save';
 import { getContext } from '../scenes/context';
+import { noteLayers } from './music';
 import { renderSound } from './synth';
 
 const REGISTRY_KEY = 'soundBoard';
@@ -24,7 +25,8 @@ export const soundKey = (id: string): string => `sound_${id}`;
 export class SoundBoard {
   readonly settings: Settings;
   private readonly lastPlayed = new Map<string, number>();
-  private ambient: { id: string; sound: Phaser.Sound.BaseSound } | null = null;
+  /** The two long-lived loops: the place's background, and the music over it (the Big World trial). */
+  private readonly looped: Record<'ambience' | 'music', { id: string; sound: Phaser.Sound.BaseSound } | null> = { ambience: null, music: null };
 
   constructor(
     private readonly game: Phaser.Game,
@@ -62,15 +64,25 @@ export class SoundBoard {
   ambience(place: AmbiencePlace | null, biome?: string): void {
     const ofBiome = place === 'underground' && biome !== undefined ? this.data.ambience.biomes?.[biome] : undefined;
     const id = ofBiome !== undefined ? ofBiome : place ? this.data.ambience[place] : null;
-    if ((this.ambient?.id ?? null) === id) return;
-    if (this.ambient) this.fade(this.ambient.sound, 0, true);
-    this.ambient = null;
+    this.loop('ambience', id, this.data.ambience.volume);
+    // The biome's music plays over its background; anywhere without a track, the music fades away.
+    const music = this.data.music;
+    const track = music && place === 'underground' && biome !== undefined ? (music.biomes?.[biome] ?? null) : null;
+    this.loop('music', track, music?.volume ?? 0);
+  }
+
+  /** Keeps one of the long-lived loops on `id`: the one before fades out, the new one fades in. null: silence. */
+  private loop(channel: 'ambience' | 'music', id: string | null, volume: number): void {
+    if ((this.looped[channel]?.id ?? null) === id) return;
+    const before = this.looped[channel];
+    if (before) this.fade(before.sound, 0, true);
+    this.looped[channel] = null;
     if (id === null || !this.game.cache.audio.exists(soundKey(id))) return;
     try {
       const sound = this.game.sound.add(soundKey(id), { loop: true, volume: 0 });
       sound.play();
-      this.fade(sound, this.data.ambience.volume, false);
-      this.ambient = { id, sound };
+      this.fade(sound, volume, false);
+      this.looped[channel] = { id, sound };
     } catch {
       // No background, then.
     }
@@ -116,7 +128,9 @@ export class SoundBoard {
     const context = manager.context;
     for (const [id, sound] of Object.entries(this.data.sounds)) {
       if (this.game.cache.audio.exists(soundKey(id))) continue;
-      const samples = renderSound({ layers: sound.layers, volume: sound.volume, loop: sound.loop ?? false }, context.sampleRate);
+      // A track's notes (src/audio/music.ts) become ordinary layers next to the ones it spells out.
+      const layers = sound.notes ? [...sound.layers, ...noteLayers(sound.notes, sound.beatSeconds ?? 0.5)] : sound.layers;
+      const samples = renderSound({ layers, volume: sound.volume, loop: sound.loop ?? false }, context.sampleRate);
       const buffer = context.createBuffer(1, samples.length, context.sampleRate);
       buffer.copyToChannel(samples, 0);
       this.game.cache.audio.add(soundKey(id), buffer);

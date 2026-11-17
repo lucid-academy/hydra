@@ -1,5 +1,5 @@
 {
-  "//": "TODO(design): M7, sounds (answer E1 of the M7 plan): placeholders made in code until real sound files come; no music yet. Each sound: file (a sound file in public/, e.g. \"sounds/bite.ogg\"; null = made from its layers), volume (0..1), layers. A layer is a tone sliding from one pitch to another (wave sine, square, triangle or sawtooth; from and to in Hz) or a hiss (wave noise; from and to: how bright, in Hz), starting delay seconds after the sound starts, lasting seconds, rising to its volume in attack seconds and then fading out. defaultVolume: the volume a new player hears (the menu changes it, and it is remembered in the browser). minGapSeconds: the same sound plays at most this often (many hits in one moment make one sound).",
+  "//": "TODO(design): M7, sounds (answer E1 of the M7 plan): placeholders made in code until real sound files come; first music in the music section below. Each sound: file (a sound file in public/, e.g. \"sounds/bite.ogg\"; null = made from its layers), volume (0..1), layers. A layer is a tone sliding from one pitch to another (wave sine, square, triangle or sawtooth; from and to in Hz) or a hiss (wave noise; from and to: how bright, in Hz), starting delay seconds after the sound starts, lasting seconds, rising to its volume in attack seconds and then fading out. defaultVolume: the volume a new player hears (the menu changes it, and it is remembered in the browser). minGapSeconds: the same sound plays at most this often (many hits in one moment make one sound).",
   "defaultVolume": 0.6,
   "minGapSeconds": 0.06,
   "cues": {
@@ -15,6 +15,11 @@
     "biomes": { "lairSwamp": "swamp", "floodedCaves": "drippingCaves", "rootTangle": "creakingRoots", "oldCrypts": "cryptHush", "saltMines": "saltWind", "fungalDeeps": "sporeHum" },
     "surface": "wind",
     "battle": "battleHum"
+  },
+  "music": {
+    "//": "Music over a biome's background (names from sounds below; a biome not listed has none). A track is a looped sound that may carry notes next to its layers: { \"note\": \"D3\", \"at\": 4, \"beats\": 3 } plays D3 from beat 4 for 3 beats (beatSeconds: how long a beat is; A4 is 440 Hz). slideTo bends the note's pitch to another; wave, volume, attack and wobble as in a layer. The notes read like a score, so tune them freely: Claude cannot hear them.",
+    "volume": 0.5,
+    "biomes": { "fungalDeeps": "music_fungalDeeps" }
   },
   "sounds": {
     "click": { "file": null, "volume": 0.25, "layers": [
@@ -171,6 +176,21 @@
       { "wave": "sine", "from": 49, "to": 49, "delay": 0, "seconds": 8, "volume": 0.6, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.25, "depth": 0.3 } },
       { "wave": "triangle", "from": 73.5, "to": 73.5, "delay": 0, "seconds": 8, "volume": 0.2, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.125, "depth": 0.6 } },
       { "wave": "noise", "from": 300, "to": 300, "delay": 0, "seconds": 8, "volume": 0.5, "attack": 0.01, "sustain": true, "wobble": { "hz": 0.5, "depth": 0.3 } }
+    ] },
+    "music_fungalDeeps": { "file": null, "volume": 0.5, "loop": true, "beatSeconds": 1, "layers": [
+      { "wave": "sine", "from": 73.42, "to": 73.42, "delay": 0, "seconds": 32, "volume": 0.22, "attack": 3, "sustain": true, "wobble": { "hz": 0.08, "depth": 0.3 } },
+      { "wave": "sine", "from": 110, "to": 110, "delay": 0, "seconds": 32, "volume": 0.11, "attack": 5, "sustain": true, "wobble": { "hz": 0.05, "depth": 0.45 } },
+      { "wave": "noise", "from": 110, "to": 110, "delay": 0, "seconds": 32, "volume": 0.08, "attack": 4, "sustain": true, "wobble": { "hz": 0.13, "depth": 0.5 } }
+    ], "notes": [
+      { "note": "D4", "at": 2, "beats": 3, "volume": 0.14 },
+      { "note": "F4", "at": 6.5, "beats": 2.5, "volume": 0.11 },
+      { "note": "D5", "at": 9.5, "beats": 1.2, "volume": 0.06, "wave": "sine", "attack": 0.03, "wobble": { "hz": 6, "depth": 0.35 } },
+      { "note": "A3", "at": 11, "beats": 3, "volume": 0.13 },
+      { "note": "C4", "at": 16, "beats": 2.5, "volume": 0.1 },
+      { "note": "F5", "at": 19.5, "beats": 1.2, "volume": 0.05, "wave": "sine", "attack": 0.03, "wobble": { "hz": 7, "depth": 0.4 } },
+      { "note": "Bb3", "at": 20.5, "beats": 3, "volume": 0.12 },
+      { "note": "A3", "at": 25, "beats": 4, "volume": 0.1, "slideTo": "D3" },
+      { "note": "A5", "at": 28.5, "beats": 1, "volume": 0.04, "wave": "sine", "attack": 0.03, "wobble": { "hz": 6, "depth": 0.35 } }
     ] }
   }
 }
